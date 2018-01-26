@@ -12,19 +12,29 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = [
-    'Click>=6.0',
-    # TODO: put package requirements here
+    'numpy',
+    'homog',
+    'tqdm',
 ]
 
 setup_requirements = [
-    'pytest-runner',
-    # TODO(willsheffler): put setup requirements (distutils extensions, etc.)
-    # here
 ]
 
 test_requirements = [
+    'pip',
+    'wheel',
+    'watchdog',
+    'flake8',
+    'tox',
+    'coverage',
+    'PyYAML',
     'pytest',
-    # TODO: put package test requirements here
+    'pytest-runner',
+    'numpy',
+    'homog',
+    'tqdm',
+    # https://storage.googleapis.com/protein-design-ipd-public/wheelhouse/pyrosetta-2017.48.post0.dev0%2B93.fordas.dev.f126926bdc8-cp35-cp35m-linux_x86_64.whl
+    'pytest',
 ]
 
 setup(
