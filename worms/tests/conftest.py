@@ -1,9 +1,11 @@
 import pytest
 import os
 from os.path import join, dirname, abspath, exists
-import pyrosetta
-
-pyrosetta.init('-corrections:beta_nov16 -mute all')
+try:
+    import pyrosetta
+    pyrosetta.init('-corrections:beta_nov16 -mute all')
+except ImportError:
+    pass
 
 
 @pytest.fixture(scope='session')
