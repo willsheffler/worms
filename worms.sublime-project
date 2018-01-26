@@ -1,0 +1,21 @@
+{
+	"folders":
+	[
+		{
+			"path": ".",
+            "folder_exclude_patterns" : [".cache", ".tox", "build", "dist",
+                "*.egg-info", "__pycache__", "_build"]
+		}
+	],
+    "build_systems":
+    [
+        {
+            "name": "pytest",
+            "shell_cmd": "cd $folder; echo pwd: `pwd` > log/sublime_build.log; echo python: `which python` >> log/sublime_build.log; python worms &>> log/sublime_build.log"
+        },
+        {
+            "name": "make_docs",
+            "shell_cmd": "cd $folder; make docs &> log/sublime_build.log"
+        }
+    ]
+}

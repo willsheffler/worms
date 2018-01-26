@@ -2,6 +2,14 @@
 History
 =======
 
+0.1.2 (2018-01-23)
+------------------
+
+* Add __main__ for module to run tests
+* move worms.pdb to worms.data because pdb is kinda reserved
+* move utility stuff to util.py
+* add some interactive visualization utils for debugging
+
 0.1.1 (2018-01-23)
 ------------------
 

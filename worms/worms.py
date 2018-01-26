@@ -1,171 +1,26 @@
 import multiprocessing
 import os
-import sys
 import abc
-import functools as ft
 import itertools as it
 from collections.abc import Iterable
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from numpy.linalg import inv
-from tqdm import tqdm  # progress bar utility
 import homog as hm
 try:
     from pyrosetta import rosetta as ros
     from pyrosetta.rosetta.core import scoring
 except ImportError:
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
     print('pyrosetta not available, worms won\'t work')
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+from . import util
 
-
-identity44f8 = np.identity(4, dtype='f4')
-identity44f8 = np.identity(4, dtype='f8')
 Ux = np.array([1, 0, 0, 0])
 Uy = np.array([0, 1, 0, 0])
 Uz = np.array([0, 0, 1, 0])
 
 # todo: the following should go elsewhere...
-
-
-def cpu_count():
-    try: return int(os.environ['SLURM_CPUS_ON_NODE'])
-    except: return multiprocessing.cpu_count()
-
-
-def tqdm_parallel_map(pool, function, *args, **kw):
-    futures = [pool.submit(function, *a) for a in zip(*args)]
-    return (f.result() for f in tqdm(as_completed(futures),
-                                     total=len(futures), **kw))
-
-
-def numpy_stub_from_rosetta_stub(rosstub):
-    npstub = np.zeros((4, 4))
-    for i in range(3):
-        npstub[..., i, 3] = rosstub.v[i]
-        for j in range(3):
-            npstub[..., i, j] = rosstub.M(i + 1, j + 1)
-    npstub[..., 3, 3] = 1.0
-    return npstub
-
-
-def rosetta_stub_from_numpy_stub(npstub):
-    rosstub = ros.core.kinematics.Stub()
-    rosstub.M.xx = npstub[0, 0]
-    rosstub.M.xy = npstub[0, 1]
-    rosstub.M.xz = npstub[0, 2]
-    rosstub.M.yx = npstub[1, 0]
-    rosstub.M.yy = npstub[1, 1]
-    rosstub.M.yz = npstub[1, 2]
-    rosstub.M.zx = npstub[2, 0]
-    rosstub.M.zy = npstub[2, 1]
-    rosstub.M.zz = npstub[2, 2]
-    rosstub.v.x = npstub[0, 3]
-    rosstub.v.y = npstub[1, 3]
-    rosstub.v.z = npstub[2, 3]
-    return rosstub
-
-
-def get_bb_stubs(pose, which_resi=None):
-    'extract rif style stubs from rosetta pose'
-    if which_resi is None:
-        which_resi = list(range(1, pose.size() + 1))
-    npstubs = []
-    for ir in which_resi:
-        r = pose.residue(ir)
-        if not r.is_protein():
-            continue
-        ros_stub = ros.core.kinematics.Stub(
-            r.xyz('CA'), r.xyz('N'), r.xyz('CA'), r.xyz('C'))
-        npstubs.append(numpy_stub_from_rosetta_stub(ros_stub))
-    return np.stack(npstubs)
-
-
-def pose_bounds(pose, lb, ub):
-    if ub < 0: ub = len(pose) + 1 + ub
-    if lb < 1 or ub > len(pose):
-        raise ValueError('lb/ub ' + str(lb) + '/' + str(ub) +
-                         ' out of bounds for pose with len '
-                         + str(len(pose)))
-    return lb, ub
-
-
-def subpose(pose, lb, ub=-1):
-    lb, ub = pose_bounds(pose, lb, ub)
-    p = ros.core.pose.Pose()
-    ros.core.pose.append_subpose_to_pose(p, pose, lb, ub)
-    return p
-
-
-def xform_pose(xform, pose, lb=1, ub=-1):
-    lb, ub = pose_bounds(pose, lb, ub)
-    if xform.shape != (4, 4):
-        raise ValueError(
-            'invalid xform, must be 4x4 homogeneous matrix, shape is: '
-            + str(xform.shape))
-    xform = rosetta_stub_from_numpy_stub(xform)
-    ros.protocols.sic_dock.xform_pose(pose, xform, lb, ub)
-
-
-def worst_CN_connect(p):
-    for ir in range(1, len(p)):
-        worst = 0
-        if (p.residue(ir).is_protein() and
-                p.residue(ir + 1).is_protein() and not (
-                ros.core.pose.is_upper_terminus(p, ir) or
-                ros.core.pose.is_lower_terminus(p, ir + 1))):
-            dist = p.residue(ir).xyz('C').distance(p.residue(ir + 1).xyz('N'))
-            worst = max(abs(dist - 1.32), worst)
-    return worst
-
-
-def _trim_pose(pose, resid, direction, pad=0):
-    "trim end of pose from direction, leaving <=pad residues beyond resid"
-    if direction not in "NC":
-        raise ValueError("direction must be 'N' or 'C'")
-    if not 0 < resid <= len(pose):
-        raise ValueError("resid %i out of bounds %i" % (resid, len(pose)))
-    p = ros.core.pose.Pose()
-    if direction == 'N':
-        lb, ub = max(resid - pad, 1), len(pose)
-    elif direction == 'C':
-        lb, ub = 1, min(resid + pad, len(pose))
-    # print('_trim_pose lbub', lb, ub, 'len', len(pose), 'resid', resid)
-    ros.core.pose.append_subpose_to_pose(p, pose, lb, ub)
-    return p, lb, ub
-
-
-def reorder_spliced_as_N_to_C(body_chains, polarities):
-    "remap chains of each body such that concatenated chains are N->C"
-    if len(body_chains) != len(polarities) + 1:
-        raise ValueError('must be one more body_chains than polarities')
-    chains, pol = [[]], {}
-    if not all(0 < len(dg) for dg in body_chains):
-        raise ValueError('body_chains values must be [enterexit], '
-                         '[enter,exit], or [enter, ..., exit')
-    for i in range(1, len(polarities)):
-        if len(body_chains[i]) == 1:
-            if polarities[i - 1] != polarities[i]:
-                raise ValueError('polarity mismatch on single chain connect')
-    for i, dg in enumerate(body_chains):
-        chains[-1].append(dg[0])
-        if i != 0: pol[len(chains) - 1] = polarities[i - 1]
-        if len(dg) > 1: chains.extend([x] for x in dg[1:])
-    for i, chain in enumerate(chains):
-        if i in pol and pol[i] == 'C':
-            chains[i] = chains[i][::-1]
-    return chains
-
-
-def _symfile_path(name):
-    path, _ = os.path.split(__file__)
-    return os.path.join(path, 'rosetta_symdef', name + '.sym')
-
-
-@ft.lru_cache()
-def _get_symdata(name):
-    if name is None: return None
-    d = ros.core.conformation.symmetry.SymmData()
-    d.read_symmetry_data_from_file(_symfile_path(name))
-    return d
 
 
 class WormCriteria(abc.ABC):
@@ -224,7 +79,7 @@ class AxesIntersect(WormCriteria):
         self.symname = self.symname
         self.sym_axes = [self.tgtaxis1, self.tgtaxis2]
 
-    def score(self, segpos, verbose=False, **kw):
+    def score(self, segpos, verbosity=False, **kw):
         cen1 = segpos[self.from_seg][..., :, 3]
         cen2 = segpos[self.to_seg][..., :, 3]
         ax1 = segpos[self.from_seg][..., :, 2]
@@ -361,7 +216,7 @@ class Cyclic(WormCriteria):
             self.symname = 'C' + str(self.nfold)
         self.sym_axes = [(self.nfold, Uz, [0, 0, 0, 1])]
 
-    def score(self, segpos, *, verbose=False, **kw):
+    def score(self, segpos, *, verbosity=False, **kw):
         x_from = segpos[self.from_seg]
         x_to = segpos[self.to_seg]
         xhat = x_to @ inv(x_from)
@@ -389,7 +244,7 @@ class Cyclic(WormCriteria):
             #     relerrsq[np.isnan(relerrsq)] = 9e9
             #     # too much of a hack??
             #     carterrsq += self.relweight * relerrsq
-            if verbose:
+            if verbosity > 0:
                 print('axis', axis[0])
                 print('trans', trans[0])
                 print('dot trans', hm.hdot(trans, axis)[0])
@@ -603,7 +458,7 @@ class Segment:
             # just bog-standard homogeneous matrices
             # stubs = rcl.bbstubs(spliceable.body, resid_subset)['raw']
             # stubs = stubs.astype('f8')
-            stubs = get_bb_stubs(spliceable.body, resid_subset)
+            stubs = util.get_bb_stubs(spliceable.body, resid_subset)
             if len(resid_subset) != stubs.shape[0]:
                 raise ValueError("no funny residues supported")
             stubs_inv = inv(stubs)
@@ -616,11 +471,11 @@ class Segment:
                     for jsite, exit_site in exit_sites:
                         if isite != jsite and exit_site.polarity == self.exitpol:
                             for ires in entry_site.resids(spliceable):
-                                istub_inv = (identity44f8 if not ires
+                                istub_inv = (np.eye(4) if not ires
                                              else stubs_inv[to_subset[ires]])
                                 ires = ires or -1
                                 for jres in exit_site.resids(spliceable):
-                                    jstub = (identity44f8 if not jres
+                                    jstub = (np.eye(4) if not jres
                                              else stubs[to_subset[jres]])
                                     jres = jres or -1
                                     if not spliceable.is_compatible(
@@ -648,7 +503,7 @@ class Segment:
         bodies2 = [s.body for s in other.spliceables]
         return bodies1 == bodies2
 
-    def make_pose_chains(self, index, position=None, pad=(0, 0), ):
+    def make_pose_chains(self, index, position=None, pad=(0, 0), iseg=None):
         """returns (segchains, rest)
         segchains elems are [enterexitchain] or, [enterchain, ..., exitchain]
         rest holds other chains IFF enter and exit in same chain
@@ -664,21 +519,22 @@ class Segment:
         if ch_en: ir_en -= spliceable.start_of_chain[ch_en]
         if ch_ex: ir_ex -= spliceable.start_of_chain[ch_ex]
         assert ch_en or ch_ex
-        rest = {chains[i]: (pose, spliceable.start_of_chain[i] + 1,
+        rest = {chains[i]: (iseg, pose, spliceable.start_of_chain[i] + 1,
                             spliceable.end_of_chain[i])
                 for i in range(1, len(chains) + 1)}
         for p, tup in rest.items():
-            p0, lb, ub = tup
+            _, p0, lb, ub = tup
             assert p.sequence() == p0.sequence()[lb - 1:ub]
         if ch_en: del rest[chains[ch_en]]
         if ch_en == ch_ex:
             assert len(rest) + 1 == len(chains)
-            p, l1, u1 = _trim_pose(chains[ch_en], ir_en, self.entrypol, pad[0])
+            p, l1, u1 = util.trim_pose(
+                chains[ch_en], ir_en, self.entrypol, pad[0])
             iexit1 = ir_ex - (pl_ex == 'C') * (len(chains[ch_en]) - len(p))
-            p, l2, u2 = _trim_pose(p, iexit1, pl_ex, pad[1] - 1)
+            p, l2, u2 = util.trim_pose(p, iexit1, pl_ex, pad[1] - 1)
             lb = l1 + l2 - 1 + spliceable.start_of_chain[ch_en]
             ub = l1 + u2 - 1 + spliceable.start_of_chain[ch_en]
-            enex = [[p, (pose, lb, ub)]]
+            enex = [[p, (iseg, pose, lb, ub)]]
             assert p.sequence() == pose.sequence()[lb - 1:ub]
             rest = [[a, b] for a, b in rest.items()]
         else:
@@ -686,30 +542,31 @@ class Segment:
             p_en = [chains[ch_en]] if ch_en else []
             p_ex = [chains[ch_ex]] if ch_ex else []
             if p_en:
-                p, lben, uben = _trim_pose(
+                p, lben, uben = util.trim_pose(
                     p_en[0], ir_en, self.entrypol, pad[0])
                 lb = lben + spliceable.start_of_chain[ch_en]
                 ub = uben + spliceable.start_of_chain[ch_en]
-                p_en = [[p, (pose, lb, ub)]]
+                p_en = [[p, (iseg, pose, lb, ub)]]
                 assert p.sequence() == pose.sequence()[lb - 1:ub]
             if p_ex:
-                p, lbex, ubex = _trim_pose(
+                p, lbex, ubex = util.trim_pose(
                     p_ex[0], ir_ex, pl_ex, pad[1] - 1)
-                lb = lbex + spliceable.start_of_chain[ch_en]
-                ub = ubex + spliceable.start_of_chain[ch_en]
-                p_ex = [[p, (pose, lb, ub)]]
+                lb = lbex + spliceable.start_of_chain[ch_ex]
+                ub = ubex + spliceable.start_of_chain[ch_ex]
+                p_ex = [[p, (iseg, pose, lb, ub)]]
                 assert p.sequence() == pose.sequence()[lb - 1:ub]
             enex = p_en + [[a, b] for a, b in rest.items()] + p_ex
             rest = []
         if position is not None:
-            position = rosetta_stub_from_numpy_stub(position)
+            position = util.rosetta_stub_from_numpy_stub(position)
             for x in enex: x[0] = x[0].clone()
             for x in rest: x[0] = x[0].clone()
             for p, _ in it.chain(enex, rest):
                 ros.protocols.sic_dock.xform_pose(p, position)
         for p in it.chain(enex, rest):
             assert len(p) == 2
-            p0, lb, ub = p[1]
+            iseg1, p0, lb, ub = p[1]
+            assert iseg1 == iseg
             assert p[0].sequence() == p0.sequence()[lb - 1:ub]
         return enex, rest
 
@@ -720,22 +577,44 @@ def _cyclic_permute_chains(chainslist, polarity, spliceres):
     beg, end = chainslist[0], chainslist[-1]
     n2c = polarity == 'N'
     if n2c:
-        stub1 = get_bb_stubs(beg[0], [spliceres])
-        stub2 = get_bb_stubs(end[-1], [len(end[-1])])
-        beg[0] = pyrosetta.subpose(beg[0], spliceres + 1, len(beg[0]))
+        stub1 = util.get_bb_stubs(beg[0], [spliceres])
+        stub2 = util.get_bb_stubs(end[-1], [len(end[-1])])
+        beg[0] = util.subpose(beg[0], spliceres + 1, len(beg[0]))
         rm_lower_t(beg[0], 1)
         rm_upper_t(end[-1], len(end[-1]))
     else:
-        stub1 = get_bb_stubs(beg[-1], [spliceres])
-        stub2 = get_bb_stubs(end[0], [1])
-        beg[-1] = pyrosetta.subpose(beg[-1], 1, spliceres - 1)
+        stub1 = util.get_bb_stubs(beg[-1], [spliceres])
+        stub2 = util.get_bb_stubs(end[0], [1])
+        beg[-1] = util.subpose(beg[-1], 1, spliceres - 1)
         rm_lower_t(beg[-1], len(beg[-1]))
         rm_upper_t(end[0], 1)
     xalign = stub1['raw'][0] @ np.linalg.inv(stub2['raw'][0])
-    for p in end: xform_pose(xalign, p)
+    for p in end: util.xform_pose(xalign, p)
     if n2c: chainslist[0] = end + beg
     else: chainslist[0] = beg + end
     chainslist = chainslist[:-1]
+
+
+def reorder_spliced_as_N_to_C(body_chains, polarities):
+    "remap chains of each body such that concatenated chains are N->C"
+    if len(body_chains) != len(polarities) + 1:
+        raise ValueError('must be one more body_chains than polarities')
+    chains, pol = [[]], {}
+    if not all(0 < len(dg) for dg in body_chains):
+        raise ValueError('body_chains values must be [enterexit], '
+                         '[enter,exit], or [enter, ..., exit')
+    for i in range(1, len(polarities)):
+        if len(body_chains[i]) == 1:
+            if polarities[i - 1] != polarities[i]:
+                raise ValueError('polarity mismatch on single chain connect')
+    for i, dg in enumerate(body_chains):
+        chains[-1].append(dg[0])
+        if i != 0: pol[len(chains) - 1] = polarities[i - 1]
+        if len(dg) > 1: chains.extend([x] for x in dg[1:])
+    for i, chain in enumerate(chains):
+        if i in pol and pol[i] == 'C':
+            chains[i] = chains[i][::-1]
+    return chains
 
 
 class Worms:
@@ -773,14 +652,15 @@ class Worms:
             raise ValueError('cyclic_permute should only be used for Cyclic')
         iend = None if end else -1
         entryexits = [seg.make_pose_chains(self.indices[which][iseg],
-                                           self.positions[which][iseg])
+                                           self.positions[which][iseg],
+                                           iseg=iseg)
                       for iseg, seg in enumerate(self.segments[:iend])]
         entryexits, rest = zip(*entryexits)
         chainslist = reorder_spliced_as_N_to_C(
             entryexits, [s.entrypol for s in self.segments[1:iend]])
         if align:
             x = self.criteria.alignment(segpos=self.positions[which], **kw)
-            for p in it.chain(*chainslist, *rest): xform_pose(x, p[0])
+            for p in it.chain(*chainslist, *rest): util.xform_pose(x, p[0])
         if cyclic_permute and len(chainslist) > 1:
             # todo: this is only correct if 1st seg is one chain
             spliceres = self.segments[-1].entryresid[self.indices[which, -1]]
@@ -796,7 +676,14 @@ class Worms:
         prov0 = []
         splicepoints = []
         for chains, sources in zip(chainslist, sourcelist):
-            if only_connected and len(chains) is 1: continue
+            if (only_connected and len(chains) is 1 and
+                    (end or chains is not chainslist[-1])):
+                skipsegs = ((self.criteria.to_seg, self.criteria.from_seg)
+                            if not self.criteria.is_cyclic else [])
+                skipsegs = [len(self.segments) - 1 if x is -1 else x
+                            for x in skipsegs]
+                if ((only_connected == 'auto' and sources[0][0] in skipsegs)
+                    or only_connected != 'auto'): continue
             ros.core.pose.append_pose_to_pose(pose, chains[0], True)
             prov0.append(sources[0])
             for chain, source in zip(chains[1:], sources[1:]):
@@ -807,17 +694,17 @@ class Worms:
                 ros.core.pose.append_pose_to_pose(pose, chain, not join)
                 prov0.append(source)
         self.splicepoint_cache[which] = splicepoints
-        if not only_connected:
+        if not only_connected or only_connected == 'auto':
             for chain, source in it.chain(*rest):
                 assert isinstance(chain, ros.core.pose.Pose)
                 ros.core.pose.append_pose_to_pose(pose, chain, True)
                 prov0.append(source)
-        assert worst_CN_connect(pose) < 0.5
+        assert util.worst_CN_connect(pose) < 0.5
         if not provenance: return pose
         prov = []
         for i, pr in enumerate(prov0):
-            psrc, lb0, ub0 = pr
-            lb1 = sum(ub - lb + 1 for _, lb, ub in prov0[:i]) + 1
+            iseg, psrc, lb0, ub0 = pr
+            lb1 = sum(ub - lb + 1 for _, _, lb, ub in prov0[:i]) + 1
             ub1 = lb1 + ub0 - lb0
             assert ub0 - lb0 == ub1 - lb1
             assert 0 < lb0 <= len(psrc) and 0 < ub0 <= len(psrc)
@@ -857,7 +744,7 @@ class Worms:
         # return None, None if score else None
         if not fullatom:
             ros.core.util.switch_to_residue_type_set(p, 'centroid')
-        symdata = _get_symdata(self.criteria.symname)
+        symdata = util.get_symdata(self.criteria.symname)
         sfxn = self.score0sym
         if symdata is None: sfxn = self.score0
         else: ros.core.pose.symmetry.make_symmetric_pose(p, symdata)
@@ -1011,9 +898,9 @@ def _check_topology(segments, criteria, expert=False):
 
 
 def grow(segments, criteria, *, thresh=2, expert=0, memsize=1e6,
-         executor=None, max_workers=None, verbose=0, jobmult=128,
+         executor=None, max_workers=None, verbosity=0, jobmult=128,
          chunklim=None):
-    if verbose:
+    if verbosity > 0:
         print('grow, from', criteria.from_seg, 'to', criteria.to_seg)
         for i, seg in enumerate(segments):
             print(' segment', i, 'enter:', seg.entrypol, 'exit:', seg.exitpol)
@@ -1025,20 +912,21 @@ def grow(segments, criteria, *, thresh=2, expert=0, memsize=1e6,
     if executor is None:
         executor = ThreadPoolExecutor  # todo: some kind of null executor?
         max_workers = 1
-    if max_workers is None: max_workers = cpu_count()
+    if max_workers is None: max_workers = util.cpu_count()
     sizes = [len(s.bodyid) for s in segments]
     end = len(segments) - 1
     while end > 1 and (np.prod(sizes[end:]) < max_workers or
                        memsize <= 64 * np.prod(sizes[:end])): end -= 1
     ntot, chunksize, nchunks = (np.product(x)
                                 for x in (sizes, sizes[:end], sizes[end:]))
-    nworker = max_workers or cpu_count()
+    nworker = max_workers or util.cpu_count()
     njob = nworker * jobmult
     njob = min(njob, nchunks)
-    print('tot = {:,}, chunksize = {:,}, nchunks = {:,}, nworker = {}, '
-          'njob = {}, worm/job = {:,}, chunk/job = {}, sizes={}'.format(
-              ntot, chunksize, nchunks, nworker, njob,
-              ntot / njob, nchunks / njob, sizes))
+    if verbosity >= 0:
+        print('tot: {:,} chunksize: {:,} nchunks: {:,} nworker: {} '
+              'njob: {} worm/job: {:,} chunk/job: {} sizes={}'.format(
+                  ntot, chunksize, nchunks, nworker, njob,
+                  ntot / njob, nchunks / njob, sizes))
 
     # run the stuff
     tmp = [s.spliceables for s in segments]
@@ -1047,10 +935,10 @@ def grow(segments, criteria, *, thresh=2, expert=0, memsize=1e6,
         context = (sizes[end:], njob, segments, end, criteria, thresh,
                    matchlast)
         args = [range(njob)] + [it.repeat(context)]
-        chunks = tqdm_parallel_map(
+        chunks = util.tqdm_parallel_map(
             pool, _grow_chunks, *args,
             unit='K worms', ascii=0, desc='growing worms',
-            unit_scale=int(ntot / njob / 1000))
+            unit_scale=int(ntot / njob / 1000), disable=verbosity < 0)
         chunks = [x for x in chunks if x is not None]
     for s, t in zip(segments, tmp): s.spliceables = t  # put the poses back
 
@@ -1061,7 +949,7 @@ def grow(segments, criteria, *, thresh=2, expert=0, memsize=1e6,
     lowidx = np.concatenate([c[1] for c in chunks])[order]
     lowpos = np.concatenate([c[2] for c in chunks])[order]
     lowposlist = [lowpos[:, i] for i in range(len(segments))]
-    score_check = criteria.score(segpos=lowposlist, verbose=verbose)
+    score_check = criteria.score(segpos=lowposlist, verbosity=verbosity)
     assert np.allclose(score_check, scores)
     detail = dict(ntot=ntot, chunksize=chunksize, nchunks=nchunks,
                   nworker=nworker, njob=njob, sizes=sizes, end=end)

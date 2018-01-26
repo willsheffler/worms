@@ -24,17 +24,16 @@ def show_with_axis(worms, idx=0):
     print(ang)
     print(cen)
     axis *= 100
-    showme(pose, name='unit')
+    vis.showme(pose, name='unit')
     xform_pose(x, pose)
-    showme(pose, name='sym1')
+    vis.showme(pose, name='sym1')
     xform_pose(x, pose)
-    showme(pose, name='sym2')
+    vis.showme(pose, name='sym2')
     showline(axis, cen)
     showsphere(cen)
 
 
 def show_with_z_axes(worms, idx=0, only_connected=0, **kw):
-    from rif.vis.vispymol import showme, showline, showsphere
     pose = worms.pose(idx, align=0, end=1, only_connected=only_connected, **kw)
     x_from = worms.positions[idx][worms.criteria.from_seg]
     x_to = worms.positions[idx][worms.criteria.to_seg]
@@ -42,7 +41,7 @@ def show_with_z_axes(worms, idx=0, only_connected=0, **kw):
     cen2 = x_to[..., :, 3]
     axis1 = x_from[..., :, 2] * 100
     axis2 = x_to[..., :, 2] * 100
-    showme(pose)
+    vis.showme(pose)
     import pymol
     pymol.finish_launching()
     showline(axis1, cen1)
@@ -63,16 +62,16 @@ def test_sym_bug(c1pose, c2pose):
                 Segment([dimer], entry='N', exit='C'),
                 Segment([helix], entry='N', exit='C'),
                 Segment([helix], entry='N'), ]
-    wnc = grow(segments, Cyclic('C3', lever=200), thresh=1, verbose=1)
+    wnc = grow(segments, Cyclic('C3', lever=200), thresh=1, verbosity=1)
     assert len(wnc)
     print(wnc.scores)
     p = wnc.pose(0, align=1, end=1)
-    # showme(p)
+    # vis.showme(p)
     # show_with_axis(wnc, 0)
     # assert 0
     # q = wnc.pose(4)
-    # showme(p, name='carterr')
-    # showme(q, name='angerr')
+    # vis.showme(p, name='carterr')
+    # vis.showme(q, name='angerr')
     assert residue_sym_err(wnc.pose(0, end=True), 120, 2, 46, 6) < 2.5
     # assert 0
 
@@ -153,7 +152,7 @@ def test_geom_check():
 def test_segment_geom(c1pose):
     "currently only a basic sanity checkb... only checks translation distances"
     body = c1pose
-    stubs = get_bb_stubs(body)
+    stubs = util.get_bb_stubs(body)
     assert stubs.shape == (body.size(), 4, 4)
 
     nsplice = SpliceSite(polarity='N', sele=[1, 2, ])
@@ -309,7 +308,7 @@ def test_pose_alignment_0(c1pose):
         assert tuple(w.indices[i]) in ((0, 2, 1, 2, 0), (2, 1, 2, 0, 0),
                                        (1, 2, 0, 2, 0), (2, 0, 2, 1, 0))
     pose = w.pose(0, align=1, end=1)
-    # showme(pose)
+    # vis.showme(pose)
     xyz0 = np.array([pose.residue(1).xyz(2)[i] for i in (0, 1, 2)] + [1])
     # resid 43 happens to be the symmetrically related one for this solution
     xyz1 = np.array([pose.residue(42).xyz(2)[i] for i in (0, 1, 2)] + [1])
@@ -545,8 +544,8 @@ def test_splicepoints(c1pose, c2pose, c3pose):
         ib1, ic1, ir1, ib2, ic2, ir2, dr = splice
         pose1 = w.segments[i].spliceables[ib1].chains[ic1]
         pose2 = w.segments[i + 1].spliceables[ib2].chains[ic2]
-        seq1 = str(subpose(pose1, 1, ir1 - 1).sequence())
-        seq2 = str(subpose(pose2, ir2).sequence())
+        seq1 = str(util.subpose(pose1, 1, ir1 - 1).sequence())
+        seq2 = str(util.subpose(pose2, ir2).sequence())
         # print(i, '1', seq1, str(actual_chains[i].sequence()))
         # print(i, '2', seq2, str(actual_chains[i + 1].sequence()))
         assert seq1.endswith(str(actual_chains[i].sequence()))
@@ -569,8 +568,8 @@ def test_cyclic_permute(c1pose, c2pose):
     print(w.scores)
     assert 0
 
-    showme(w.pose(0, cyclic_permute=1))
-    showme(w.pose(0, cyclic_permute=0, end=1))
+    vis.showme(w.pose(0, cyclic_permute=1))
+    vis.showme(w.pose(0, cyclic_permute=0, end=1))
 
 
 @pytest.mark.skipif('not HAVE_PYROSETTA')
@@ -591,7 +590,7 @@ def test_multichain_mixed_pol(c2pose, c3pose, c1pose):
     assert len(w) == 24
     p = w.pose(0, end=True, cyclic_permute=0)
     # show_with_axis(w, 0)
-    # showme(p)
+    # vis.showme(p)
 
     assert 2 > residue_sym_err(p, 120, 2, 62, 7)
 
@@ -638,7 +637,7 @@ def test_D3(c2pose, c3pose, c1pose):
     # print(w.scores)
     # show_with_z_axes(w, 0)
     p = w.pose(4, only_connected=0)
-    # showme(p)
+    # vis.showme(p)
     assert 1 > residue_sym_err(p, 180, 1, 13, 6, axis=[1, 0, 0])
     assert 1 > residue_sym_err(p, 120, 56, 65, 6, axis=[0, 0, 1])
 
@@ -708,7 +707,7 @@ def test_icos(c2pose, c3pose, c1pose):
     w = grow(segments, Icosahedral(c3=-1, c2=0), thresh=2)
     assert len(w) == 3
     p = w.pose(2, only_connected=0)
-    # showme(p)
+    # vis.showme(p)
     assert 2 > residue_sym_err(p, 120, 90, 99, 6, axis=IA[3])
     assert 2 > residue_sym_err(p, 180, 2, 14, 6, axis=IA[2])
 
@@ -861,7 +860,7 @@ def test_origin_seg(c1pose, c2pose, c3pose):
              executor=ProcessPoolExecutor, max_workers=8)
     assert len(w) > 0
     print(w.scores[:10])
-    # showme(w.sympose(0))
+    # vis.showme(w.sympose(0))
     assert 0
 
 
@@ -890,3 +889,88 @@ def test_provenance(c1pose):
             srcseq = src_pose.sequence()[src_lb - 1:src_ub]
             seq = pose.sequence()[lb - 1:ub]
             assert srcseq == seq
+
+
+@pytest.mark.skipif('not HAVE_PYROSETTA')
+def test_extra_chain_handling_cyclic(c1pose, c2pose, c3hetpose):
+    helix = Spliceable(c1pose, [(':1', 'N'), ('-4:', 'C')])
+    dimer = Spliceable(c2pose, sites=[('1,:3', 'N'), ('1,-3:', 'C')])
+    trimer = Spliceable(c3hetpose, sites=[('1,:3', 'N'), ('2,-3:', 'C')])
+
+    segments = [Segment([helix], '_C'),
+                Segment([dimer], 'NC'),
+                Segment([helix], 'N_'), ]
+    w = grow(segments, Cyclic(9), thresh=3)
+    assert len(w) == 1
+    assert tuple(w.indices[0]) == (2, 7, 0)
+    p, prov = w.pose(0, provenance=1, only_connected=0)
+    assert len(prov) == 3
+    assert prov[0] == (1, 11, c1pose, 1, 11)
+    assert prov[1] == (12, 19, c2pose, 3, 10)
+    assert prov[2] == (20, 31, c2pose, 13, 24)
+    p, prov = w.pose(0, provenance=1, only_connected=1)
+    assert len(prov) == 2
+    assert prov[0] == (1, 11, c1pose, 1, 11)
+    assert prov[1] == (12, 19, c2pose, 3, 10)
+    p, prov = w.pose(0, provenance=1, only_connected='auto')
+    assert len(prov) == 3
+    assert prov[0] == (1, 11, c1pose, 1, 11)
+    assert prov[1] == (12, 19, c2pose, 3, 10)
+    assert prov[2] == (20, 31, c2pose, 13, 24)
+
+    segments = [Segment([helix], '_C'),
+                Segment([trimer], 'NC'),
+                Segment([helix], 'N_'), ]
+    w = grow(segments, Cyclic(6), thresh=3)
+    assert len(w) == 1
+    assert tuple(w.indices[0]) == (3, 7, 0)
+    p, prov = w.pose(0, provenance=1, only_connected=0)
+    assert len(prov) == 4
+    assert prov[0] == (1, 12, c1pose, 1, 12)
+    assert prov[1] == (13, 19, c3hetpose, 3, 9)
+    assert prov[2] == (20, 28, c3hetpose, 19, 27)
+    assert prov[3] == (29, 35, c3hetpose, 10, 16)
+    p, prov = w.pose(0, provenance=1, only_connected=1)
+    assert len(prov) == 3
+    assert prov[0] == (1, 12, c1pose, 1, 12)
+    assert prov[1] == (13, 19, c3hetpose, 3, 9)
+    # assert prov[2] == (20, 28, c3hetpose, 19, 27)
+    assert prov[2] == (20, 26, c3hetpose, 10, 16)
+    p, prov = w.pose(0, provenance=1, only_connected='auto')
+    assert len(prov) == 4
+    assert prov[0] == (1, 12, c1pose, 1, 12)
+    assert prov[1] == (13, 19, c3hetpose, 3, 9)
+    assert prov[2] == (20, 28, c3hetpose, 19, 27)
+    assert prov[3] == (29, 35, c3hetpose, 10, 16)
+
+
+@pytest.mark.skipif('not HAVE_PYROSETTA')
+def test_extra_chain_handling_cyclic(c1pose, c2pose, c3pose, c3hetpose):
+    helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', 'C')])
+    dimer = Spliceable(c2pose, sites=[('1,:1', 'N'), ('1,-1:', 'C')])
+    trimer = Spliceable(c3pose, sites=[('1,:1', 'N'), ('1,-2:', 'C')])
+    hettri = Spliceable(c3hetpose, sites=[('1,:1', 'N'), ('1,-1:', 'C')])
+    segments = [Segment([trimer], exit='C'),
+                Segment([helix], entry='N', exit='C'),
+                Segment([helix], entry='N', exit='C'),
+                Segment([hettri], entry='N', exit='C'),
+                Segment([helix], entry='N', exit='C'),
+                Segment([dimer], entry='N')]
+    w = grow(segments, D3(c2=-1, c3=0), thresh=1)
+    assert len(w) == 4
+    assert w.pose(0, only_connected='auto').num_chains() == 3
+    assert w.pose(0, only_connected=0).num_chains() == 6
+    assert w.pose(0, only_connected=1).num_chains() == 1
+
+    hettri = Spliceable(c3hetpose, sites=[('1,:1', 'N'), ('2,-1:', 'C')])
+    segments = [Segment([trimer], exit='C'),
+                Segment([helix], entry='N', exit='C'),
+                Segment([helix], entry='N', exit='C'),
+                Segment([hettri], entry='N', exit='C'),
+                Segment([helix], entry='N', exit='C'),
+                Segment([dimer], entry='N')]
+    w = grow(segments, D3(c2=-1, c3=0), thresh=1)
+    assert len(w) == 1
+    assert w.pose(0, only_connected='auto').num_chains() == 3
+    assert w.pose(0, only_connected=0).num_chains() == 6
+    assert w.pose(0, only_connected=1).num_chains() == 2

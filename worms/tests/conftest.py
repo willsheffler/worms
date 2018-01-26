@@ -4,14 +4,15 @@ from os.path import join, dirname, abspath, exists
 try:
     import pyrosetta
     pyrosetta.init('-corrections:beta_nov16 -mute all')
+    print("pyrosetta initialized successfully!")
 except ImportError:
-    pass
+    print("no module pyrosetta")
 
 
 @pytest.fixture(scope='session')
 def pdbdir():
     root = join(dirname(__file__), '..')
-    d = join(root, 'pdb')
+    d = join(root, 'data')
     assert exists(d)
     return d
 
@@ -74,6 +75,11 @@ def c2pose(pdbdir):
 @pytest.fixture(scope='session')
 def c3pose(pdbdir):
     return get_pose(pdbdir, 'c3.pdb')
+
+
+@pytest.fixture(scope='session')
+def c3hetpose(pdbdir):
+    return get_pose(pdbdir, 'c3het.pdb')
 
 
 @pytest.fixture(scope='session')

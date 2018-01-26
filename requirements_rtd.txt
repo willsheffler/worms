@@ -6,6 +6,7 @@ flake8
 tox
 coverage
 Sphinx
+sphinx_rtd_theme
 cryptography
 PyYAML
 pytest
