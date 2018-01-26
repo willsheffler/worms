@@ -9,7 +9,7 @@ Sphinx==1.6.6
 cryptography==2.1.4
 PyYAML==3.12
 pytest==3.3.2
-pytest-runner
+pytest-runner==3.0
 numpy
 homog
 tqdm
