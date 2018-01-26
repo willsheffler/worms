@@ -1,4 +1,7 @@
-import pyrosetta
+try:
+    import pyrosetta
+except ImportError:
+    print('no pyrosetta!')
 from functools import lru_cache
 
 
@@ -17,4 +20,4 @@ class PoseLib:
         return self.get(name)
 
 
-poselib = PoseLib() if rcl.HAVE_PYROSETTA else None
+poselib = PoseLib()

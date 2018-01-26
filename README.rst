@@ -28,7 +28,7 @@ Protein Origami via Genetic Fusions
 Features
 --------
 
-* TODO
+please send angry emails to willsheffler@gmail.com until there are docs here.
 
 Credits
 ---------
