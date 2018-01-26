@@ -24,3 +24,6 @@ deploy:
     tags: true
     repo: willsheffler/worms
     python: 3.5
+
+
+after_failure: "cat /home/travis/build/willsheffler/worms/.tox/py35/log/py35-1.log"
