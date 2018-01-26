@@ -1,0 +1,40 @@
+symmetry_name C2_2
+subunits 4
+number_of_interfaces 3
+E = 2*AT1 + 1*(AT1:AT2) + 1*(AT1:BT1) + 1*(AT1:BT2)
+anchor_residue COM
+#
+virtual_coordinates_start
+#
+xyz ROOT +1,+0,+0 +0,+1,+0 0,0,0
+xyz CENA +1,+0,+0 +0,+1,+0 0,0,0
+xyz CENB +1,+0,+0 +0,+1,+0 0,0,0
+#
+#CENA dimer virtuals
+xyz AT1 0,0,1 +0.0000000,+1.0000000,0 0,0,0
+xyz AT2 0,0,1 +0.0000000,-1.0000000,0 0,0,0
+#
+#CENB dimer virtuals
+xyz BT1 0,0,1 +0.0000000,+1.0000000,0 0,0,0
+xyz BT2 0,0,1 +0.0000000,-1.0000000,0 0,0,0
+virtual_coordinates_stop
+#
+connect_virtual JRCA ROOT CENA
+connect_virtual JRCB ROOT CENB
+#
+connect_virtual JCA1 CENA AT1
+connect_virtual JCA2 CENA AT2
+connect_virtual JAS1 AT1 SUBUNIT A
+connect_virtual JAS2 AT2 SUBUNIT A
+#
+connect_virtual JCB1 CENB BT1
+connect_virtual JCB2 CENB BT2
+connect_virtual JBS1 BT1 SUBUNIT B
+connect_virtual JBS2 BT2 SUBUNIT B
+#
+set_dof JRCA z angle_z
+set_dof JRCB z angle_z
+set_dof JBS1 x y z angle_x angle_y angle_z
+#
+set_jump_group GJAS JAS1 JAS2
+set_jump_group GJBS JBS1 JBS2

@@ -1,13 +1,10 @@
 # Config file for automatic testing at travis-ci.org
 # This file will be regenerated if you run travis_pypi_setup.py
 
+dist: xenial
 language: python
 python:
   - 3.5
-  - 3.4
-  - 3.3
-  - 2.7
-  - 2.6
 
 # command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
 install: pip install -U tox-travis
@@ -26,4 +23,4 @@ deploy:
   on:
     tags: true
     repo: willsheffler/worms
-    python: 2.7
+    python: 3.5

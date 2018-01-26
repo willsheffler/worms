@@ -1,0 +1,46 @@
+symmetry_name D2_2
+
+subunits 4
+
+number_of_interfaces 3
+
+E = 2*SUB_A_UP_1 + 1*(SUB_A_UP_1:SUB_A_UP_2) + 1*(SUB_A_UP_1:SUB_A_DN_1) + 1*(SUB_A_UP_1:SUB_A_DN_2)
+
+anchor_residue COM
+
+virtual_coordinates_start
+
+xyz CEN         0,0,+1 +0.0000000,+1.0000000,0 0,0,0
+
+xyz CEN_UP      0,0,+1 +0.0000000,+1.0000000,0 0,0,0
+xyz CEN_A_UP    0,0,+1 +0.0000000,+1.0000000,0 0,0,0
+xyz SUB_A_UP_1  0,0,+1 +0.0000000,+1.0000000,0 0,0,0
+xyz SUB_A_UP_2  0,0,+1 -0.0000000,-1.0000000,0 0,0,0
+
+xyz CEN_DN      0,0,-1 -0.0000000,-1.0000000,0 0,0,0
+xyz CEN_A_DN    0,0,-1 -0.0000000,-1.0000000,0 0,0,0
+xyz SUB_A_DN_1  0,0,-1 +0.0000000,+1.0000000,0 0,0,0
+xyz SUB_A_DN_2  0,0,-1 -0.0000000,-1.0000000,0 0,0,0
+
+virtual_coordinates_stop
+
+connect_virtual J__CEN__to__CEN_UP CEN CEN_UP
+connect_virtual J__CEN__to__CEN_DN CEN CEN_DN
+
+connect_virtual J__CEN_UP__to__CEN_A_UP CEN_UP CEN_A_UP
+connect_virtual J__CEN_DN__to__CEN_A_DN CEN_DN CEN_A_DN
+
+connect_virtual J__CEN_A_UP__to__SUB_A_UP_1 CEN_A_UP SUB_A_UP_1
+connect_virtual J__CEN_A_UP__to__SUB_A_UP_2 CEN_A_UP SUB_A_UP_2
+connect_virtual J__CEN_A_DN__to__SUB_A_DN_1 CEN_A_DN SUB_A_DN_1
+connect_virtual J__CEN_A_DN__to__SUB_A_DN_2 CEN_A_DN SUB_A_DN_2
+
+connect_virtual J__SUB_A_UP_1__to__SUB_UNIT SUB_A_UP_1 SUBUNIT
+connect_virtual J__SUB_A_UP_2__to__SUB_UNIT SUB_A_UP_2 SUBUNIT
+connect_virtual J__SUB_A_DN_1__to__SUB_UNIT SUB_A_DN_1 SUBUNIT
+connect_virtual J__SUB_A_DN_2__to__SUB_UNIT SUB_A_DN_2 SUBUNIT
+
+set_dof J__CEN_UP__to__CEN_A_UP x angle_x
+
+set_jump_group JG_CEN_1 J__CEN_UP__to__CEN_A_UP J__CEN_DN__to__CEN_A_DN
+set_jump_group JG__to__SUB_UNITS J__SUB_A_UP_1__to__SUB_UNIT J__SUB_A_UP_2__to__SUB_UNIT J__SUB_A_DN_1__to__SUB_UNIT J__SUB_A_DN_2__to__SUB_UNIT

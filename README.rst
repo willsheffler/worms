@@ -18,7 +18,7 @@ worms
      :alt: Updates
 
 
-Protion Origami via Genetic Fusions
+Protein Origami via Genetic Fusions
 
 
 * Free software: Apache Software License 2.0
