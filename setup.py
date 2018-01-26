@@ -35,11 +35,11 @@ setup(
     author="Will Sheffler",
     author_email='willsheffler@gmail.com',
     url='https://github.com/willsheffler/worms',
-    packages=find_packages(include=['worms']),
+    packages=find_packages(),
     include_package_data=True,
     install_requires=requirements,
     license="Apache Software License 2.0",
-    zip_safe=False,
+    zip_safe=True,
     keywords='worms',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
@@ -49,7 +49,7 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
-    test_suite='tests',
+    test_suite='worms/tests',
     tests_require=test_requirements,
     setup_requires=setup_requirements,
 )
