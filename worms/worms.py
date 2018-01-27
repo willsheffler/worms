@@ -632,7 +632,7 @@ class Worms:
         self.splicepoint_cache = {}
 
     def pose(self, which, *, align=True, end=None, join=True,
-             only_connected=None, cyclic_permute=False, provenance=False,
+             only_connected='auto', cyclic_permute=False, provenance=False,
              **kw):
         "makes a pose for the ith worm"
         if isinstance(which, Iterable): return (
