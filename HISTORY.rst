@@ -2,6 +2,12 @@
 History
 =======
 
+0.1.4 (2018-02-01)
+------------------
+
+* add fullatom option to Worms.sympose
+* cyclic premutation working for simple beginning-to-end case
+
 0.1.2 (2018-01-23)
 ------------------
 

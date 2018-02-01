@@ -546,20 +546,30 @@ class Worms:
         if not 0 <= which < len(self):
             raise IndexError('invalid worm index')
         p, prov = self.pose(which, provenance=True)
+        if fullatom: pfull = p.clone()
+        pcen = p
         # todo: why is asym scoring broken?!?
         # try: score0asym = self.score0(p)
         # except: score0asym = 9e9
         # if score0asym > asym_score_thresh:
         # return None, None if score else None
-        if not fullatom:
-            ros.core.util.switch_to_residue_type_set(p, 'centroid')
+        ros.core.util.switch_to_residue_type_set(pcen, 'centroid')
         symdata = util.get_symdata(self.criteria.symname)
         sfxn = self.score0sym
         if symdata is None: sfxn = self.score0
-        else: ros.core.pose.symmetry.make_symmetric_pose(p, symdata)
-        if score and provenance: return p, sfxn(p), prov
-        if score: return p, sfxn(p)
-        if provenance: return p, prov
+        else: ros.core.pose.symmetry.make_symmetric_pose(pcen, symdata)
+        if fullatom:
+            if symdata is not None:
+                ros.core.pose.symmetry.make_symmetric_pose(pfull, symdata)
+            p = pfull
+        else:
+            p = pcen
+        if score and provenance:
+            return p, sfxn(pcen), prov
+        if score:
+            return p, sfxn(pcen)
+        if provenance:
+            return p, prov
         return p
 
     def splices(self, which):
