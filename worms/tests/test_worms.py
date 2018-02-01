@@ -517,7 +517,7 @@ def test_splicepoints(c1pose, c2pose, c3pose):
 
 
 @pytest.mark.skipif('not HAVE_PYROSETTA')
-def test_cyclic_permute(c1pose, c2pose):
+def test_cyclic_permute_beg_end(c1pose, c2pose):
     helix = Spliceable(
         c1pose, sites=[((1, 2, 3,), 'N'), ((9, 10, 11, 13), 'C')])
     dimer = Spliceable(c2pose, sites=[('1,:1', 'N'), ('1,-1:', 'C'),
@@ -551,6 +551,40 @@ def test_cyclic_permute(c1pose, c2pose):
     # vis.showme(w.pose(0, cyclic_permute=1), name='cp')
     # print('------------------------')
     # assert 0
+
+
+@pytest.mark.skip
+@pytest.mark.skipif('not HAVE_PYROSETTA')
+def test_cyclic_permute_mid_end(c1pose, c2pose, c3hetpose):
+    helix0 = Spliceable(c1pose, [('2:2', 'N'), ('11:11', "C")])
+    helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', "C")])
+    dimer = Spliceable(c2pose, sites=[('1,:1', 'N'), ('1,-1:', 'C'),
+                                      ('2,:1', 'N'), ('2,-1:', 'C')])
+    c3het = Spliceable(c3hetpose, sites=[
+        ('1,2:2', 'N'), ('2,2:2', 'N'), ('3,2:2', 'N')])
+    segments = [Segment([helix0], '_C'),
+                Segment([helix0], 'NC'),
+                Segment([helix0], 'NC'),
+                Segment([c3het], 'NN'),
+                Segment([helix], 'CN'),
+                Segment([helix], 'CN'),
+                Segment([dimer], 'CC'),
+                Segment([helix], 'NC'),
+                Segment([helix], 'NC'),
+                Segment([c3het], 'N_'), ]
+    w = grow(segments, Cyclic(3, from_seg=3), thresh=1)
+    assert 0
+    vis.showme(w.pose(0, cyclic_permute=0, end=0), name='cp0_end0')
+    vis.showme(w.pose(0, cyclic_permute=0, end=1), name='cp0_end1')
+    vis.showme(w.pose(0, cyclic_permute=1), name='cp1')
+
+    assert 0
+    for i in range(len(w)):
+        pose, score = w.sympose(i, score=1)
+        print(score)
+    assert len(w)
+
+    assert 0
 
 
 @pytest.mark.skipif('not HAVE_PYROSETTA')
@@ -940,7 +974,7 @@ def test_extra_chain_handling_noncyclic(c1pose, c2pose, c3pose, c3hetpose):
                 Segment([helix], entry='N', exit='C'),
                 Segment([dimer], entry='N')]
     w = grow(segments, D3(c2=-1, c3=0), thresh=1)
-    vis.showme(w.sympose(0, fullatom=1))
+    # vis.showme(w.sympose(0, fullatom=1))
     assert len(w) == 4
     assert w.pose(0, only_connected='auto').num_chains() == 3
     assert w.pose(0, only_connected=0).num_chains() == 6

@@ -291,7 +291,7 @@ class Segment:
         if cyclictrim and cyclictrim[1] < 0:
             cyclictrim = cyclictrim[0], cyclictrim[1] + len(segments)
         if cyclictrim and iseg == cyclictrim[0]:
-            assert ir_en == -1, 'paece sign not implemented yet'
+            # assert ir_en == -1, 'paece sign not implemented yet'
             ir_en = segments[cyclictrim[1]].entryresid[indices[cyclictrim[1]]]
             # annotate enex entries with cyclictrim info
             cyclic_entry[pose.chain(ir_en)] = iseg, ir_en
@@ -313,11 +313,12 @@ class Segment:
         if ch_en: ir_en -= spliceable.start_of_chain[ch_en]
         if ch_ex: ir_ex -= spliceable.start_of_chain[ch_ex]
         assert ch_en or ch_ex
-        rest = {chains[i]: AnnoPose(chains[i], iseg, pose,
-                                    spliceable.start_of_chain[i] + 1,
-                                    spliceable.end_of_chain[i],
-                                    cyclic_entry[i])
-                for i in range(1, len(chains) + 1)}
+        rest = {}
+        for i in range(1, len(chains) + 1):
+            rest[chains[i]] = AnnoPose(chains[i], iseg, pose,
+                                       spliceable.start_of_chain[i] + 1,
+                                       spliceable.end_of_chain[i],
+                                       cyclic_entry[i])
         for ap in rest.values():
             assert ap.pose.sequence() == ap.srcpose.sequence()[
                 ap.src_lb - 1:ap.src_ub]
@@ -440,8 +441,7 @@ class Worms:
         rm_lower_t = ros.core.pose.remove_lower_terminus_type_from_pose_residue
         rm_upper_t = ros.core.pose.remove_upper_terminus_type_from_pose_residue
         if end is None and cyclic_permute is None:
-            cyclic_permute = self.criteria.is_cyclic
-            end = True
+            cyclic_permute, end = self.criteria.is_cyclic, True
         if end is None:
             end = not self.criteria.is_cyclic or cyclic_permute
         if only_connected is None:
@@ -455,8 +455,7 @@ class Worms:
         iend = None if end else -1
         entryexits = [seg.make_pose_chains(self.indices[which],
                                            self.positions[which][iseg],
-                                           iseg=iseg,
-                                           segments=self.segments,
+                                           iseg=iseg, segments=self.segments,
                                            cyclictrim=cyclic_permute)
                       for iseg, seg in enumerate(self.segments[:iend])]
         entryexits, rest = zip(*entryexits)
@@ -531,7 +530,7 @@ class Worms:
     def clear_caches(self):
         self.splicepoint_cache = {}
 
-    def sympose(self, which, score=False, provenance=False, *, fullatom=False,
+    def sympose(self, which, score=False, provenance=False, fullatom=False, *,
                 parallel=False, asym_score_thresh=50):
         if isinstance(which, Iterable):
             which = list(which)
@@ -539,8 +538,10 @@ class Worms:
                 raise IndexError('invalid worm index')
             if parallel:
                 with ThreadPoolExecutor() as pool:
-                    result = pool.map(self.sympose, which, it.repeat(score),
-                                      it.repeat(provenance))
+                    result = pool.map(self.sympose, which,
+                                      it.repeat(score),
+                                      it.repeat(provenance),
+                                      it.repeat(fullatom))
                     return list(result)
             else: return list(map(self.sympose, which, it.repeat(score), it.repeat(provenance)))
         if not 0 <= which < len(self):
