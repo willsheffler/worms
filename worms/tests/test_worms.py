@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from homog import hrot, htrans, axis_angle_of, axis_ang_cen_of
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-from worms import *
+from .. import *
 from homog.sym import icosahedral_axes as IA
 import time
 try:
@@ -10,44 +10,6 @@ try:
     HAVE_PYROSETTA = True
 except ImportError:
     HAVE_PYROSETTA = False
-
-
-def show_with_axis(worms, idx=0):
-    pose = worms.pose(idx, align=0, end=1)
-    x_from = worms.positions[idx][worms.criteria.from_seg]
-    x_to = worms.positions[idx][worms.criteria.to_seg]
-    x = x_to @ inv(x_from)
-    axis, ang, cen = axis_ang_cen_of(x)
-    np.set_printoptions(precision=20)
-    print(x)
-    print(axis)
-    print(ang)
-    print(cen)
-    axis *= 100
-    vis.showme(pose, name='unit')
-    xform_pose(x, pose)
-    vis.showme(pose, name='sym1')
-    xform_pose(x, pose)
-    vis.showme(pose, name='sym2')
-    showline(axis, cen)
-    showsphere(cen)
-
-
-def show_with_z_axes(worms, idx=0, only_connected=0, **kw):
-    pose = worms.pose(idx, align=0, end=1, only_connected=only_connected, **kw)
-    x_from = worms.positions[idx][worms.criteria.from_seg]
-    x_to = worms.positions[idx][worms.criteria.to_seg]
-    cen1 = x_from[..., :, 3]
-    cen2 = x_to[..., :, 3]
-    axis1 = x_from[..., :, 2] * 100
-    axis2 = x_to[..., :, 2] * 100
-    vis.showme(pose)
-    import pymol
-    pymol.finish_launching()
-    showline(axis1, cen1)
-    showsphere(cen1)
-    showline(axis2, cen2)
-    showsphere(cen2)
 
 
 @pytest.mark.skipif('not HAVE_PYROSETTA')
@@ -522,6 +484,8 @@ def test_splicepoints(c1pose, c2pose, c3pose):
     w = grow(segments, Cyclic('C3', lever=20), thresh=1)
     assert len(w) == 17
     assert w.scores[0] < 0.25
+    assert w.splicepoints(0) == [11, 19, 27, 37]
+    w.pose(0, cyclic_permute=0)
     assert w.splicepoints(0) == [10, 20, 42]
 
     helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', 'C')])
@@ -553,7 +517,6 @@ def test_splicepoints(c1pose, c2pose, c3pose):
 
 
 @pytest.mark.skipif('not HAVE_PYROSETTA')
-@pytest.mark.xfail
 def test_cyclic_permute(c1pose, c2pose):
     helix = Spliceable(
         c1pose, sites=[((1, 2, 3,), 'N'), ((9, 10, 11, 13), 'C')])
@@ -565,11 +528,29 @@ def test_cyclic_permute(c1pose, c2pose):
                 Segment([helix], entry='C', exit='N'),
                 Segment([helix], entry='C'), ]
     w = grow(segments, Cyclic('C3', lever=50), thresh=1)
-    print(w.scores)
-    assert 0
+    # vis.showme(w.pose(0))
+    assert (w.pose(0, cyclic_permute=1).sequence() ==
+            'YTAFLAAIPAINAAAAAAAGAAAAAGAAAAAAAGAAAAAFLAAIPAIN')
+    assert w.pose(0).chain(30) == 1
 
-    vis.showme(w.pose(0, cyclic_permute=1))
-    vis.showme(w.pose(0, cyclic_permute=0, end=1))
+    segments = [Segment([helix], '_C'),
+                Segment([helix], 'NC'),
+                Segment([dimer], 'NC'),
+                Segment([helix], 'NC'),
+                Segment([helix], 'N_'), ]
+    w = grow(segments, Cyclic('C3', lever=50), thresh=1)
+    assert (w.pose(0, cyclic_permute=1).sequence() ==
+            'YTAFLAAIPAIAAAAAAAAAAAAAAGAAAAAAAGAAATAFLAAIPAIN')
+    assert w.pose(0).chain(30) == 1
+
+    # print(w.scores)
+    # vis.showme(w.pose(0, cyclic_permute=0), name='reg')
+    # print('------------------------')
+    # vis.showme(w.pose(0, end=1, join=False), name='end')
+    # print('------------------------')
+    # vis.showme(w.pose(0, cyclic_permute=1), name='cp')
+    # print('------------------------')
+    # assert 0
 
 
 @pytest.mark.skipif('not HAVE_PYROSETTA')
@@ -589,7 +570,7 @@ def test_multichain_mixed_pol(c2pose, c3pose, c1pose):
     w = grow(segments, Cyclic('C3'), thresh=1)
     assert len(w) == 24
     p = w.pose(0, end=True, cyclic_permute=0)
-    # show_with_axis(w, 0)
+    # vis.show_with_axis(w, 0)
     # vis.showme(p)
 
     assert 2 > residue_sym_err(p, 120, 2, 62, 7)
@@ -881,7 +862,7 @@ def test_provenance(c1pose):
         # pose, score, srcpose, srcres = w.sympose(
             # i, score=True, provenance=True)
         pose, prov = w.pose(i, provenance=True)
-        assert len(prov) == len(segments) - 1  # b/c end removed
+
         for i, prv in enumerate(prov):
             lb, ub, src_pose, src_lb, src_ub = prv
             assert src_pose is segments[i].spliceables[0].body
@@ -889,6 +870,7 @@ def test_provenance(c1pose):
             srcseq = src_pose.sequence()[src_lb - 1:src_ub]
             seq = pose.sequence()[lb - 1:ub]
             assert srcseq == seq
+        assert len(prov) == len(segments) - 1
 
 
 @pytest.mark.skipif('not HAVE_PYROSETTA')

@@ -1,281 +1,22 @@
 import multiprocessing
 import os
-import abc
 import itertools as it
 from collections.abc import Iterable
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from numpy.linalg import inv
-import homog as hm
+from .criteria import CriteriaList
 try:
     from pyrosetta import rosetta as ros
     from pyrosetta.rosetta.core import scoring
+    rm_lower_t = ros.core.pose.remove_lower_terminus_type_from_pose_residue
+    rm_upper_t = ros.core.pose.remove_upper_terminus_type_from_pose_residue
 except ImportError:
     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
     print('pyrosetta not available, worms won\'t work')
     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 from . import util
-
-Ux = np.array([1, 0, 0, 0])
-Uy = np.array([0, 1, 0, 0])
-Uz = np.array([0, 0, 1, 0])
-
-# todo: the following should go elsewhere...
-
-
-class WormCriteria(abc.ABC):
-
-    @abc.abstractmethod
-    def score(self, **kw): pass
-
-    allowed_attributes = ('last_body_same_as',
-                          'symname',
-                          'is_cyclic',
-                          'alignment',
-                          'from_seg',
-                          'to_seg',
-                          )
-
-
-class CriteriaList(WormCriteria):
-
-    def __init__(self, children):
-        if isinstance(children, WormCriteria):
-            children = [children]
-        self.children = children
-
-    def score(self, **kw):
-        return sum(c.score(**kw) for c in self.children)
-
-    def __getattr__(self, name):
-        if name not in WormCriteria.allowed_attributes:
-            raise AttributeError('CriteriaList has no attribute: ' + name)
-        r = [getattr(c, name) for c in self.children if hasattr(c, name)]
-        r = [x for x in r if x is not None]
-        assert len(r) < 2
-        return r[0] if len(r) else None
-
-
-class AxesIntersect(WormCriteria):
-
-    def __init__(self, symname, tgtaxis1, tgtaxis2, from_seg, *, tol=1.0,
-                 lever=50, to_seg=-1, distinct_axes=False):
-        self.symname = symname
-        self.from_seg = from_seg
-        if len(tgtaxis1) == 2: tgtaxis1 += [0, 0, 0, 1],
-        if len(tgtaxis2) == 2: tgtaxis2 += [0, 0, 0, 1],
-        self.tgtaxis1 = (tgtaxis1[0], hm.hnormalized(tgtaxis1[1]),
-                         hm.hpoint(tgtaxis1[2]))
-        self.tgtaxis2 = (tgtaxis2[0], hm.hnormalized(tgtaxis2[1]),
-                         hm.hpoint(tgtaxis2[2]))
-        assert 3 == len(self.tgtaxis1)
-        assert 3 == len(self.tgtaxis2)
-        self.angle = hm.angle(tgtaxis1[1], tgtaxis2[1])
-        self.tol = tol
-        self.lever = lever
-        self.to_seg = to_seg
-        self.rot_tol = tol / lever
-        self.distinct_axes = distinct_axes  # -z not same as z (for T33)
-        self.symname = self.symname
-        self.sym_axes = [self.tgtaxis1, self.tgtaxis2]
-
-    def score(self, segpos, verbosity=False, **kw):
-        cen1 = segpos[self.from_seg][..., :, 3]
-        cen2 = segpos[self.to_seg][..., :, 3]
-        ax1 = segpos[self.from_seg][..., :, 2]
-        ax2 = segpos[self.to_seg][..., :, 2]
-        if self.distinct_axes:
-            p, q = hm.line_line_closest_points_pa(cen1, ax1, cen2, ax2)
-            dist = hm.hnorm(p - q)
-            cen = (p + q) / 2
-            ax1c = hm.hnormalized(cen1 - cen)
-            ax2c = hm.hnormalized(cen2 - cen)
-            ax1 = np.where(hm.hdot(ax1, ax1c)[..., None] > 0, ax1, -ax1)
-            ax2 = np.where(hm.hdot(ax2, ax2c)[..., None] > 0, ax2, -ax2)
-            ang = np.arccos(hm.hdot(ax1, ax2))
-        else:
-            dist = hm.line_line_distance_pa(cen1, ax1, cen2, ax2)
-            ang = np.arccos(np.abs(hm.hdot(ax1, ax2)))
-        roterr2 = (ang - self.angle)**2
-        return np.sqrt(roterr2 / self.rot_tol**2 + (dist / self.tol)**2)
-
-    def alignment(self, segpos, debug=0, **kw):
-        cen1 = segpos[self.from_seg][..., :, 3]
-        cen2 = segpos[self.to_seg][..., :, 3]
-        ax1 = segpos[self.from_seg][..., :, 2]
-        ax2 = segpos[self.to_seg][..., :, 2]
-        if not self.distinct_axes and hm.angle(ax1, ax2) > np.pi / 2:
-            ax2 = -ax2
-        p, q = hm.line_line_closest_points_pa(cen1, ax1, cen2, ax2)
-        cen = (p + q) / 2
-        # ax1 = hm.hnormalized(cen1 - cen)
-        # ax2 = hm.hnormalized(cen2 - cen)
-        x = hm.align_vectors(ax1, ax2, self.tgtaxis1[1], self.tgtaxis2[1])
-        x[..., :, 3] = - x @cen
-        if debug:
-            print('angs', hm.angle_degrees(ax1, ax2),
-                  hm.angle_degrees(self.tgtaxis1[1], self.tgtaxis2[1]))
-            print('ax1', ax1)
-            print('ax2', ax2)
-            print('xax1', x @ ax1)
-            print('tax1', self.tgtaxis1[1])
-            print('xax2', x @ ax2)
-            print('tax2', self.tgtaxis2[1])
-            raise AssertionError
-            # if not (np.allclose(x @ ax1, self.tgtaxis1[1], atol=1e-2) and
-            #         np.allclose(x @ ax2, self.tgtaxis2[1], atol=1e-2)):
-            #     print(hm.angle(self.tgtaxis1[1], self.tgtaxis2[1]))
-            #     print(hm.angle(ax1, ax2))
-            #     print(x @ ax1)
-            #     print(self.tgtaxis1[1])
-            #     print(x @ ax2)
-            #     print(self.tgtaxis2[1])
-            #     raise AssertionError('hm.align_vectors sucks')
-
-        return x
-
-
-def D2(c2=0, c2b=-1, **kw):
-    return AxesIntersect('D2', (2, Uz), (2, Ux), c2, to_seg=c2b, **kw)
-
-
-def D3(c3=0, c2=-1, **kw):
-    return AxesIntersect('D3', (3, Uz), (2, Ux), c3, to_seg=c2, **kw)
-
-
-def D4(c4=0, c2=-1, **kw):
-    return AxesIntersect('D4', (4, Uz), (2, Ux), c4, to_seg=c2, **kw)
-
-
-def D5(c5=0, c2=-1, **kw):
-    return AxesIntersect('D5', (5, Uz), (2, Ux), c5, to_seg=c2, **kw)
-
-
-def D6(c6=0, c2=-1, **kw):
-    return AxesIntersect('D6', (6, Uz), (2, Ux), c6, to_seg=c2, **kw)
-
-
-def Tetrahedral(c3=None, c2=None, c3b=None, **kw):
-    if 1 is not (c3b is None) + (c3 is None) + (c2 is None):
-        raise ValueError('must specify exactly two of c3, c2, c3b')
-    if c2 is None: from_seg, to_seg, nf1, nf2, ex = c3b, c3, 7, 3, 2
-    if c3 is None: from_seg, to_seg, nf1, nf2, ex = c3b, c2, 7, 2, 3
-    if c3b is None: from_seg, to_seg, nf1, nf2, ex = c3, c2, 3, 2, 7
-    return AxesIntersect('T', from_seg=from_seg, to_seg=to_seg,
-                         tgtaxis1=(max(3, nf1), hm.sym.tetrahedral_axes[nf1]),
-                         tgtaxis2=(max(3, nf2), hm.sym.tetrahedral_axes[nf2]),
-                         distinct_axes=(nf1 == 7), **kw)
-
-
-def Octahedral(c4=None, c3=None, c2=None, **kw):
-    if 1 is not (c4 is None) + (c3 is None) + (c2 is None):
-        raise ValueError('must specify exactly two of c4, c3, c2')
-    if c2 is None: from_seg, to_seg, nf1, nf2, ex = c4, c3, 4, 3, 2
-    if c3 is None: from_seg, to_seg, nf1, nf2, ex = c4, c2, 4, 2, 3
-    if c4 is None: from_seg, to_seg, nf1, nf2, ex = c3, c2, 3, 2, 4
-    return AxesIntersect('O', from_seg=from_seg, to_seg=to_seg,
-                         tgtaxis1=(nf1, hm.sym.octahedral_axes[nf1]),
-                         tgtaxis2=(nf2, hm.sym.octahedral_axes[nf2]), **kw)
-
-
-def Icosahedral(c5=None, c3=None, c2=None, **kw):
-    if 1 is not (c5 is None) + (c3 is None) + (c2 is None):
-        raise ValueError('must specify exactly two of c5, c3, c2')
-    if c2 is None: from_seg, to_seg, nf1, nf2, ex = c5, c3, 5, 3, 2
-    if c3 is None: from_seg, to_seg, nf1, nf2, ex = c5, c2, 4, 2, 3
-    if c5 is None: from_seg, to_seg, nf1, nf2, ex = c3, c2, 3, 2, 5
-    return AxesIntersect('I', from_seg=from_seg, to_seg=to_seg,
-                         tgtaxis1=(nf1, hm.sym.icosahedral_axes[nf1]),
-                         tgtaxis2=(nf2, hm.sym.icosahedral_axes[nf2]), **kw)
-
-
-class Cyclic(WormCriteria):
-
-    def __init__(self, symmetry=1, from_seg=0, *, tol=1.0, origin_seg=None,
-                 lever=50.0, to_seg=-1):
-        if isinstance(symmetry, int): symmetry = 'C' + str(symmetry)
-        self.symmetry = symmetry
-        self.tol = tol
-        self.from_seg = from_seg
-        self.origin_seg = origin_seg
-        self.lever = lever
-        self.to_seg = to_seg
-        self.rot_tol = tol / lever
-        # self.relweight = relweight if abs(relweight) > 0.001 else None
-        if self.symmetry[0] in 'cC':
-            self.nfold = int(self.symmetry[1:])
-            if self.nfold <= 0:
-                raise ValueError('invalid symmetry: ' + symmetry)
-            self.symangle = np.pi * 2.0 / self.nfold
-        else: raise ValueError('can only do Cx symmetry for now')
-        if self.tol <= 0: raise ValueError('tol should be > 0')
-        self.last_body_same_as = self.from_seg
-        self.is_cyclic = True
-        self.symname = None
-        if self.nfold > 1:
-            self.symname = 'C' + str(self.nfold)
-        self.sym_axes = [(self.nfold, Uz, [0, 0, 0, 1])]
-
-    def score(self, segpos, *, verbosity=False, **kw):
-        x_from = segpos[self.from_seg]
-        x_to = segpos[self.to_seg]
-        xhat = x_to @ inv(x_from)
-        trans = xhat[..., :, 3]
-        if self.nfold is 1:
-            angle = hm.angle_of(xhat)
-            carterrsq = np.sum(trans[..., :3]**2, axis=-1)
-            roterrsq = angle**2
-        else:
-            if self.origin_seg is not None:
-                tgtaxis = segpos[self.origin_seg] @ [0, 0, 1, 0]
-                tgtcen = segpos[self.origin_seg] @ [0, 0, 0, 1]
-                axis, ang, cen = hm.axis_ang_cen_of(xhat)
-                carterrsq = hm.hnorm2(cen - tgtcen)
-                roterrsq = (1 - np.abs(hm.hdot(axis, tgtaxis))) * np.pi
-            else:  # much cheaper if cen not needed
-                axis, ang = hm.axis_angle_of(xhat)
-                carterrsq = roterrsq = 0
-            carterrsq = carterrsq + hm.hdot(trans, axis)**2
-            roterrsq = roterrsq + (ang - self.symangle)**2
-            # if self.relweight is not None:
-            #     # penalize 'relative' error
-            #     distsq = np.sum(trans[..., :3]**2, axis=-1)
-            #     relerrsq = carterrsq / distsq
-            #     relerrsq[np.isnan(relerrsq)] = 9e9
-            #     # too much of a hack??
-            #     carterrsq += self.relweight * relerrsq
-            if verbosity > 0:
-                print('axis', axis[0])
-                print('trans', trans[0])
-                print('dot trans', hm.hdot(trans, axis)[0])
-                print('ang', angle[0] * 180 / np.pi)
-
-        return np.sqrt(carterrsq / self.tol**2 +
-                       roterrsq / self.rot_tol**2)
-
-    def alignment(self, segpos, **kwargs):
-        if self.origin_seg is not None:
-            return inv(segpos[self.origin_seg])
-        x_from = segpos[self.from_seg]
-        x_to = segpos[self.to_seg]
-        xhat = x_to @ inv(x_from)
-        axis, ang, cen = hm.axis_ang_cen_of(xhat)
-        # print('aln', axis)
-        # print('aln', ang * 180 / np.pi)
-        # print('aln', cen)
-        # print('aln', xhat[..., :, 3])
-        dotz = hm.hdot(axis, Uz)[..., None]
-        tgtaxis = np.where(dotz > 0, [0, 0, 1, 0], [0, 0, -1, 0])
-        align = hm.hrot((axis + tgtaxis) / 2, np.pi, cen)
-        align[..., :3, 3] -= cen[..., :3]
-        return align
-
-    def check_topolopy(self, segments):
-        "for cyclic, global entry can't be same as global exit"
-        # todo: should check this...
-        # fromseg = segments[self.from_seg]
-        # toseg = segments[self.to_seg]
-        return
 
 
 class SpliceSite:
@@ -407,6 +148,31 @@ class Spliceable:
                 '), sites=' + str([(s.resids(self), s.polarity) for s in self.sites]))
 
 
+class AnnoPose:
+
+    def __init__(self, pose, iseg, srcpose, src_lb, src_ub, cyclic_entry):
+        self.pose = pose
+        self.iseg = iseg
+        self.srcpose = srcpose
+        self.src_lb = src_lb
+        self.src_ub = src_ub
+        self.cyclic_entry = cyclic_entry
+
+    def __iter__(self):
+        yield self.pose
+        yield (self.iseg, self.srcpose, self.src_lb, self.src_ub)
+
+    def __getitem__(self, i):
+        if i is 0: return self.pose
+        if i is 1: return (self.iseg, self.srcpose, self.src_lb, self.src_ub)
+
+    def seq(self):
+        return self.pose.sequence()
+
+    def srcseq(self):
+        return self.srcpose.sequence()[self.src_lb - 1:self.src_ub]
+
+
 class Segment:
 
     def __init__(self, spliceables, entry=None, exit=None, expert=False):
@@ -503,96 +269,128 @@ class Segment:
         bodies2 = [s.body for s in other.spliceables]
         return bodies1 == bodies2
 
-    def make_pose_chains(self, index, position=None, pad=(0, 0), iseg=None):
-        """returns (segchains, rest)
+    def make_pose_chains(self, indices, position=None, pad=(0, 0), iseg=None,
+                         segments=None, cyclictrim=None):
+        """what a monster this has become. returns (segchains, rest)
         segchains elems are [enterexitchain] or, [enterchain, ..., exitchain]
         rest holds other chains IFF enter and exit in same chain
         each element is a pair [pose, source] where source is
         (origin_pose, start_res, stop_res)
+        cyclictrim specifies segments which are spliced across the
+        symmetric interface. segments only needed if cyclictrim==True
+        if cyclictrim, last segment will only be a single entry residue
         """
+        if isinstance(indices, int):
+            assert not cyclictrim
+            index = indices
+        else: index = indices[iseg]
         spliceable = self.spliceables[self.bodyid[index]]
         pose, chains = spliceable.body, spliceable.chains
         ir_en, ir_ex = self.entryresid[index], self.exitresid[index]
+        cyclic_entry = defaultdict(lambda: None)
+        if cyclictrim and cyclictrim[1] < 0:
+            cyclictrim = cyclictrim[0], cyclictrim[1] + len(segments)
+        if cyclictrim and iseg == cyclictrim[0]:
+            assert ir_en == -1, 'paece sign not implemented yet'
+            ir_en = segments[cyclictrim[1]].entryresid[indices[cyclictrim[1]]]
+            # annotate enex entries with cyclictrim info
+            cyclic_entry[pose.chain(ir_en)] = iseg, ir_en
+        if cyclictrim and iseg == cyclictrim[1]:
+            assert ir_ex == -1
+            assert iseg + 1 == len(segments)
+            i = ir_en
+            p = util.subpose(pose, i, i)
+            if position is not None: util.xform_pose(position, p)
+            return [AnnoPose(p, iseg, pose, i, i, None)], []
         ch_en = pose.chain(ir_en) if ir_en > 0 else None
         ch_ex = pose.chain(ir_ex) if ir_ex > 0 else None
         pl_en, pl_ex = self.entrypol, self.exitpol
+        if cyclictrim and iseg == 0:
+            pl_en = segments[-1].entrypol
+        if cyclictrim and iseg + 1 == len(segments):
+            assert 0
+            pl_ex = segments[0].exitpol
         if ch_en: ir_en -= spliceable.start_of_chain[ch_en]
         if ch_ex: ir_ex -= spliceable.start_of_chain[ch_ex]
         assert ch_en or ch_ex
-        rest = {chains[i]: (iseg, pose, spliceable.start_of_chain[i] + 1,
-                            spliceable.end_of_chain[i])
+        rest = {chains[i]: AnnoPose(chains[i], iseg, pose,
+                                    spliceable.start_of_chain[i] + 1,
+                                    spliceable.end_of_chain[i],
+                                    cyclic_entry[i])
                 for i in range(1, len(chains) + 1)}
-        for p, tup in rest.items():
-            _, p0, lb, ub = tup
-            assert p.sequence() == p0.sequence()[lb - 1:ub]
+        for ap in rest.values():
+            assert ap.pose.sequence() == ap.srcpose.sequence()[
+                ap.src_lb - 1:ap.src_ub]
         if ch_en: del rest[chains[ch_en]]
         if ch_en == ch_ex:
             assert len(rest) + 1 == len(chains)
-            p, l1, u1 = util.trim_pose(
-                chains[ch_en], ir_en, self.entrypol, pad[0])
+            p, l1, u1 = util.trim_pose(chains[ch_en], ir_en, pl_en, pad[0])
             iexit1 = ir_ex - (pl_ex == 'C') * (len(chains[ch_en]) - len(p))
             p, l2, u2 = util.trim_pose(p, iexit1, pl_ex, pad[1] - 1)
             lb = l1 + l2 - 1 + spliceable.start_of_chain[ch_en]
             ub = l1 + u2 - 1 + spliceable.start_of_chain[ch_en]
-            enex = [[p, (iseg, pose, lb, ub)]]
+            enex = [AnnoPose(p, iseg, pose, lb, ub, cyclic_entry[ch_en])]
             assert p.sequence() == pose.sequence()[lb - 1:ub]
-            rest = [[a, b] for a, b in rest.items()]
+            rest = list(rest.values())
         else:
             if ch_ex: del rest[chains[ch_ex]]
             p_en = [chains[ch_en]] if ch_en else []
             p_ex = [chains[ch_ex]] if ch_ex else []
             if p_en:
                 p, lben, uben = util.trim_pose(
-                    p_en[0], ir_en, self.entrypol, pad[0])
+                    p_en[0], ir_en, pl_en, pad[0])
                 lb = lben + spliceable.start_of_chain[ch_en]
                 ub = uben + spliceable.start_of_chain[ch_en]
-                p_en = [[p, (iseg, pose, lb, ub)]]
+                p_en = [AnnoPose(p, iseg, pose, lb, ub, cyclic_entry[ch_en])]
                 assert p.sequence() == pose.sequence()[lb - 1:ub]
             if p_ex:
                 p, lbex, ubex = util.trim_pose(
                     p_ex[0], ir_ex, pl_ex, pad[1] - 1)
                 lb = lbex + spliceable.start_of_chain[ch_ex]
                 ub = ubex + spliceable.start_of_chain[ch_ex]
-                p_ex = [[p, (iseg, pose, lb, ub)]]
+                p_ex = [AnnoPose(p, iseg, pose, lb, ub, cyclic_entry[ch_ex])]
                 assert p.sequence() == pose.sequence()[lb - 1:ub]
-            enex = p_en + [[a, b] for a, b in rest.items()] + p_ex
+            enex = p_en + list(rest.values()) + p_ex
             rest = []
         if position is not None:
             position = util.rosetta_stub_from_numpy_stub(position)
-            for x in enex: x[0] = x[0].clone()
-            for x in rest: x[0] = x[0].clone()
-            for p, _ in it.chain(enex, rest):
-                ros.protocols.sic_dock.xform_pose(p, position)
-        for p in it.chain(enex, rest):
-            assert len(p) == 2
-            iseg1, p0, lb, ub = p[1]
-            assert iseg1 == iseg
-            assert p[0].sequence() == p0.sequence()[lb - 1:ub]
+            for x in enex: x.pose = x.pose.clone()
+            for x in rest: x.pose = x.pose.clone()
+            for ap in it.chain(enex, rest):
+                ros.protocols.sic_dock.xform_pose(ap.pose, position)
+        for ap in it.chain(enex, rest):
+            assert isinstance(ap, AnnoPose)
+            assert ap.iseg == iseg
+            assert ap.seq() == ap.srcseq()
         return enex, rest
 
 
-def _cyclic_permute_chains(chainslist, polarity, spliceres):
-    rm_lower_t = ros.core.pose.remove_lower_terminus_type_from_pose_residue
-    rm_upper_t = ros.core.pose.remove_upper_terminus_type_from_pose_residue
-    beg, end = chainslist[0], chainslist[-1]
-    n2c = polarity == 'N'
+def _cyclic_permute_chains(chainslist, polarity):
+    chainslist_beg = 0
+    beg, end = chainslist[chainslist_beg], chainslist[-1]
+    if chainslist_beg != 0:
+        raise NotImplementedError('peace sign not working yet')
+    n2c = (polarity == 'N')
     if n2c:
-        stub1 = util.get_bb_stubs(beg[0], [spliceres])
-        stub2 = util.get_bb_stubs(end[-1], [len(end[-1])])
-        beg[0] = util.subpose(beg[0], spliceres + 1, len(beg[0]))
-        rm_lower_t(beg[0], 1)
-        rm_upper_t(end[-1], len(end[-1]))
+        stub1 = util.get_bb_stubs(beg[0][0], [1])
+        stub2 = util.get_bb_stubs(end[-1][0], [1])
+        rm_lower_t(beg[0][0], 1)
+        end = end[:-1]
     else:
-        stub1 = util.get_bb_stubs(beg[-1], [spliceres])
-        stub2 = util.get_bb_stubs(end[0], [1])
-        beg[-1] = util.subpose(beg[-1], 1, spliceres - 1)
-        rm_lower_t(beg[-1], len(beg[-1]))
-        rm_upper_t(end[0], 1)
-    xalign = stub1['raw'][0] @ np.linalg.inv(stub2['raw'][0])
-    for p in end: util.xform_pose(xalign, p)
-    if n2c: chainslist[0] = end + beg
-    else: chainslist[0] = beg + end
-    chainslist = chainslist[:-1]
+        # from . import vis
+        # for i, b in enumerate(beg): vis.showme(b[0], name='beg_%i' % i)
+        # for i, e in enumerate(end): vis.showme(e[0], name='end_%i' % i)
+        stub1 = util.get_bb_stubs(beg[-1][0], [len(beg[-1][0])])
+        stub2 = util.get_bb_stubs(end[0][0], [1])
+        rm_upper_t(beg[-1][0], len(beg[-1][0]))
+        assert len(end[0][0]) == 1
+        end = end[1:]
+    xalign = stub1[0] @ np.linalg.inv(stub2[0])
+    print(xalign.shape)
+    for p in end: util.xform_pose(xalign, p[0])
+    if n2c: chainslist[chainslist_beg] = end + beg
+    else: chainslist[chainslist_beg] = beg + end
+    chainslist[-1] = []
 
 
 def reorder_spliced_as_N_to_C(body_chains, polarities):
@@ -631,9 +429,8 @@ class Worms:
         self.score0sym = scoring.symmetry.symmetrize_scorefunction(self.score0)
         self.splicepoint_cache = {}
 
-    def pose(self, which, *, align=True, end=None, join=True,
-             only_connected='auto', cyclic_permute=False, provenance=False,
-             **kw):
+    def pose(self, which, *, align=True, end=None, only_connected='auto',
+             join=True, cyclic_permute=None, provenance=False, **kw):
         "makes a pose for the ith worm"
         if isinstance(which, Iterable): return (
             self.pose(w, align=align, end=end, join=join,
@@ -642,34 +439,42 @@ class Worms:
         # print("Will needs to fix bb O/H position!")
         rm_lower_t = ros.core.pose.remove_lower_terminus_type_from_pose_residue
         rm_upper_t = ros.core.pose.remove_upper_terminus_type_from_pose_residue
+        if end is None and cyclic_permute is None:
+            cyclic_permute = self.criteria.is_cyclic
+            end = True
         if end is None:
-            end = not self.criteria.is_cyclic
+            end = not self.criteria.is_cyclic or cyclic_permute
         if only_connected is None:
             only_connected = not self.criteria.is_cyclic
         if cyclic_permute is None:
-            cyclic_permute = self.criteria.is_cyclic
+            cyclic_permute = not end
         elif cyclic_permute and not self.criteria.is_cyclic:
             raise ValueError('cyclic_permute should only be used for Cyclic')
+        if cyclic_permute:
+            cyclic_permute = self.criteria.from_seg, self.criteria.to_seg
         iend = None if end else -1
-        entryexits = [seg.make_pose_chains(self.indices[which][iseg],
+        entryexits = [seg.make_pose_chains(self.indices[which],
                                            self.positions[which][iseg],
-                                           iseg=iseg)
+                                           iseg=iseg,
+                                           segments=self.segments,
+                                           cyclictrim=cyclic_permute)
                       for iseg, seg in enumerate(self.segments[:iend])]
         entryexits, rest = zip(*entryexits)
+        for ap in it.chain(*entryexits, *rest):
+            assert isinstance(ap, AnnoPose)
         chainslist = reorder_spliced_as_N_to_C(
             entryexits, [s.entrypol for s in self.segments[1:iend]])
         if align:
             x = self.criteria.alignment(segpos=self.positions[which], **kw)
-            for p in it.chain(*chainslist, *rest): util.xform_pose(x, p[0])
+            for ap in it.chain(*chainslist, *rest): util.xform_pose(x, ap.pose)
         if cyclic_permute and len(chainslist) > 1:
-            # todo: this is only correct if 1st seg is one chain
-            spliceres = self.segments[-1].entryresid[self.indices[which, -1]]
-            bodyid = self.segments[0].bodyid[self.indices[which, 0]]
-            origlen = len(self.segments[0].spliceables[bodyid].body)
-            i = -1 if self.segments[-1].entrypol == 'C' else 0
-            spliceres -= origlen - len(chainslist[0][0][i])
-            _cyclic_permute_chains(chainslist, self.segments[-1].entrypol,
-                                   spliceres + 1)
+            cyclic_entry_count = 0
+            for ap in it.chain(*entryexits, *rest):
+                cyclic_entry_count += (ap.cyclic_entry is not None)
+            assert cyclic_entry_count == 1
+            _cyclic_permute_chains(chainslist, self.segments[-1].entrypol)
+            assert len(chainslist[-1]) == 0
+            chainslist = chainslist[:-1]
         sourcelist = [[x[1] for x in c] for c in chainslist]
         chainslist = [[x[0] for x in c] for c in chainslist]
         pose = ros.core.pose.Pose()
@@ -700,12 +505,16 @@ class Worms:
                 ros.core.pose.append_pose_to_pose(pose, chain, True)
                 prov0.append(source)
         assert util.worst_CN_connect(pose) < 0.5
+        assert util.no_overlapping_residues(pose)
         if not provenance: return pose
         prov = []
         for i, pr in enumerate(prov0):
             iseg, psrc, lb0, ub0 = pr
             lb1 = sum(ub - lb + 1 for _, _, lb, ub in prov0[:i]) + 1
             ub1 = lb1 + ub0 - lb0
+            if ub0 == lb0:
+                assert cyclic_permute
+                continue
             assert ub0 - lb0 == ub1 - lb1
             assert 0 < lb0 <= len(psrc) and 0 < ub0 <= len(psrc)
             assert 0 < lb1 <= len(pose) and 0 < ub1 <= len(pose)

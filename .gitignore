@@ -63,3 +63,5 @@ target/
 
 .envrc
 *.sublime-workspace
+
+.pytest_cache

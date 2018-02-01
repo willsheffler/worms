@@ -3,6 +3,7 @@ import functools as ft
 import numpy as np
 from tqdm import tqdm
 from concurrent.futures import as_completed
+import multiprocessing
 try:
     from pyrosetta import rosetta as ros
 except ImportError:
@@ -100,6 +101,15 @@ def worst_CN_connect(p):
     return worst
 
 
+def no_overlapping_residues(p):
+    for ir in range(1, len(p)):
+        if (p.residue(ir).is_protein() and p.residue(ir + 1).is_protein()):
+            dist = p.residue(ir).xyz('CA').distance(
+                p.residue(ir + 1).xyz('CA'))
+            if dist < 0.1: return False
+    return True
+
+
 def trim_pose(pose, resid, direction, pad=0):
     "trim end of pose from direction, leaving <=pad residues beyond resid"
     if direction not in "NC":
@@ -127,3 +137,7 @@ def get_symdata(name):
     d = ros.core.conformation.symmetry.SymmData()
     d.read_symmetry_data_from_file(symfile_path(name))
     return d
+
+
+def infer_cyclic_symmetry(pose):
+    raise NotImplementedError

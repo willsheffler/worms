@@ -1,6 +1,8 @@
 import tempfile
 import numpy as np
 from collections import defaultdict
+import homog
+from . import util
 try:
     from pymol import cmd
     from pymol import cgo
@@ -222,3 +224,41 @@ def showlineabs(a, c, col=(1, 1, 1), lbl=''):
     cgo = cgo_lineabs(a, c, col)
     cmd.load_cgo(cgo, lbl)
     cmd.set_view(v)
+
+
+def show_with_axis(worms, idx=0):
+    pose = worms.pose(idx, align=0, end=1)
+    x_from = worms.positions[idx][worms.criteria.from_seg]
+    x_to = worms.positions[idx][worms.criteria.to_seg]
+    x = x_to @ np.linalg.inv(x_from)
+    axis, ang, cen = homog.axis_ang_cen_of(x)
+    np.set_printoptions(precision=20)
+    print(x)
+    print(axis)
+    print(ang)
+    print(cen)
+    axis *= 100
+    showme(pose, name='unit')
+    util.xform_pose(x, pose)
+    showme(pose, name='sym1')
+    util.xform_pose(x, pose)
+    showme(pose, name='sym2')
+    showline(axis, cen)
+    showsphere(cen)
+
+
+def show_with_z_axes(worms, idx=0, only_connected=0, **kw):
+    pose = worms.pose(idx, align=0, end=1, only_connected=only_connected, **kw)
+    x_from = worms.positions[idx][worms.criteria.from_seg]
+    x_to = worms.positions[idx][worms.criteria.to_seg]
+    cen1 = x_from[..., :, 3]
+    cen2 = x_to[..., :, 3]
+    axis1 = x_from[..., :, 2] * 100
+    axis2 = x_to[..., :, 2] * 100
+    showme(pose)
+    import pymol
+    pymol.finish_launching()
+    showline(axis1, cen1)
+    showsphere(cen1)
+    showline(axis2, cen2)
+    showsphere(cen2)
