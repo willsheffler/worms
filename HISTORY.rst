@@ -2,11 +2,21 @@
 History
 =======
 
-0.1.4 (2018-02-01)
+0.1.5 (2018-02-01)
 ------------------
 
 * add fullatom option to Worms.sympose
 * cyclic premutation working for simple beginning-to-end case
+
+0.1.4 (2018-02-01)
+------------------
+
+* pypi deplolment derp
+
+0.1.3 (2018-02-01)
+------------------
+
+* pypi deplolment derp
 
 0.1.2 (2018-01-23)
 ------------------
