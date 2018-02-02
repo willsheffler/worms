@@ -22,7 +22,7 @@ worms
 Protein Origami via Genetic Fusions
 
 
-.. image:: img/worms_triangle_600.png
+.. image:: https://lh5.googleusercontent.com/9OQLQnMD1IRah4lSRZtROkiLuabY6oclGnGhkGJhsT-gfiFBo_uAQyu-EOxRXziC75iiMpPkTBxmYxE214Si=w2177-h1945
     :width: 300px
 
 
