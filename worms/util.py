@@ -101,12 +101,25 @@ def worst_CN_connect(p):
     return worst
 
 
-def no_overlapping_residues(p):
+def no_overlapping_adjacent_residues(p):
     for ir in range(1, len(p)):
         if (p.residue(ir).is_protein() and p.residue(ir + 1).is_protein()):
             dist = p.residue(ir).xyz('CA').distance(
                 p.residue(ir + 1).xyz('CA'))
             if dist < 0.1: return False
+    return True
+
+
+def no_overlapping_residues(p):
+    for ir in range(1, len(p) + 1):
+        if not p.residue(ir).is_protein():
+            continue
+        for jr in range(1, ir):
+            if not p.residue(jr).is_protein():
+                continue
+            dist = p.residue(ir).xyz('CA').distance(
+                p.residue(jr).xyz('CA'))
+            if dist < 0.5: return False
     return True
 
 

@@ -270,6 +270,7 @@ def test_pose_alignment_0(c1pose):
         assert tuple(w.indices[i]) in ((0, 2, 1, 2, 0), (2, 1, 2, 0, 0),
                                        (1, 2, 0, 2, 0), (2, 0, 2, 1, 0))
     pose = w.pose(0, align=1, end=1)
+    assert util.no_overlapping_residues(pose)
     # vis.showme(pose)
     xyz0 = np.array([pose.residue(1).xyz(2)[i] for i in (0, 1, 2)] + [1])
     # resid 43 happens to be the symmetrically related one for this solution
@@ -529,9 +530,10 @@ def test_cyclic_permute_beg_end(c1pose, c2pose):
                 Segment([helix], entry='C'), ]
     w = grow(segments, Cyclic('C3', lever=50), thresh=1)
     # vis.showme(w.pose(0))
-    assert (w.pose(0, cyclic_permute=1).sequence() ==
-            'YTAFLAAIPAINAAAAAAAGAAAAAGAAAAAAAGAAAAAFLAAIPAIN')
-    assert w.pose(0).chain(30) == 1
+    p = w.pose(0, cyclic_permute=1)
+    assert p.sequence() == 'YTAFLAAIPAINAAAAAAAGAAAAAGAAAAAAAGAAAAAFLAAIPAIN'
+    assert p.chain(30) == 1
+    assert util.no_overlapping_residues(p)
 
     segments = [Segment([helix], '_C'),
                 Segment([helix], 'NC'),
@@ -539,10 +541,10 @@ def test_cyclic_permute_beg_end(c1pose, c2pose):
                 Segment([helix], 'NC'),
                 Segment([helix], 'N_'), ]
     w = grow(segments, Cyclic('C3', lever=50), thresh=1)
-    assert (w.pose(0, cyclic_permute=1).sequence() ==
-            'YTAFLAAIPAIAAAAAAAAAAAAAAGAAAAAAAGAAATAFLAAIPAIN')
-    assert w.pose(0).chain(30) == 1
-
+    p = w.pose(0, cyclic_permute=1)
+    assert p.sequence() == 'YTAFLAAIPAIAAAAAAAAAAAAAAGAAAAAAAGAAATAFLAAIPAIN'
+    assert p.chain(len(p)) == 1
+    assert util.no_overlapping_residues(p)
     # print(w.scores)
     # vis.showme(w.pose(0, cyclic_permute=0), name='reg')
     # print('------------------------')
@@ -553,11 +555,10 @@ def test_cyclic_permute_beg_end(c1pose, c2pose):
     # assert 0
 
 
-@pytest.mark.skip
 @pytest.mark.skipif('not HAVE_PYROSETTA')
 def test_cyclic_permute_mid_end(c1pose, c2pose, c3hetpose):
-    helix0 = Spliceable(c1pose, [('2:2', 'N'), ('11:11', "C")])
-    helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', "C")])
+    helix0 = Spliceable(c1pose, [([2], 'N'), ([11], "C")])
+    helix = Spliceable(c1pose, [([1, 3, 4], 'N'), ([12, ], "C")])
     dimer = Spliceable(c2pose, sites=[('1,:1', 'N'), ('1,-1:', 'C'),
                                       ('2,:1', 'N'), ('2,-1:', 'C')])
     c3het = Spliceable(c3hetpose, sites=[
@@ -567,24 +568,37 @@ def test_cyclic_permute_mid_end(c1pose, c2pose, c3hetpose):
                 Segment([helix0], 'NC'),
                 Segment([c3het], 'NN'),
                 Segment([helix], 'CN'),
-                Segment([helix], 'CN'),
                 Segment([dimer], 'CC'),
                 Segment([helix], 'NC'),
                 Segment([helix], 'NC'),
                 Segment([c3het], 'N_'), ]
     w = grow(segments, Cyclic(3, from_seg=3), thresh=1)
-    assert 0
-    vis.showme(w.pose(0, cyclic_permute=0, end=0), name='cp0_end0')
-    vis.showme(w.pose(0, cyclic_permute=0, end=1), name='cp0_end1')
-    vis.showme(w.pose(0, cyclic_permute=1), name='cp1')
+    assert len(w) > 0
+    p, sc = w.sympose(0, score=True)
+    assert sc < 4
+    assert len(p) == 309
+    assert p.chain(306) == 9
+    assert util.no_overlapping_residues(p)
+    # vis.showme(p)
+    # p, pl = w.pose(0, cyclic_permute=0, end=0, cyclictrim=0,
+    # make_chain_list=True)
+    # vis.showme(p, name='full')
+    # for i, p in enumerate(pl):
+    # vis.showme(p, name='part%i' % i)
 
-    assert 0
-    for i in range(len(w)):
-        pose, score = w.sympose(i, score=1)
-        print(score)
-    assert len(w)
+    # vis.showme(w.pose(0, cyclic_permute=0, end=0, cyclictrim=1), name='ct')
+    # vis.showme(w.pose(0, cyclic_permute=0, end=0), name='cp0_end0')
+    # vis.showme(w.pose(0, cyclic_permute=0, end=1), name='cp0_end1')
+    # vis.showme(w.pose(0, cyclic_permute=1), name='cp1')
+    # vis.showme(w.sympose(0, fullatom=True))
 
-    assert 0
+    # assert 0
+    # for i in range(len(w)):
+    # pose, score = w.sympose(i, score=1)
+    # print(score)
+    # assert len(w)
+#
+    # assert 0
 
 
 @pytest.mark.skipif('not HAVE_PYROSETTA')
@@ -604,6 +618,7 @@ def test_multichain_mixed_pol(c2pose, c3pose, c1pose):
     w = grow(segments, Cyclic('C3'), thresh=1)
     assert len(w) == 24
     p = w.pose(0, end=True, cyclic_permute=0)
+    assert util.no_overlapping_residues(p)
     # vis.show_with_axis(w, 0)
     # vis.showme(p)
 
@@ -638,6 +653,7 @@ def test_D3(c2pose, c3pose, c1pose):
     # print(w.scores)
     # show_with_z_axes(w, 0)
     p = w.pose(0, only_connected=0)
+    assert util.no_overlapping_residues(p)
     # print(len(p))
 
     assert 1 > residue_sym_err(p, 180, 53, 65, 6, axis=[1, 0, 0])
@@ -652,6 +668,7 @@ def test_D3(c2pose, c3pose, c1pose):
     # print(w.scores)
     # show_with_z_axes(w, 0)
     p = w.pose(4, only_connected=0)
+    assert util.no_overlapping_residues(p)
     # vis.showme(p)
     assert 1 > residue_sym_err(p, 180, 1, 13, 6, axis=[1, 0, 0])
     assert 1 > residue_sym_err(p, 120, 56, 65, 6, axis=[0, 0, 1])
@@ -668,6 +685,7 @@ def test_tet(c2pose, c3pose, c1pose):
     w = grow(segments, Tetrahedral(c3=-1, c2=0), thresh=2)
     assert len(w)
     p = w.pose(3, only_connected=0)
+    assert util.no_overlapping_residues(p)
     assert 2.5 > residue_sym_err(p, 120, 86, 95, 6, axis=[1, 1, 1])
     assert 2.5 > residue_sym_err(p, 180, 2, 14, 6, axis=[1, 0, 0])
 
@@ -682,6 +700,7 @@ def test_tet33(c2pose, c3pose, c1pose):
     w = grow(segments, Tetrahedral(c3=-1, c3b=0), thresh=2)
     assert len(w) == 3
     p = w.pose(0, only_connected=0)
+    assert util.no_overlapping_residues(p)
     assert 2.5 > residue_sym_err(p, 120, 2, 20, 6, axis=[1, 1, -1])
     assert 2.5 > residue_sym_err(p, 120, 87, 96, 6, axis=[1, 1, 1])
 
@@ -698,6 +717,7 @@ def test_oct(c2pose, c3pose, c4pose, c1pose):
     w = grow(segments, Octahedral(c3=-1, c2=0), thresh=1)
     assert len(w) == 1
     p = w.pose(0, only_connected=0)
+    assert util.no_overlapping_residues(p)
     assert 1 > residue_sym_err(p, 120, 85, 94, 6, axis=[1, 1, 1])
     assert 1 > residue_sym_err(p, 180, 1, 13, 6, axis=[1, 1, 0])
 
@@ -707,6 +727,7 @@ def test_oct(c2pose, c3pose, c4pose, c1pose):
     w = grow(segments, Octahedral(c2=-1, c4=0), thresh=1)
     assert len(w) == 5
     p = w.pose(0, only_connected=0)
+    assert util.no_overlapping_residues(p)
     assert 1 > residue_sym_err(p, 90, 1, 31, 6, axis=[1, 0, 0])
     assert 1 > residue_sym_err(p, 180, 92, 104, 6, axis=[1, 1, 0])
 
@@ -722,6 +743,7 @@ def test_icos(c2pose, c3pose, c1pose):
     w = grow(segments, Icosahedral(c3=-1, c2=0), thresh=2)
     assert len(w) == 3
     p = w.pose(2, only_connected=0)
+    assert util.no_overlapping_residues(p)
     # vis.showme(p)
     assert 2 > residue_sym_err(p, 120, 90, 99, 6, axis=IA[3])
     assert 2 > residue_sym_err(p, 180, 2, 14, 6, axis=IA[2])
@@ -740,6 +762,7 @@ def test_score0_sym(c2pose, c3pose, c1pose):
     i, err, pose, score0 = w[1]
     # show_with_z_axes(w, 1)
     assert 22.488 < score0 < 22.4881
+    assert util.no_overlapping_residues(pose)
 
     t = time.time()
     ps1 = w.sympose(range(3), score=1)

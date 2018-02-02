@@ -290,11 +290,18 @@ class Segment:
         cyclic_entry = defaultdict(lambda: None)
         if cyclictrim and cyclictrim[1] < 0:
             cyclictrim = cyclictrim[0], cyclictrim[1] + len(segments)
+
         if cyclictrim and iseg == cyclictrim[0]:
             # assert ir_en == -1, 'paece sign not implemented yet'
-            ir_en = segments[cyclictrim[1]].entryresid[indices[cyclictrim[1]]]
+            sym_ir = segments[cyclictrim[1]].entryresid[indices[cyclictrim[1]]]
+            if ir_en == -1:
+                ir_en = sym_ir
+                cyclictrim_in_rest = False
+            else:
+                cyclictrim_in_rest = True
             # annotate enex entries with cyclictrim info
-            cyclic_entry[pose.chain(ir_en)] = iseg, ir_en
+            cyclic_entry[pose.chain(sym_ir)] = (iseg, sym_ir,
+                                                segments[-1].entrypol)
         if cyclictrim and iseg == cyclictrim[1]:
             assert ir_ex == -1
             assert iseg + 1 == len(segments)
@@ -314,11 +321,23 @@ class Segment:
         if ch_ex: ir_ex -= spliceable.start_of_chain[ch_ex]
         assert ch_en or ch_ex
         rest = {}
+        did_cyclictrim_in_rest = False
         for i in range(1, len(chains) + 1):
-            rest[chains[i]] = AnnoPose(chains[i], iseg, pose,
-                                       spliceable.start_of_chain[i] + 1,
-                                       spliceable.end_of_chain[i],
+            pchain = chains[i]
+            lb = spliceable.start_of_chain[i] + 1
+            ub = spliceable.end_of_chain[i]
+            if cyclic_entry[i] is not None:
+                print("trimming chain", i, ch_en, ch_ex, 'ce:',
+                      cyclic_entry[i])
+                if i not in (ch_en, ch_ex):
+                    did_cyclictrim_in_rest = True
+                ir = cyclic_entry[i][1] - spliceable.start_of_chain[i]
+                pchain, lb, ub = util.trim_pose(
+                    pchain, ir, cyclic_entry[i][2])
+            rest[chains[i]] = AnnoPose(pchain, iseg, pose, lb, ub,
                                        cyclic_entry[i])
+        if cyclictrim and iseg == cyclictrim[0]:
+            assert cyclictrim_in_rest == did_cyclictrim_in_rest
         for ap in rest.values():
             assert ap.pose.sequence() == ap.srcpose.sequence()[
                 ap.src_lb - 1:ap.src_ub]
@@ -368,9 +387,13 @@ class Segment:
 
 def _cyclic_permute_chains(chainslist, polarity):
     chainslist_beg = 0
+    for i, cl in enumerate(chainslist):
+        if any(x.cyclic_entry for x in cl):
+            assert chainslist_beg == 0
+            chainslist_beg = i
     beg, end = chainslist[chainslist_beg], chainslist[-1]
-    if chainslist_beg != 0:
-        raise NotImplementedError('peace sign not working yet')
+    # if chainslist_beg != 0:
+    # raise NotImplementedError('peace sign not working yet')
     n2c = (polarity == 'N')
     if n2c:
         stub1 = util.get_bb_stubs(beg[0][0], [1])
@@ -431,7 +454,8 @@ class Worms:
         self.splicepoint_cache = {}
 
     def pose(self, which, *, align=True, end=None, only_connected='auto',
-             join=True, cyclic_permute=None, provenance=False, **kw):
+             join=True, cyclic_permute=None, cyclictrim=None,
+             provenance=False, make_chain_list=False, **kw):
         "makes a pose for the ith worm"
         if isinstance(which, Iterable): return (
             self.pose(w, align=align, end=end, join=join,
@@ -450,13 +474,15 @@ class Worms:
             cyclic_permute = not end
         elif cyclic_permute and not self.criteria.is_cyclic:
             raise ValueError('cyclic_permute should only be used for Cyclic')
-        if cyclic_permute:
-            cyclic_permute = self.criteria.from_seg, self.criteria.to_seg
+        if cyclictrim is None:
+            cyclictrim = cyclic_permute
+        if cyclictrim:
+            cyclictrim = self.criteria.from_seg, self.criteria.to_seg
         iend = None if end else -1
         entryexits = [seg.make_pose_chains(self.indices[which],
                                            self.positions[which][iseg],
                                            iseg=iseg, segments=self.segments,
-                                           cyclictrim=cyclic_permute)
+                                           cyclictrim=cyclictrim)
                       for iseg, seg in enumerate(self.segments[:iend])]
         entryexits, rest = zip(*entryexits)
         for ap in it.chain(*entryexits, *rest):
@@ -476,6 +502,7 @@ class Worms:
             chainslist = chainslist[:-1]
         sourcelist = [[x[1] for x in c] for c in chainslist]
         chainslist = [[x[0] for x in c] for c in chainslist]
+        ret_chain_list = []
         pose = ros.core.pose.Pose()
         prov0 = []
         splicepoints = []
@@ -488,6 +515,7 @@ class Worms:
                             for x in skipsegs]
                 if ((only_connected == 'auto' and sources[0][0] in skipsegs)
                     or only_connected != 'auto'): continue
+            if make_chain_list: ret_chain_list.append(chains[0])
             ros.core.pose.append_pose_to_pose(pose, chains[0], True)
             prov0.append(sources[0])
             for chain, source in zip(chains[1:], sources[1:]):
@@ -495,16 +523,19 @@ class Worms:
                 rm_upper_t(pose, len(pose))
                 rm_lower_t(chain, 1)
                 splicepoints.append(len(pose))
+                if make_chain_list: ret_chain_list.append(chain)
                 ros.core.pose.append_pose_to_pose(pose, chain, not join)
                 prov0.append(source)
         self.splicepoint_cache[which] = splicepoints
         if not only_connected or only_connected == 'auto':
             for chain, source in it.chain(*rest):
                 assert isinstance(chain, ros.core.pose.Pose)
+                if make_chain_list: ret_chain_list.append(chain)
                 ros.core.pose.append_pose_to_pose(pose, chain, True)
                 prov0.append(source)
         assert util.worst_CN_connect(pose) < 0.5
-        assert util.no_overlapping_residues(pose)
+        assert util.no_overlapping_adjacent_residues(pose)
+        if not provenance and make_chain_list: return pose, ret_chain_list
         if not provenance: return pose
         prov = []
         for i, pr in enumerate(prov0):
@@ -519,6 +550,8 @@ class Worms:
             assert 0 < lb1 <= len(pose) and 0 < ub1 <= len(pose)
             assert psrc.sequence()[lb0 - 1:ub0] == pose.sequence()[lb1 - 1:ub1]
             prov.append((lb1, ub1, psrc, lb0, ub0))
+        if make_chain_list:
+            return pose, prov, ret_chain_list
         return pose, prov
 
     def splicepoints(self, which):

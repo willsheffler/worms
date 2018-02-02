@@ -18,7 +18,12 @@ worms
      :alt: Updates
 
 
+
 Protein Origami via Genetic Fusions
+
+
+.. image:: img/worms_triangle_600.png
+    :width: 300px
 
 
 * Free software: Apache Software License 2.0

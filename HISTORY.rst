@@ -5,6 +5,12 @@ History
 0.1.6 (2018-02-01)
 ------------------
 
+* middle-to-end cyclic fusions working
+* add pretty logo of mid-to-end C3 fusion
+
+0.1.6 (2018-02-01)
+------------------
+
 * bug fix in fullatom option
 
 0.1.5 (2018-02-01)
