@@ -17,6 +17,7 @@ except ImportError:
     print('pyrosetta not available, worms won\'t work')
     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 from . import util
+import inspect
 
 
 class SpliceSite:
@@ -173,6 +174,11 @@ class AnnoPose:
         return self.srcpose.sequence()[self.src_lb - 1:self.src_ub]
 
 
+def lineno():
+    """Returns the current line number in our program."""
+    return inspect.currentframe().f_back.f_lineno
+
+
 class Segment:
 
     def __init__(self, spliceables, entry=None, exit=None, expert=False):
@@ -327,8 +333,6 @@ class Segment:
             lb = spliceable.start_of_chain[i] + 1
             ub = spliceable.end_of_chain[i]
             if cyclic_entry[i] is not None:
-                print("trimming chain", i, ch_en, ch_ex, 'ce:',
-                      cyclic_entry[i])
                 if i not in (ch_en, ch_ex):
                     did_cyclictrim_in_rest = True
                 ir = cyclic_entry[i][1] - spliceable.start_of_chain[i]
@@ -357,15 +361,14 @@ class Segment:
             p_en = [chains[ch_en]] if ch_en else []
             p_ex = [chains[ch_ex]] if ch_ex else []
             if p_en:
-                p, lben, uben = util.trim_pose(
-                    p_en[0], ir_en, pl_en, pad[0])
+                p, lben, uben = util.trim_pose(p_en[0], ir_en, pl_en, pad[0])
                 lb = lben + spliceable.start_of_chain[ch_en]
                 ub = uben + spliceable.start_of_chain[ch_en]
                 p_en = [AnnoPose(p, iseg, pose, lb, ub, cyclic_entry[ch_en])]
                 assert p.sequence() == pose.sequence()[lb - 1:ub]
             if p_ex:
-                p, lbex, ubex = util.trim_pose(
-                    p_ex[0], ir_ex, pl_ex, pad[1] - 1)
+                p, lbex, ubex = util.trim_pose(p_ex[0], ir_ex, pl_ex,
+                                               pad[1] - 1)
                 lb = lbex + spliceable.start_of_chain[ch_ex]
                 ub = ubex + spliceable.start_of_chain[ch_ex]
                 p_ex = [AnnoPose(p, iseg, pose, lb, ub, cyclic_entry[ch_ex])]
@@ -410,7 +413,7 @@ def _cyclic_permute_chains(chainslist, polarity):
         assert len(end[0][0]) == 1
         end = end[1:]
     xalign = stub1[0] @ np.linalg.inv(stub2[0])
-    print(xalign.shape)
+    # print(xalign.shape)
     for p in end: util.xform_pose(xalign, p[0])
     if n2c: chainslist[chainslist_beg] = end + beg
     else: chainslist[chainslist_beg] = beg + end
@@ -513,6 +516,8 @@ class Worms:
                             if not self.criteria.is_cyclic else [])
                 skipsegs = [len(self.segments) - 1 if x is -1 else x
                             for x in skipsegs]
+                if self.criteria.origin_seg is not None:
+                    skipsegs.append(self.criteria.origin_seg)
                 if ((only_connected == 'auto' and sources[0][0] in skipsegs)
                     or only_connected != 'auto'): continue
             if make_chain_list: ret_chain_list.append(chains[0])
@@ -638,6 +643,7 @@ class Worms:
 def _chain_xforms(segments):
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ['MKL_NUM_THREADS'] = '1'
+    os.environ['NUMEXPR_NUM_THREADS'] = '1'
     x2exit = [s.x2exit for s in segments]
     x2orgn = [s.x2orgn for s in segments]
     fullaxes = (np.newaxis,) * (len(x2exit) - 1)
@@ -653,10 +659,15 @@ def _chain_xforms(segments):
     return xbody, xconn
 
 
+__print_best = False
+__best_score = 9e9
+
+
 def _grow_chunk(samp, segpos, conpos, segs, end, criteria, thresh, matchlast):
     ML = matchlast
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ['MKL_NUM_THREADS'] = '1'
+    os.environ['NUMEXPR_NUM_THREADS'] = '1'
     # body must match, and splice sites must be distinct
     if ML is not None:
         ndimchunk = segpos[0].ndim - 2
@@ -683,6 +694,12 @@ def _grow_chunk(samp, segpos, conpos, segs, end, criteria, thresh, matchlast):
         if seg is not segs[-1]:
             conpos.append(conpos[-1] @ seg.x2exit[samp[iseg]])
     score = criteria.score(segpos=segpos)
+    if __print_best:
+        global __best_score
+        min_score = np.min(score)
+        if min_score < __best_score:
+            __best_score = min_score
+            print('best for pid %6i %7.3f' % (os.getpid(), __best_score))
     ilow0 = np.where(score < thresh)
     sampidx = tuple(np.repeat(i, len(ilow0[0])) for i in samp)
     lowpostmp = []
@@ -697,6 +714,7 @@ def _grow_chunk(samp, segpos, conpos, segs, end, criteria, thresh, matchlast):
 def _grow_chunks(ijob, context):
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ['MKL_NUM_THREADS'] = '1'
+    os.environ['NUMEXPR_NUM_THREADS'] = '1'
     sampsizes, njob, segments, end, criteria, thresh, matchlast = context
     samples = it.product(*(range(n) for n in sampsizes))
     segpos, connpos = _chain_xforms(segments[:end])  # common data
@@ -751,13 +769,16 @@ def _check_topology(segments, criteria, expert=False):
 
 
 def grow(segments, criteria, *, thresh=2, expert=0, memsize=1e6,
-         executor=None, max_workers=None, verbosity=0, jobmult=128,
+         executor=None, max_workers=None, verbosity=0, jobmult=None,
          chunklim=None):
     if verbosity > 0:
         print('grow, from', criteria.from_seg, 'to', criteria.to_seg)
         for i, seg in enumerate(segments):
             print(' segment', i, 'enter:', seg.entrypol, 'exit:', seg.exitpol)
             for sp in seg.spliceables: print('   ', sp)
+    if verbosity > 1:
+        global __print_best
+        __print_best = True
     if not isinstance(criteria, CriteriaList):
         criteria = CriteriaList(criteria)
     # checks and setup
@@ -773,14 +794,17 @@ def grow(segments, criteria, *, thresh=2, expert=0, memsize=1e6,
     ntot, chunksize, nchunks = (np.product(x)
                                 for x in (sizes, sizes[:end], sizes[end:]))
     nworker = max_workers or util.cpu_count()
-    njob = nworker * jobmult
-    njob = min(njob, nchunks)
+    if jobmult is None:
+        njob = int(np.sqrt(nchunks))
+    else:
+        njob = nworker * jobmult
+
+    njob = np.clip(1, njob, nchunks)
     if verbosity >= 0:
         print('tot: {:,} chunksize: {:,} nchunks: {:,} nworker: {} '
               'njob: {} worm/job: {:,} chunk/job: {} sizes={}'.format(
                   ntot, chunksize, nchunks, nworker, njob,
                   ntot / njob, nchunks / njob, sizes))
-
     # run the stuff
     tmp = [s.spliceables for s in segments]
     for s in segments: s.spliceables = None  # poses not pickleable...

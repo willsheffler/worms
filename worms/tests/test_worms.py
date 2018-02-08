@@ -13,7 +13,6 @@ except ImportError:
 
 
 @pytest.mark.skipif('not HAVE_PYROSETTA')
-@pytest.mark.xfail
 def test_sym_bug(c1pose, c2pose):
     helix = Spliceable(
         c1pose, sites=[((1, 2, 3, 4,), 'N'), ((9, 10, 11, 13), 'C')])
@@ -24,7 +23,7 @@ def test_sym_bug(c1pose, c2pose):
                 Segment([dimer], entry='N', exit='C'),
                 Segment([helix], entry='N', exit='C'),
                 Segment([helix], entry='N'), ]
-    wnc = grow(segments, Cyclic('C3', lever=200), thresh=1, verbosity=1)
+    wnc = grow(segments, Cyclic(3, lever=200), thresh=1, verbosity=1)
     assert len(wnc)
     print(wnc.scores)
     p = wnc.pose(0, align=1, end=1)
@@ -34,7 +33,7 @@ def test_sym_bug(c1pose, c2pose):
     # q = wnc.pose(4)
     # vis.showme(p, name='carterr')
     # vis.showme(q, name='angerr')
-    assert residue_sym_err(wnc.pose(0, end=True), 120, 2, 46, 6) < 2.5
+    assert residue_sym_err(wnc.pose(0, end=True), 120, 2, 46, 6) < 1.0
     # assert 0
 
 
@@ -602,7 +601,6 @@ def test_cyclic_permute_mid_end(c1pose, c2pose, c3hetpose):
 
 
 @pytest.mark.skipif('not HAVE_PYROSETTA')
-@pytest.mark.xfail
 def test_multichain_mixed_pol(c2pose, c3pose, c1pose):
     helix = Spliceable(c1pose, [(':4', 'N'), ((10, 12, 13), 'C')])
     dimer = Spliceable(c2pose, sites=[('1,:2', 'N'), ('1,-1:', 'C'),
@@ -622,7 +620,7 @@ def test_multichain_mixed_pol(c2pose, c3pose, c1pose):
     # vis.show_with_axis(w, 0)
     # vis.showme(p)
 
-    assert 2 > residue_sym_err(p, 120, 2, 62, 7)
+    assert 1 > residue_sym_err(p, 120, 2, 62, 7)
 
 
 @pytest.mark.skipif('not HAVE_PYROSETTA')
@@ -877,10 +875,8 @@ def test_invalid_splices_site_overlap_3(c1pose, c3pose):
                 w.segments[5].entrysiteid[w.indices[i, 5]])
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
-@pytest.mark.xfail
+@pytest.mark.skip  # if('not HAVE_PYROSETTA')
 def test_origin_seg(c1pose, c2pose, c3pose):
-    assert 0
     helix = Spliceable(c1pose, [(':1', 'N'), ('-8:', 'C')])
     dimer = Spliceable(c2pose, sites=[('1,:3', 'N'), ('1,-3:', 'C'),
                                       ('2,:3', 'N'), ('2,-3:', 'C'), ])
@@ -894,11 +890,11 @@ def test_origin_seg(c1pose, c2pose, c3pose):
                 Segment([dimer], 'CC'),
                 Segment([helix], 'NC'),
                 Segment([trimer], 'N_'), ]  # to_seg
-    w = grow(segments, Cyclic(3, from_seg=2, origin_seg=0), thresh=30,
-             executor=ProcessPoolExecutor, max_workers=8)
+    w = grow(segments, Cyclic(3, from_seg=2, origin_seg=0), thresh=30)
+    # executor=ProcessPoolExecutor, max_workers=8)
     assert len(w) > 0
     print(w.scores[:10])
-    # vis.showme(w.sympose(0))
+    vis.showme(w.sympose(0))
     assert 0
 
 

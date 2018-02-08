@@ -9,7 +9,7 @@ import pyrosetta
 
 
 def main(nseg, nworker=0):
-    pyrosetta.init()
+    pyrosetta.init('-corrections:beta_nov16 -mute all')
     helix = Spliceable(poselib.curved_helix, sites=[(1, 'N'), ('-4:', 'C')])
     helix2 = Spliceable(poselib.curved_helix, sites=[(1, 'N'), ('-4:', 'C')])
     segments = ([Segment([helix], exit='C'), ] +

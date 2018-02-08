@@ -8,4 +8,5 @@ __version__ = '0.1.7'
 
 from .worms import *
 from .criteria import *
+from . import data
 from . import vis

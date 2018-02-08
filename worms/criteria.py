@@ -20,6 +20,7 @@ class WormCriteria(abc.ABC):
                           'alignment',
                           'from_seg',
                           'to_seg',
+                          'origin_seg',
                           )
 
 
@@ -46,6 +47,8 @@ class AxesIntersect(WormCriteria):
 
     def __init__(self, symname, tgtaxis1, tgtaxis2, from_seg, *, tol=1.0,
                  lever=50, to_seg=-1, distinct_axes=False):
+        if from_seg == to_seg:
+            raise ValueError('from_seg should not be same as to_seg')
         self.symname = symname
         self.from_seg = from_seg
         if len(tgtaxis1) == 2: tgtaxis1 += [0, 0, 0, 1],
@@ -179,6 +182,12 @@ class Cyclic(WormCriteria):
 
     def __init__(self, symmetry=1, from_seg=0, *, tol=1.0, origin_seg=None,
                  lever=50.0, to_seg=-1):
+        if from_seg == to_seg:
+            raise ValueError('from_seg should not be same as to_seg')
+        if from_seg == origin_seg:
+            raise ValueError('from_seg should not be same as origin_seg')
+        if to_seg == origin_seg:
+            raise ValueError('to_seg should not be same as origin_seg')
         if isinstance(symmetry, int): symmetry = 'C' + str(symmetry)
         self.symmetry = symmetry
         self.tol = tol
@@ -215,14 +224,14 @@ class Cyclic(WormCriteria):
             if self.origin_seg is not None:
                 tgtaxis = segpos[self.origin_seg] @ [0, 0, 1, 0]
                 tgtcen = segpos[self.origin_seg] @ [0, 0, 0, 1]
-                axis, ang, cen = hm.axis_ang_cen_of(xhat)
+                axis, angle, cen = hm.axis_ang_cen_of(xhat)
                 carterrsq = hm.hnorm2(cen - tgtcen)
                 roterrsq = (1 - np.abs(hm.hdot(axis, tgtaxis))) * np.pi
             else:  # much cheaper if cen not needed
-                axis, ang = hm.axis_angle_of(xhat)
+                axis, angle = hm.axis_angle_of(xhat)
                 carterrsq = roterrsq = 0
             carterrsq = carterrsq + hm.hdot(trans, axis)**2
-            roterrsq = roterrsq + (ang - self.symangle)**2
+            roterrsq = roterrsq + (angle - self.symangle)**2
             # if self.relweight is not None:
             #     # penalize 'relative' error
             #     distsq = np.sum(trans[..., :3]**2, axis=-1)
@@ -234,7 +243,7 @@ class Cyclic(WormCriteria):
                 print('axis', axis[0])
                 print('trans', trans[0])
                 print('dot trans', hm.hdot(trans, axis)[0])
-                print('ang', angle[0] * 180 / np.pi)
+                print('angle', angle[0] * 180 / np.pi)
 
         return np.sqrt(carterrsq / self.tol**2 +
                        roterrsq / self.rot_tol**2)
