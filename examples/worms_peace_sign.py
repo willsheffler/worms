@@ -37,14 +37,13 @@ def main():
              thresh=5,
              executor=ProcessPoolExecutor,
              max_workers=multiprocessing.cpu_count(),
-             memsize=1e6, verbosity=2)
+             memsize=1e6, verbosity=2, max_samples=1e12)
     print(len(w))
     # vis.showme(w.pose(0))
     for i in range(0, len(w), multiprocessing.cpu_count()):
         for p, s in w.sympose(range(i, i + 8), score=True):
-            print(i, err, len(pose), score0k)
-            if score0 < 300:
-                pose.dump_pdb('peace_%04i.pdb' % i)
+            print(i, w.scores[i], len(p), s)
+            pose.dump_pdb('peace_%04i.pdb' % i)
 
 if __name__ == '__main__':
     main()

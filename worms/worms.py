@@ -663,7 +663,8 @@ __print_best = False
 __best_score = 9e9
 
 
-def _grow_chunk(samp, segpos, conpos, segs, end, criteria, thresh, matchlast):
+def _grow_chunk(samp, segpos, conpos, context):
+    _, _, segs, end, criteria, thresh, matchlast, _ = context
     ML = matchlast
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ['MKL_NUM_THREADS'] = '1'
@@ -699,7 +700,8 @@ def _grow_chunk(samp, segpos, conpos, segs, end, criteria, thresh, matchlast):
         min_score = np.min(score)
         if min_score < __best_score:
             __best_score = min_score
-            print('best for pid %6i %7.3f' % (os.getpid(), __best_score))
+            if __best_score < thresh * 5:
+                print('best for pid %6i %7.3f' % (os.getpid(), __best_score))
     ilow0 = np.where(score < thresh)
     sampidx = tuple(np.repeat(i, len(ilow0[0])) for i in samp)
     lowpostmp = []
@@ -715,11 +717,11 @@ def _grow_chunks(ijob, context):
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ['MKL_NUM_THREADS'] = '1'
     os.environ['NUMEXPR_NUM_THREADS'] = '1'
-    sampsizes, njob, segments, end, criteria, thresh, matchlast = context
+    sampsizes, njob, segments, end, _, _, _, every_other = context
     samples = it.product(*(range(n) for n in sampsizes))
     segpos, connpos = _chain_xforms(segments[:end])  # common data
-    args = [list(samples)[ijob::njob]] + [it.repeat(x) for x in (
-        segpos, connpos, segments, end, criteria, thresh, matchlast)]
+    args = [list(samples)[ijob::njob * every_other], it.repeat(segpos),
+            it.repeat(connpos), it.repeat(context)]
     chunks = list(map(_grow_chunk, *args))
     chunks = [c for c in chunks if c is not None]
     return [np.concatenate([c[i] for c in chunks])
@@ -770,7 +772,7 @@ def _check_topology(segments, criteria, expert=False):
 
 def grow(segments, criteria, *, thresh=2, expert=0, memsize=1e6,
          executor=None, max_workers=None, verbosity=0, jobmult=None,
-         chunklim=None):
+         chunklim=None, max_samples=None):
     if verbosity > 0:
         print('grow, from', criteria.from_seg, 'to', criteria.to_seg)
         for i, seg in enumerate(segments):
@@ -793,6 +795,7 @@ def grow(segments, criteria, *, thresh=2, expert=0, memsize=1e6,
                        memsize <= 64 * np.prod(sizes[:end])): end -= 1
     ntot, chunksize, nchunks = (np.product(x)
                                 for x in (sizes, sizes[:end], sizes[end:]))
+    every_other = max(1, int(ntot / max_samples)) if max_samples else 1
     nworker = max_workers or util.cpu_count()
     if jobmult is None:
         njob = int(np.sqrt(nchunks))
@@ -810,7 +813,7 @@ def grow(segments, criteria, *, thresh=2, expert=0, memsize=1e6,
     for s in segments: s.spliceables = None  # poses not pickleable...
     with executor(max_workers=nworker) as pool:
         context = (sizes[end:], njob, segments, end, criteria, thresh,
-                   matchlast)
+                   matchlast, every_other)
         args = [range(njob)] + [it.repeat(context)]
         chunks = util.tqdm_parallel_map(
             pool, _grow_chunks, *args,
