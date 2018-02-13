@@ -641,9 +641,6 @@ class Worms:
 
 
 def _chain_xforms(segments):
-    os.environ['OMP_NUM_THREADS'] = '1'
-    os.environ['MKL_NUM_THREADS'] = '1'
-    os.environ['NUMEXPR_NUM_THREADS'] = '1'
     x2exit = [s.x2exit for s in segments]
     x2orgn = [s.x2orgn for s in segments]
     fullaxes = (np.newaxis,) * (len(x2exit) - 1)
@@ -664,11 +661,11 @@ __best_score = 9e9
 
 
 def _grow_chunk(samp, segpos, conpos, context):
-    _, _, segs, end, criteria, thresh, matchlast, _ = context
-    ML = matchlast
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ['MKL_NUM_THREADS'] = '1'
     os.environ['NUMEXPR_NUM_THREADS'] = '1'
+    _, _, segs, end, criteria, thresh, matchlast, _ = context
+    ML = matchlast
     # body must match, and splice sites must be distinct
     if ML is not None:
         ndimchunk = segpos[0].ndim - 2
@@ -773,6 +770,9 @@ def _check_topology(segments, criteria, expert=False):
 def grow(segments, criteria, *, thresh=2, expert=0, memsize=1e6,
          executor=None, max_workers=None, verbosity=0, jobmult=None,
          chunklim=None, max_samples=None):
+    os.environ['OMP_NUM_THREADS'] = '1'
+    os.environ['MKL_NUM_THREADS'] = '1'
+    os.environ['NUMEXPR_NUM_THREADS'] = '1'
     if verbosity > 0:
         print('grow, from', criteria.from_seg, 'to', criteria.to_seg)
         for i, seg in enumerate(segments):
@@ -804,11 +804,12 @@ def grow(segments, criteria, *, thresh=2, expert=0, memsize=1e6,
 
     njob = np.clip(1, njob, nchunks)
     if verbosity >= 0:
-        print('tot: {:,} chunksize: {:,} nchunks: {:,} nworker: {} '
-              'njob: {} worm/job: {:,} chunk/job: {} sizes={}'.format(
-                  ntot, chunksize, nchunks, nworker, njob,
-                  ntot / njob, nchunks / njob, sizes))
+        print('tot: {:,} chunksize: {:,} nchunks: {:,} nworker: {} njob: {}'.format(
+            ntot, chunksize, nchunks, nworker, njob))
+        print('worm/job: {:,} chunk/job: {} sizes={} every_other={}'.format(
+            ntot / njob, nchunks / njob, sizes, every_other))
     # run the stuff
+    accumulator = util.WormsAccumulator(num_arrays=3, batch_size=1024)
     tmp = [s.spliceables for s in segments]
     for s in segments: s.spliceables = None  # poses not pickleable...
     with executor(max_workers=nworker) as pool:
@@ -816,19 +817,28 @@ def grow(segments, criteria, *, thresh=2, expert=0, memsize=1e6,
                    matchlast, every_other)
         args = [range(njob)] + [it.repeat(context)]
         chunks = util.tqdm_parallel_map(
-            pool, _grow_chunks, *args,
+            pool, _grow_chunks, accumulator, *args,
             unit='K worms', ascii=0, desc='growing worms',
             unit_scale=int(ntot / njob / 1000), disable=verbosity < 0)
-        chunks = [x for x in chunks if x is not None]
+        # chunks = [x for x in chunks if x is not None]
     for s, t in zip(segments, tmp): s.spliceables = t  # put the poses back
 
     # compose and sort results
-    scores = np.concatenate([c[0] for c in chunks])
+
+    scores, lowidx, lowpos = accumulator.final_result()
     order = np.argsort(scores)
     scores = scores[order]
-    lowidx = np.concatenate([c[1] for c in chunks])[order]
-    lowpos = np.concatenate([c[2] for c in chunks])[order]
+    lowidx = lowidx[order]
+    lowpos = lowpos[order]
     lowposlist = [lowpos[:, i] for i in range(len(segments))]
+
+    # scores = np.concatenate([c[0] for c in chunks])
+    # order = np.argsort(scores)
+    # scores = scores[order]
+    # lowidx = np.concatenate([c[1] for c in chunks])[order]
+    # lowpos = np.concatenate([c[2] for c in chunks])[order]
+    # lowposlist = [lowpos[:, i] for i in range(len(segments))]
+
     score_check = criteria.score(segpos=lowposlist, verbosity=verbosity)
     assert np.allclose(score_check, scores)
     detail = dict(ntot=ntot, chunksize=chunksize, nchunks=nchunks,

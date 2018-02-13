@@ -890,12 +890,12 @@ def test_origin_seg(c1pose, c2pose, c3pose):
                 Segment([dimer], 'CC'),
                 Segment([helix], 'NC'),
                 Segment([trimer], 'N_'), ]  # to_seg
-    w = grow(segments, Cyclic(3, from_seg=2, origin_seg=0), thresh=30)
+    w = grow(segments, Cyclic(3, from_seg=2, origin_seg=0), thresh=10)
     # executor=ProcessPoolExecutor, max_workers=8)
     assert len(w) > 0
     print(w.scores[:10])
-    vis.showme(w.sympose(0))
-    assert 0
+    vis.showme(w.pose(0, join=False))
+    # assert 0
 
 
 @pytest.mark.skipif('not HAVE_PYROSETTA')

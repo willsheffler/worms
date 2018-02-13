@@ -15,10 +15,45 @@ def cpu_count():
     except: return multiprocessing.cpu_count()
 
 
-def tqdm_parallel_map(pool, function, *args, **kw):
+class WormsAccumulator:
+
+    def __init__(self, num_arrays, batch_size=1024):
+        self.batch_size = batch_size
+        self.batches = [list() for i in range(num_arrays)]
+        self.temporary = []
+
+    def accumulate_temporary_to_batches(self):
+        if len(self.temporary) is 0: return
+        assert len(self.batches) == len(self.temporary[0])
+        for i in range(len(self.temporary[0])):
+            tmp = [t[i] for t in self.temporary]
+            self.batches[i].append(np.concatenate(tmp))
+        self.temporary = []
+
+    def accumulate(self, gen):
+        for f in gen:
+            result = f.result()
+            if result is not None:
+                self.temporary.append(result)
+                if len(self.temporary) >= self.batch_size:
+                    self.accumulate_temporary_to_batches()
+            yield None
+
+    def final_result(self):
+        # print('batches:', len(self.batches))
+        # print('batches len', [len(b) for b in self.batches])
+        self.accumulate_temporary_to_batches()
+        return tuple(np.concatenate(b) for b in self.batches)
+
+
+def tqdm_parallel_map(pool, function, accumulator, *args, **kw):
+    os.environ['OMP_NUM_THREADS'] = '1'
+    os.environ['MKL_NUM_THREADS'] = '1'
+    os.environ['NUMEXPR_NUM_THREADS'] = '1'
     futures = [pool.submit(function, *a) for a in zip(*args)]
-    return (f.result() for f in tqdm(as_completed(futures),
-                                     total=len(futures), **kw))
+    for f in tqdm(accumulator.accumulate(
+            as_completed(futures)), total=len(futures), **kw):
+        pass
 
 
 def numpy_stub_from_rosetta_stub(rosstub):

@@ -11,7 +11,7 @@
     [
         {
             "name": "pytest",
-            "shell_cmd": "cd $folder; echo pwd: `pwd` > log/sublime_build.log; echo python: `which python` >> log/sublime_build.log; pytest $file &>> log/sublime_build.log"
+            "shell_cmd": "cd $folder; echo pwd: `pwd` > log/sublime_build.log; echo python: `which python` >> log/sublime_build.log; pytest worms/tests/test_worms.py &>> log/sublime_build.log"
         },
         {
             "name": "make_docs",
