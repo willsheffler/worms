@@ -1,8 +1,10 @@
 import os
 import functools as ft
+import itertools as it
 import numpy as np
 from tqdm import tqdm
-from concurrent.futures import as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import as_completed as cf_as_completed
 import multiprocessing
 try:
     from pyrosetta import rosetta as ros
@@ -17,42 +19,90 @@ def cpu_count():
 
 class WormsAccumulator:
 
-    def __init__(self, num_arrays, batch_size=1024):
-        self.batch_size = batch_size
-        self.batches = [list() for i in range(num_arrays)]
+    def __init__(self, max_results=1000000, max_tmp_size=1024):
+        self.max_tmp_size = max_tmp_size
+        self.max_results = max_results
         self.temporary = []
 
-    def accumulate_temporary_to_batches(self):
-        if len(self.temporary) is 0: return
-        assert len(self.batches) == len(self.temporary[0])
-        for i in range(len(self.temporary[0])):
-            tmp = [t[i] for t in self.temporary]
-            self.batches[i].append(np.concatenate(tmp))
+    def accumulate_sort_filter(self):
+        if hasattr(self, 'scores'):
+            sc, li, lp = [self.scores], [self.lowidx], [self.lowpos]
+        else:
+            sc, li, lp = [], [], []
+        scores = np.concatenate([x[0] for x in self.temporary] + sc)
+        lowidx = np.concatenate([x[1] for x in self.temporary] + li)
+        lowpos = np.concatenate([x[2] for x in self.temporary] + lp)
+        order = np.argsort(scores)
+        self.scores = scores[order[:self.max_results]]
+        self.lowidx = lowidx[order[:self.max_results]]
+        self.lowpos = lowpos[order[:self.max_results]]
+        del self.temporary
         self.temporary = []
 
     def accumulate(self, gen):
-        for f in gen:
-            result = f.result()
-            if result is not None:
-                self.temporary.append(result)
-                if len(self.temporary) >= self.batch_size:
-                    self.accumulate_temporary_to_batches()
+        for future in gen:
+            self.accumulate_future(future)
             yield None
+
+    def accumulate_future(self, future):
+        result = future.result()
+        if result is not None:
+            self.temporary.append(result)
+            if len(self.temporary) >= self.max_tmp_size:
+                self.accumulate_sort_filter()
+        # future._result = None  # doesn't fix memory issue
 
     def final_result(self):
         # print('batches:', len(self.batches))
         # print('batches len', [len(b) for b in self.batches])
-        self.accumulate_temporary_to_batches()
-        return tuple(np.concatenate(b) for b in self.batches)
+        self.accumulate_sort_filter()
+        return self.scores, self.lowidx, self.lowpos
 
 
-def tqdm_parallel_map(pool, function, accumulator, *args, **kw):
+def parallel_batch_map(pool, function, accumulator,
+                       batch_size, map_func_args, **kw):
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ['MKL_NUM_THREADS'] = '1'
     os.environ['NUMEXPR_NUM_THREADS'] = '1'
-    futures = [pool.submit(function, *a) for a in zip(*args)]
-    for f in tqdm(accumulator.accumulate(
-            as_completed(futures)), total=len(futures), **kw):
+    njobs = len(map_func_args[0])
+    args = list(zip(*map_func_args))
+    for ibatch in range(0, njobs, batch_size):
+        beg = ibatch
+        end = min(njobs, ibatch + batch_size)
+        batch_args = args[beg:end]  # todo, this could be done lazily...
+        futures = [pool.submit(function, *a) for a in batch_args]
+        if isinstance(pool, (ProcessPoolExecutor, ThreadPoolExecutor)):
+            as_completed = cf_as_completed
+        else:
+            from dask.distributed import as_completed as dd_as_completed
+            as_completed = dd_as_completed
+        for _ in accumulator.accumulate(as_completed(futures)):
+            yield None
+        accumulator.accumulate_sort_filter()
+
+
+def parallel_nobatch_map(pool, function, accumulator,
+                         batch_size, map_func_args, **kw):
+    os.environ['OMP_NUM_THREADS'] = '1'
+    os.environ['MKL_NUM_THREADS'] = '1'
+    os.environ['NUMEXPR_NUM_THREADS'] = '1'
+    njobs = len(map_func_args[0])
+    args = list(zip(*map_func_args))
+    futures = [pool.submit(function, *a) for a in args]
+    if isinstance(pool, (ProcessPoolExecutor, ThreadPoolExecutor)):
+        as_completed = cf_as_completed
+    else:
+        as_completed = dd_as_completed
+    for _ in accumulator.accumulate(as_completed(futures)):
+        yield None
+    accumulator.accumulate_sort_filter()
+
+
+def tqdm_parallel_map(pool, function, accumulator,
+                      map_func_args, batch_size, **kw):
+    for _ in tqdm(parallel_batch_map(pool, function, accumulator, batch_size,
+                                     map_func_args=map_func_args, **kw),
+                  total=len(map_func_args[0]), **kw):
         pass
 
 

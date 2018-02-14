@@ -13,7 +13,7 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     'numpy',
-    'homog',
+    'homog >= 0.1.10',
     'tqdm',
 ]
 
@@ -31,7 +31,7 @@ test_requirements = [
     'pytest',
     'pytest-runner',
     'numpy',
-    'homog',
+    'homog >= 0.1.10',
     'tqdm',
     # https://storage.googleapis.com/protein-design-ipd-public/wheelhouse/pyrosetta-2017.48.post0.dev0%2B93.fordas.dev.f126926bdc8-cp35-cp35m-linux_x86_64.whl
     'pytest',

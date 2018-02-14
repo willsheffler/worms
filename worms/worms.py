@@ -3,7 +3,7 @@ import os
 import itertools as it
 from collections.abc import Iterable
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 import numpy as np
 from numpy.linalg import inv
 from .criteria import CriteriaList
@@ -595,8 +595,10 @@ class Worms:
         ros.core.util.switch_to_residue_type_set(pcen, 'centroid')
         symdata = util.get_symdata(self.criteria.symname)
         sfxn = self.score0sym
-        if symdata is None: sfxn = self.score0
-        else: ros.core.pose.symmetry.make_symmetric_pose(pcen, symdata)
+        if symdata is None:
+            sfxn = self.score0
+        else:
+            ros.core.pose.symmetry.make_symmetric_pose(pcen, symdata)
         if fullatom:
             if symdata is not None:
                 ros.core.pose.symmetry.make_symmetric_pose(pfull, symdata)
@@ -768,11 +770,13 @@ def _check_topology(segments, criteria, expert=False):
 
 
 def grow(segments, criteria, *, thresh=2, expert=0, memsize=1e6,
-         executor=None, max_workers=None, verbosity=0, jobmult=None,
-         chunklim=None, max_samples=None):
+         executor=None, executor_args=None, max_workers=None, verbosity=0,
+         jobmult=None, chunklim=None, max_samples=None, max_results=1000000):
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ['MKL_NUM_THREADS'] = '1'
     os.environ['NUMEXPR_NUM_THREADS'] = '1'
+    if isinstance(executor, (ProcessPoolExecutor, ThreadPoolExecutor)):
+        raise ValueError('please use dask.distributed executor')
     if verbosity > 0:
         print('grow, from', criteria.from_seg, 'to', criteria.to_seg)
         for i, seg in enumerate(segments):
@@ -783,6 +787,15 @@ def grow(segments, criteria, *, thresh=2, expert=0, memsize=1e6,
         __print_best = True
     if not isinstance(criteria, CriteriaList):
         criteria = CriteriaList(criteria)
+    if max_workers is not None and max_workers <= 0:
+        max_workers = util.cpu_count()
+    if executor_args is None and max_workers is None:
+        executor_args = dict()
+    elif executor_args is None:
+        executor_args = dict(max_workers=max_workers)
+    elif executor_args is not None and max_workers is not None:
+        raise ValueError('executor_args incompatible with max_workers')
+
     # checks and setup
     matchlast = _check_topology(segments, criteria, expert)
     if executor is None:
@@ -798,7 +811,7 @@ def grow(segments, criteria, *, thresh=2, expert=0, memsize=1e6,
     every_other = max(1, int(ntot / max_samples)) if max_samples else 1
     nworker = max_workers or util.cpu_count()
     if jobmult is None:
-        njob = int(np.sqrt(nchunks))
+        njob = int(np.sqrt(nchunks)) * nworker
     else:
         njob = nworker * jobmult
 
@@ -807,30 +820,29 @@ def grow(segments, criteria, *, thresh=2, expert=0, memsize=1e6,
         print('tot: {:,} chunksize: {:,} nchunks: {:,} nworker: {} njob: {}'.format(
             ntot, chunksize, nchunks, nworker, njob))
         print('worm/job: {:,} chunk/job: {} sizes={} every_other={}'.format(
-            ntot / njob, nchunks / njob, sizes, every_other))
+            int(ntot / njob), int(nchunks / njob), sizes, every_other))
     # run the stuff
-    accumulator = util.WormsAccumulator(num_arrays=3, batch_size=1024)
+    accumulator = util.WormsAccumulator(
+        max_results=max_results, max_tmp_size=1e5)
     tmp = [s.spliceables for s in segments]
     for s in segments: s.spliceables = None  # poses not pickleable...
-    with executor(max_workers=nworker) as pool:
+    with executor(**executor_args) as pool:
         context = (sizes[end:], njob, segments, end, criteria, thresh,
                    matchlast, every_other)
         args = [range(njob)] + [it.repeat(context)]
-        chunks = util.tqdm_parallel_map(
-            pool, _grow_chunks, accumulator, *args,
+        util.tqdm_parallel_map(
+            pool=pool,
+            function=_grow_chunks,
+            accumulator=accumulator,
+            map_func_args=args,
+            batch_size=nworker * 8,
             unit='K worms', ascii=0, desc='growing worms',
-            unit_scale=int(ntot / njob / 1000), disable=verbosity < 0)
-        # chunks = [x for x in chunks if x is not None]
+            unit_scale=int(ntot / njob / 1000 / every_other), disable=verbosity < 0)
     for s, t in zip(segments, tmp): s.spliceables = t  # put the poses back
 
     # compose and sort results
 
     scores, lowidx, lowpos = accumulator.final_result()
-    order = np.argsort(scores)
-    scores = scores[order]
-    lowidx = lowidx[order]
-    lowpos = lowpos[order]
-    lowposlist = [lowpos[:, i] for i in range(len(segments))]
 
     # scores = np.concatenate([c[0] for c in chunks])
     # order = np.argsort(scores)
@@ -839,6 +851,7 @@ def grow(segments, criteria, *, thresh=2, expert=0, memsize=1e6,
     # lowpos = np.concatenate([c[2] for c in chunks])[order]
     # lowposlist = [lowpos[:, i] for i in range(len(segments))]
 
+    lowposlist = [lowpos[:, i] for i in range(len(segments))]
     score_check = criteria.score(segpos=lowposlist, verbosity=verbosity)
     assert np.allclose(score_check, scores)
     detail = dict(ntot=ntot, chunksize=chunksize, nchunks=nchunks,

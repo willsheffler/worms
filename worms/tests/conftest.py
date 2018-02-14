@@ -4,9 +4,11 @@ from os.path import join, dirname, abspath, exists
 try:
     import pyrosetta
     pyrosetta.init('-corrections:beta_nov16 -mute all')
+    HAVE_PYROSETTA = True
     print("pyrosetta initialized successfully!")
 except ImportError:
     print("no module pyrosetta")
+    HAVE_PYROSETTA = False
 
 
 @pytest.fixture(scope='session')
@@ -18,6 +20,8 @@ def pdbdir():
 
 
 def get_pose(pdbdir, fname):
+    if not HAVE_PYROSETTA:
+        return None
     pose = pyrosetta.pose_from_file(join(pdbdir, fname))
     return pose
 

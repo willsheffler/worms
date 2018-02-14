@@ -12,7 +12,7 @@ except:
 
 def is_rosetta_pose(to_show):
     try:
-        import rosetta
+        from pyrosetta import rosetta
         return isinstance(to_show, rosetta.core.pose.Pose)
     except ImportError:
         return False

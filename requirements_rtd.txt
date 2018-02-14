@@ -12,5 +12,5 @@ PyYAML
 pytest
 pytest-runner
 numpy
-homog
+homog >= 0.1.10
 tqdm

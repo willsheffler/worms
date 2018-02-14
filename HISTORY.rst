@@ -2,6 +2,14 @@
 History
 =======
 
+0.1.10 (2018-14-08)
+------------------
+
+* add max_results option to grow
+* fix C2 sym bug
+* fix xform axis cen bug
+* fix memory "bug" with batch parallel processing
+
 0.1.9 (2018-02-08)
 ------------------
 

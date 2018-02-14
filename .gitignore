@@ -65,3 +65,5 @@ target/
 *.sublime-workspace
 
 .pytest_cache
+
+dask-worker-space

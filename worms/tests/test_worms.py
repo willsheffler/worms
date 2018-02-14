@@ -24,7 +24,7 @@ def test_sym_bug(c1pose, c2pose):
                 Segment([helix], entry='N', exit='C'),
                 Segment([helix], entry='N'), ]
     wnc = grow(segments, Cyclic(3, lever=200), thresh=1, verbosity=1)
-    assert len(wnc)
+    assert len(wnc) == 6
     print(wnc.scores)
     p = wnc.pose(0, align=1, end=1)
     # vis.showme(p)
@@ -250,9 +250,11 @@ def test_memsize(c1pose):
     segments = ([Segment([helix], exit='C'), ] +
                 [Segment([helix], 'N', 'C')] * 3 +
                 [Segment([helix], entry='N')])
-    for i in range(2, 7):
+    beg = 3
+    for i in range(beg, 7):
         w1 = grow(segments, Cyclic('c2'), memsize=10**i, thresh=30)
-        assert i == 2 or np.allclose(w0.scores, w1.scores)
+        assert i == beg or len(w0.scores) == len(w1.scores)
+        assert i == beg or np.allclose(w0.scores, w1.scores)
         w0 = w1
 
 
@@ -758,6 +760,7 @@ def test_score0_sym(c2pose, c3pose, c1pose):
     w = grow(segments, D3(c3=-1, c2=0), thresh=2)
     assert len(w) == 3
     i, err, pose, score0 = w[1]
+    # vis.showme(w.pose(1, fullatom=True))
     # show_with_z_axes(w, 1)
     assert 22.488 < score0 < 22.4881
     assert util.no_overlapping_residues(pose)
@@ -1011,3 +1014,29 @@ def test_extra_chain_handling_noncyclic(c1pose, c2pose, c3pose, c3hetpose):
     assert w.pose(0, only_connected='auto').num_chains() == 3
     assert w.pose(0, only_connected=0).num_chains() == 6
     assert w.pose(0, only_connected=1).num_chains() == 2
+
+
+@pytest.mark.skipif('not HAVE_PYROSETTA')
+def test_max_results(c1pose, c2pose, c3pose):
+    helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', 'C')])
+    dimer = Spliceable(c2pose, sites=[('1,:2', 'N'), ('1,-1:', 'C'),
+                                      ('2,:2', 'N'), ('2,-1:', 'C')])
+    trimer = Spliceable(c3pose, sites=[('1,:1', 'N'), ('1,-2:', 'C'),
+                                       ('2,:2', 'N'), ('2,-2:', 'C'),
+                                       ('3,:1', 'N'), ('3,-2:', 'C')])
+    segments = [Segment([trimer], exit='C'),
+                Segment([helix], entry='N', exit='C'),
+                Segment([helix], entry='N', exit='C'),
+                Segment([helix], entry='N', exit='C'),
+                Segment([dimer], entry='N')]
+    wref = grow(segments, D3(c2=-1, c3=0), thresh=1)
+    assert len(wref) == 90
+
+    s = wref.scores[:]
+    s.sort()
+    i = np.argmin(s[1:] - s[:-1])
+
+    wtst = grow(segments, D3(c2=-1, c3=0), thresh=1, max_results=90)
+    assert len(wtst) == 90
+
+    assert np.all(wref.indices == wtst.indices)

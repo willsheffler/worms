@@ -37,7 +37,7 @@ def main(nseg, nworker=0):
 
     for i in range(min(10, len(worms))):
         print(i)
-        worms.pose(i, onechain=True).dump_pdb('worm_nseg%i_%i.pdb' % (nseg, i))
+        worms.pose(i).dump_pdb('worm_nseg%i_%i.pdb' % (nseg, i))
 
 
 if __name__ == '__main__':

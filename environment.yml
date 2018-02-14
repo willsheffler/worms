@@ -9,6 +9,7 @@ dependencies:
  - sphinx_rtd_theme
  - ipython
  - pip:
+   - homog >= 0.1.10
    - hypothesis
    - pytest-sugar
    - pytest-xdist

@@ -5,21 +5,31 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
 from time import perf_counter
 import sys
-import pyrosetta
+try:
+    import pyrosetta
+    HAVE_PYROSETTA = True
+except ImportError:
+    print('no pyrosetta!')
+    HAVE_PYROSETTA = False
 
 
-def main(nseg, nworker=0):
+def main(nseg, workers=0):
     pyrosetta.init('-corrections:beta_nov16 -mute all')
     helix = Spliceable(poselib.curved_helix, sites=[(1, 'N'), ('-4:', 'C')])
-    helix2 = Spliceable(poselib.curved_helix, sites=[(1, 'N'), ('-4:', 'C')])
+    dimer = Spliceable(poselib.c2, sites=[('1,:1', 'N'), ('2,-1:', 'C')])
     segments = ([Segment([helix], exit='C'), ] +
-                [Segment([helix, helix2], entry='N', exit='C')] * (nseg - 2) +
+                [Segment([dimer], entry='N', exit='C')] +
+                [Segment([helix], entry='N', exit='C')] * (nseg - 2) +
                 [Segment([helix], entry='N')])
     t = perf_counter()
+
     worms = grow(segments,
                  Cyclic('C2', lever=20),
-                 thresh=10, max_workers=nworker,
-                 executor=ProcessPoolExecutor)
+                 thresh=5.01, max_workers=workers,
+                 executor=ProcessPoolExecutor,
+                 # executor=dask.distributed.Client,
+                 max_results=10000, max_samples=10000000)
+    print('number of results:', len(worms))
     t = perf_counter() - t
     count = np.prod([len(s) for s in segments])
     s = worms.scores
@@ -33,12 +43,18 @@ def main(nseg, nworker=0):
           'tgrow %7.2f' % t,
           'rate %7.3fM/s' % (count / t / 1000000),
           'npass %8i' % len(s))
+    print('going through poses:')
     sys.stdout.flush()
 
     for i in range(min(10, len(worms))):
-        print(i)
-        worms.pose(i, onechain=True).dump_pdb('worm_nseg%i_%i.pdb' % (nseg, i))
-
+        fname = 'worm_nseg%i_%i.pdb' % (nseg, i)
+        pose, score0 = worms.sympose(i, fullatom=True, score=True)
+        print('worm', i, worms.scores[i], score0, worms.indices[i])
+        sys.stdout.flush()
+        if score0 < 50:
+            print('    dumping to', fname)
+            pose.dump_pdb(fname)
 
 if __name__ == '__main__':
-    main(12)
+    if HAVE_PYROSETTA:
+        main(14, workers=7)
