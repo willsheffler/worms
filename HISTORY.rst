@@ -2,6 +2,13 @@
 History
 =======
 
+0.1.10 (2018-15-08)
+------------------
+
+* fix memory bug
+* make distribution work better
+* maybe fix pose bug, still some logic err, but maybe ok
+
 0.1.10 (2018-14-08)
 ------------------
 

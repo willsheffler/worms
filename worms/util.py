@@ -239,3 +239,22 @@ def get_symdata(name):
 
 def infer_cyclic_symmetry(pose):
     raise NotImplementedError
+
+
+class MultiRange:
+
+    def __init__(self, nside):
+        self.nside = np.array(nside, dtype='i')
+        self.psum = np.concatenate(
+            [np.cumprod(self.nside[1:][::-1])[::-1], [1]])
+        self.len = np.prod(self.nside)
+
+    def __getitem__(self, idx):
+        if isinstance(idx, slice):
+            return (self[i] for i in range(self.len)[idx])
+        if idx >= self.len:
+            raise StopIteration
+        return tuple((idx // self.psum) % self.nside)
+
+    def __len__(self):
+        return self.len
