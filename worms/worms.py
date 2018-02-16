@@ -1,13 +1,16 @@
 import multiprocessing
 import os
 import itertools as it
+import functools as ft
+import operator
 from collections.abc import Iterable
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 import numpy as np
 from numpy.linalg import inv
 from .criteria import CriteriaList
 try:
+    import pyrosetta
     from pyrosetta import rosetta as ros
     from pyrosetta.rosetta.core import scoring
     rm_lower_t = ros.core.pose.remove_lower_terminus_type_from_pose_residue
@@ -147,6 +150,15 @@ class Spliceable:
         return ('Spliceable: body=(' + str(len(self.body)) + ',' +
                 str(self.body).splitlines()[0].split('/')[-1] +
                 '), sites=' + str([(s.resids(self), s.polarity) for s in self.sites]))
+
+    # def __getstate__(self):
+        # pdbfname = self.body.pdb_info().name() if self.body else None
+        # return (pdbfname, self.sites,
+        # self.bodyid, self.min_seg_len)
+
+    # def __setstate__(self, state):
+        # body = pyrosetta.pose_from_file(state[0]) if state[0] else None
+        # self.__init__(body, state[1], bodyid=state[2], min_seg_len=state[3])
 
 
 class AnnoPose:
@@ -326,7 +338,7 @@ class Segment:
         if ch_en: ir_en -= spliceable.start_of_chain[ch_en]
         if ch_ex: ir_ex -= spliceable.start_of_chain[ch_ex]
         assert ch_en or ch_ex
-        rest = {}
+        rest = OrderedDict()
         did_cyclictrim_in_rest = False
         for i in range(1, len(chains) + 1):
             pchain = chains[i]
@@ -342,15 +354,6 @@ class Segment:
                                        cyclic_entry[i])
         if cyclictrim and iseg == cyclictrim[0]:
             assert cyclictrim_in_rest == did_cyclictrim_in_rest
-        for ap in rest.values():
-            s1 = str(ap.pose.sequence())
-            s2 = str(ap.srcpose.sequence()[ap.src_lb - 1:ap.src_ub])
-            if s1 != s2:
-                print('WARNING: sequence mismatch in "rest", maybe OK, but '
-                      'proceed with caution and tell will to fix!')
-                # print(s1)
-                # print(s2)
-            # assert s1 == s2
         if ch_en: del rest[chains[ch_en]]
         if ch_en == ch_ex:
             assert len(rest) + 1 == len(chains)
@@ -381,6 +384,15 @@ class Segment:
                 assert p.sequence() == pose.sequence()[lb - 1:ub]
             enex = p_en + list(rest.values()) + p_ex
             rest = []
+        for ap in rest:
+            s1 = str(ap.pose.sequence())
+            s2 = str(ap.srcpose.sequence()[ap.src_lb - 1:ap.src_ub])
+            if s1 != s2:
+                print('WARNING: sequence mismatch in "rest", maybe OK, but '
+                      'proceed with caution and tell will to fix!')
+                # print(s1)
+                # print(s2)
+            assert s1 == s2
         if position is not None:
             position = util.rosetta_stub_from_numpy_stub(position)
             for x in enex: x.pose = x.pose.clone()
@@ -792,6 +804,10 @@ def _check_topology(segments, criteria, expert=False):
     return matchlast
 
 
+def bigprod(iterable):
+    return ft.reduce(operator.mul, iterable, 1)
+
+
 def grow(
     segments,
     criteria,
@@ -805,7 +821,7 @@ def grow(
     verbosity=0,
     jobmult=None,
     chunklim=None,
-    max_samples=int(1e24),
+    max_samples=int(1e12),
     max_results=int(1e4)
 ):
     os.environ['OMP_NUM_THREADS'] = '1'
@@ -840,9 +856,9 @@ def grow(
     if max_workers is None: max_workers = util.cpu_count()
     sizes = [len(s.bodyid) for s in segments]
     end = len(segments) - 1
-    while end > 1 and (np.prod(sizes[end:]) < max_workers or
-                       memsize <= 64 * np.prod(sizes[:end])): end -= 1
-    ntot, chunksize, nchunks = (np.product(x)
+    while end > 1 and (bigprod(sizes[end:]) < max_workers or
+                       memsize <= 64 * bigprod(sizes[:end])): end -= 1
+    ntot, chunksize, nchunks = (bigprod(x)
                                 for x in (sizes, sizes[:end], sizes[end:]))
     if max_samples is not None:
         max_samples = np.clip(chunksize * max_workers, max_samples, ntot)
@@ -861,6 +877,14 @@ def grow(
             int(ntot / njob), int(nchunks / njob), sizes, every_other))
         print('max_samples: {:,} max_results: {:,}'.format(
             max_samples, max_results))
+
+    if every_other >= 2**63 or njob > 1e9 or nchunks >= 2**63:
+        print('too big?!?')
+        print('    njob', njob)
+        print('    nchunks', nchunks, nchunks / 2**63)
+        print('    every_other', every_other, every_other / 2**63)
+        return
+
     # run the stuff
     accumulator = util.WormsAccumulator(
         max_results=max_results, max_tmp_size=1e5)

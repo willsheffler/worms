@@ -1,4 +1,5 @@
 import pytest
+import pickle
 import numpy as np
 from homog import hrot, htrans, axis_angle_of, axis_ang_cen_of
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
@@ -85,6 +86,16 @@ def test_spliceable(c2pose):
     dimer = Spliceable(c2pose, sites=[site1, site2])
     assert dimer.sites[0].resids(dimer) == [1, 2, 3]
     assert dimer.sites[1].resids(dimer) == [13, 14, 15]
+
+
+@pytest.mark.skip  # if('not HAVE_PYROSETTA')
+def test_spliceable_pickle(tmpdir, c2pose):
+    site1 = SpliceSite([1, 2, 3], 'N', 1)
+    site2 = SpliceSite([1, 2, 3], 'N', 2)
+    dimer = Spliceable(c2pose, sites=[site1, site2])
+    pickle.dump(dimer, open(str(os.path.join(tmpdir, 'test.pickle')), 'wb'))
+    dimer2 = pickle.load(open(str(os.path.join(tmpdir, 'test.pickle')), 'rb'))
+    assert str(dimer) == str(dimer2)
 
 
 def test_geom_check():
@@ -433,13 +444,19 @@ def residue_coords(p, ir, n=3):
     return np.stack([c.x, c.y, c.z, 1] for c in crd)
 
 
-def residue_sym_err(p, ang, ir, jr, n=1, axis=[0, 0, 1]):
+def residue_sym_err(p, ang, ir, jr, n=1, axis=[0, 0, 1], verbose=0):
     mxdist = 0
     for i in range(n):
         xyz0 = residue_coords(p, ir + i)
         xyz1 = residue_coords(p, jr + i)
         xyz3 = hrot(axis, ang) @ xyz1.T
         xyz4 = hrot(axis, -ang) @ xyz1.T
+        if verbose:
+            print(i, xyz0)
+            print(i, xyz1)
+            print(i, xyz3.T)
+            print(i, xyz4.T)
+            print()
         mxdist = max(mxdist, min(
             np.max(np.sum((xyz0 - xyz3.T)**2, axis=1)),
             np.max(np.sum((xyz0 - xyz4.T)**2, axis=1))))
@@ -726,10 +743,22 @@ def test_oct(c2pose, c3pose, c4pose, c1pose):
                 [Segment([dimer], entry='N')])
     w = grow(segments, Octahedral(c2=-1, c4=0), thresh=1)
     assert len(w) == 5
+    assert np.allclose(w.indices, np.array([[0, 1, 1, 2, 0, 2, 1],
+                                            [1, 0, 2, 3, 1, 0, 1],
+                                            [1, 0, 0, 0, 3, 2, 0],
+                                            [0, 2, 0, 0, 1, 2, 0],
+                                            [1, 1, 2, 1, 1, 2, 0]]))
     p = w.pose(0, only_connected=0)
+    assert p.sequence() == ('AIAAALAAIAAIAAALAAIAAIAAALAAIAAIAAALAAAAAAAAAAGA'
+                            + 'AAAAAAAAGAAAAAAAAAGAAAAAAAAAAGAAAAAAAAGAATAFLA'
+                            + 'AIPAINYTAFLAAIPAIN')
     assert util.no_overlapping_residues(p)
-    assert 1 > residue_sym_err(p, 90, 1, 31, 6, axis=[1, 0, 0])
-    assert 1 > residue_sym_err(p, 180, 92, 104, 6, axis=[1, 1, 0])
+    # from socket import gethostname
+    # p.dump_pdb(gethostname() + '.pdb')
+    # assert np.allclose(p.residue(1).xyz('CA')[0], 33.0786722948)
+    assert 1 > residue_sym_err(p, 90, 1, 31, 6, axis=[1, 0, 0], verbose=0)
+    assert 1 > residue_sym_err(p, 180, 92, 104, 6, axis=[1, 1, 0], verbose=0)
+    # assert 0
 
 
 @pytest.mark.skipif('not HAVE_PYROSETTA')
@@ -792,7 +821,7 @@ def test_chunk_speed(c2pose, c3pose, c1pose):
     w1 = grow(segments, Octahedral(c3=-1, c2=0), thresh=1, memsize=0)
     t1 = time.time() - t1
     t2 = time.time()
-    w2 = grow(segments, Octahedral(c3=-1, c2=0), thresh=1, memsize=1e9)
+    w2 = grow(segments, Octahedral(c3=-1, c2=0), thresh=1, memsize=1e7)
     t2 = time.time() - t2
 
     print('chunksize', w1.detail['chunksize'], 'time', t1)
