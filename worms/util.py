@@ -1,6 +1,7 @@
 import os
 import functools as ft
 import itertools as it
+import operator
 import numpy as np
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
@@ -241,13 +242,18 @@ def infer_cyclic_symmetry(pose):
     raise NotImplementedError
 
 
+def bigprod(iterable):
+    return ft.reduce(operator.mul, iterable, 1)
+
+
 class MultiRange:
 
     def __init__(self, nside):
         self.nside = np.array(nside, dtype='i')
         self.psum = np.concatenate(
             [np.cumprod(self.nside[1:][::-1])[::-1], [1]])
-        self.len = np.prod(self.nside)
+        assert np.all(self.psum > 0)
+        self.len = bigprod(self.nside)
 
     def __getitem__(self, idx):
         if isinstance(idx, slice):

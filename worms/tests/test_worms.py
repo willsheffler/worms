@@ -594,7 +594,7 @@ def test_cyclic_permute_mid_end(c1pose, c2pose, c3hetpose):
     assert len(w) > 0
     p, sc = w.sympose(0, score=True)
     assert sc < 4
-    assert len(p) == 309
+    assert len(p) == 312
     assert p.chain(306) == 9
     assert util.no_overlapping_residues(p)
     # vis.showme(p)
