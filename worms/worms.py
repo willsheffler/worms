@@ -877,12 +877,12 @@ def grow(
         print('actual worms/job:  {:,}'.format(int(actual_perjob)))
         print('actual chunks/job: {:,}'.format(int(actual_chunkperjob)))
 
-    if njob > 1e9:
+    if njob > 1e9 or nchunks >= 2**63 or every_other >= 2**63:
         print('too big?!?')
         print('    njob', njob)
         print('    nchunks', nchunks, nchunks / 2**63)
         print('    every_other', every_other, every_other / 2**63)
-        return
+        raise ValueError('system too big')
 
     # run the stuff
     accumulator = util.WormsAccumulator(
@@ -905,7 +905,9 @@ def grow(
 
     # compose and sort results
 
-    scores, lowidx, lowpos = accumulator.final_result()
+    result = accumulator.final_result()
+    if result is None: return None
+    scores, lowidx, lowpos = result
 
     # scores = np.concatenate([c[0] for c in chunks])
     # order = np.argsort(scores)

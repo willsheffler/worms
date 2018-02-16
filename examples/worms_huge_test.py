@@ -46,7 +46,7 @@ def main(nseg, workers=0):
     print('going through poses:')
     sys.stdout.flush()
 
-    for i in range(min(100, len(worms))):
+    for i in range(min(10, len(worms))):
         fname = 'worm_nseg%i_%i.pdb' % (nseg, i)
         pose, score0 = worms.sympose(i, fullatom=True, score=True)
         print('worm', i, worms.scores[i], score0, worms.indices[i])

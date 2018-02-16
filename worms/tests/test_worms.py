@@ -1069,3 +1069,14 @@ def test_max_results(c1pose, c2pose, c3pose):
     assert len(wtst) == 90
 
     assert np.all(wref.indices == wtst.indices)
+
+
+@pytest.mark.skipif('not HAVE_PYROSETTA')
+def test_chunk_speed(c2pose, c3pose, c1pose):
+    helix = Spliceable(c1pose, [(':1', 'N'), ('-4:', 'C')])
+    nseg = 39
+    segments = ([Segment([helix], exit='C')] +
+                [Segment([helix], entry='N', exit='C')] * (nseg - 2) +
+                [Segment([helix], entry='N')])
+    with pytest.raises(ValueError):
+        grow(segments, Octahedral(c3=-1, c2=0), thresh=1, max_samples=1000000)
