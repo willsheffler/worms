@@ -1,8 +1,6 @@
 import multiprocessing
 import os
 import itertools as it
-import functools as ft
-import operator
 from collections.abc import Iterable
 from collections import defaultdict, OrderedDict
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
@@ -846,10 +844,6 @@ def _check_topology(segments, criteria, expert=False):
     return matchlast
 
 
-def bigprod(iterable):
-    return ft.reduce(operator.mul, iterable, 1)
-
-
 def grow(
     segments,
     criteria,
@@ -861,7 +855,6 @@ def grow(
     executor_args=None,
     max_workers=None,
     verbosity=0,
-    jobmult=None,
     chunklim=None,
     max_samples=int(1e12),
     max_results=int(1e4)
@@ -898,20 +891,22 @@ def grow(
     if max_workers is None: max_workers = util.cpu_count()
     sizes = [len(s.bodyid) for s in segments]
     end = len(segments) - 1
-    while end > 1 and (bigprod(sizes[end:]) < max_workers or
-                       memsize <= 64 * bigprod(sizes[:end])): end -= 1
-    ntot, chunksize, nchunks = (bigprod(x)
+    while end > 1 and (util.bigprod(sizes[end:]) < max_workers or
+                       memsize <= 64 * util.bigprod(sizes[:end])): end -= 1
+    ntot, chunksize, nchunks = (util.bigprod(x)
                                 for x in (sizes, sizes[:end], sizes[end:]))
     if max_samples is not None:
         max_samples = np.clip(chunksize * max_workers, max_samples, ntot)
     every_other = max(1, int(ntot / max_samples)) if max_samples else 1
     nworker = max_workers or util.cpu_count()
-    if jobmult is None:
-        njob = int(np.sqrt(nchunks / every_other) / 128) * nworker
-    else:
-        njob = nworker * jobmult
+    njob = int(np.sqrt(nchunks / every_other) / 128) * nworker
+    njob = np.clip(nworker, njob, nchunks)
 
-    njob = np.clip(1, njob, nchunks)
+    actual_ntot = int(ntot / every_other)
+    actual_nchunk = int(nchunks / every_other)
+    actual_perjob = int(ntot / every_other / njob)
+    actual_chunkperjob = int(nchunks / every_other / njob)
+
     if verbosity >= 0:
         print('tot: {:,} chunksize: {:,} nchunks: {:,} nworker: {} njob: {}'.format(
             ntot, chunksize, nchunks, nworker, njob))
@@ -919,13 +914,17 @@ def grow(
             int(ntot / njob), int(nchunks / njob), sizes, every_other))
         print('max_samples: {:,} max_results: {:,}'.format(
             max_samples, max_results))
+        print('actual tot:        {:,}'.format(int(actual_ntot)))
+        print('actual nchunks:    {:,}'.format(int(actual_nchunk)))
+        print('actual worms/job:  {:,}'.format(int(actual_perjob)))
+        print('actual chunks/job: {:,}'.format(int(actual_chunkperjob)))
 
-    if every_other >= 2**63 or njob > 1e9 or nchunks >= 2**63:
+    if njob > 1e9 or nchunks >= 2**63 or every_other >= 2**63:
         print('too big?!?')
         print('    njob', njob)
         print('    nchunks', nchunks, nchunks / 2**63)
         print('    every_other', every_other, every_other / 2**63)
-        return
+        raise ValueError('system too big')
 
     # run the stuff
     accumulator = util.WormsAccumulator(
@@ -961,7 +960,9 @@ def grow(
 
     # compose and sort results
 
-    scores, lowidx, lowpos = accumulator.final_result()
+    result = accumulator.final_result()
+    if result is None: return None
+    scores, lowidx, lowpos = result
 
     # scores = np.concatenate([c[0] for c in chunks])
     # order = np.argsort(scores)

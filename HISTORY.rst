@@ -2,11 +2,21 @@
 History
 =======
 
-0.1.12 (2018-02-28)
+0.1.14 (2018-02-28)
 ------------------
 
 * fix provenance bug in 'cyclic entry' cases
 * try to make serialization of Segments more efficient
+
+0.1.13 (2018-02-16)
+------------------
+
+* raise exception if system too large
+
+0.1.12 (2018-02-16)
+------------------
+
+* partial bignum fix
 
 0.1.11 (2018-02-15)
 ------------------

@@ -1,6 +1,7 @@
 import os
 import functools as ft
 import itertools as it
+import operator
 import numpy as np
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
@@ -25,6 +26,7 @@ class WormsAccumulator:
         self.temporary = []
 
     def accumulate_sort_filter(self):
+        if len(self.temporary) is 0: return
         if hasattr(self, 'scores'):
             sc, li, lp = [self.scores], [self.lowidx], [self.lowpos]
         else:
@@ -36,7 +38,6 @@ class WormsAccumulator:
         self.scores = scores[order[:self.max_results]]
         self.lowidx = lowidx[order[:self.max_results]]
         self.lowpos = lowpos[order[:self.max_results]]
-        del self.temporary
         self.temporary = []
 
     def accumulate(self, gen):
@@ -56,7 +57,10 @@ class WormsAccumulator:
         # print('batches:', len(self.batches))
         # print('batches len', [len(b) for b in self.batches])
         self.accumulate_sort_filter()
-        return self.scores, self.lowidx, self.lowpos
+        try:
+            return self.scores, self.lowidx, self.lowpos
+        except AttributeError:
+            return None
 
 
 def parallel_batch_map(pool, function, accumulator,
@@ -241,13 +245,19 @@ def infer_cyclic_symmetry(pose):
     raise NotImplementedError
 
 
+def bigprod(iterable):
+    return ft.reduce(operator.mul, iterable, 1)
+
+
 class MultiRange:
 
     def __init__(self, nside):
         self.nside = np.array(nside, dtype='i')
         self.psum = np.concatenate(
             [np.cumprod(self.nside[1:][::-1])[::-1], [1]])
-        self.len = np.prod(self.nside)
+        assert np.all(self.psum > 0)
+        assert bigprod(self.nside[1:]) < 2**63
+        self.len = bigprod(self.nside)
 
     def __getitem__(self, idx):
         if isinstance(idx, slice):
