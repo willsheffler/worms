@@ -1,4 +1,4 @@
-name: worms
+name: wormsdev
 channels:
  - conda-forge
 dependencies:

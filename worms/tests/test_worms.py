@@ -46,19 +46,20 @@ def test_SpliceSite(pose, c3pose):
     spliceablec3 = Spliceable(c3pose, [])
     assert 1 == ss.resid(1, spliceable.body)
     assert pose.size() == ss.resid(-1, spliceable.body)
-    assert ss.resids(spliceable) == [1]
-    assert SpliceSite('1:7', 'N').resids(spliceable) == [1, 2, 3, 4, 5, 6, 7]
-    assert SpliceSite(':7', 'N').resids(spliceable) == [1, 2, 3, 4, 5, 6, 7]
-    assert SpliceSite('-3:-1', 'N').resids(spliceable) == [5, 6, 7]
-    assert SpliceSite('-3:', 'N').resids(spliceable) == [5, 6, 7]
-    assert SpliceSite(':2', 'N').resids(spliceable) == [1, 2]
-    assert SpliceSite(':-5', 'N').resids(spliceable) == [1, 2, 3]
-    assert SpliceSite('::2', 'N').resids(spliceable) == [1, 3, 5, 7]
-    with pytest.raises(ValueError): SpliceSite('-1:-3', 'N').resids(spliceable)
-    with pytest.raises(ValueError): SpliceSite('-1:3', 'N').resids(spliceable)
-    assert SpliceSite([1, 2, 3], 'N', 1).resids(spliceablec3) == [1, 2, 3]
-    assert SpliceSite([1, 2, 3], 'N', 2).resids(spliceablec3) == [10, 11, 12]
-    assert SpliceSite([1, 2, 3], 'N', 3).resids(spliceablec3) == [19, 20, 21]
+    assert ss._resids(spliceable) == [1]
+    assert SpliceSite('1:7', 'N')._resids(spliceable) == [1, 2, 3, 4, 5, 6, 7]
+    assert SpliceSite(':7', 'N')._resids(spliceable) == [1, 2, 3, 4, 5, 6, 7]
+    assert SpliceSite('-3:-1', 'N')._resids(spliceable) == [5, 6, 7]
+    assert SpliceSite('-3:', 'N')._resids(spliceable) == [5, 6, 7]
+    assert SpliceSite(':2', 'N')._resids(spliceable) == [1, 2]
+    assert SpliceSite(':-5', 'N')._resids(spliceable) == [1, 2, 3]
+    assert SpliceSite('::2', 'N')._resids(spliceable) == [1, 3, 5, 7]
+    with pytest.raises(ValueError): SpliceSite(
+        '-1:-3', 'N')._resids(spliceable)
+    with pytest.raises(ValueError): SpliceSite('-1:3', 'N')._resids(spliceable)
+    assert SpliceSite([1, 2, 3], 'N', 1)._resids(spliceablec3) == [1, 2, 3]
+    assert SpliceSite([1, 2, 3], 'N', 2)._resids(spliceablec3) == [10, 11, 12]
+    assert SpliceSite([1, 2, 3], 'N', 3)._resids(spliceablec3) == [19, 20, 21]
 
 
 @pytest.mark.skipif('not HAVE_PYROSETTA')
@@ -66,26 +67,26 @@ def test_spliceable(c2pose):
     site1 = SpliceSite([1, 2, 3], 'N', 1)
     site2 = SpliceSite([1, 2, 3], 'N', 2)
     dimer = Spliceable(c2pose, sites=[site1, site2])
-    assert dimer.sites[0].resids(dimer) == [1, 2, 3]
-    assert dimer.sites[1].resids(dimer) == [13, 14, 15]
+    assert dimer.sites[0]._resids(dimer) == [1, 2, 3]
+    assert dimer.sites[1]._resids(dimer) == [13, 14, 15]
 
     site1 = {'sele': [1, 2, 3], 'polarity': 'N', 'chain': 1}
     site2 = {'sele': [1, 2, 3], 'polarity': 'N', 'chain': 2}
     dimer = Spliceable(c2pose, sites=[site1, site2])
-    assert dimer.sites[0].resids(dimer) == [1, 2, 3]
-    assert dimer.sites[1].resids(dimer) == [13, 14, 15]
+    assert dimer.sites[0]._resids(dimer) == [1, 2, 3]
+    assert dimer.sites[1]._resids(dimer) == [13, 14, 15]
 
     site1 = ([1, 2, 3], 'N', 1)
     site2 = ([1, 2, 3], 'N', 2)
     dimer = Spliceable(c2pose, sites=[site1, site2])
-    assert dimer.sites[0].resids(dimer) == [1, 2, 3]
-    assert dimer.sites[1].resids(dimer) == [13, 14, 15]
+    assert dimer.sites[0]._resids(dimer) == [1, 2, 3]
+    assert dimer.sites[1]._resids(dimer) == [13, 14, 15]
 
     site1 = (':3', 'N')
     site2 = ('2,:3', 'N')
     dimer = Spliceable(c2pose, sites=[site1, site2])
-    assert dimer.sites[0].resids(dimer) == [1, 2, 3]
-    assert dimer.sites[1].resids(dimer) == [13, 14, 15]
+    assert dimer.sites[0]._resids(dimer) == [1, 2, 3]
+    assert dimer.sites[1]._resids(dimer) == [13, 14, 15]
 
 
 @pytest.mark.skip  # if('not HAVE_PYROSETTA')

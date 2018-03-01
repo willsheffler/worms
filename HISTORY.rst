@@ -2,14 +2,20 @@
 History
 =======
 
-0.1.10 (2018-15-08)
+0.1.12 (2018-02-28)
+------------------
+
+* fix provenance bug in 'cyclic entry' cases
+* try to make serialization of Segments more efficient
+
+0.1.11 (2018-02-15)
 ------------------
 
 * fix memory bug
 * make distribution work better
 * maybe fix pose bug, still some logic err, but maybe ok
 
-0.1.10 (2018-14-08)
+0.1.10 (2018-02-15)
 ------------------
 
 * add max_results option to grow

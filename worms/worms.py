@@ -41,7 +41,7 @@ class SpliceSite:
                              + str(len(pose)))
         return resid
 
-    def resids_impl(self, sele, spliceable):
+    def _resids_impl(self, sele, spliceable):
         if isinstance(sele, int):
             if self.chain is None:
                 return set([self.resid(sele, spliceable.body)])
@@ -68,11 +68,11 @@ class SpliceSite:
         else:
             raise ValueError('selection must be int, str, or None')
 
-    def resids(self, spliceabe):
+    def _resids(self, spliceabe):
         resids = set()
         for sele in self.selections:
             try:
-                resids |= self.resids_impl(sele, spliceabe)
+                resids |= self._resids_impl(sele, spliceabe)
             except ValueError as e:
                 raise ValueError('Error with selection '
                                  + str(sele) + ': ' + str(e))
@@ -117,15 +117,22 @@ class Spliceable:
         self.nsite = dict(N=0, C=0)
         for s in self.sites: self.nsite[s.polarity] += 1
         self.min_seg_len = min_seg_len
+        self._resids_list = [site._resids(self) for site in self.sites]
+        self._len_body = len(body)
+        self._chains = np.array([body.chain(i + 1) for i in range(len(body))])
+
+    def resids(self, isite):
+        if isite < 0: return [None]
+        return self._resids_list[isite]
 
     def spliceable_positions(self):
         """selection of resids, and map 'global' index to selected index"""
         resid_subset = set()
-        for site in self.sites:
-            resid_subset |= set(site.resids(self))
+        for i in range(len(self.sites)):
+            resid_subset |= set(self._resids_list[i])
         resid_subset = np.array(list(resid_subset))
         # really? must be an easier way to 'invert' a mapping in numpy?
-        N = len(self.body) + 1
+        N = self._len_body + 1
         val, idx = np.where(0 == (np.arange(N)[np.newaxis, :] -
                                   resid_subset[:, np.newaxis]))
         to_subset = np.array(N * [-1])
@@ -135,8 +142,8 @@ class Spliceable:
 
     def is_compatible(self, isite, ires, jsite, jres):
         if ires < 0 or jres < 0: return True
-        assert 0 < ires <= len(self.body) and 0 < jres <= len(self.body)
-        ichain, jchain = self.body.chain(ires), self.body.chain(jres)
+        assert 0 < ires <= self._len_body and 0 < jres <= self._len_body
+        ichain, jchain = self._chains[ires - 1], self._chains[jres - 1]
         if ichain == jchain:
             ipol = self.sites[isite].polarity
             jpol = self.sites[jsite].polarity
@@ -147,9 +154,9 @@ class Spliceable:
         return True
 
     def __repr__(self):
-        return ('Spliceable: body=(' + str(len(self.body)) + ',' +
+        return ('Spliceable: body=(' + str(self._len_body) + ',' +
                 str(self.body).splitlines()[0].split('/')[-1] +
-                '), sites=' + str([(s.resids(self), s.polarity) for s in self.sites]))
+                '), sites=' + str([(s._resids(self), s.polarity) for s in self.sites]))
 
     # def __getstate__(self):
         # pdbfname = self.body.pdb_info().name() if self.body else None
@@ -208,23 +215,45 @@ class Segment:
         for s in spliceables:
             if not isinstance(s, Spliceable):
                 raise ValueError('Segment only accepts list of Spliceable')
-        self.init_segment(spliceables, entry, exit)
+        self.spliceables = list(spliceables)
         self.nchains = len(spliceables[0].chains)
         for s in spliceables:
             if not expert and len(s.chains) is not self.nchains:
                 raise ValueError('different number of chains for spliceables',
                                  ' in segment (pass expert=True to ignore)')
             self.nchains = max(self.nchains, len(s.chains))
+        self.resid_subset, self.to_subset, self.stubs = [], [], []
+        for ibody, spliceable in enumerate(self.spliceables):
+            for p in 'NC':
+                self.min_sites[p] = min(self.min_sites[p], spliceable.nsite[p])
+                self.max_sites[p] = max(self.max_sites[p], spliceable.nsite[p])
+            resid_subset, to_subset = spliceable.spliceable_positions()
+            stubs = util.get_bb_stubs(spliceable.body, resid_subset)
+            self.resid_subset.append(resid_subset)
+            self.to_subset.append(to_subset)
+            self.stubs.append(stubs)
+        self.init_segment_data()
+
+    def __getstate__(self):
+        state = dict(self.__dict__)
+        # remove the big stuff
+        if 'x2exit' in state: del state['x2exit']
+        if 'x2orgn' in state: del state['x2orgn']
+        if 'entrysiteid' in state: del state['entrysiteid']
+        if 'entryresid' in state: del state['entryresid']
+        if 'exitsiteid' in state: del state['exitsiteid']
+        if 'exitresid' in state: del state['exitresid']
+        if 'bodyid' in state: del state['bodyid']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+        self.init_segment_data()  # recompute the big stuff
 
     def __len__(self):
         return len(self.bodyid)
 
-    def init_segment(self, spliceables=None, entry=None, exit=None):
-        if not (entry or exit):
-            raise ValueError('at least one of entry/exit required')
-        self.spliceables = list(spliceables) or self.spliceables
-        self.entrypol = entry or self.entrypol or None
-        self.exitpol = exit or self.exitpol or None
+    def init_segment_data(self):
         # each array has all in/out pairs
         self.x2exit, self.x2orgn, self.bodyid = [], [], []
         self.entryresid, self.exitresid = [], []
@@ -235,14 +264,17 @@ class Segment:
             for p in 'NC':
                 self.min_sites[p] = min(self.min_sites[p], spliceable.nsite[p])
                 self.max_sites[p] = max(self.max_sites[p], spliceable.nsite[p])
-            resid_subset, to_subset = spliceable.spliceable_positions()
+            # resid_subset, to_subset = spliceable.spliceable_positions()
+            resid_subset = self.resid_subset[ibody]
+            to_subset = self.to_subset[ibody]
             bodyid = ibody if spliceable.bodyid is None else spliceable.bodyid
             # extract 'stubs' from body at selected positions
             # rif 'stubs' have 'extra' 'features'... the raw field is
             # just bog-standard homogeneous matrices
             # stubs = rcl.bbstubs(spliceable.body, resid_subset)['raw']
             # stubs = stubs.astype('f8')
-            stubs = util.get_bb_stubs(spliceable.body, resid_subset)
+            # stubs = util.get_bb_stubs(spliceable.body, resid_subset)
+            stubs = self.stubs[ibody]
             if len(resid_subset) != stubs.shape[0]:
                 raise ValueError("no funny residues supported")
             stubs_inv = inv(stubs)
@@ -254,11 +286,11 @@ class Segment:
                 if entry_site.polarity == self.entrypol:
                     for jsite, exit_site in exit_sites:
                         if isite != jsite and exit_site.polarity == self.exitpol:
-                            for ires in entry_site.resids(spliceable):
+                            for ires in spliceable.resids(isite):
                                 istub_inv = (np.eye(4) if not ires
                                              else stubs_inv[to_subset[ires]])
                                 ires = ires or -1
-                                for jres in exit_site.resids(spliceable):
+                                for jres in spliceable.resids(jsite):
                                     jstub = (np.eye(4) if not jres
                                              else stubs[to_subset[jres]])
                                     jres = jres or -1
@@ -348,10 +380,12 @@ class Segment:
                 if i not in (ch_en, ch_ex):
                     did_cyclictrim_in_rest = True
                 ir = cyclic_entry[i][1] - spliceable.start_of_chain[i]
-                pchain, lb, ub = util.trim_pose(
-                    pchain, ir, cyclic_entry[i][2])
+                pchain, lb, ub = util.trim_pose(pchain, ir, cyclic_entry[i][2])
+                lb += spliceable.start_of_chain[i]
+                ub += spliceable.start_of_chain[i]
             rest[chains[i]] = AnnoPose(pchain, iseg, pose, lb, ub,
                                        cyclic_entry[i])
+            assert rest[chains[i]].seq() == rest[chains[i]].srcseq()
         if cyclictrim and iseg == cyclictrim[0]:
             assert cyclictrim_in_rest == did_cyclictrim_in_rest
         if ch_en: del rest[chains[ch_en]]
@@ -399,10 +433,17 @@ class Segment:
             for x in rest: x.pose = x.pose.clone()
             for ap in it.chain(enex, rest):
                 ros.protocols.sic_dock.xform_pose(ap.pose, position)
-        for ap in it.chain(enex, rest):
+        for iap, ap in enumerate(it.chain(enex, rest)):
             assert isinstance(ap, AnnoPose)
             assert ap.iseg == iseg
             assert ap.seq() == ap.srcseq()
+            # a = ap.seq()
+            # b = ap.srcseq()
+            # if a != b:
+            # print('WARNING sequence mismatch!', iap, len(enex), len(rest))
+            # print(a)
+            # print(b)
+            # assert a == b
         return enex, rest
 
 
@@ -571,6 +612,8 @@ class Worms:
             assert ub0 - lb0 == ub1 - lb1
             assert 0 < lb0 <= len(psrc) and 0 < ub0 <= len(psrc)
             assert 0 < lb1 <= len(pose) and 0 < ub1 <= len(pose)
+            # if psrc.sequence()[lb0 - 1:ub0] != pose.sequence()[lb1 - 1:ub1]:
+            # print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             assert psrc.sequence()[lb0 - 1:ub0] == pose.sequence()[lb1 - 1:ub1]
             prov.append((lb1, ub1, psrc, lb0, ub0))
         if make_chain_list:
@@ -746,7 +789,6 @@ def _grow_chunks(ijob, context):
     os.environ['NUMEXPR_NUM_THREADS'] = '1'
     sampsizes, njob, segments, end, _, _, _, every_other, max_results = context
     samples = list(util.MultiRange(sampsizes)[ijob::njob * every_other])
-    # print('_grow_chunks', ijob, len(samples))
     segpos, connpos = _chain_xforms(segments[:end])  # common data
     args = [samples, it.repeat(segpos),
             it.repeat(connpos), it.repeat(context)]
@@ -888,8 +930,13 @@ def grow(
     # run the stuff
     accumulator = util.WormsAccumulator(
         max_results=max_results, max_tmp_size=1e5)
-    tmp = [s.spliceables for s in segments]
-    for s in segments: s.spliceables = None  # poses not pickleable...
+
+    # terrible hack... xfering the poses too expensive
+    tmp = {s: s.body for seg in segments for s in seg.spliceables}
+    for seg in segments:
+        for s in seg.spliceables:
+            s.body = None  # poses not pickleable...
+
     with executor(**executor_args) as pool:
         context = (sizes[end:], njob, segments, end, criteria, thresh,
                    matchlast, every_other, max_results)
@@ -900,9 +947,17 @@ def grow(
             accumulator=accumulator,
             map_func_args=args,
             batch_size=nworker * 8,
-            unit='K worms', ascii=0, desc='growing worms',
-            unit_scale=int(ntot / njob / 1000 / every_other), disable=verbosity < 0)
-    for s, t in zip(segments, tmp): s.spliceables = t  # put the poses back
+            unit='K worms',
+            ascii=0,
+            desc='growing worms',
+            unit_scale=int(ntot / njob / 1000 / every_other),
+            disable=verbosity < 0
+        )
+
+    # put the poses back...
+    for seg in segments:
+        for s in seg.spliceables:
+            s.body = tmp[s]
 
     # compose and sort results
 
