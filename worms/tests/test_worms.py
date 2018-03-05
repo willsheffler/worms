@@ -9,11 +9,19 @@ import time
 try:
     import pyrosetta
     HAVE_PYROSETTA = True
+    try:
+        import pyrosetta.distributed
+        HAVE_PYROSETTA_DISTRIBUTED = True
+    except ImportError:
+        HAVE_PYROSETTA_DISTRIBUTED = False
 except ImportError:
-    HAVE_PYROSETTA = False
+    HAVE_PYROSETTA = HAVE_PYROSETTA_DISTRIBUTED = False
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+only_if_pyrosetta = pytest.mark.skipif('not HAVE_PYROSETTA')
+
+
+@only_if_pyrosetta
 def test_sym_bug(c1pose, c2pose):
     helix = Spliceable(
         c1pose, sites=[((1, 2, 3, 4,), 'N'), ((9, 10, 11, 13), 'C')])
@@ -38,7 +46,7 @@ def test_sym_bug(c1pose, c2pose):
     # assert 0
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_SpliceSite(pose, c3pose):
     assert len(pose) == 7
     ss = SpliceSite(1, 'N')
@@ -62,7 +70,7 @@ def test_SpliceSite(pose, c3pose):
     assert SpliceSite([1, 2, 3], 'N', 3)._resids(spliceablec3) == [19, 20, 21]
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_spliceable(c2pose):
     site1 = SpliceSite([1, 2, 3], 'N', 1)
     site2 = SpliceSite([1, 2, 3], 'N', 2)
@@ -121,7 +129,7 @@ def test_geom_check():
     assert np.allclose(0, score, atol=1e-5, rtol=1)
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_segment_geom(c1pose):
     "currently only a basic sanity checkb... only checks translation distances"
     body = c1pose
@@ -197,7 +205,7 @@ def test_segment_geom(c1pose):
         assert np.allclose(stubs[ir - 1] @ e2x, stubs[jr - 1], atol=1e-5)
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_grow_cycle(c1pose):
     helix = Spliceable(c1pose, sites=[(1, 'N'), ('-4:', 'C')])
     segments = ([Segment([helix], exit='C'), ] +
@@ -207,7 +215,7 @@ def test_grow_cycle(c1pose):
     assert 0.1411 < np.min(worms.scores) < 0.1412
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_grow_cycle_thread_pool(c1pose):
     helix = Spliceable(c1pose, sites=[(1, 'N'), ('-4:', 'C')])
     segments = ([Segment([helix], exit='C'), ] +
@@ -219,7 +227,7 @@ def test_grow_cycle_thread_pool(c1pose):
     assert np.sum(worms.scores < 0.1412) == 4
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@pytest.mark.skipif('not HAVE_PYROSETTA_DISTRIBUTED')
 def test_grow_cycle_process_pool(c1pose):
     helix = Spliceable(c1pose, sites=[(1, 'N'), ('-4:', 'C')])
     segments = ([Segment([helix], exit='C'), ] +
@@ -231,7 +239,7 @@ def test_grow_cycle_process_pool(c1pose):
     assert np.sum(worms.scores < 0.1412) == 4
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_grow_errors(c1pose):
     nsplice = SpliceSite(sele=[1, 2, 3, 4, 5, 6], polarity='N')
     csplice = SpliceSite(sele=[13, ], polarity='C')
@@ -256,7 +264,7 @@ def test_grow_errors(c1pose):
         grow(segments_polarity_mismatch, criteria=checkc3)
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_memsize(c1pose):
     helix = Spliceable(c1pose, sites=[((1, 2), 'N'), ('-2:', 'C')])
     segments = ([Segment([helix], exit='C'), ] +
@@ -270,7 +278,7 @@ def test_memsize(c1pose):
         w0 = w1
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_pose_alignment_0(c1pose):
     helix = Spliceable(c1pose, sites=[(1, 'N'), ('-4:', 'C')])
     segments = ([Segment([helix], exit='C'), ] +
@@ -292,7 +300,7 @@ def test_pose_alignment_0(c1pose):
     assert np.sum((xyz1 - xyz0)**2) < 0.1
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_last_body_same_as(c1pose):
     helix = Spliceable(c1pose, sites=[(1, 'N'), ('-4:', 'C')])
     segments = ([Segment([helix, helix], exit='C'), ] +
@@ -374,7 +382,7 @@ def test_reorder_spliced_as_N_to_C():
                 [8], [9, 0], [1], [2]])
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_make_pose_chains_dimer(c2pose):
     dimer = Spliceable(c2pose, sites=[('1,2:2', 'N'), ('2,3:3', 'N'),
                                       ('1,-4:-4', 'C'), ('2,-5:-5', 'C')])
@@ -464,7 +472,7 @@ def residue_sym_err(p, ang, ir, jr, n=1, axis=[0, 0, 1], verbose=0):
     return np.sqrt(mxdist)
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_multichain_match_reveres_pol(c1pose, c2pose):
     helix = Spliceable(
         c1pose, sites=[((1, 2, 3,), 'N'), ((9, 10, 11, 13), 'C')])
@@ -490,7 +498,7 @@ def test_multichain_match_reveres_pol(c1pose, c2pose):
     assert np.allclose(wnc.scores, wcn.scores, atol=1e-3)
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_splicepoints(c1pose, c2pose, c3pose):
     helix = Spliceable(
         c1pose, sites=[((1, 2, 3,), 'N'), ((9, 10, 11, 13), 'C')])
@@ -536,7 +544,7 @@ def test_splicepoints(c1pose, c2pose, c3pose):
         assert seq2.startswith(str(actual_chains[i + 1].sequence()))
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_cyclic_permute_beg_end(c1pose, c2pose):
     helix = Spliceable(
         c1pose, sites=[((1, 2, 3,), 'N'), ((9, 10, 11, 13), 'C')])
@@ -574,7 +582,7 @@ def test_cyclic_permute_beg_end(c1pose, c2pose):
     # assert 0
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_cyclic_permute_mid_end(c1pose, c2pose, c3hetpose):
     helix0 = Spliceable(c1pose, [([2], 'N'), ([11], "C")])
     helix = Spliceable(c1pose, [([1, 3, 4], 'N'), ([12, ], "C")])
@@ -620,7 +628,7 @@ def test_cyclic_permute_mid_end(c1pose, c2pose, c3hetpose):
     # assert 0
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_multichain_mixed_pol(c2pose, c3pose, c1pose):
     helix = Spliceable(c1pose, [(':4', 'N'), ((10, 12, 13), 'C')])
     dimer = Spliceable(c2pose, sites=[('1,:2', 'N'), ('1,-1:', 'C'),
@@ -643,7 +651,7 @@ def test_multichain_mixed_pol(c2pose, c3pose, c1pose):
     assert 1 > residue_sym_err(p, 120, 2, 62, 7)
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_multichain_db(c2pose, c1pose):
     helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', "C")])
     dimer = Spliceable(c2pose, sites=[('1,-1:', 'C'), ('2,-1:', 'C')])
@@ -654,7 +662,7 @@ def test_multichain_db(c2pose, c1pose):
         w = grow(segments, Cyclic('C4'), thresh=20)
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_D3(c2pose, c3pose, c1pose):
     helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', 'C')])
     dimer = Spliceable(c2pose, sites=[('1,:2', 'N'), ('1,-1:', 'C'),
@@ -692,7 +700,7 @@ def test_D3(c2pose, c3pose, c1pose):
     assert 1 > residue_sym_err(p, 120, 56, 65, 6, axis=[0, 0, 1])
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_tet(c2pose, c3pose, c1pose):
     helix = Spliceable(c1pose, [(':1', 'N'), ('-4:', 'C')])
     dimer = Spliceable(c2pose, sites=[('1,:2', 'N'), ('1,-1:', 'C'), ])
@@ -708,7 +716,7 @@ def test_tet(c2pose, c3pose, c1pose):
     assert 2.5 > residue_sym_err(p, 180, 2, 14, 6, axis=[1, 0, 0])
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_tet33(c2pose, c3pose, c1pose):
     helix = Spliceable(c1pose, [(':1', 'N'), ('-4:', 'C')])
     trimer = Spliceable(c3pose, sites=[('1,:1', 'N'), ('1,-2:', 'C'), ])
@@ -723,7 +731,7 @@ def test_tet33(c2pose, c3pose, c1pose):
     assert 2.5 > residue_sym_err(p, 120, 87, 96, 6, axis=[1, 1, 1])
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_oct(c2pose, c3pose, c4pose, c1pose):
     helix = Spliceable(c1pose, [(':1', 'N'), ('-4:', 'C')])
     dimer = Spliceable(c2pose, sites=[('1,:2', 'N'), ('1,-1:', 'C'), ])
@@ -762,7 +770,7 @@ def test_oct(c2pose, c3pose, c4pose, c1pose):
     # assert 0
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_icos(c2pose, c3pose, c1pose):
     helix = Spliceable(c1pose, [(':1', 'N'), ('-4:', 'C')])
     dimer = Spliceable(c2pose, sites=[('1,:2', 'N'), ('1,-1:', 'C'), ])
@@ -779,7 +787,7 @@ def test_icos(c2pose, c3pose, c1pose):
     assert 2 > residue_sym_err(p, 180, 2, 14, 6, axis=IA[2])
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_score0_sym(c2pose, c3pose, c1pose):
     helix = Spliceable(c1pose, [(':1', 'N'), ('-4:', 'C')])
     dimer = Spliceable(c2pose, sites=[('1,:2', 'N'), ('1,-1:', 'C'), ])
@@ -808,7 +816,7 @@ def test_score0_sym(c2pose, c3pose, c1pose):
         assert np.allclose([x[1] for x in ps1], [x[1] for x in ps2])
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_chunk_speed(c2pose, c3pose, c1pose):
     helix = Spliceable(c1pose, [(':1', 'N'), ('-2:', 'C')])
     dimer = Spliceable(c2pose, sites=[('1,:2', 'N'), ('1,-1:', 'C'), ])
@@ -832,7 +840,7 @@ def test_chunk_speed(c2pose, c3pose, c1pose):
     assert t1 / t2 > 10.0  # conservative, but still sketchy...
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_splice_compatibility_check(c1pose, c2pose):
     helix = Spliceable(c1pose, [(':1', 'N'), ('-2:', 'C')])
     dimer = Spliceable(c2pose, sites=[('1,:2', 'N'), ('2,:2', 'N'), ])
@@ -843,7 +851,7 @@ def test_splice_compatibility_check(c1pose, c2pose):
         w = grow(segments, Cyclic(), thresh=1)
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_invalid_splices_seg_too_small(c1pose):
     helix = Spliceable(c1pose, [('8:8', 'N'), ('7:7', 'C')])
     with pytest.raises(ValueError):
@@ -866,7 +874,7 @@ def test_invalid_splices_seg_too_small(c1pose):
     assert len(w) == 4
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_invalid_splices_site_overlap_2(c1pose, c2pose):
     helix = Spliceable(c1pose, [(':1', 'N'), ('-1:', 'C')])
     dimer = Spliceable(c2pose, sites=[('1,:1', 'N'), ('2,:1', 'N'),
@@ -885,7 +893,7 @@ def test_invalid_splices_site_overlap_2(c1pose, c2pose):
                 w.segments[3].exitsiteid[w.indices[i, 3]])
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_invalid_splices_site_overlap_3(c1pose, c3pose):
     helix = Spliceable(c1pose, [(':1', 'N'), ('-1:', 'C')])
     trimer = Spliceable(c3pose, sites=[('1,:1', 'N'), ('1,-1:', 'C'),
@@ -931,7 +939,7 @@ def test_origin_seg(c1pose, c2pose, c3pose):
     # assert 0
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_provenance(c1pose):
     sites = [(':1', 'N'), ('-4:', 'C')]
     segments = [Segment([Spliceable(c1pose.clone(), sites)], '_C'),
@@ -959,7 +967,7 @@ def test_provenance(c1pose):
         assert len(prov) == len(segments) - 1
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_extra_chain_handling_cyclic(c1pose, c2pose, c3hetpose):
     helix = Spliceable(c1pose, [(':1', 'N'), ('-4:', 'C')])
     dimer = Spliceable(c2pose, sites=[('1,:3', 'N'), ('1,-3:', 'C')])
@@ -1013,7 +1021,7 @@ def test_extra_chain_handling_cyclic(c1pose, c2pose, c3hetpose):
     assert prov[3] == (27, 35, c3hetpose, 19, 27)
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_extra_chain_handling_noncyclic(c1pose, c2pose, c3pose, c3hetpose):
     helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', 'C')])
     dimer = Spliceable(c2pose, sites=[('1,:1', 'N'), ('1,-1:', 'C')])
@@ -1046,7 +1054,7 @@ def test_extra_chain_handling_noncyclic(c1pose, c2pose, c3pose, c3hetpose):
     assert w.pose(0, only_connected=1).num_chains() == 2
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_max_results(c1pose, c2pose, c3pose):
     helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', 'C')])
     dimer = Spliceable(c2pose, sites=[('1,:2', 'N'), ('1,-1:', 'C'),
@@ -1072,7 +1080,7 @@ def test_max_results(c1pose, c2pose, c3pose):
     assert np.all(wref.indices == wtst.indices)
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA')
+@only_if_pyrosetta
 def test_chunk_speed(c2pose, c3pose, c1pose):
     helix = Spliceable(c1pose, [(':1', 'N'), ('-4:', 'C')])
     nseg = 39
@@ -1081,3 +1089,13 @@ def test_chunk_speed(c2pose, c3pose, c1pose):
                 [Segment([helix], entry='N')])
     with pytest.raises(ValueError):
         grow(segments, Octahedral(c3=-1, c2=0), thresh=1, max_samples=1000000)
+
+
+@only_if_pyrosetta
+def test_NullCriteria(c1pose):
+    helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', 'C')])
+    segments = [Segment([helix], '_C'),
+                Segment([helix], 'N_')]
+    results = grow(segments, NullCriteria())
+    assert len(results) == 16
+    # vis.showme(results.pose(0))

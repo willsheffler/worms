@@ -43,6 +43,17 @@ class CriteriaList(WormCriteria):
         return r[0] if len(r) else None
 
 
+class NullCriteria(WormCriteria):
+
+    def score(self, segpos, **kw):
+        return np.zeros(segpos[-1].shape[:-2])
+
+    def alignment(self, segpos, **kw):
+        r = np.empty_like(segpos[-1])
+        r[..., :, :] = np.eye(4)
+        return r
+
+
 class AxesIntersect(WormCriteria):
 
     def __init__(self, symname, tgtaxis1, tgtaxis2, from_seg, *, tol=1.0,
@@ -65,7 +76,6 @@ class AxesIntersect(WormCriteria):
         self.to_seg = to_seg
         self.rot_tol = tol / lever
         self.distinct_axes = distinct_axes  # -z not same as z (for T33)
-        self.symname = self.symname
         self.sym_axes = [self.tgtaxis1, self.tgtaxis2]
 
     def score(self, segpos, verbosity=False, **kw):
