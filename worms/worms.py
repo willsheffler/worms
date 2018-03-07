@@ -158,7 +158,8 @@ class Spliceable:
             return False
         if isite < 0 or jsite < 0:
             return True
-        if self.allowed_pairs and (isite, jsite) not in self.allowed_pairs:
+        if (self.allowed_pairs is not None
+                and (isite, jsite) not in self.allowed_pairs):
             return False
         return True
 
@@ -214,8 +215,12 @@ class Segment:
             entry, exit = entry
             if entry == '_': entry = None
             if exit == '_': exit = None
-        self.entrypol = entry or None
-        self.exitpol = exit or None
+        self.entrypol = entry
+        self.exitpol = exit
+        if entry not in ('C', 'N', None):
+            raise ValueError('bad entry: "%s" type %s' % (entry, type(entry)))
+        if exit not in ('C', 'N', None):
+            raise ValueError('bad exit: "%s" type %s' % (exit, type(exit)))
         self.min_sites = dict(C=9e9, N=9e9)
         self.max_sites = dict(C=0, N=0)
         if not spliceables:
@@ -263,6 +268,7 @@ class Segment:
         return len(self.bodyid)
 
     def init_segment_data(self):
+        print('init_segment_data', len(self.spliceables))
         # each array has all in/out pairs
         self.x2exit, self.x2orgn, self.bodyid = [], [], []
         self.entryresid, self.exitresid = [], []
@@ -295,9 +301,13 @@ class Segment:
                 if entry_site.polarity != self.entrypol:
                     continue
                 for jsite, exit_site in exit_sites:
+                    print('!!!!!!!!', ibody, isite, jsite, exit_site.polarity,
+                          self.exitpol, end='   ')
                     if (not spliceable.sitepair_allowed(isite, jsite)
                             or exit_site.polarity != self.exitpol):
+                        print('fail')
                         continue
+                    print('pass')
                     for ires in spliceable.resids(isite):
                         istub_inv = (np.eye(4) if not ires
                                      else stubs_inv[to_subset[ires]])

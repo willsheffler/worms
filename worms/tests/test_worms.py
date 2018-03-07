@@ -389,7 +389,7 @@ def test_make_pose_chains_dimer(c2pose):
     print(dimer)
     seq = dimer.body.sequence()[:12]
 
-    dimerseg = Segment([dimer], 'N', '')
+    dimerseg = Segment([dimer], 'N', None)
     enex, rest = dimerseg.make_pose_chains(0, pad=(0, 1))
     assert [x[0].sequence() for x in enex] == [seq[1:], seq]
     assert [x[0].sequence() for x in rest] == []
@@ -399,7 +399,7 @@ def test_make_pose_chains_dimer(c2pose):
     assert [x[0].sequence() for x in rest] == []
     assert enex[-1][0] is dimer.chains[1]
 
-    dimerseg = Segment([dimer], 'C', '')
+    dimerseg = Segment([dimer], 'C', None)
     enex, rest = dimerseg.make_pose_chains(0, pad=(0, 1))
     assert [x[0].sequence() for x in enex] == [seq[:-3], seq]
     assert [x[0].sequence() for x in rest] == []
@@ -409,7 +409,7 @@ def test_make_pose_chains_dimer(c2pose):
     assert [x[0].sequence() for x in rest] == []
     assert enex[-1][0] is dimer.chains[1]
 
-    dimerseg = Segment([dimer], '', 'N')
+    dimerseg = Segment([dimer], None, 'N')
     enex, rest = dimerseg.make_pose_chains(0, pad=(0, 1))
     assert [x[0].sequence() for x in enex] == [seq, seq[1:]]
     assert [x[0].sequence() for x in rest] == []
@@ -788,12 +788,12 @@ def test_score0_sym(c2pose, c3pose, c1pose):
 
     if hasattr(pose, '__getstate__'):
         t = time.time()
-        ps1 = w.sympose(range(3), score=1)
+        ps1 = w.sympose(range(len(w)), score=1)
         t = time.time() - t
         print(t)
 
         t = time.time()
-        ps2 = w.sympose(range(3), score=1, parallel=1)
+        ps2 = w.sympose(range(len(w)), score=1, parallel=True)
         t = time.time() - t
         print(t)
         assert np.allclose([x[1] for x in ps1], [x[1] for x in ps2])
