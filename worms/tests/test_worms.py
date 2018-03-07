@@ -24,16 +24,17 @@ only_if_pyrosetta = pytest.mark.skipif('not HAVE_PYROSETTA')
 @only_if_pyrosetta
 def test_sym_bug(c1pose, c2pose):
     helix = Spliceable(
-        c1pose, sites=[((1, 2, 3, 4,), 'N'), ((9, 10, 11, 13), 'C')])
-    dimer = Spliceable(c2pose, sites=[('1,:3', 'N'), ('1,-1:', 'C'),
-                                      ('2,:3', 'N'), ('2,-1:', 'C')])
+        c1pose, sites=[((1, 2, 3), 'N'), ((9, 10, 11, 13), 'C')])
+    dimer = Spliceable(c2pose, sites=[((1, 2, 3), 'N', 1), ('1,-1:', 'C'),
+                                      ('2,-1:', 'C')])
+    segdimer = Segment([dimer], entry='N', exit='C')
     segments = [Segment([helix], exit='C'),
                 Segment([helix], entry='N', exit='C'),
                 Segment([dimer], entry='N', exit='C'),
                 Segment([helix], entry='N', exit='C'),
                 Segment([helix], entry='N'), ]
     wnc = grow(segments, Cyclic(3, lever=200), thresh=1, verbosity=1)
-    assert len(wnc) == 6
+    assert len(wnc) == 3
     print(wnc.scores)
     p = wnc.pose(0, align=1, end=1)
     # vis.showme(p)
@@ -43,7 +44,6 @@ def test_sym_bug(c1pose, c2pose):
     # vis.showme(p, name='carterr')
     # vis.showme(q, name='angerr')
     assert residue_sym_err(wnc.pose(0, end=True), 120, 2, 46, 6) < 1.0
-    # assert 0
 
 
 @only_if_pyrosetta
@@ -586,10 +586,11 @@ def test_cyclic_permute_beg_end(c1pose, c2pose):
 def test_cyclic_permute_mid_end(c1pose, c2pose, c3hetpose):
     helix0 = Spliceable(c1pose, [([2], 'N'), ([11], "C")])
     helix = Spliceable(c1pose, [([1, 3, 4], 'N'), ([12, ], "C")])
-    dimer = Spliceable(c2pose, sites=[('1,:1', 'N'), ('1,-1:', 'C'),
-                                      ('2,:1', 'N'), ('2,-1:', 'C')])
-    c3het = Spliceable(c3hetpose, sites=[
-        ('1,2:2', 'N'), ('2,2:2', 'N'), ('3,2:2', 'N')])
+    dimer = Spliceable(c2pose, sites=[('1,-1:', 'C'), ('2,-1:', 'C')],
+                       allowed_pairs=[(0, 1)])
+    c3het = Spliceable(c3hetpose, sites=[('1,2:2', 'N'), ('2,2:2', 'N'),
+                                         ('3,2:2', 'N')],
+                       allowed_pairs=[(0, 1), (1, 0)])
     segments = [Segment([helix0], '_C'),
                 Segment([helix0], 'NC'),
                 Segment([helix0], 'NC'),
@@ -600,32 +601,12 @@ def test_cyclic_permute_mid_end(c1pose, c2pose, c3hetpose):
                 Segment([helix], 'NC'),
                 Segment([c3het], 'N_'), ]
     w = grow(segments, Cyclic(3, from_seg=3), thresh=1)
-    assert len(w) > 0
     p, sc = w.sympose(0, score=True)
     assert sc < 4
     assert len(p) == 312
     assert p.chain(306) == 9
     assert util.no_overlapping_residues(p)
-    # vis.showme(p)
-    # p, pl = w.pose(0, cyclic_permute=0, end=0, cyclictrim=0,
-    # make_chain_list=True)
-    # vis.showme(p, name='full')
-    # for i, p in enumerate(pl):
-    # vis.showme(p, name='part%i' % i)
-
-    # vis.showme(w.pose(0, cyclic_permute=0, end=0, cyclictrim=1), name='ct')
-    # vis.showme(w.pose(0, cyclic_permute=0, end=0), name='cp0_end0')
-    # vis.showme(w.pose(0, cyclic_permute=0, end=1), name='cp0_end1')
-    # vis.showme(w.pose(0, cyclic_permute=1), name='cp1')
-    # vis.showme(w.sympose(0, fullatom=True))
-
-    # assert 0
-    # for i in range(len(w)):
-    # pose, score = w.sympose(i, score=1)
-    # print(score)
-    # assert len(w)
-#
-    # assert 0
+    assert len(w) == 1
 
 
 @only_if_pyrosetta
@@ -766,7 +747,9 @@ def test_oct(c2pose, c3pose, c4pose, c1pose):
     # p.dump_pdb(gethostname() + '.pdb')
     # assert np.allclose(p.residue(1).xyz('CA')[0], 33.0786722948)
     assert 1 > residue_sym_err(p, 90, 1, 31, 6, axis=[1, 0, 0], verbose=0)
-    assert 1 > residue_sym_err(p, 180, 92, 104, 6, axis=[1, 1, 0], verbose=0)
+    assert 1 > residue_sym_err(
+        p, 180, 92, 104, 6, axis=[
+            1, 1, 0], verbose=0)
     # assert 0
 
 
@@ -789,26 +772,26 @@ def test_icos(c2pose, c3pose, c1pose):
 
 @only_if_pyrosetta
 def test_score0_sym(c2pose, c3pose, c1pose):
-    helix = Spliceable(c1pose, [(':1', 'N'), ('-4:', 'C')])
-    dimer = Spliceable(c2pose, sites=[('1,:2', 'N'), ('1,-1:', 'C'), ])
-    trimer = Spliceable(c3pose, sites=[('1,:1', 'N'), ('1,-2:', 'C'), ])
-    segments = ([Segment([dimer], exit='C')] +
-                [Segment([helix], entry='N', exit='C')] * 4 +
-                [Segment([trimer], entry='N')])
+    helix = Spliceable(c1pose, [(':1', 'N'), ((-4, -3, -2), 'C')])
+    dimer = Spliceable(c2pose, sites=[((2,), 'N'), ('1,-1:', 'C'), ])
+    trimer = Spliceable(c3pose, sites=[('1,:1', 'N'), ((2,), 'C'), ])
+    segments = ([Segment([dimer], '_C')] +
+                [Segment([helix], 'NC')] * 4 +
+                [Segment([trimer], 'N_')])
     w = grow(segments, D3(c3=-1, c2=0), thresh=2)
-    assert len(w) == 3
-    i, err, pose, score0 = w[1]
+    assert len(w) == 2
+    i, err, pose, score0 = w[0]
     # vis.showme(w.pose(1, fullatom=True))
     # show_with_z_axes(w, 1)
     assert 22.488 < score0 < 22.4881
     assert util.no_overlapping_residues(pose)
 
-    t = time.time()
-    ps1 = w.sympose(range(3), score=1)
-    t = time.time() - t
-    print(t)
-
     if hasattr(pose, '__getstate__'):
+        t = time.time()
+        ps1 = w.sympose(range(3), score=1)
+        t = time.time() - t
+        print(t)
+
         t = time.time()
         ps2 = w.sympose(range(3), score=1, parallel=1)
         t = time.time() - t
@@ -934,7 +917,7 @@ def test_origin_seg(c1pose, c2pose, c3pose):
     w = grow(segments, Cyclic(3, from_seg=2, origin_seg=0), thresh=10)
     # executor=ProcessPoolExecutor, max_workers=8)
     assert len(w) > 0
-    print(w.scores[:10])
+    print(w.scores[: 10])
     vis.showme(w.pose(0, join=False))
     # assert 0
 
@@ -961,8 +944,8 @@ def test_provenance(c1pose):
             lb, ub, src_pose, src_lb, src_ub = prv
             assert src_pose is segments[i].spliceables[0].body
             assert src_pose is not c1pose
-            srcseq = src_pose.sequence()[src_lb - 1:src_ub]
-            seq = pose.sequence()[lb - 1:ub]
+            srcseq = src_pose.sequence()[src_lb - 1: src_ub]
+            seq = pose.sequence()[lb - 1: ub]
             assert srcseq == seq
         assert len(prov) == len(segments) - 1
 
@@ -1072,7 +1055,7 @@ def test_max_results(c1pose, c2pose, c3pose):
 
     s = wref.scores[:]
     s.sort()
-    i = np.argmin(s[1:] - s[:-1])
+    i = np.argmin(s[1:] - s[: -1])
 
     wtst = grow(segments, D3(c2=-1, c3=0), thresh=1, max_results=90)
     assert len(wtst) == 90
@@ -1088,7 +1071,13 @@ def test_chunk_speed(c2pose, c3pose, c1pose):
                 [Segment([helix], entry='N', exit='C')] * (nseg - 2) +
                 [Segment([helix], entry='N')])
     with pytest.raises(ValueError):
-        grow(segments, Octahedral(c3=-1, c2=0), thresh=1, max_samples=1000000)
+        grow(
+            segments,
+            Octahedral(
+                c3=-1,
+                c2=0),
+            thresh=1,
+            max_samples=1000000)
 
 
 @only_if_pyrosetta

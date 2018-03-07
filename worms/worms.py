@@ -87,7 +87,8 @@ class SpliceSite:
 
 class Spliceable:
 
-    def __init__(self, body, sites, *, bodyid=None, min_seg_len=1):
+    def __init__(self, body, sites, *, bodyid=None,
+                 min_seg_len=1, allowed_pairs=None):
         self.body = body
         chains = list(body.split_by_chain())
         self.start_of_chain = {i + 1: sum(len(c) for c in chains[:i])
@@ -118,6 +119,7 @@ class Spliceable:
         self._resids_list = [site._resids(self) for site in self.sites]
         self._len_body = len(body)
         self._chains = np.array([body.chain(i + 1) for i in range(len(body))])
+        self.allowed_pairs = allowed_pairs
 
     def resids(self, isite):
         if isite < 0: return [None]
@@ -149,6 +151,15 @@ class Spliceable:
             if ipol == 'N': seglen = jres - ires + 1
             else: seglen = ires - jres + 1
             if seglen < self.min_seg_len: return False
+        return True
+
+    def sitepair_allowed(self, isite, jsite):
+        if isite == jsite:
+            return False
+        if isite < 0 or jsite < 0:
+            return True
+        if self.allowed_pairs and (isite, jsite) not in self.allowed_pairs:
+            return False
         return True
 
     def __repr__(self):
@@ -281,27 +292,30 @@ class Segment:
             exit_sites = (list(enumerate(spliceable.sites)) if self.exitpol else
                           [(-1, SpliceSite(sele=[None], polarity=self.exitpol))])
             for isite, entry_site in entry_sites:
-                if entry_site.polarity == self.entrypol:
-                    for jsite, exit_site in exit_sites:
-                        if isite != jsite and exit_site.polarity == self.exitpol:
-                            for ires in spliceable.resids(isite):
-                                istub_inv = (np.eye(4) if not ires
-                                             else stubs_inv[to_subset[ires]])
-                                ires = ires or -1
-                                for jres in spliceable.resids(jsite):
-                                    jstub = (np.eye(4) if not jres
-                                             else stubs[to_subset[jres]])
-                                    jres = jres or -1
-                                    if not spliceable.is_compatible(
-                                            isite, ires, jsite, jres):
-                                        continue
-                                    self.x2exit.append(istub_inv @ jstub)
-                                    self.x2orgn.append(istub_inv)
-                                    self.entrysiteid.append(isite)
-                                    self.entryresid.append(ires)
-                                    self.exitsiteid.append(jsite)
-                                    self.exitresid.append(jres)
-                                    self.bodyid.append(bodyid)
+                if entry_site.polarity != self.entrypol:
+                    continue
+                for jsite, exit_site in exit_sites:
+                    if (not spliceable.sitepair_allowed(isite, jsite)
+                            or exit_site.polarity != self.exitpol):
+                        continue
+                    for ires in spliceable.resids(isite):
+                        istub_inv = (np.eye(4) if not ires
+                                     else stubs_inv[to_subset[ires]])
+                        ires = ires or -1
+                        for jres in spliceable.resids(jsite):
+                            jstub = (np.eye(4) if not jres
+                                     else stubs[to_subset[jres]])
+                            jres = jres or -1
+                            if not spliceable.is_compatible(
+                                    isite, ires, jsite, jres):
+                                continue
+                            self.x2exit.append(istub_inv @ jstub)
+                            self.x2orgn.append(istub_inv)
+                            self.entrysiteid.append(isite)
+                            self.entryresid.append(ires)
+                            self.exitsiteid.append(jsite)
+                            self.exitresid.append(jres)
+                            self.bodyid.append(bodyid)
         if len(self.x2exit) is 0:
             raise ValueError('no valid splices found')
         self.x2exit = np.stack(self.x2exit)

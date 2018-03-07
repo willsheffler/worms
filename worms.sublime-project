@@ -10,12 +10,16 @@
     "build_systems":
     [
         {
+            "name": "pytest",
+            "shell_cmd": "cd $folder; echo pwd: `pwd` > log/sublime_build.log; echo python: `which python` >> log/sublime_build.log; pytest --duration=10 &>> log/sublime_build.log"
+        },
+        {
             "name": "pytest worms",
-            "shell_cmd": "cd $folder; echo pwd: `pwd` > log/sublime_build.log; echo python: `which python` >> log/sublime_build.log; pytest worms/tests/test_worms.py &>> log/sublime_build.log"
+            "shell_cmd": "cd $folder; echo pwd: `pwd` > log/sublime_build.log; echo python: `which python` >> log/sublime_build.log; pytest --duration=10 worms/tests/test_worms.py &>> log/sublime_build.log"
         },
         {
             "name": "pytest util",
-            "shell_cmd": "cd $folder; echo pwd: `pwd` > log/sublime_build.log; echo python: `which python` >> log/sublime_build.log; pytest worms/tests/test_util.py &>> log/sublime_build.log"
+            "shell_cmd": "cd $folder; echo pwd: `pwd` > log/sublime_build.log; echo python: `which python` >> log/sublime_build.log; pytest --duration=10 worms/tests/test_util.py &>> log/sublime_build.log"
         },
         {
             "name": "make_docs",
