@@ -2,7 +2,12 @@
 History
 =======
 
-0.1.14 (2018-03.05)
+0.1.16 (2018-03.15)
+------------------
+
+* I52 symmetry bug fix
+
+0.1.15 (2018-03.05)
 ------------------
 
 * add NullCriteria that always returns 0 err

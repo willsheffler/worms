@@ -181,7 +181,7 @@ def Icosahedral(c5=None, c3=None, c2=None, **kw):
     if 1 is not (c5 is None) + (c3 is None) + (c2 is None):
         raise ValueError('must specify exactly two of c5, c3, c2')
     if c2 is None: from_seg, to_seg, nf1, nf2, ex = c5, c3, 5, 3, 2
-    if c3 is None: from_seg, to_seg, nf1, nf2, ex = c5, c2, 4, 2, 3
+    if c3 is None: from_seg, to_seg, nf1, nf2, ex = c5, c2, 5, 2, 3
     if c5 is None: from_seg, to_seg, nf1, nf2, ex = c3, c2, 3, 2, 5
     return AxesIntersect('I', from_seg=from_seg, to_seg=to_seg,
                          tgtaxis1=(nf1, hm.sym.icosahedral_axes[nf1]),
