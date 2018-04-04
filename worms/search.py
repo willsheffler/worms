@@ -1,5 +1,6 @@
 'search stuff'
 
+import sys
 import os
 import itertools as it
 import numpy as np
@@ -115,8 +116,8 @@ class IndexedAccumulator:
 
     def __init__(self, tail, splitseg, head, index, binner,
                  nfold, from_seg=-1, max_tmp_size=1024):
-        self.splitseg
         self.tail = tail
+        self.splitseg = splitseg
         self.head = head
         self.index = index
         self.binner = binner
@@ -132,7 +133,6 @@ class IndexedAccumulator:
         else:
             sc, li, lp = [], [], []
         scores = np.concatenate([x[0] for x in self.temporary])
-        print('IndexedAccumulator checkpoint scores.shape', scores.shape)
         if scores.shape[0] is 0: return
         assert np.all(scores == 0)
         lowidx = np.concatenate([x[1] for x in self.temporary])
@@ -144,12 +144,13 @@ class IndexedAccumulator:
         head_idx = np.stack([self.index[i] for i in binidx])
         join_idx = self.splitseg.merge_idx(self.tail[-1], lowidx[:, -1],
                                            self.head[0], head_idx[:, 0])
-        print(head_idx.shape)
-        print(join_idx.shape)
+        lowidx = lowidx[join_idx >= 0]
+        head_idx = head_idx[join_idx >= 0]
+        join_idx = join_idx[join_idx >= 0]
         lowidx = np.concatenate(
-            [lowidx[:, :-1], join_idx, head_idx[:, 1:]], axis=1)
+            [lowidx[:, :-1], join_idx[:, None], head_idx[:, 1:]], axis=1)
         if hasattr(self, 'lowidx'):
-            self.lowidx = np.concatenate(self.lowidx, lowidx)
+            self.lowidx = np.concatenate([self.lowidx, lowidx])
         else:
             self.lowidx = lowidx
         self.temporary = []
@@ -206,14 +207,12 @@ def grow(
         if verbosity > 0:
             print('grow, from', criteria.from_seg, 'to', criteria.to_seg)
             for i, seg in enumerate(segments):
-                print(
-                    ' segment',
-                    i,
-                    'enter:',
-                    seg.entrypol,
-                    'exit:',
-                    seg.exitpol)
+                print(' segment', i,
+                      'enter:', seg.entrypol,
+                      'exit:', seg.exitpol)
                 for sp in seg.spliceables: print('   ', sp)
+        elif verbosity == 0:
+            print('grow, nseg:', len(segments))
         if verbosity > 1:
             global __print_best
             __print_best = True
@@ -284,9 +283,6 @@ def grow(
         lowposlist = [lowpos[:, i] for i in range(len(segments))]
         score_check = criteria.score(segpos=lowposlist, verbosity=verbosity)
         assert np.allclose(score_check, scores)
-        detail = dict(ntot=ntot, chunksize=chunksize, nchunks=nchunks,
-                      nworker=nworker, njob=njob, sizes=sizes, end=end)
-        return Worms(segments, scores, lowidx, lowpos, criteria, detail)
     else:
         assert len(criteria) is 1
         splitseg = segments[criteria.from_seg]
@@ -301,7 +297,8 @@ def grow(
         args['matchlast'] = 0  # kinda hacky
         _grow(head, headcriteria, accum1, **_grow_args)
         index = accum1.final_result()
-        print('len(index)', len(index))
+        print('items in hash:', len(index))
+        sys.stdout.flush()
         tailcriteria = IndexedCriteria(accum1.index, accum1.binner,
                                        criteria[0].nfold, from_seg=-1)
         accum2 = IndexedAccumulator(tail, splitseg, head, accum1.index,
@@ -309,11 +306,35 @@ def grow(
                                     from_seg=-1)
         args['matchlast'] = None
         _grow(tail, tailcriteria, accum2, **_grow_args)
-        result = accum2.final_result()
-        if result is not None:
-            print(result.shape)
-        else:
-            print('no results')
+        lowidx = accum2.final_result()
+
+        if lowidx is None:
+            print('grow: no results')
+            return
+
+        print(lowidx.shape)
+        print(lowidx)
+        lowpos = _refold_segments(segments, lowidx)
+        lowposlist = [lowpos[:, i] for i in range(len(segments))]
+        scores = criteria.score(segpos=lowposlist, verbosity=verbosity)
+        nlow = sum(scores <= thresh)
+        order = np.argsort(scores)[:nlow]
+        scores = scores[order]
+        lowpos = lowpos[order]
+        lowidx = lowidx[order]
+
+    detail = dict(ntot=ntot, chunksize=chunksize, nchunks=nchunks,
+                  nworker=nworker, njob=njob, sizes=sizes, end=end)
+    return Worms(segments, scores, lowidx, lowpos, criteria, detail)
+
+
+def _refold_segments(segments, lowidx):
+    pos = np.zeros_like(lowidx, dtype='(4,4)f') + np.eye(4)
+    end = np.eye(4)
+    for i, seg in enumerate(segments):
+        pos[:, i] = end @ seg.x2orgn[lowidx[:, i]]
+        end = end @ seg.x2exit[lowidx[:, i]]
+    return pos
 
 
 def _chain_xforms(segments):
