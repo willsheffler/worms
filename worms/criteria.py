@@ -12,7 +12,8 @@ Uz = np.array([0, 0, 1, 0])
 class WormCriteria(abc.ABC):
 
     @abc.abstractmethod
-    def score(self, **kw): pass
+    def score(self, **kw):
+        pass
 
     allowed_attributes = ('last_body_same_as',
                           'symname',
@@ -41,6 +42,16 @@ class CriteriaList(WormCriteria):
         r = [x for x in r if x is not None]
         assert len(r) < 2
         return r[0] if len(r) else None
+
+    def __getitem__(self, index):
+        assert isinstance(index, int)
+        return self.children[index]
+
+    def __len__(self):
+        return len(self.children)
+
+    def __iter__(self):
+        return iter(self.children)
 
 
 class NullCriteria(WormCriteria):
@@ -274,10 +285,3 @@ class Cyclic(WormCriteria):
         align = hm.hrot((axis + tgtaxis) / 2, np.pi, cen)
         align[..., :3, 3] -= cen[..., :3]
         return align
-
-    def check_topolopy(self, segments):
-        "for cyclic, global entry can't be same as global exit"
-        # todo: should check this...
-        # fromseg = segments[self.from_seg]
-        # toseg = segments[self.to_seg]
-        return

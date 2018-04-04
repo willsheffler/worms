@@ -18,51 +18,6 @@ def cpu_count():
     except: return multiprocessing.cpu_count()
 
 
-class WormsAccumulator:
-
-    def __init__(self, max_results=1000000, max_tmp_size=1024):
-        self.max_tmp_size = max_tmp_size
-        self.max_results = max_results
-        self.temporary = []
-
-    def accumulate_sort_filter(self):
-        if len(self.temporary) is 0: return
-        if hasattr(self, 'scores'):
-            sc, li, lp = [self.scores], [self.lowidx], [self.lowpos]
-        else:
-            sc, li, lp = [], [], []
-        scores = np.concatenate([x[0] for x in self.temporary] + sc)
-        lowidx = np.concatenate([x[1] for x in self.temporary] + li)
-        lowpos = np.concatenate([x[2] for x in self.temporary] + lp)
-        order = np.argsort(scores)
-        self.scores = scores[order[:self.max_results]]
-        self.lowidx = lowidx[order[:self.max_results]]
-        self.lowpos = lowpos[order[:self.max_results]]
-        self.temporary = []
-
-    def accumulate(self, gen):
-        for future in gen:
-            self.accumulate_future(future)
-            yield None
-
-    def accumulate_future(self, future):
-        result = future.result()
-        if result is not None:
-            self.temporary.append(result)
-            if len(self.temporary) >= self.max_tmp_size:
-                self.accumulate_sort_filter()
-        # future._result = None  # doesn't fix memory issue
-
-    def final_result(self):
-        # print('batches:', len(self.batches))
-        # print('batches len', [len(b) for b in self.batches])
-        self.accumulate_sort_filter()
-        try:
-            return self.scores, self.lowidx, self.lowpos
-        except AttributeError:
-            return None
-
-
 def parallel_batch_map(pool, function, accumulator,
                        batch_size, map_func_args, **kw):
     os.environ['OMP_NUM_THREADS'] = '1'
@@ -82,7 +37,7 @@ def parallel_batch_map(pool, function, accumulator,
             as_completed = dd_as_completed
         for _ in accumulator.accumulate(as_completed(futures)):
             yield None
-        accumulator.accumulate_sort_filter()
+        accumulator.checkpoint()
 
 
 def parallel_nobatch_map(pool, function, accumulator,
@@ -99,7 +54,7 @@ def parallel_nobatch_map(pool, function, accumulator,
         as_completed = dd_as_completed
     for _ in accumulator.accumulate(as_completed(futures)):
         yield None
-    accumulator.accumulate_sort_filter()
+    accumulator.checkpoint()
 
 
 def tqdm_parallel_map(pool, function, accumulator,

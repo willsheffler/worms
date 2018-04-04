@@ -3,10 +3,9 @@ import os
 import itertools as it
 from collections.abc import Iterable
 from collections import defaultdict, OrderedDict
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from numpy.linalg import inv
-from .criteria import CriteriaList
 try:
     import pyrosetta
     from pyrosetta import rosetta as ros
@@ -170,8 +169,7 @@ class Spliceable:
 
     # def __getstate__(self):
         # pdbfname = self.body.pdb_info().name() if self.body else None
-        # return (pdbfname, self.sites,
-        # self.bodyid, self.min_seg_len)
+        # return (pdbfname, self.sites, self.bodyid, self.min_seg_len)
 
     # def __setstate__(self, state):
         # body = pyrosetta.pose_from_file(state[0]) if state[0] else None
@@ -217,6 +215,7 @@ class Segment:
             if exit == '_': exit = None
         self.entrypol = entry
         self.exitpol = exit
+        self.expert = expert
         if entry not in ('C', 'N', None):
             raise ValueError('bad entry: "%s" type %s' % (entry, type(entry)))
         if exit not in ('C', 'N', None):
@@ -248,27 +247,83 @@ class Segment:
             self.stubs.append(stubs)
         self.init_segment_data()
 
-    def __getstate__(self):
-        state = dict(self.__dict__)
-        # remove the big stuff
-        if 'x2exit' in state: del state['x2exit']
-        if 'x2orgn' in state: del state['x2orgn']
-        if 'entrysiteid' in state: del state['entrysiteid']
-        if 'entryresid' in state: del state['entryresid']
-        if 'exitsiteid' in state: del state['exitsiteid']
-        if 'exitresid' in state: del state['exitresid']
-        if 'bodyid' in state: del state['bodyid']
-        return state
+    def make_head(self):
+        assert not (self.entrypol is None or self.exitpol is None)
+        return Segment(self.spliceables, entry=self.entrypol,
+                       exit=None, expert=self.expert)
 
-    def __setstate__(self, state):
-        self.__dict__ = state
-        self.init_segment_data()  # recompute the big stuff
+    def make_tail(self):
+        assert not (self.entrypol is None or self.exitpol is None)
+        return Segment(self.spliceables, entry=None,
+                       exit=self.exitpol, expert=self.expert)
+
+    def merge_idx(self, head, head_idx, tail, tail_idx):
+        "return joint index, -1 if head/tail pairing is invalid"
+        head_idx, tail_idx = map(np.asarray, [head_idx, tail_idx])
+        # print('merge_idx', head_idx.shape, tail_idx.shape)
+        assert not (self.entrypol is None or self.exitpol is None)
+        assert head.exitpol is None and tail.entrypol is None
+        assert head_idx.shape == tail_idx.shape
+        assert head_idx.ndim == 1
+        idx = np.zeros_like(head_idx) - 1
+        for i in range(len(idx)):
+            tmp = np.where(
+                (self.bodyid == head.bodyid[head_idx[i]])
+                * (self.entryresid == head.entryresid[head_idx[i]])
+                * (self.entrysiteid == head.entrysiteid[head_idx[i]])
+                * (self.bodyid == tail.bodyid[tail_idx[i]])
+                * (self.exitresid == tail.exitresid[tail_idx[i]])
+                * (self.exitsiteid == tail.exitsiteid[tail_idx[i]])
+            )[0]
+            assert len(tmp) <= 1
+            if len(tmp) is 1:
+                idx[i] = tmp[0]
+        return idx
+
+    def split_idx(self, idx, head, tail):
+        """return indices for separate head and tail segments"""
+        assert not (self.entrypol is None or self.exitpol is None)
+        assert head.exitpol is None and tail.entrypol is None
+        assert idx.ndim == 1
+        head_idx = np.zeros_like(idx) - 1
+        tail_idx = np.zeros_like(idx) - 1
+        for i in range(len(idx)):
+            head_tmp = np.where(
+                (self.bodyid[idx[i]] == head.bodyid)
+                * (self.entryresid[idx[i]] == head.entryresid)
+                * (self.entrysiteid[idx[i]] == head.entrysiteid))[0]
+            tail_tmp = np.where(
+                (self.bodyid[idx[i]] == tail.bodyid)
+                * (self.exitresid[idx[i]] == tail.exitresid)
+                * (self.exitsiteid[idx[i]] == tail.exitsiteid))[0]
+            assert len(head_tmp) <= 1 and len(tail_tmp) <= 1
+            # print(i, head_tmp, tail_tmp)
+            if len(head_tmp) == 1 and len(tail_tmp) == 1:
+                head_idx[i] = head_tmp[0]
+                tail_idx[i] = tail_tmp[0]
+        return head_idx, tail_idx
+
+    # def __getstate__(self):
+    #     state = dict(self.__dict__)
+    #     # remove the big stuff
+    #     if 'x2exit' in state: del state['x2exit']
+    #     if 'x2orgn' in state: del state['x2orgn']
+    #     if 'entrysiteid' in state: del state['entrysiteid']
+    #     if 'entryresid' in state: del state['entryresid']
+    #     if 'exitsiteid' in state: del state['exitsiteid']
+    #     if 'exitresid' in state: del state['exitresid']
+    #     if 'bodyid' in state: del state['bodyid']
+    #     return state
+
+    # def __setstate__(self, state):
+    #     self.__dict__ = state
+    #     self.init_segment_data()  # recompute the big stuff
 
     def __len__(self):
         return len(self.bodyid)
 
     def init_segment_data(self):
-        print('init_segment_data', len(self.spliceables))
+        # print('init_segment_data', len(self.spliceables))
         # each array has all in/out pairs
         self.x2exit, self.x2orgn, self.bodyid = [], [], []
         self.entryresid, self.exitresid = [], []
@@ -300,18 +355,15 @@ class Segment:
             for isite, entry_site in entry_sites:
                 if entry_site.polarity != self.entrypol:
                     continue
-                for jsite, exit_site in exit_sites:
-                    print('!!!!!!!!', ibody, isite, jsite, exit_site.polarity,
-                          self.exitpol, end='   ')
-                    if (not spliceable.sitepair_allowed(isite, jsite)
-                            or exit_site.polarity != self.exitpol):
-                        print('fail')
-                        continue
-                    print('pass')
-                    for ires in spliceable.resids(isite):
-                        istub_inv = (np.eye(4) if not ires
-                                     else stubs_inv[to_subset[ires]])
-                        ires = ires or -1
+                for ires in spliceable.resids(isite):
+                    istub_inv = (np.eye(4) if not ires
+                                 else stubs_inv[to_subset[ires]])
+                    ires = ires or -1
+                    for jsite, exit_site in exit_sites:
+                        if (not spliceable.sitepair_allowed(isite, jsite)
+                                or exit_site.polarity != self.exitpol):
+                            continue
+                        # print('pass')
                         for jres in spliceable.resids(jsite):
                             jstub = (np.eye(4) if not jres
                                      else stubs[to_subset[jres]])
@@ -419,7 +471,7 @@ class Segment:
             lb = l1 + l2 - 1 + spliceable.start_of_chain[ch_en]
             ub = l1 + u2 - 1 + spliceable.start_of_chain[ch_en]
             enex = [AnnoPose(p, iseg, pose, lb, ub, cyclic_entry[ch_en])]
-            assert p.sequence() == pose.sequence()[lb - 1:ub]
+            assert p.sequence() == pose.sequence()[lb - 1: ub]
             rest = list(rest.values())
         else:
             if ch_ex: del rest[chains[ch_ex]]
@@ -430,19 +482,19 @@ class Segment:
                 lb = lben + spliceable.start_of_chain[ch_en]
                 ub = uben + spliceable.start_of_chain[ch_en]
                 p_en = [AnnoPose(p, iseg, pose, lb, ub, cyclic_entry[ch_en])]
-                assert p.sequence() == pose.sequence()[lb - 1:ub]
+                assert p.sequence() == pose.sequence()[lb - 1: ub]
             if p_ex:
                 p, lbex, ubex = util.trim_pose(p_ex[0], ir_ex, pl_ex,
                                                pad[1] - 1)
                 lb = lbex + spliceable.start_of_chain[ch_ex]
                 ub = ubex + spliceable.start_of_chain[ch_ex]
                 p_ex = [AnnoPose(p, iseg, pose, lb, ub, cyclic_entry[ch_ex])]
-                assert p.sequence() == pose.sequence()[lb - 1:ub]
+                assert p.sequence() == pose.sequence()[lb - 1: ub]
             enex = p_en + list(rest.values()) + p_ex
             rest = []
         for ap in rest:
             s1 = str(ap.pose.sequence())
-            s2 = str(ap.srcpose.sequence()[ap.src_lb - 1:ap.src_ub])
+            s2 = str(ap.srcpose.sequence()[ap.src_lb - 1: ap.src_ub])
             if s1 != s2:
                 print('WARNING: sequence mismatch in "rest", maybe OK, but '
                       'proceed with caution and tell will to fix!')
@@ -469,6 +521,36 @@ class Segment:
         return enex, rest
 
 
+class Segments:
+    "light wrapper around list of Segments"
+
+    def __init__(self, segments):
+        self.segments = segments
+
+    def __getitem__(self, idx):
+        if isinstance(idx, slice):
+            return Segments(self.segments[idx])
+        return self.segments[idx]
+
+    def __setitem__(self, idx, val):
+        self.segments[idx] = val
+
+    def __iter__(self):
+        return iter(self.segments)
+
+    def __len__(self):
+        return len(self.segments)
+
+    def index(self, val):
+        return self.segments.index(val)
+
+    def split_at(self, idx):
+        tail, head = self[: idx + 1], self[idx:]
+        tail[-1] = tail[-1].make_head()
+        head[0] = head[0].make_tail()
+        return tail, head
+
+
 def _cyclic_permute_chains(chainslist, polarity):
     chainslist_beg = 0
     for i, cl in enumerate(chainslist):
@@ -483,7 +565,7 @@ def _cyclic_permute_chains(chainslist, polarity):
         stub1 = util.get_bb_stubs(beg[0][0], [1])
         stub2 = util.get_bb_stubs(end[-1][0], [1])
         rm_lower_t(beg[0][0], 1)
-        end = end[:-1]
+        end = end[: -1]
     else:
         # from . import vis
         # for i, b in enumerate(beg): vis.showme(b[0], name='beg_%i' % i)
@@ -519,7 +601,7 @@ def reorder_spliced_as_N_to_C(body_chains, polarities):
         if len(dg) > 1: chains.extend([x] for x in dg[1:])
     for i, chain in enumerate(chains):
         if i in pol and pol[i] == 'C':
-            chains[i] = chains[i][::-1]
+            chains[i] = chains[i][:: -1]
     return chains
 
 
@@ -583,7 +665,7 @@ class Worms:
             assert cyclic_entry_count == 1
             _cyclic_permute_chains(chainslist, self.segments[-1].entrypol)
             assert len(chainslist[-1]) == 0
-            chainslist = chainslist[:-1]
+            chainslist = chainslist[: -1]
         sourcelist = [[x[1] for x in c] for c in chainslist]
         chainslist = [[x[0] for x in c] for c in chainslist]
         ret_chain_list = []
@@ -626,7 +708,7 @@ class Worms:
         prov = []
         for i, pr in enumerate(prov0):
             iseg, psrc, lb0, ub0 = pr
-            lb1 = sum(ub - lb + 1 for _, _, lb, ub in prov0[:i]) + 1
+            lb1 = sum(ub - lb + 1 for _, _, lb, ub in prov0[: i]) + 1
             ub1 = lb1 + ub0 - lb0
             if ub0 == lb0:
                 assert cyclic_permute
@@ -636,7 +718,11 @@ class Worms:
             assert 0 < lb1 <= len(pose) and 0 < ub1 <= len(pose)
             # if psrc.sequence()[lb0 - 1:ub0] != pose.sequence()[lb1 - 1:ub1]:
             # print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-            assert psrc.sequence()[lb0 - 1:ub0] == pose.sequence()[lb1 - 1:ub1]
+            assert psrc.sequence()[
+                lb0 -
+                1: ub0] == pose.sequence()[
+                lb1 -
+                1: ub1]
             prov.append((lb1, ub1, psrc, lb0, ub0))
         if make_chain_list:
             return pose, prov, ret_chain_list
@@ -723,281 +809,3 @@ class Worms:
 
     def __getitem__(self, i):
         return (i, self.scores[i],) + self.sympose(i, score=True)
-
-
-def _chain_xforms(segments):
-    x2exit = [s.x2exit for s in segments]
-    x2orgn = [s.x2orgn for s in segments]
-    fullaxes = (np.newaxis,) * (len(x2exit) - 1)
-    xconn = [x2exit[0][fullaxes], ]
-    xbody = [x2orgn[0][fullaxes], ]
-    for iseg in range(1, len(x2exit)):
-        fullaxes = (slice(None),) + (np.newaxis,) * iseg
-        xconn.append(xconn[iseg - 1] @ x2exit[iseg][fullaxes])
-        xbody.append(xconn[iseg - 1] @ x2orgn[iseg][fullaxes])
-    perm = list(range(len(xbody) - 1, -1, -1)) + [len(xbody), len(xbody) + 1]
-    xbody = [np.transpose(x, perm) for x in xbody]
-    xconn = [np.transpose(x, perm) for x in xconn]
-    return xbody, xconn
-
-
-__print_best = False
-__best_score = 9e9
-
-
-def _grow_chunk(samp, segpos, conpos, context):
-    os.environ['OMP_NUM_THREADS'] = '1'
-    os.environ['MKL_NUM_THREADS'] = '1'
-    os.environ['NUMEXPR_NUM_THREADS'] = '1'
-    _, _, segs, end, criteria, thresh, matchlast, _, max_results = context
-    # print('_grow_chunk', samp, end, thresh, matchlast, max_results)
-    ML = matchlast
-    # body must match, and splice sites must be distinct
-    if ML is not None:
-        # print('  ML')
-        ndimchunk = segpos[0].ndim - 2
-        bidB = segs[-1].bodyid[samp[-1]]
-        site3 = segs[-1].entrysiteid[samp[-1]]
-        if ML < ndimchunk:
-            bidA = segs[ML].bodyid
-            site1 = segs[ML].entrysiteid
-            site2 = segs[ML].exitsiteid
-            allowed = (bidA == bidB) * (site1 != site3) * (site2 != site3)
-            idx = (slice(None),) * ML + (allowed,)
-            segpos = segpos[: ML] + [x[idx] for x in segpos[ML:]]
-            conpos = conpos[: ML] + [x[idx] for x in conpos[ML:]]
-            idxmap = np.where(allowed)[0]
-        else:
-            bidA = segs[ML].bodyid[samp[ML - ndimchunk]]
-            site1 = segs[ML].entrysiteid[samp[ML - ndimchunk]]
-            site2 = segs[ML].exitsiteid[samp[ML - ndimchunk]]
-            if bidA != bidB or site3 == site2 or site3 == site1:
-                return
-    segpos, conpos = segpos[:end], conpos[:end]
-    # print('  do geom')
-    for iseg, seg in enumerate(segs[end:]):
-        segpos.append(conpos[-1] @ seg.x2orgn[samp[iseg]])
-        if seg is not segs[-1]:
-            conpos.append(conpos[-1] @ seg.x2exit[samp[iseg]])
-    # print('  scoring')
-    score = criteria.score(segpos=segpos)
-    # print('  scores shape', score.shape)
-    if __print_best:
-        global __best_score
-        min_score = np.min(score)
-        if min_score < __best_score:
-            __best_score = min_score
-            if __best_score < thresh * 5:
-                print('best for pid %6i %7.3f' % (os.getpid(), __best_score))
-    # print('  trimming max_results')
-    ilow0 = np.where(score < thresh)
-    if len(ilow0) > max_results:
-        order = np.argsort(score[ilow0])
-        ilow0 = ilow0[order[:max_results]]
-    sampidx = tuple(np.repeat(i, len(ilow0[0])) for i in samp)
-    lowpostmp = []
-    # print('  make lowpos')
-    for iseg in range(len(segpos)):
-        ilow = ilow0[: iseg + 1] + (0,) * (segpos[0].ndim - 2 - (iseg + 1))
-        lowpostmp.append(segpos[iseg][ilow])
-    ilow1 = (ilow0 if (ML is None or ML >= ndimchunk) else
-             ilow0[:ML] + (idxmap[ilow0[ML]],) + ilow0[ML + 1:])
-    return score[ilow0], np.array(ilow1 + sampidx).T, np.stack(lowpostmp, 1)
-
-
-def _grow_chunks(ijob, context):
-    os.environ['OMP_NUM_THREADS'] = '1'
-    os.environ['MKL_NUM_THREADS'] = '1'
-    os.environ['NUMEXPR_NUM_THREADS'] = '1'
-    sampsizes, njob, segments, end, _, _, _, every_other, max_results = context
-    samples = list(util.MultiRange(sampsizes)[ijob::njob * every_other])
-    segpos, connpos = _chain_xforms(segments[:end])  # common data
-    args = [samples, it.repeat(segpos),
-            it.repeat(connpos), it.repeat(context)]
-    chunks = list(map(_grow_chunk, *args))
-    chunks = [c for c in chunks if c is not None]
-    if not chunks: return None
-    scores = np.concatenate([x[0] for x in chunks])
-    lowidx = np.concatenate([x[1] for x in chunks])
-    lowpos = np.concatenate([x[2] for x in chunks])
-    order = np.argsort(scores)
-    return [scores[order[:max_results]],
-            lowidx[order[:max_results]],
-            lowpos[order[:max_results]]]
-
-
-def _check_topology(segments, criteria, expert=False):
-    if segments[0].entrypol is not None:
-        raise ValueError('beginning of worm cant have entry')
-    if segments[-1].exitpol is not None:
-        raise ValueError('end of worm cant have exit')
-    for a, b in zip(segments[:-1], segments[1:]):
-        if not (a.exitpol and b.entrypol and a.exitpol != b.entrypol):
-            raise ValueError('incompatible exit->entry polarity: '
-                             + str(a.exitpol) + '->'
-                             + str(b.entrypol) + ' on segment pair: '
-                             + str((segments.index(a), segments.index(b))))
-    matchlast = criteria.last_body_same_as
-    if matchlast is not None and not expert and (
-            not segments[matchlast].same_bodies_as(segments[-1])):
-        raise ValueError("segments[matchlast] not same as segments[-1], "
-                         + "if you're sure, pass expert=True")
-    if criteria.is_cyclic and not criteria.to_seg in (-1, len(segments) - 1):
-        raise ValueError('Cyclic and to_seg is not last segment,'
-                         'if you\'re sure, pass expert=True')
-    if criteria.is_cyclic:
-        beg, end = segments[criteria.from_seg], segments[criteria.to_seg]
-        sites_required = {'N': 0, 'C': 0, None: 0}
-        sites_required[beg.entrypol] += 1
-        sites_required[beg.exitpol] += 1
-        sites_required[end.entrypol] += 1
-        # print('pols', beg.entrypol, beg.exitpol, end.entrypol)
-        for pol in 'NC':
-            # print(pol, beg.max_sites[pol], sites_required[pol])
-            if beg.max_sites[pol] < sites_required[pol]:
-                msg = 'Not enough %s sites in any of segment %i Spliceables, %i required, at most %i available' % (
-                    pol, criteria.from_seg, sites_required[pol],
-                    beg.max_sites[pol])
-                raise ValueError(msg)
-            if beg.min_sites[pol] < sites_required[pol]:
-                msg = 'Not enough %s sites in all of segment %i Spliceables, %i required, some have only %i available (pass expert=True if you really want to run anyway)' % (
-                    pol, criteria.from_seg, sites_required[pol],
-                    beg.max_sites[pol])
-                if not expert: raise ValueError(msg)
-                print("WARNING:", msg)
-    return matchlast
-
-
-def grow(
-    segments,
-    criteria,
-    *,
-    thresh=2,
-    expert=0,
-    memsize=1e6,
-    executor=None,
-    executor_args=None,
-    max_workers=None,
-    verbosity=0,
-    chunklim=None,
-    max_samples=int(1e12),
-    max_results=int(1e4)
-):
-    os.environ['OMP_NUM_THREADS'] = '1'
-    os.environ['MKL_NUM_THREADS'] = '1'
-    os.environ['NUMEXPR_NUM_THREADS'] = '1'
-    if isinstance(executor, (ProcessPoolExecutor, ThreadPoolExecutor)):
-        raise ValueError('please use dask.distributed executor')
-    if verbosity > 0:
-        print('grow, from', criteria.from_seg, 'to', criteria.to_seg)
-        for i, seg in enumerate(segments):
-            print(' segment', i, 'enter:', seg.entrypol, 'exit:', seg.exitpol)
-            for sp in seg.spliceables: print('   ', sp)
-    if verbosity > 1:
-        global __print_best
-        __print_best = True
-    if not isinstance(criteria, CriteriaList):
-        criteria = CriteriaList(criteria)
-    if max_workers is not None and max_workers <= 0:
-        max_workers = util.cpu_count()
-    if executor_args is None and max_workers is None:
-        executor_args = dict()
-    elif executor_args is None:
-        executor_args = dict(max_workers=max_workers)
-    elif executor_args is not None and max_workers is not None:
-        raise ValueError('executor_args incompatible with max_workers')
-
-    # checks and setup
-    matchlast = _check_topology(segments, criteria, expert)
-    if executor is None:
-        executor = ThreadPoolExecutor  # todo: some kind of null executor?
-        max_workers = 1
-    if max_workers is None: max_workers = util.cpu_count()
-    sizes = [len(s.bodyid) for s in segments]
-    end = len(segments) - 1
-    while end > 1 and (util.bigprod(sizes[end:]) < max_workers or
-                       memsize <= 64 * util.bigprod(sizes[:end])): end -= 1
-    ntot, chunksize, nchunks = (util.bigprod(x)
-                                for x in (sizes, sizes[:end], sizes[end:]))
-    if max_samples is not None:
-        max_samples = np.clip(chunksize * max_workers, max_samples, ntot)
-    every_other = max(1, int(ntot / max_samples)) if max_samples else 1
-    nworker = max_workers or util.cpu_count()
-    njob = int(np.sqrt(nchunks / every_other) / 128) * nworker
-    njob = np.clip(nworker, njob, nchunks)
-
-    actual_ntot = int(ntot / every_other)
-    actual_nchunk = int(nchunks / every_other)
-    actual_perjob = int(ntot / every_other / njob)
-    actual_chunkperjob = int(nchunks / every_other / njob)
-
-    if verbosity >= 0:
-        print('tot: {:,} chunksize: {:,} nchunks: {:,} nworker: {} njob: {}'.format(
-            ntot, chunksize, nchunks, nworker, njob))
-        print('worm/job: {:,} chunk/job: {} sizes={} every_other={}'.format(
-            int(ntot / njob), int(nchunks / njob), sizes, every_other))
-        print('max_samples: {:,} max_results: {:,}'.format(
-            max_samples, max_results))
-        print('actual tot:        {:,}'.format(int(actual_ntot)))
-        print('actual nchunks:    {:,}'.format(int(actual_nchunk)))
-        print('actual worms/job:  {:,}'.format(int(actual_perjob)))
-        print('actual chunks/job: {:,}'.format(int(actual_chunkperjob)))
-
-    if njob > 1e9 or nchunks >= 2**63 or every_other >= 2**63:
-        print('too big?!?')
-        print('    njob', njob)
-        print('    nchunks', nchunks, nchunks / 2**63)
-        print('    every_other', every_other, every_other / 2**63)
-        raise ValueError('system too big')
-
-    # run the stuff
-    accumulator = util.WormsAccumulator(
-        max_results=max_results, max_tmp_size=1e5)
-
-    # terrible hack... xfering the poses too expensive
-    tmp = {s: s.body for seg in segments for s in seg.spliceables}
-    for seg in segments:
-        for s in seg.spliceables:
-            s.body = None  # poses not pickleable...
-
-    with executor(**executor_args) as pool:
-        context = (sizes[end:], njob, segments, end, criteria, thresh,
-                   matchlast, every_other, max_results)
-        args = [range(njob)] + [it.repeat(context)]
-        util.tqdm_parallel_map(
-            pool=pool,
-            function=_grow_chunks,
-            accumulator=accumulator,
-            map_func_args=args,
-            batch_size=nworker * 8,
-            unit='K worms',
-            ascii=0,
-            desc='growing worms',
-            unit_scale=int(ntot / njob / 1000 / every_other),
-            disable=verbosity < 0
-        )
-
-    # put the poses back...
-    for seg in segments:
-        for s in seg.spliceables:
-            s.body = tmp[s]
-
-    # compose and sort results
-
-    result = accumulator.final_result()
-    if result is None: return None
-    scores, lowidx, lowpos = result
-
-    # scores = np.concatenate([c[0] for c in chunks])
-    # order = np.argsort(scores)
-    # scores = scores[order]
-    # lowidx = np.concatenate([c[1] for c in chunks])[order]
-    # lowpos = np.concatenate([c[2] for c in chunks])[order]
-    # lowposlist = [lowpos[:, i] for i in range(len(segments))]
-
-    lowposlist = [lowpos[:, i] for i in range(len(segments))]
-    score_check = criteria.score(segpos=lowposlist, verbosity=verbosity)
-    assert np.allclose(score_check, scores)
-    detail = dict(ntot=ntot, chunksize=chunksize, nchunks=nchunks,
-                  nworker=nworker, njob=njob, sizes=sizes, end=end)
-    return Worms(segments, scores, lowidx, lowpos, criteria, detail)

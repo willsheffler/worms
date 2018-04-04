@@ -7,6 +7,7 @@ __email__ = 'willsheffler@gmail.com'
 __version__ = '0.1.16'
 
 from .worms import *
+from .search import *
 from .criteria import *
 from . import data
 from . import vis
