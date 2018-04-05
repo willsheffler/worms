@@ -51,7 +51,7 @@ class SimpleAccumulator:
             return None
 
 
-class IndexAccumulator:
+class MakeXIndexAccumulator:
 
     def __init__(self, sizes, thresh=1, from_seg=0, to_seg=-1,
                  max_tmp_size=1024, cart_resl=2.0, ori_resl=15.0):
@@ -62,10 +62,10 @@ class IndexAccumulator:
         self.to_seg = to_seg
         self.tmp = []
         self.binner = XformBinner(cart_resl, ori_resl)
-        self.index = dict()
+        self.xindex = dict()
 
     def checkpoint(self):
-        print('IndexAccumulator checkpoint', end='')
+        print('MakeXIndexAccumulator checkpoint', end='')
         sys.stdout.flush()
         if len(self.tmp) is 0: return
         sc = np.concatenate([x[0] for x in self.tmp])
@@ -75,11 +75,11 @@ class IndexAccumulator:
         from_pos = positions[:, self.from_seg]
         to_pos = positions[:, self.to_seg]
         xtgt = hinv(from_pos) @ to_pos
-        binidx = self.binner.get_bin_index(xtgt)
-        self.index = {**{k: v for k, v in zip(binidx, indices)}, **self.index}
-        # print('IndexAcculator checkpoint, index size:', len(self.index))
+        bin_idx = self.binner.get_bin_index(xtgt)
+        self.xindex = {**{k: v for k, v in zip(bin_idx, indices)}, **self.xindex}
+        # print('IndexAcculator checkpoint, xindex size:', len(self.xindex))
         self.tmp = []
-        print('done, index size:', len(self.index))
+        print('done, xindex size:', len(self.xindex))
         sys.stdout.flush()
 
     def accumulate(self, gen):
@@ -93,13 +93,13 @@ class IndexAccumulator:
 
     def final_result(self):
         self.checkpoint()
-        return self.index, self.binner
+        return self.xindex, self.binner
 
 
-class IndexedCriteria(WormCriteria):
+class XIndexedCriteria(WormCriteria):
 
-    def __init__(self, index, binner, nfold, from_seg=-1):
-        self.index = index
+    def __init__(self, xindex, binner, nfold, from_seg=-1):
+        self.xindex = xindex
         self.binner = binner
         self.from_seg = from_seg
         self.cyclic_xform = hrot([0, 0, 1], 360 / nfold)
@@ -108,14 +108,14 @@ class IndexedCriteria(WormCriteria):
         from_pos = segpos[self.from_seg]
         to_pos = self.cyclic_xform @ from_pos
         xtgt = hinv(from_pos) @ to_pos
-        binidx = self.binner.get_bin_index(xtgt)
+        bin_idx = self.binner.get_bin_index(xtgt)
 
-        is_in_index = np.vectorize(lambda i: 0 if i in self.index else 9e9)
-        ret = is_in_index(binidx)
+        is_in_index = np.vectorize(lambda i: 0 if i in self.xindex else 9e9)
+        ret = is_in_index(bin_idx)
         return ret
 
-        r = np.array([i in self.index for i in binidx.flat])
-        r = r.reshape(binidx.shape)
+        r = np.array([i in self.xindex for i in bin_idx.flat])
+        r = r.reshape(bin_idx.shape)
         if np.sum(r) > 0:
             print(r.shape, np.sum(r) / len(r), np.sum(r), np.sum(ret))
             # assert np.all(r == ret)
@@ -126,14 +126,14 @@ class IndexedCriteria(WormCriteria):
         return np.eye(4)
 
 
-class IndexedAccumulator:
+class XIndexedAccumulator:
 
-    def __init__(self, tail, splitseg, head, index, binner,
+    def __init__(self, tail, splitseg, head, xindex, binner,
                  nfold, from_seg=-1, max_tmp_size=1024):
         self.tail = tail
         self.splitseg = splitseg
         self.head = head
-        self.index = index
+        self.xindex = xindex
         self.binner = binner
         self.from_seg = from_seg
         self.cyclic_xform = hrot([0, 0, 1], 360 / nfold)
@@ -144,7 +144,7 @@ class IndexedAccumulator:
 
         sys.stdout.flush()
         if len(self.temporary) is 0: return
-        print('IndexedAccumulator checkpoint...', end='')
+        print('XIndexedAccumulator checkpoint...', end='')
         if hasattr(self, 'scores'):
             sc, li, lp = [self.scores], [self.lowidx], [self.lowpos]
         else:
@@ -157,8 +157,8 @@ class IndexedAccumulator:
         from_pos = lowpos[:, self.from_seg]
         to_pos = self.cyclic_xform @ from_pos
         xtgt = hinv(from_pos) @ to_pos
-        binidx = self.binner.get_bin_index(xtgt)
-        head_idx = np.stack([self.index[i] for i in binidx])
+        bin_idx = self.binner.get_bin_index(xtgt)
+        head_idx = np.stack([self.xindex[i] for i in bin_idx])
         join_idx = self.splitseg.merge_idx(self.tail[-1], lowidx[:, -1],
                                            self.head[0], head_idx[:, 0])
         lowidx = lowidx[join_idx >= 0]
@@ -326,32 +326,32 @@ def grow(
                           max_results=max_results, nworker=nworker,
                           verbosity=verbosity)
 
-        # import pickle
-        # if os.path.exists('test_index_cache'):
-        # index, binner = pickle.load(open('test_index_cache', 'rb'))
-        # else:
-        if 1:
-            accum1 = IndexAccumulator(headsizes, from_seg=0, to_seg=-1,
-                                      cart_resl=cart_resl, ori_resl=ori_resl)
+        import pickle
+        if os.path.exists('test_xindex_cache'):
+            xindex, binner = pickle.load(open('test_xindex_cache', 'rb'))
+        else:
+            # if 1:
+            accum1 = MakeXIndexAccumulator(headsizes, from_seg=0, to_seg=-1,
+                                           cart_resl=cart_resl, ori_resl=ori_resl)
             headcriteria = Cyclic(criteria[0].nfold, from_seg=0, to_seg=-1,
                                   tol=criteria[0].tol * 2,
                                   lever=criteria[0].lever)
-            print('growing head into index {:,}'.format(
+            print('growing head into xindex {:,}'.format(
                 np.prod([len(s) for s in head])))
             print('    njob:', njob)
             print('    chunksize:', chunksize)
             _grow(head, headcriteria, accum1, **_grow_args)
-            index, binner = accum1.final_result()
+            xindex, binner = accum1.final_result()
 
-            # pickle.dump((index, binner), open('test_index_cache', 'wb'))
+            pickle.dump((xindex, binner), open('test_xindex_cache', 'wb'))
 
-        print('...items in hash:', len(index))
+        print('...items in hash:', len(xindex))
         sys.stdout.flush()
-        tailcriteria = IndexedCriteria(index, binner,
-                                       criteria[0].nfold, from_seg=-1)
-        accum2 = IndexedAccumulator(tail, splitseg, head, index,
-                                    binner, criteria[0].nfold,
-                                    from_seg=-1)
+        tailcriteria = XIndexedCriteria(xindex, binner,
+                                        criteria[0].nfold, from_seg=-1)
+        accum2 = XIndexedAccumulator(tail, splitseg, head, xindex,
+                                     binner, criteria[0].nfold,
+                                     from_seg=-1)
 
         tailsizes = [len(s) for s in tail]
         tailend = _get_chunk_end_seg(tailsizes, max_workers, memsize)
@@ -370,7 +370,7 @@ def grow(
                           verbosity=verbosity)
 
         print('growing tail, scoring with index {:,} {:,}'.format(
-            len(index), np.prod([len(s) for s in tail])))
+            len(xindex), np.prod([len(s) for s in tail])))
         print('    njob:', njob)
         print('    chunksize:', chunksize)
         _grow(tail, tailcriteria, accum2, **_grow_args)
