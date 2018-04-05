@@ -13,6 +13,30 @@ except ImportError:
     pass
 
 
+class InProcessExecutor:
+
+    def __init__(self, *args, **kw):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        pass
+
+    def submit(self, function, *args, **kw):
+        return NonFuture(function(*args, **kw))
+
+
+class NonFuture:
+
+    def __init__(self, result):
+        self._result = result
+
+    def result(self):
+        return self._result
+
+
 def cpu_count():
     try: return int(os.environ['SLURM_CPUS_ON_NODE'])
     except: return multiprocessing.cpu_count()
@@ -32,6 +56,8 @@ def parallel_batch_map(pool, function, accumulator,
         futures = [pool.submit(function, *a) for a in batch_args]
         if isinstance(pool, (ProcessPoolExecutor, ThreadPoolExecutor)):
             as_completed = cf_as_completed
+        elif isinstance(pool, InProcessExecutor):
+            as_completed = lambda x: x
         else:
             from dask.distributed import as_completed as dd_as_completed
             as_completed = dd_as_completed

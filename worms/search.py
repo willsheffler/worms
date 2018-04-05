@@ -6,7 +6,7 @@ import itertools as it
 import numpy as np
 from xbin import XformBinner
 from homog import hinv, hrot
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 from .worms import Segment, Segments, Worms
 from .criteria import CriteriaList, Cyclic, WormCriteria
 from . import util
@@ -65,6 +65,8 @@ class IndexAccumulator:
         self.index = dict()
 
     def checkpoint(self):
+        print('IndexAccumulator checkpoint', end='')
+        sys.stdout.flush()
         if len(self.tmp) is 0: return
         sc = np.concatenate([x[0] for x in self.tmp])
         indices = np.concatenate([x[1] for x in self.tmp])[sc <= self.thresh]
@@ -77,6 +79,8 @@ class IndexAccumulator:
         self.index = {**{k: v for k, v in zip(binidx, indices)}, **self.index}
         # print('IndexAcculator checkpoint, index size:', len(self.index))
         self.tmp = []
+        print('done, index size:', len(self.index))
+        sys.stdout.flush()
 
     def accumulate(self, gen):
         for future in gen:
@@ -89,7 +93,7 @@ class IndexAccumulator:
 
     def final_result(self):
         self.checkpoint()
-        return self.index
+        return self.index, self.binner
 
 
 class IndexedCriteria(WormCriteria):
@@ -105,8 +109,18 @@ class IndexedCriteria(WormCriteria):
         to_pos = self.cyclic_xform @ from_pos
         xtgt = hinv(from_pos) @ to_pos
         binidx = self.binner.get_bin_index(xtgt)
+
         is_in_index = np.vectorize(lambda i: 0 if i in self.index else 9e9)
-        return is_in_index(binidx)
+        ret = is_in_index(binidx)
+        return ret
+
+        r = np.array([i in self.index for i in binidx.flat])
+        r = r.reshape(binidx.shape)
+        if np.sum(r) > 0:
+            print(r.shape, np.sum(r) / len(r), np.sum(r), np.sum(ret))
+            # assert np.all(r == ret)
+
+        return ret
 
     def alignment(self, segpos, **kw):
         return np.eye(4)
@@ -127,7 +141,10 @@ class IndexedAccumulator:
         self.temporary = []
 
     def checkpoint(self):
+
+        sys.stdout.flush()
         if len(self.temporary) is 0: return
+        print('IndexedAccumulator checkpoint...', end='')
         if hasattr(self, 'scores'):
             sc, li, lp = [self.scores], [self.lowidx], [self.lowpos]
         else:
@@ -154,6 +171,8 @@ class IndexedAccumulator:
         else:
             self.lowidx = lowidx
         self.temporary = []
+        print('done, total =', len(self.lowidx))
+        sys.stdout.flush()
 
     def accumulate(self, gen):
         for future in gen:
@@ -227,12 +246,15 @@ def grow(
         elif executor_args is not None and max_workers is not None:
             raise ValueError('executor_args incompatible with max_workers')
 
-        # checks and setup
+    if executor is None:
+        executor = util.InProcessExecutor
+        max_workers = 1
+    if max_workers is None: max_workers = util.cpu_count()
+    nworker = max_workers or util.cpu_count()
+
+    if criteria.origin_seg is None:
+
         matchlast = _check_topology(segments, criteria, expert)
-        if executor is None:
-            executor = ThreadPoolExecutor  # todo: some kind of null executor?
-            max_workers = 1
-        if max_workers is None: max_workers = util.cpu_count()
         sizes = [len(s) for s in segments]
         end = _get_chunk_end_seg(sizes, max_workers, memsize)
         ntot, chunksize, nchunks = (util.bigprod(x)
@@ -240,7 +262,6 @@ def grow(
         if max_samples is not None:
             max_samples = np.clip(chunksize * max_workers, max_samples, ntot)
         every_other = max(1, int(ntot / max_samples)) if max_samples else 1
-        nworker = max_workers or util.cpu_count()
         njob = int(np.sqrt(nchunks / every_other) / 128) * nworker
         njob = np.clip(nworker, njob, nchunks)
 
@@ -248,33 +269,28 @@ def grow(
         actual_nchunk = int(nchunks / every_other)
         actual_perjob = int(ntot / every_other / njob)
         actual_chunkperjob = int(nchunks / every_other / njob)
-
-    if verbosity >= 0:
-        print('tot: {:,} chunksize: {:,} nchunks: {:,} nworker: {} njob: {}'.format(
-            ntot, chunksize, nchunks, nworker, njob))
-        print('worm/job: {:,} chunk/job: {} sizes={} every_other={}'.format(
-            int(ntot / njob), int(nchunks / njob), sizes, every_other))
-        print('max_samples: {:,} max_results: {:,}'.format(
-            max_samples, max_results))
-        print('actual tot:        {:,}'.format(int(actual_ntot)))
-        print('actual nchunks:    {:,}'.format(int(actual_nchunk)))
-        print('actual worms/job:  {:,}'.format(int(actual_perjob)))
-        print('actual chunks/job: {:,}'.format(int(actual_chunkperjob)))
-
-    if njob > 1e9 or nchunks >= 2**63 or every_other >= 2**63:
-        print('too big?!?')
-        print('    njob', njob)
-        print('    nchunks', nchunks, nchunks / 2**63)
-        print('    every_other', every_other, every_other / 2**63)
-        raise ValueError('system too big')
-
-    _grow_args = dict(executor=executor, executor_args=executor_args,
-                      njob=njob, end=end, thresh=thresh,
-                      matchlast=matchlast, every_other=every_other,
-                      max_results=max_results, nworker=nworker,
-                      verbosity=verbosity)
-
-    if criteria.origin_seg is None:
+        if verbosity >= 0:
+            print('tot: {:,} chunksize: {:,} nchunks: {:,} nworker: {} njob: {}'.format(
+                ntot, chunksize, nchunks, nworker, njob))
+            print('worm/job: {:,} chunk/job: {} sizes={} every_other={}'.format(
+                int(ntot / njob), int(nchunks / njob), sizes, every_other))
+            print('max_samples: {:,} max_results: {:,}'.format(
+                max_samples, max_results))
+            print('actual tot:        {:,}'.format(int(actual_ntot)))
+            print('actual nchunks:    {:,}'.format(int(actual_nchunk)))
+            print('actual worms/job:  {:,}'.format(int(actual_perjob)))
+            print('actual chunks/job: {:,}'.format(int(actual_chunkperjob)))
+        _grow_args = dict(executor=executor, executor_args=executor_args,
+                          njob=njob, end=end, thresh=thresh,
+                          matchlast=matchlast, every_other=every_other,
+                          max_results=max_results, nworker=nworker,
+                          verbosity=verbosity)
+        if njob > 1e9 or nchunks >= 2**63 or every_other >= 2**63:
+            print('too big?!?')
+            print('    njob', njob)
+            print('    nchunks', nchunks, nchunks / 2**63)
+            print('    every_other', every_other, every_other / 2**63)
+            raise ValueError('system too big')
         accum = SimpleAccumulator(max_results=max_results, max_tmp_size=1e5)
         _grow(segments, criteria, accum, **_grow_args)
         result = accum.final_result()
@@ -283,28 +299,80 @@ def grow(
         lowposlist = [lowpos[:, i] for i in range(len(segments))]
         score_check = criteria.score(segpos=lowposlist, verbosity=verbosity)
         assert np.allclose(score_check, scores)
-    else:
+        detail = dict(ntot=ntot, chunksize=chunksize, nchunks=nchunks,
+                      nworker=nworker, njob=njob, sizes=sizes, end=end)
+
+    else:  # hash-based protocol...
+
         assert len(criteria) is 1
-        splitseg = segments[criteria.from_seg]
+        matchlast = _check_topology(segments, criteria, expert)
+
         tail, head = segments.split_at(criteria.from_seg)
+        splitseg = segments[criteria.from_seg]
+
         headsizes = [len(s) for s in head]
-        accum1 = IndexAccumulator(headsizes, from_seg=0, to_seg=-1,
-                                  cart_resl=cart_resl, ori_resl=ori_resl)
-        headcriteria = Cyclic(criteria[0].nfold, from_seg=0, to_seg=-1,
-                              tol=criteria[0].tol, lever=criteria[0].lever)
-        args = _grow_args
-        args['end'] = _get_chunk_end_seg(headsizes, max_workers, memsize)
-        args['matchlast'] = 0  # kinda hacky
-        _grow(head, headcriteria, accum1, **_grow_args)
-        index = accum1.final_result()
-        print('items in hash:', len(index))
+        headend = _get_chunk_end_seg(headsizes, max_workers, memsize)
+        ntot, chunksize, nchunks = (util.bigprod(x)
+                                    for x in (headsizes, headsizes[:headend],
+                                              headsizes[headend:]))
+        if max_samples is not None:
+            max_samples = np.clip(chunksize * max_workers, max_samples, ntot)
+        every_other = max(1, int(ntot / max_samples)) if max_samples else 1
+        njob = int(np.sqrt(nchunks / every_other) / 16) * nworker
+        njob = np.clip(nworker, njob, nchunks)
+        _grow_args = dict(executor=executor, executor_args=executor_args,
+                          njob=njob, end=headend, thresh=thresh,
+                          matchlast=0, every_other=every_other,
+                          max_results=max_results, nworker=nworker,
+                          verbosity=verbosity)
+
+        # import pickle
+        # if os.path.exists('test_index_cache'):
+        # index, binner = pickle.load(open('test_index_cache', 'rb'))
+        # else:
+        if 1:
+            accum1 = IndexAccumulator(headsizes, from_seg=0, to_seg=-1,
+                                      cart_resl=cart_resl, ori_resl=ori_resl)
+            headcriteria = Cyclic(criteria[0].nfold, from_seg=0, to_seg=-1,
+                                  tol=criteria[0].tol * 2,
+                                  lever=criteria[0].lever)
+            print('growing head into index {:,}'.format(
+                np.prod([len(s) for s in head])))
+            print('    njob:', njob)
+            print('    chunksize:', chunksize)
+            _grow(head, headcriteria, accum1, **_grow_args)
+            index, binner = accum1.final_result()
+
+            # pickle.dump((index, binner), open('test_index_cache', 'wb'))
+
+        print('...items in hash:', len(index))
         sys.stdout.flush()
-        tailcriteria = IndexedCriteria(accum1.index, accum1.binner,
+        tailcriteria = IndexedCriteria(index, binner,
                                        criteria[0].nfold, from_seg=-1)
-        accum2 = IndexedAccumulator(tail, splitseg, head, accum1.index,
-                                    accum1.binner, criteria[0].nfold,
+        accum2 = IndexedAccumulator(tail, splitseg, head, index,
+                                    binner, criteria[0].nfold,
                                     from_seg=-1)
-        args['matchlast'] = None
+
+        tailsizes = [len(s) for s in tail]
+        tailend = _get_chunk_end_seg(tailsizes, max_workers, memsize)
+        ntot, chunksize, nchunks = (util.bigprod(x)
+                                    for x in (tailsizes, tailsizes[:tailend],
+                                              tailsizes[tailend:]))
+        if max_samples is not None:
+            max_samples = np.clip(chunksize * max_workers, max_samples, ntot)
+        every_other = max(1, int(ntot / max_samples)) if max_samples else 1
+        njob = int(np.sqrt(nchunks / every_other) / 4) * nworker
+        njob = np.clip(nworker, njob, nchunks)
+        _grow_args = dict(executor=executor, executor_args=executor_args,
+                          njob=njob, end=tailend, thresh=thresh,
+                          matchlast=None, every_other=every_other,
+                          max_results=max_results, nworker=nworker,
+                          verbosity=verbosity)
+
+        print('growing tail, scoring with index {:,} {:,}'.format(
+            len(index), np.prod([len(s) for s in tail])))
+        print('    njob:', njob)
+        print('    chunksize:', chunksize)
         _grow(tail, tailcriteria, accum2, **_grow_args)
         lowidx = accum2.final_result()
 
@@ -312,8 +380,6 @@ def grow(
             print('grow: no results')
             return
 
-        print(lowidx.shape)
-        print(lowidx)
         lowpos = _refold_segments(segments, lowidx)
         lowposlist = [lowpos[:, i] for i in range(len(segments))]
         scores = criteria.score(segpos=lowposlist, verbosity=verbosity)
@@ -322,9 +388,9 @@ def grow(
         scores = scores[order]
         lowpos = lowpos[order]
         lowidx = lowidx[order]
+        detail = dict(ntot=ntot, chunksize=chunksize, nchunks=nchunks,
+                      nworker=nworker, njob=njob, sizes=tailsizes, end=tailend)
 
-    detail = dict(ntot=ntot, chunksize=chunksize, nchunks=nchunks,
-                  nworker=nworker, njob=njob, sizes=sizes, end=end)
     return Worms(segments, scores, lowidx, lowpos, criteria, detail)
 
 

@@ -2,7 +2,12 @@
 History
 =======
 
-0.1.16 (2018-03.15)
+0.1.17 (2018-04-4)
+------------------
+
+* hash-index based search for Cyclic(..., origin_seg=...)
+
+0.1.16 (2018-03-15)
 ------------------
 
 * I52 symmetry bug fix
