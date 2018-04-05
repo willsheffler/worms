@@ -40,7 +40,7 @@ test_requirements = [
 
 setup(
     name='worms',
-    version='0.1.16',
+    version='0.1.17',
     description="Protion Origami via Genetic Fusions",
     long_description=readme + '\n\n' + history,
     author="Will Sheffler",
