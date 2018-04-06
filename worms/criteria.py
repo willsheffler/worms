@@ -56,6 +56,10 @@ class CriteriaList(WormCriteria):
 
 class NullCriteria(WormCriteria):
 
+    def __init__(self, from_seg=0, to_seg=-1, origin_seg=None):
+        self.from_seg = from_seg
+        self.to_seg = to_seg
+
     def score(self, segpos, **kw):
         return np.zeros(segpos[-1].shape[:-2])
 

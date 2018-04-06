@@ -104,3 +104,18 @@ def c5pose(pdbdir):
 @pytest.fixture(scope='session')
 def c6pose(pdbdir):
     return get_pose(pdbdir, 'c6.pdb')
+
+
+@pytest.fixture(scope='session')
+def db_asu_pose(pdbdir):
+    return get_pose(pdbdir, 'db_asu.pdb')
+
+
+@pytest.fixture(scope='session')
+def hetC2A_pose(pdbdir):
+    return get_pose(pdbdir, 'hetC2A.pdb')
+
+
+@pytest.fixture(scope='session')
+def hetC2B_pose(pdbdir):
+    return get_pose(pdbdir, 'hetC2B.pdb')

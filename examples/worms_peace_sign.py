@@ -50,8 +50,7 @@ if 1:
                 Segment([helix], 'CN'),
                 Segment([trimer], 'C_'), ]  # to_seg
     w = grow(segments,
-             Cyclic(3, from_seg=first_duplicate(segments),
-                    origin_seg=0),
+             Cyclic(3, from_seg=first_duplicate(segments), origin_seg=0),
              thresh=1,
              # executor=ThreadPoolExecutor,
              executor=ProcessPoolExecutor,

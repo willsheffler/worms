@@ -1,8 +1,8 @@
-name: wormsdev
+name: wormsdev36
 channels:
  - conda-forge
 dependencies:
- - python=3.5
+ - python=3.6
  - numpy
  - pytest
  - pytest-cov

@@ -62,7 +62,7 @@ def test_Segment_split_merge_invalid_pairs(c1pose):
                          for j in range(len(tail))])
     tail_idx = np.array([j for i in range(len(head))
                          for j in range(len(tail))])
-    idx = seg.merge_idx(head, head_idx, tail, tail_idx)
+    idx = seg.merge_idx_slow(head, head_idx, tail, tail_idx)
     # print('merged_idx', idx)
     head_idx2, tail_idx2 = seg.split_idx(idx, head, tail)
     assert np.all(head_idx2[idx >= 0] == head_idx[idx >= 0])
