@@ -2,6 +2,7 @@
 
 import sys
 import os
+import pickle
 import itertools as it
 import numpy as np
 from xbin import XformBinner
@@ -10,6 +11,7 @@ from concurrent.futures import ProcessPoolExecutor
 from .worms import Segment, Segments, Worms
 from .criteria import CriteriaList, Cyclic, WormCriteria
 from . import util
+# import numba
 
 
 class SimpleAccumulator:
@@ -96,31 +98,46 @@ class MakeXIndexAccumulator:
         return self.xindex, self.binner
 
 
+GLOBAL_xindex_set = set([0])
+
+
+# @numba.vectorize([numba.float64(numba.int64)])
+# def is_in_xindex_set_numba(idx):
+# global GLOBAL_xindex_set
+# if idx in GLOBAL_xindex_set:
+# return 0.
+# else:
+# return 999999.
+
+
+def is_in_xindex_set(idxary):
+    global GLOBAL_xindex_set
+    is_in = np.ones_like(idxary, dtype='f') * 999999.
+    for i, idx in enumerate(idxary):
+        if idx in GLOBAL_xindex_set:
+            is_in[i] = 0
+    return is_in
+
+
 class XIndexedCriteria(WormCriteria):
 
     def __init__(self, xindex, binner, nfold, from_seg=-1):
-        self.xindex = xindex
+        self.xindex_set = set(xindex.keys())
         self.binner = binner
         self.from_seg = from_seg
         self.cyclic_xform = hrot([0, 0, 1], 360 / nfold)
+        global GLOBAL_xindex_set
+        GLOBAL_xindex_set = self.xindex_set
+
+    def get_xform_commutator(self, from_pos, to_pos):
+        return np.linalg.inv(from_pos) @ to_pos
 
     def score(self, segpos, **kw):
         from_pos = segpos[self.from_seg]
         to_pos = self.cyclic_xform @ from_pos
-        xtgt = hinv(from_pos) @ to_pos
+        xtgt = self.get_xform_commutator(from_pos, to_pos)
         bin_idx = self.binner.get_bin_index(xtgt)
-
-        is_in_index = np.vectorize(lambda i: 0 if i in self.xindex else 9e9)
-        ret = is_in_index(bin_idx)
-        return ret
-
-        r = np.array([i in self.xindex for i in bin_idx.flat])
-        r = r.reshape(bin_idx.shape)
-        if np.sum(r) > 0:
-            print(r.shape, np.sum(r) / len(r), np.sum(r), np.sum(ret))
-            # assert np.all(r == ret)
-
-        return ret
+        return is_in_xindex_set(bin_idx)
 
     def alignment(self, segpos, **kw):
         return np.eye(4)
@@ -141,10 +158,10 @@ class XIndexedAccumulator:
         self.temporary = []
 
     def checkpoint(self):
-
-        sys.stdout.flush()
         if len(self.temporary) is 0: return
-        print('XIndexedAccumulator checkpoint...', end='')
+        ntmp = sum(len(tmp[0]) for tmp in self.temporary)
+        print('XIndexedAccumulator checkpoint... ncandidates:', ntmp, end=' ')
+        sys.stdout.flush()
         if hasattr(self, 'scores'):
             sc, li, lp = [self.scores], [self.lowidx], [self.lowpos]
         else:
@@ -159,11 +176,18 @@ class XIndexedAccumulator:
         xtgt = hinv(from_pos) @ to_pos
         bin_idx = self.binner.get_bin_index(xtgt)
         head_idx = np.stack([self.xindex[i] for i in bin_idx])
-        join_idx = self.splitseg.merge_idx(self.tail[-1], lowidx[:, -1],
-                                           self.head[0], head_idx[:, 0])
-        lowidx = lowidx[join_idx >= 0]
-        head_idx = head_idx[join_idx >= 0]
+        join_idx, valid = self.splitseg.merge_idx(
+            self.tail[-1], lowidx[:, -1],
+            self.head[0], head_idx[:, 0])
+        lowidx = lowidx[valid][join_idx >= 0]
+        head_idx = head_idx[valid][join_idx >= 0]
         join_idx = join_idx[join_idx >= 0]
+        # join_idx = self.splitseg.merge_idx_slow(
+        #     self.tail[-1], lowidx[:, -1],
+        #     self.head[0], head_idx[:, 0])
+        # lowidx = lowidx[join_idx >= 0]
+        # head_idx = head_idx[join_idx >= 0]
+        # join_idx = join_idx[join_idx >= 0]
         lowidx = np.concatenate(
             [lowidx[:, :-1], join_idx[:, None], head_idx[:, 1:]], axis=1)
         if hasattr(self, 'lowidx'):
@@ -171,7 +195,7 @@ class XIndexedAccumulator:
         else:
             self.lowidx = lowidx
         self.temporary = []
-        print('done, total =', len(self.lowidx))
+        print('done, total pre-err =', len(self.lowidx))
         sys.stdout.flush()
 
     def accumulate(self, gen):
@@ -208,12 +232,13 @@ def grow(
     executor=None,
     executor_args=None,
     max_workers=None,
-    verbosity=0,
+    verbosity=2,
     chunklim=None,
     max_samples=int(1e12),
     max_results=int(1e4),
     cart_resl=2.0,
-    ori_resl=15.0
+    ori_resl=15.0,
+    xindex_cache_file=None
 ):
     if True:  # setup
         os.environ['OMP_NUM_THREADS'] = '1'
@@ -232,7 +257,7 @@ def grow(
                 for sp in seg.spliceables: print('   ', sp)
         elif verbosity == 0:
             print('grow, nseg:', len(segments))
-        if verbosity > 1:
+        if verbosity > 2:
             global __print_best
             __print_best = True
         if not isinstance(criteria, CriteriaList):
@@ -307,8 +332,12 @@ def grow(
         assert len(criteria) is 1
         matchlast = _check_topology(segments, criteria, expert)
 
-        tail, head = segments.split_at(criteria.from_seg)
-        splitseg = segments[criteria.from_seg]
+        splitpoint = criteria.from_seg
+        tail, head = segments.split_at(splitpoint)
+        splitseg = segments[splitpoint]
+
+        print('HASH PROTOCOL splitting at segment', splitpoint)
+        print('    full:', [len(s) for s in segments])
 
         headsizes = [len(s) for s in head]
         headend = _get_chunk_end_seg(headsizes, max_workers, memsize)
@@ -318,17 +347,18 @@ def grow(
         if max_samples is not None:
             max_samples = np.clip(chunksize * max_workers, max_samples, ntot)
         every_other = max(1, int(ntot / max_samples)) if max_samples else 1
-        njob = int(np.sqrt(nchunks / every_other) / 16) * nworker
+        njob = int(np.sqrt(nchunks / every_other) / 64 / nworker) * nworker
         njob = np.clip(nworker, njob, nchunks)
         _grow_args = dict(executor=executor, executor_args=executor_args,
                           njob=njob, end=headend, thresh=thresh,
                           matchlast=0, every_other=every_other,
                           max_results=max_results, nworker=nworker,
                           verbosity=verbosity)
-
-        import pickle
-        if os.path.exists('test_xindex_cache'):
-            xindex, binner = pickle.load(open('test_xindex_cache', 'rb'))
+        t1 = 0
+        if xindex_cache_file and os.path.exists(xindex_cache_file):
+            print('!' * 100)
+            print('reading xindex, xbinner from', xindex_cache_file)
+            xindex, binner = pickle.load(open(xindex_cache_file, 'rb'))
         else:
             # if 1:
             accum1 = MakeXIndexAccumulator(headsizes, from_seg=0, to_seg=-1,
@@ -336,17 +366,43 @@ def grow(
             headcriteria = Cyclic(criteria[0].nfold, from_seg=0, to_seg=-1,
                                   tol=criteria[0].tol * 2,
                                   lever=criteria[0].lever)
-            print('growing head into xindex {:,}'.format(
-                np.prod([len(s) for s in head])))
-            print('    njob:', njob)
-            print('    chunksize:', chunksize)
+            print('STEP ONE: growing head into xindex')
+            print('    ntot            {:,}'.format(ntot))
+            print('    headsizes       {}'.format(headsizes))
+            print('    headend         {:,}'.format(headend))
+            print('    njob            {:,}'.format(njob))
+            print('    nchunks         {:,}'.format(nchunks))
+            print('    chunksize       {:,}'.format(chunksize))
+            print('    thresh          {:,}'.format(thresh))
+            print('    matchlast       {:,}'.format(0))
+            print('    every_other     {:,}'.format(every_other))
+            print('    max_results     {:,}'.format(max_results))
+            print('    nworker         {:,}'.format(nworker))
+            print('    act. ntot       {:,}'.format(int(ntot / every_other)))
+            print('    act. nchunks    {:,}'.format(
+                int(nchunks / every_other)))
+            print('    act. worms/job  {:,}'.format(
+                int(ntot / every_other / njob)))
+            print('    act. chunks/job {:,}'.format(
+                int(nchunks / every_other / njob)))
+
+            import time
+            t1 = time.clock()
             _grow(head, headcriteria, accum1, **_grow_args)
             xindex, binner = accum1.final_result()
+            t1 = time.clock() - t1
+            print('!' * 100)
+            print("TIME PHASE ONE", t1)
+            print('!' * 100)
 
-            pickle.dump((xindex, binner), open('test_xindex_cache', 'wb'))
+            if xindex_cache_file:
+                print('!' * 100)
+                print('dumping xindex to', xindex_cache_file)
+                print('!' * 100)
+                pickle.dump((xindex, binner), open(xindex_cache_file, 'wb'))
 
-        print('...items in hash:', len(xindex))
-        sys.stdout.flush()
+        ################### PHASE TWO ####################
+
         tailcriteria = XIndexedCriteria(xindex, binner,
                                         criteria[0].nfold, from_seg=-1)
         accum2 = XIndexedAccumulator(tail, splitseg, head, xindex,
@@ -360,29 +416,70 @@ def grow(
                                               tailsizes[tailend:]))
         if max_samples is not None:
             max_samples = np.clip(chunksize * max_workers, max_samples, ntot)
-        every_other = max(1, int(ntot / max_samples)) if max_samples else 1
-        njob = int(np.sqrt(nchunks / every_other) / 4) * nworker
+        every_other = max(1, int(ntot / max_samples * 15)
+                          ) if max_samples else 1
+        njob = int(np.sqrt(nchunks / every_other) / 8 / nworker) * nworker
         njob = np.clip(nworker, njob, nchunks)
-        _grow_args = dict(executor=executor, executor_args=executor_args,
-                          njob=njob, end=tailend, thresh=thresh,
-                          matchlast=None, every_other=every_other,
-                          max_results=max_results, nworker=nworker,
-                          verbosity=verbosity)
+        # njob = 1
 
-        print('growing tail, scoring with index {:,} {:,}'.format(
-            len(xindex), np.prod([len(s) for s in tail])))
-        print('    njob:', njob)
-        print('    chunksize:', chunksize)
+        _grow_args = dict(
+            executor=executor,
+            executor_args=executor_args,
+            njob=njob, end=tailend, thresh=thresh,
+            matchlast=None, every_other=every_other,
+            max_results=max_results, nworker=nworker,
+            verbosity=verbosity)
+
+        print('STEP TWO: using xindex, nentries', len(xindex))
+        print('    ntot            {:,}'.format(ntot))
+        print('    tailsizes       {}'.format(tailsizes))
+        print('    tailend         {:,}'.format(tailend))
+        print('    njob            {:,}'.format(njob))
+        print('    nchunks         {:,}'.format(nchunks))
+        print('    chunksize       {:,}'.format(chunksize))
+        print('    thresh          {:,}'.format(thresh))
+        print('    matchlast       None')
+        print('    every_other     {:,}'.format(every_other))
+        print('    max_results     {:,}'.format(max_results))
+        print('    nworker         {:,}'.format(nworker))
+        print('    act. ntot       {:,}'.format(int(ntot / every_other)))
+        print('    act. nchunks    {:,}'.format(
+            int(nchunks / every_other)))
+        print('    act. worms/job  {:,}'.format(
+            int(ntot / every_other / njob)))
+        print('    act. chunks/job {:,}'.format(
+            int(nchunks / every_other / njob)))
+        print('    executor       ', type(executor()))
+
+        import time
+        t2 = time.clock()
+
         _grow(tail, tailcriteria, accum2, **_grow_args)
+        # import cProfile
+        # cProfile.runctx('_grow(tail, tailcriteria, accum2, **_grow_args)',
+        #                 locals(), globals(), 'grow2.stats')
+        # import pstats
+        # pst = pstats.Stats('grow2.stats')
+        # pst.strip_dirs().sort_stats('time').print_stats(20)
         lowidx = accum2.final_result()
+        t2 = time.clock() - t2
+
+        print('!' * 100)
+        print("TIME PHASE ONE", t1)
+        print("TIME PHASE TWO", t2)
+        print('   best 28 cores 1608.94K/s small 1min job 681k/.s')
+        print('!' * 100)
 
         if lowidx is None:
             print('grow: no results')
             return
 
+        print('refold segments')
         lowpos = _refold_segments(segments, lowidx)
         lowposlist = [lowpos[:, i] for i in range(len(segments))]
+        print('score refolded segments')
         scores = criteria.score(segpos=lowposlist, verbosity=verbosity)
+        print('organize results')
         nlow = sum(scores <= thresh)
         order = np.argsort(scores)[:nlow]
         scores = scores[order]

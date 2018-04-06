@@ -163,9 +163,12 @@ class Spliceable:
         return True
 
     def __repr__(self):
+        sites = str([(s._resids(self), s.polarity) for s in self.sites])
+        if len(sites) > 30:
+            sites = sites[:30] + '...'
         return ('Spliceable: body=(' + str(self._len_body) + ',' +
                 str(self.body).splitlines()[0].split('/')[-1] +
-                '), sites=' + str([(s._resids(self), s.polarity) for s in self.sites]))
+                '), sites=' + sites)
 
     # def __getstate__(self):
         # pdbfname = self.body.pdb_info().name() if self.body else None
@@ -257,8 +260,9 @@ class Segment:
         return Segment(self.spliceables, entry=None,
                        exit=self.exitpol, expert=self.expert)
 
-    def merge_idx(self, head, head_idx, tail, tail_idx):
+    def merge_idx_slow(self, head, head_idx, tail, tail_idx):
         "return joint index, -1 if head/tail pairing is invalid"
+        "TODO THIS IS TOTALLY INEFFICEENT"
         head_idx, tail_idx = map(np.asarray, [head_idx, tail_idx])
         # print('merge_idx', head_idx.shape, tail_idx.shape)
         assert not (self.entrypol is None or self.exitpol is None)
@@ -266,6 +270,7 @@ class Segment:
         assert head_idx.shape == tail_idx.shape
         assert head_idx.ndim == 1
         idx = np.zeros_like(head_idx) - 1
+
         for i in range(len(idx)):
             tmp = np.where(
                 (self.bodyid == head.bodyid[head_idx[i]])
@@ -279,6 +284,10 @@ class Segment:
             if len(tmp) is 1:
                 idx[i] = tmp[0]
         return idx
+
+    def merge_idx(self, head, head_idx, tail, tail_idx):
+        ok = head.bodyid[head_idx] == tail.bodyid[tail_idx]
+        return self.merge_idx_slow(head, head_idx[ok], tail, tail_idx[ok]), ok
 
     def split_idx(self, idx, head, tail):
         """return indices for separate head and tail segments"""
