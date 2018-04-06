@@ -66,7 +66,10 @@ if 1:
         print(len(w))
         for i in range(len(w)):
             if i % 2 is 1: continue
-            p, s = w.sympose(i, score=True, fullatom=True)
+            try:
+                p, s = w.sympose(i, score=True, fullatom=True)
+            except:
+                print('error on', i)
             print(i, w.scores[i], s)
             p.dump_pdb('peace_%04i.pdb' % i)
             sys.stdout.flush()

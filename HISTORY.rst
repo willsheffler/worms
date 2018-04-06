@@ -2,7 +2,7 @@
 History
 =======
 
-0.1.18 (2018-04-6)
+0.1.19 (2018-04-6)
 ------------------
 
 * minor performance impovements in hash-index based search

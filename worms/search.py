@@ -98,7 +98,7 @@ class MakeXIndexAccumulator:
         return self.xindex, self.binner
 
 
-GLOBAL_xindex_set = set([0])
+# GLOBAL_xindex_set = set([0])
 
 
 # @numba.vectorize([numba.float64(numba.int64)])
@@ -110,15 +110,6 @@ GLOBAL_xindex_set = set([0])
 # return 999999.
 
 
-def is_in_xindex_set(idxary):
-    global GLOBAL_xindex_set
-    is_in = np.ones_like(idxary, dtype='f') * 999999.
-    for i, idx in enumerate(idxary):
-        if idx in GLOBAL_xindex_set:
-            is_in[i] = 0
-    return is_in
-
-
 class XIndexedCriteria(WormCriteria):
 
     def __init__(self, xindex, binner, nfold, from_seg=-1):
@@ -126,18 +117,25 @@ class XIndexedCriteria(WormCriteria):
         self.binner = binner
         self.from_seg = from_seg
         self.cyclic_xform = hrot([0, 0, 1], 360 / nfold)
-        global GLOBAL_xindex_set
-        GLOBAL_xindex_set = self.xindex_set
+        # global GLOBAL_xindex_set
+        # GLOBAL_xindex_set = self.xindex_set
 
     def get_xform_commutator(self, from_pos, to_pos):
         return np.linalg.inv(from_pos) @ to_pos
+
+    def is_in_xindex_set(self, idxary):
+        is_in = np.ones(idxary.size, dtype='f') * 999999.
+        for i, idx in enumerate(idxary.flat):
+            if idx in self.xindex_set:
+                is_in[i] = 0
+        return is_in.reshape(idxary.shape)
 
     def score(self, segpos, **kw):
         from_pos = segpos[self.from_seg]
         to_pos = self.cyclic_xform @ from_pos
         xtgt = self.get_xform_commutator(from_pos, to_pos)
         bin_idx = self.binner.get_bin_index(xtgt)
-        return is_in_xindex_set(bin_idx)
+        return self.is_in_xindex_set(bin_idx)
 
     def alignment(self, segpos, **kw):
         return np.eye(4)
@@ -467,7 +465,7 @@ def grow(
         print('!' * 100)
         print("TIME PHASE ONE", t1)
         print("TIME PHASE TWO", t2)
-        print('   best 28 cores 1608.94K/s small 1min job 681k/.s')
+        # print('   best 28 cores 1608.94K/s small 1min job 681k/.s')
         print('!' * 100)
 
         if lowidx is None:

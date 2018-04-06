@@ -1,9 +1,9 @@
 import pytest
-from ..filter import *
 
 try:
     import pyrosetta
     from pyrosetta import rosetta as ros
+    from ..filter import *
     HAVE_PYROSETTA = True
     try:
         import pyrosetta.distributed
