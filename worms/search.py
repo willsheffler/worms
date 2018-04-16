@@ -144,7 +144,7 @@ class XIndexedCriteria(WormCriteria):
 class XIndexedAccumulator:
 
     def __init__(self, tail, splitseg, head, xindex, binner,
-                 nfold, from_seg=-1, max_tmp_size=1024):
+                 nfold, from_seg=-1, max_tmp_size=1024, max_results=100000):
         self.tail = tail
         self.splitseg = splitseg
         self.head = head
@@ -153,6 +153,7 @@ class XIndexedAccumulator:
         self.from_seg = from_seg
         self.cyclic_xform = hrot([0, 0, 1], 360 / nfold)
         self.max_tmp_size = max_tmp_size
+        self.max_results = max_results
         self.temporary = []
 
     def checkpoint(self):
@@ -169,6 +170,9 @@ class XIndexedAccumulator:
         assert np.all(scores == 0)
         lowidx = np.concatenate([x[1] for x in self.temporary])
         lowpos = np.concatenate([x[2] for x in self.temporary])
+        scores = scores[:self.max_results]
+        lowpos = lowpos[:self.max_results]
+        lowidx = lowidx[:self.max_results]
         from_pos = lowpos[:, self.from_seg]
         to_pos = self.cyclic_xform @ from_pos
         xtgt = hinv(from_pos) @ to_pos
@@ -285,7 +289,7 @@ def grow(
         if max_samples is not None:
             max_samples = np.clip(chunksize * max_workers, max_samples, ntot)
         every_other = max(1, int(ntot / max_samples)) if max_samples else 1
-        njob = int(np.sqrt(nchunks / every_other) / 128) * nworker
+        njob = int(np.sqrt(nchunks / every_other) / 32) * nworker
         njob = np.clip(nworker, njob, nchunks)
 
         actual_ntot = int(ntot / every_other)
@@ -345,7 +349,7 @@ def grow(
         if max_samples is not None:
             max_samples = np.clip(chunksize * max_workers, max_samples, ntot)
         every_other = max(1, int(ntot / max_samples)) if max_samples else 1
-        njob = int(np.sqrt(nchunks / every_other) / 64 / nworker) * nworker
+        njob = int(np.sqrt(nchunks / every_other) / 8 / nworker) * nworker
         njob = np.clip(nworker, njob, nchunks)
         _grow_args = dict(executor=executor, executor_args=executor_args,
                           njob=njob, end=headend, thresh=thresh,
@@ -385,10 +389,10 @@ def grow(
                 int(nchunks / every_other / njob)))
 
             import time
-            t1 = time.clock()
+            t1 = time.time()
             _grow(head, headcriteria, accum1, **_grow_args)
             xindex, binner = accum1.final_result()
-            t1 = time.clock() - t1
+            t1 = time.time() - t1
             print('!' * 100)
             print("TIME PHASE ONE", t1)
             print('!' * 100)
@@ -405,7 +409,7 @@ def grow(
                                         criteria[0].nfold, from_seg=-1)
         accum2 = XIndexedAccumulator(tail, splitseg, head, xindex,
                                      binner, criteria[0].nfold,
-                                     from_seg=-1)
+                                     from_seg=-1, max_results=max_results * 20)
 
         tailsizes = [len(s) for s in tail]
         tailend = _get_chunk_end_seg(tailsizes, max_workers, memsize)
@@ -414,11 +418,10 @@ def grow(
                                               tailsizes[tailend:]))
         if max_samples is not None:
             max_samples = np.clip(chunksize * max_workers, max_samples, ntot)
-        every_other = max(1, int(ntot / max_samples * 15)
+        every_other = max(1, int(ntot / max_samples * 20)
                           ) if max_samples else 1
-        njob = int(np.sqrt(nchunks / every_other) / 8 / nworker) * nworker
-        njob = np.clip(nworker, njob, nchunks)
-        # njob = 1
+        njob = int(np.ceil(np.sqrt(nchunks / every_other) / 32 / nworker))
+        njob = np.clip(nworker, njob * nworker, nchunks)
 
         _grow_args = dict(
             executor=executor,
@@ -428,7 +431,7 @@ def grow(
             max_results=max_results, nworker=nworker,
             verbosity=verbosity)
 
-        print('STEP TWO: using xindex, nentries', len(xindex))
+        print('STEP TWO: using xindex, nentries {:,}'.format(len(xindex)))
         print('    ntot            {:,}'.format(ntot))
         print('    tailsizes       {}'.format(tailsizes))
         print('    tailend         {:,}'.format(tailend))
@@ -450,7 +453,7 @@ def grow(
         print('    executor       ', type(executor()))
 
         import time
-        t2 = time.clock()
+        t2 = time.time()
 
         _grow(tail, tailcriteria, accum2, **_grow_args)
         # import cProfile
@@ -460,7 +463,7 @@ def grow(
         # pst = pstats.Stats('grow2.stats')
         # pst.strip_dirs().sort_stats('time').print_stats(20)
         lowidx = accum2.final_result()
-        t2 = time.clock() - t2
+        t2 = time.time() - t2
 
         print('!' * 100)
         print("TIME PHASE ONE", t1)
