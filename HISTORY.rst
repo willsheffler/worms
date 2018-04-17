@@ -2,7 +2,22 @@
 History
 =======
 
-0.1.16 (2018-03.15)
+0.1.20 (2018-04-16)
+------------------
+
+* add more dihedral sym files
+
+0.1.19 (2018-04-6)
+------------------
+
+* minor performance impovements in hash-index based search
+
+0.1.17 (2018-04-4)
+------------------
+
+* hash-index based search for Cyclic(..., origin_seg=...)
+
+0.1.16 (2018-03-15)
 ------------------
 
 * I52 symmetry bug fix

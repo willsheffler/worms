@@ -32,6 +32,7 @@ test_requirements = [
     'pytest-runner',
     'numpy',
     'homog >= 0.1.10',
+    'xbin >= 0.1.5',
     'tqdm',
     # https://storage.googleapis.com/protein-design-ipd-public/wheelhouse/pyrosetta-2017.48.post0.dev0%2B93.fordas.dev.f126926bdc8-cp35-cp35m-linux_x86_64.whl
     'pytest',
@@ -39,7 +40,7 @@ test_requirements = [
 
 setup(
     name='worms',
-    version='0.1.16',
+    version='0.1.20',
     description="Protion Origami via Genetic Fusions",
     long_description=readme + '\n\n' + history,
     author="Will Sheffler",

@@ -67,3 +67,5 @@ target/
 .pytest_cache
 
 dask-worker-space
+
+*~

@@ -1,4 +1,4 @@
-name: wormsdev
+name: wormsdev36
 channels:
  - schrodinger
  - conda-forge
@@ -12,6 +12,7 @@ dependencies:
  - pymol >= 2.1
  - pip:
    - homog >= 0.1.10
+   - xbin >= 0.1.5
    - hypothesis
    - pytest-sugar
    - pytest-xdist

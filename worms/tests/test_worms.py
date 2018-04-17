@@ -22,6 +22,54 @@ only_if_pyrosetta = pytest.mark.skipif('not HAVE_PYROSETTA')
 
 
 @only_if_pyrosetta
+def test_Segment_merge_split_idx(c1pose):
+    helix = Spliceable(c1pose, sites=[((1, 2, 3), 'N'), ((9, 10, 11), 'C')])
+    helix2 = Spliceable(c1pose, sites=[((2, 5), 'N'), ((8, 11, 13), 'C')])
+    seg = Segment([helix, helix2], 'NC')
+    head, tail = seg.make_head(), seg.make_tail()
+    head_idx = np.array([i for i in range(len(head))
+                         for j in range(len(tail))])
+    tail_idx = np.array([j for i in range(len(head))
+                         for j in range(len(tail))])
+    idx = seg.merge_idx_slow(head, head_idx, tail, tail_idx)
+    # print('merged_idx', idx)
+    head_idx2, tail_idx2 = seg.split_idx(idx, head, tail)
+    assert np.all(head_idx2[idx >= 0] == head_idx[idx >= 0])
+    assert np.all(tail_idx2[idx >= 0] == tail_idx[idx >= 0])
+
+
+@only_if_pyrosetta
+def test_Segment_split_merge_idx(c1pose):
+    helix = Spliceable(c1pose, sites=[((1, 2, 3), 'N'), ((9, 10, 11), 'C')])
+    helix2 = Spliceable(c1pose, sites=[((2, 5), 'N'), ((8, 11, 13), 'C')])
+    seg = Segment([helix2], 'NC')
+    idx = np.arange(len(seg))
+    head, tail = seg.make_head(), seg.make_tail()
+    head_idx, tail_idx = seg.split_idx(idx, head, tail)
+    idx2 = seg.merge_idx_slow(head, head_idx, tail, tail_idx)
+    assert np.all(idx == idx2)
+
+
+@only_if_pyrosetta
+def test_Segment_split_merge_invalid_pairs(c1pose):
+    helix = Spliceable(c1pose, sites=[((1, 2, 3), 'N'), ((9, 10, 11), 'C')],
+                       min_seg_len=10)
+    helix2 = Spliceable(c1pose, sites=[((2, 5), 'N'), ((8, 11, 13), 'C')],
+                        min_seg_len=10)
+    seg = Segment([helix, helix2], 'NC')
+    head, tail = seg.make_head(), seg.make_tail()
+    head_idx = np.array([i for i in range(len(head))
+                         for j in range(len(tail))])
+    tail_idx = np.array([j for i in range(len(head))
+                         for j in range(len(tail))])
+    idx = seg.merge_idx_slow(head, head_idx, tail, tail_idx)
+    # print('merged_idx', idx)
+    head_idx2, tail_idx2 = seg.split_idx(idx, head, tail)
+    assert np.all(head_idx2[idx >= 0] == head_idx[idx >= 0])
+    assert np.all(tail_idx2[idx >= 0] == tail_idx[idx >= 0])
+
+
+@only_if_pyrosetta
 def test_sym_bug(c1pose, c2pose):
     helix = Spliceable(
         c1pose, sites=[((1, 2, 3), 'N'), ((9, 10, 11, 13), 'C')])
@@ -97,13 +145,13 @@ def test_spliceable(c2pose):
     assert dimer.sites[1]._resids(dimer) == [13, 14, 15]
 
 
-@pytest.mark.skip  # if('not HAVE_PYROSETTA')
+@pytest.mark.skipif('not HAVE_PYROSETTA_DISTRIBUTED')
 def test_spliceable_pickle(tmpdir, c2pose):
     site1 = SpliceSite([1, 2, 3], 'N', 1)
     site2 = SpliceSite([1, 2, 3], 'N', 2)
     dimer = Spliceable(c2pose, sites=[site1, site2])
-    pickle.dump(dimer, open(str(os.path.join(tmpdir, 'test.pickle')), 'wb'))
-    dimer2 = pickle.load(open(str(os.path.join(tmpdir, 'test.pickle')), 'rb'))
+    pickle.dump(dimer, open(os.path.join(str(tmpdir), 'test.pickle'), 'wb'))
+    dimer2 = pickle.load(open(os.path.join(str(tmpdir), 'test.pickle'), 'rb'))
     assert str(dimer) == str(dimer2)
 
 
@@ -155,7 +203,7 @@ def test_segment_geom(c1pose):
     seg = Segment([spliceable], exit='C')
     assert seg.x2exit.shape == (Nexsite * len(csplice.selections), 4, 4)
     assert seg.x2orgn.shape == (Nexsite * len(csplice.selections), 4, 4)
-    assert np.all(seg.x2exit[..., 3, :3] == 0)
+    assert np.all(seg.x2exit[..., 3, : 3] == 0)
     assert np.all(seg.x2exit[..., 3, 3] == 1)
     for e2x, e2o, ir, jr in zip(seg.x2exit, seg.x2orgn,
                                 seg.entryresid, seg.exitresid):
@@ -167,7 +215,7 @@ def test_segment_geom(c1pose):
     seg = Segment([spliceable], 'N', 'C')
     assert seg.x2exit.shape == (Nexsite**2 * Npairs0, 4, 4)
     assert seg.x2orgn.shape == (Nexsite**2 * Npairs0, 4, 4)
-    assert np.all(seg.x2exit[..., 3, :3] == 0)
+    assert np.all(seg.x2exit[..., 3, : 3] == 0)
     assert np.all(seg.x2exit[..., 3, 3] == 1)
     for e2x, e2o, ir, jr in zip(seg.x2exit, seg.x2orgn,
                                 seg.entryresid, seg.exitresid):
@@ -178,7 +226,7 @@ def test_segment_geom(c1pose):
     seg = Segment([spliceable], entry='N')
     assert seg.x2exit.shape == (Nexsite * len(nsplice.selections), 4, 4)
     assert seg.x2orgn.shape == (Nexsite * len(nsplice.selections), 4, 4)
-    assert np.all(seg.x2exit[..., 3, :3] == 0)
+    assert np.all(seg.x2exit[..., 3, : 3] == 0)
     assert np.all(seg.x2exit[..., 3, 3] == 1)
     for e2x, e2o, ir, jr in zip(seg.x2exit, seg.x2orgn,
                                 seg.entryresid, seg.exitresid):
@@ -197,7 +245,7 @@ def test_segment_geom(c1pose):
     assert len(seg.bodyid) == Npairs_expected
     for i in range(Nexbody):
         assert i == seg.bodyid[0 + i * Npairs0 * Nexsite**2]
-    assert np.all(seg.x2exit[..., 3, :3] == 0)
+    assert np.all(seg.x2exit[..., 3, : 3] == 0)
     assert np.all(seg.x2exit[..., 3, 3] == 1)
     for e2x, e2o, ir, jr in zip(seg.x2exit, seg.x2orgn,
                                 seg.entryresid, seg.exitresid):
@@ -645,27 +693,44 @@ def test_multichain_db(c2pose, c1pose):
 
 @only_if_pyrosetta
 def test_D3(c2pose, c3pose, c1pose):
-    helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', 'C')])
+    # Spliceable: pose + splice site info
+    # Segment: list of spliceables
+    helix = Spliceable(c1pose, sites=[(':4', 'N'), ('-4:', 'C')])
     dimer = Spliceable(c2pose, sites=[('1,:2', 'N'), ('1,-1:', 'C'),
                                       ('2,:2', 'N'), ('2,-1:', 'C')])
     trimer = Spliceable(c3pose, sites=[('1,:1', 'N'), ('1,-2:', 'C'),
                                        ('2,:2', 'N'), ('2,-2:', 'C'),
                                        ('3,:1', 'N'), ('3,-2:', 'C')])
-    segments = [Segment([trimer], exit='C'),
-                Segment([helix], entry='N', exit='C'),
-                Segment([helix], entry='N', exit='C'),
-                Segment([helix], entry='N', exit='C'),
-                Segment([dimer], entry='N')]
+    segments = [Segment([trimer], '_C'),
+                Segment([helix], 'NC'),
+                Segment([helix], 'NC'),
+                Segment([helix], 'NC'),
+                Segment([dimer], 'N_')]
     w = grow(segments, D3(c2=-1, c3=0), thresh=1)
-    # print(w.scores)
-    # show_with_z_axes(w, 0)
+
+    # vis.show_with_z_axes(w, 0)
+    # vis.showme(w.pose(0))
+    # assert 0
+    # print(w.scores[:5])
+    # print([len(s) for s in segments])
+    # print(w.indices[:5])
+    # for i in range(5):
+    # vis.showme(w.pose(i, join=False))
+    # vis.showme(w.sympose(i))
+
+    # assert 0
+
     p = w.pose(0, only_connected=0)
     assert util.no_overlapping_residues(p)
     # print(len(p))
 
+    # print('foo')
+    # assert 0
+
     assert 1 > residue_sym_err(p, 180, 53, 65, 6, axis=[1, 0, 0])
     assert 1 > residue_sym_err(p, 120, 1, 10, 6, axis=[0, 0, 1])
     # assert 0
+
     segments = [Segment([dimer], exit='C'),
                 Segment([helix], entry='N', exit='C'),
                 Segment([helix], entry='N', exit='C'),
@@ -899,29 +964,6 @@ def test_invalid_splices_site_overlap_3(c1pose, c3pose):
                 w.segments[5].entrysiteid[w.indices[i, 5]])
 
 
-@pytest.mark.skip  # if('not HAVE_PYROSETTA')
-def test_origin_seg(c1pose, c2pose, c3pose):
-    helix = Spliceable(c1pose, [(':1', 'N'), ('-8:', 'C')])
-    dimer = Spliceable(c2pose, sites=[('1,:3', 'N'), ('1,-3:', 'C'),
-                                      ('2,:3', 'N'), ('2,-3:', 'C'), ])
-    trimer = Spliceable(c3pose, sites=[('1,:3', 'N'), ('1,-3:', 'C'),
-                                       ('2,:3', 'N'), ('2,-3:', 'C'),
-                                       ('3,:3', 'N'), ('3,-3:', 'C'), ])
-    segments = [Segment([trimer], '_C'),  # origin_seg
-                Segment([helix], 'NC'),
-                Segment([trimer], 'NN'),  # from_seg
-                Segment([helix], 'CN'),
-                Segment([dimer], 'CC'),
-                Segment([helix], 'NC'),
-                Segment([trimer], 'N_'), ]  # to_seg
-    w = grow(segments, Cyclic(3, from_seg=2, origin_seg=0), thresh=10)
-    # executor=ProcessPoolExecutor, max_workers=8)
-    assert len(w) > 0
-    print(w.scores[: 10])
-    vis.showme(w.pose(0, join=False))
-    # assert 0
-
-
 @only_if_pyrosetta
 def test_provenance(c1pose):
     sites = [(':1', 'N'), ('-4:', 'C')]
@@ -1071,13 +1113,8 @@ def test_chunk_speed(c2pose, c3pose, c1pose):
                 [Segment([helix], entry='N', exit='C')] * (nseg - 2) +
                 [Segment([helix], entry='N')])
     with pytest.raises(ValueError):
-        grow(
-            segments,
-            Octahedral(
-                c3=-1,
-                c2=0),
-            thresh=1,
-            max_samples=1000000)
+        grow(segments, Octahedral(c3=-1, c2=0),
+             thresh=1, max_samples=1000000)
 
 
 @only_if_pyrosetta
@@ -1088,3 +1125,56 @@ def test_NullCriteria(c1pose):
     results = grow(segments, NullCriteria())
     assert len(results) == 16
     # vis.showme(results.pose(0))
+
+
+@only_if_pyrosetta
+def test_Segment_make_head_tail(c1pose):
+    helix = Spliceable(c1pose, [(':3', 'N'), ('-4:', 'C')])
+    seg = Segment([helix], 'NC')
+    assert len(seg) == 12
+    assert len(seg.make_head()) == 3
+    assert len(seg.make_tail()) == 4
+    assert np.all(seg.make_head().entryresid != -1)
+    assert np.all(seg.make_head().exitresid == -1)
+    assert np.all(seg.make_tail().entryresid == -1)
+    assert np.all(seg.make_tail().exitresid != -1)
+
+
+@only_if_pyrosetta
+def test_Segments_split_at(c1pose):
+    helix = Spliceable(c1pose, [(':3', 'N'), ('-4:', 'C')])
+    segs = Segments([Segment([helix], '_C')]
+                    + [Segment([helix], 'NC')] * 4
+                    + [Segment([helix], 'N_')])
+    assert len(segs) == 6
+    tail, head = segs.split_at(2)
+    assert len(tail) == 3
+    assert len(head) == 4
+    assert tail[0].entrypol is None
+    assert tail[-1].exitpol is None
+    assert head[0].entrypol is None
+    assert head[-1].exitpol is None
+
+
+@pytest.mark.skip  # if('not HAVE_PYROSETTA')
+def test_origin_seg(c1pose, c2pose, c3pose):
+    helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', 'C')])
+    dimer = Spliceable(c2pose, sites=[('1,:3', 'N'), ('1,-3:', 'C'),
+                                      ('2,:3', 'N'), ('2,-3:', 'C'), ])
+    trimer = Spliceable(c3pose, sites=[('1,:3', 'N'), ('1,-3:', 'C'),
+                                       ('2,:3', 'N'), ('2,-3:', 'C'),
+                                       ('3,:3', 'N'), ('3,-3:', 'C'), ])
+    segments = [Segment([trimer], '_C'),  # origin_seg
+                Segment([helix], 'NC'),
+                Segment([helix], 'NC'),
+                Segment([helix], 'NC'),
+                Segment([helix], 'NC'),
+                Segment([trimer], 'NN'),  # from_seg
+                Segment([helix], 'CN'),
+                Segment([dimer], 'CC'),
+                Segment([helix], 'NC'),
+                Segment([helix], 'NC'),
+                Segment([trimer], 'N_'), ]  # to_seg
+    w = grow(segments, Cyclic(3, from_seg=5, origin_seg=0), thresh=1)
+
+    assert 0

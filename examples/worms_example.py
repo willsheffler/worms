@@ -41,4 +41,4 @@ def main(nseg, nworker=0):
 
 
 if __name__ == '__main__':
-    main(13)
+    main(9)
