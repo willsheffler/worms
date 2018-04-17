@@ -1,0 +1,90 @@
+symmetry_name FUBAR
+
+subunits 1
+
+number_of_interfaces 0
+
+E = 2*CMP00_CEN000_SUB000
+
+anchor_residue COM
+
+#####################################################################################
+########################## Virtual Coordinate Frames ################################
+#####################################################################################
+
+virtual_coordinates_start
+
+# virtuals for comp0 cen0
+xyz  CMP00_CEN000                    +0.000000000,+0.000000000,+1.000000000  +0.447213595,+0.894427191,+0.000000000  +000.000000000,+000.000000000,+000.000000000
+xyz  CMP00_CEN000_CmpDofEnd          +0.000000000,+0.000000000,+1.000000000  +0.447213595,+0.894427191,+0.000000000  +000.000000000,+000.000000000,+000.000000000
+xyz  CMP00_CEN000_SUB000             +1.000000000,+0.000000000,+0.000000000  +0.000000000,+1.000000000,+0.000000000  +000.000000000,+000.000000000,+000.000000000
+
+# virtuals for comp1 cen0
+xyz  CMP00_CEN000_CELLDofBeg_0_1     +0.000000000,+1.000000000,+0.000000000  +0.316227766,+0.000000000,+0.948683298  +000.000000000,+000.000000000,+000.000000000
+xyz  CMP00_CEN000_CELLDofEnd_0_1     +0.000000000,+1.000000000,+0.000000000  +0.316227766,+0.000000000,+0.948683298  +000.000000000,+000.000500000,+000.000000000
+xyz  CMP01_CEN000                    +1.000000000,+0.000000000,+0.000000000  +0.000000000,+0.554700196,+0.832050294  +000.000000000,+000.000500000,+000.000000000
+xyz  CMP01_CEN000_CmpDofEnd          +1.000000000,+0.000000000,+0.000000000  +0.000000000,+0.554700196,+0.832050294  +000.000000000,+000.000500000,+000.000000000
+xyz  CMP01_CEN000_SUB000             +1.000000000,+0.000000000,+0.000000000  +0.000000000,+1.000000000,+0.000000000  +000.000000000,+000.000500000,+000.000000000
+
+xyz DUMMY_VIRT 1,0,0 0,1,0 0,0,0
+
+virtual_coordinates_stop
+
+#####################################################################################
+##################################### Jumps #########################################
+#####################################################################################
+
+connect_virtual COMP_DOF_1            CMP00_CEN000              CMP00_CEN000_CmpDofEnd   
+connect_virtual JUMP__CMP00_CEN000_CmpDofEnd__to__CMP00_CEN000_SUB000     CMP00_CEN000_CmpDofEnd    CMP00_CEN000_SUB000      
+
+connect_virtual JUMP__CMP00_CEN000__to__CMP00_CEN000_CELLDofBeg_0_1       CMP00_CEN000              CMP00_CEN000_CELLDofBeg_0_1
+connect_virtual CELL_DOF CMP00_CEN000_CELLDofBeg_0_1 CMP00_CEN000_CELLDofEnd_0_1
+connect_virtual JUMP__CMP00_CEN000_CELLDofEnd_0_1__to__CMP01_CEN000       CMP00_CEN000_CELLDofEnd_0_1 CMP01_CEN000             
+connect_virtual COMP_DOF_2            CMP01_CEN000              CMP01_CEN000_CmpDofEnd   
+connect_virtual JUMP__CMP01_CEN000_CmpDofEnd__to__CMP01_CEN000_SUB000     CMP01_CEN000_CmpDofEnd    CMP01_CEN000_SUB000      
+
+################# SUBUNIT Jumps ############################
+
+connect_virtual JUMP__CMP00_CEN000_SUB000__to__SUBUNITA                   CMP00_CEN000_SUB000       SUBUNIT A                
+
+connect_virtual JUMP__CMP01_CEN000_SUB000__to__SUBUNITB                   CMP01_CEN000_SUB000       SUBUNIT B                 
+
+#####################################################################################
+##################################### DOFs ##########################################
+#####################################################################################
+
+########################### stupid dummy DOF ################################
+
+connect_virtual DUMMY_JUMP CMP00_CEN000 DUMMY_VIRT
+set_dof DUMMY_JUMP x
+
+################# CELL DOFs ############################
+
+set_dof   CELL_DOF   x
+
+################# COMPONENT DOFs ############################
+
+set_dof   COMP_DOF_1   x angle_x
+
+set_dof   COMP_DOF_2   x angle_x
+
+#####################################################################################
+################################## JUMP GROUPS ######################################
+#####################################################################################
+
+################# CELL DOF JUMP GROUPS ############################
+
+set_jump_group   GROUP_CELLDOF   CELL_DOF
+
+################# COMPONENT DOF JUMP GROUPS ############################
+
+set_jump_group   GROUP_COMP_0_DOF   COMP_DOF_1
+
+set_jump_group   GROUP_COMP_1_DOF   COMP_DOF_2
+
+################# SUBUNIT JUMP GROUPS ############################
+
+set_jump_group GROUP_SUBUNT_A  JUMP__CMP00_CEN000_SUB000__to__SUBUNITA
+
+set_jump_group GROUP_SUBUNT_B  JUMP__CMP01_CEN000_SUB000__to__SUBUNITB
+

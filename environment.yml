@@ -1,17 +1,18 @@
 name: wormsdev
 channels:
+ - schrodinger
  - conda-forge
 dependencies:
- - python=3.5
+ - python >= 3.6
  - numpy
  - pytest
  - pytest-cov
  - sphinx_rtd_theme
  - ipython
+ - pymol >= 2.1
  - pip:
    - homog >= 0.1.10
    - hypothesis
    - pytest-sugar
    - pytest-xdist
    - tqdm
-   - https://storage.googleapis.com/protein-design-ipd-public/wheelhouse/pyrosetta-2017.48.post0.dev0%2B93.fordas.dev.f126926bdc8-cp35-cp35m-linux_x86_64.whl
