@@ -1,0 +1,36 @@
+symmetry_name d7
+subunits 14
+number_of_interfaces  10
+E = 14*VRT0001 + 14*(VRT0001:VRT0002) + 14*(VRT0001:VRT0003) + 14*(VRT0001:VRT0004) + 7*(VRT0001:VRT0008) + 7*(VRT0001:VRT0009) + 7*(VRT0001:VRT0010) + 7*(VRT0001:VRT0011) + 7*(VRT0001:VRT0012) + 7*(VRT0001:VRT0013) + 7*(VRT0001:VRT0014)
+anchor_residue COM
+virtual_transforms_start
+start -1,0,0 0,1,0 0,0,0
+rot Rz_angle 51.4285714286
+rot Rz_angle 51.4285714286
+rot Rz_angle 51.4285714286
+rot Rz_angle 51.4285714286
+rot Rz_angle 51.4285714286
+rot Rz_angle 51.4285714286
+rot Rx_angle 180.0
+rot Rz_angle 51.4285714286
+rot Rz_angle 51.4285714286
+rot Rz_angle 51.4285714286
+rot Rz_angle 51.4285714286
+rot Rz_angle 51.4285714286
+rot Rz_angle 51.4285714286
+virtual_transforms_stop
+connect_virtual JUMP1 VRT0001 VRT0002
+connect_virtual JUMP2 VRT0002 VRT0003
+connect_virtual JUMP3 VRT0003 VRT0004
+connect_virtual JUMP4 VRT0004 VRT0005
+connect_virtual JUMP5 VRT0005 VRT0006
+connect_virtual JUMP6 VRT0006 VRT0007
+connect_virtual JUMP7 VRT0007 VRT0008
+connect_virtual JUMP8 VRT0008 VRT0009
+connect_virtual JUMP9 VRT0009 VRT0010
+connect_virtual JUMP10 VRT0010 VRT0011
+connect_virtual JUMP11 VRT0011 VRT0012
+connect_virtual JUMP12 VRT0012 VRT0013
+connect_virtual JUMP13 VRT0013 VRT0014
+set_dof BASEJUMP x(50) angle_x(0:360) angle_y(0:360) angle_z(0:360)
+set_dof JUMP7 z(50) angle_z(0:25.7142857143)
