@@ -771,7 +771,12 @@ class Worms:
         # if score0asym > asym_score_thresh:
         # return None, None if score else None
         ros.core.util.switch_to_residue_type_set(pcen, 'centroid')
-        symdata = util.get_symdata(self.criteria.symname)
+        if self.criteria.symfile_modifiers:
+            symdata = util.get_symdata_modified(
+                self.criteria.symname,
+                self.criteria.symfile_modifiers(segpos=self.positions[which]))
+        else:
+            symdata = util.get_symdata(self.criteria.symname)
         sfxn = self.score0sym
         if symdata is None:
             sfxn = self.score0

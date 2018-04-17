@@ -22,6 +22,7 @@ class WormCriteria(abc.ABC):
                           'from_seg',
                           'to_seg',
                           'origin_seg',
+                          'symfile_modifiers',
                           )
 
 

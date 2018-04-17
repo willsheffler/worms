@@ -215,10 +215,28 @@ def symfile_path(name):
 
 
 @ft.lru_cache()
+def get_symfile_contents(name):
+    with open(symfile_path(name)) as f:
+        return f.read()
+
+
+@ft.lru_cache()
 def get_symdata(name):
     if name is None: return None
+    ss = ros.std.stringstream(get_symfile_contents(name))
     d = ros.core.conformation.symmetry.SymmData()
-    d.read_symmetry_data_from_file(symfile_path(name))
+    d.read_symmetry_data_from_stream(ss)
+    return d
+
+
+def get_symdata_modified(name, mods):
+    if name is None: return None
+    symfilestr = get_symfile_contents(name)
+    for k, v in mods.items():
+        symfilestr = symfilestr.replace(k, v)
+    ss = ros.std.stringstream(symfilestr)
+    d = ros.core.conformation.symmetry.SymmData()
+    d.read_symmetry_data_from_stream(ss)
     return d
 
 
