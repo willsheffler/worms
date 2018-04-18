@@ -10,14 +10,6 @@ import pyrosetta
 # import pstats
 
 
-def first_duplicate(segs):
-    for i in range(len(segs) - 1, 0, -1):
-        for j in range(i):
-            if segs[i].spliceables == segs[j].spliceables:
-                return j
-    return None
-
-
 if 1:
     # def main():
     pyrosetta.init('-corrections:beta_nov16 -mute all')
@@ -50,12 +42,16 @@ if 1:
                 Segment([helix], 'CN'),
                 Segment([trimer], 'C_'), ]  # to_seg
     w = grow(segments,
-             Cyclic(3, from_seg=first_duplicate(segments), origin_seg=0),
+             Cyclic(3, from_seg=util.first_duplicate(segments), origin_seg=0),
              thresh=1,
              # executor=ThreadPoolExecutor,
              executor=ProcessPoolExecutor,
              max_workers=multiprocessing.cpu_count(),
              memsize=1e6, verbosity=0, max_samples=1e24)
+
+    # w = Worms(segments, )
+
+    # print(repr(w.positions[:2]))
 
     # sys.exit()
     # p = pstats.Stats('grow.stats')

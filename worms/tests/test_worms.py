@@ -1156,25 +1156,45 @@ def test_Segments_split_at(c1pose):
     assert head[-1].exitpol is None
 
 
-@pytest.mark.skip  # if('not HAVE_PYROSETTA')
-def test_origin_seg(c1pose, c2pose, c3pose):
-    helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', 'C')])
-    dimer = Spliceable(c2pose, sites=[('1,:3', 'N'), ('1,-3:', 'C'),
-                                      ('2,:3', 'N'), ('2,-3:', 'C'), ])
-    trimer = Spliceable(c3pose, sites=[('1,:3', 'N'), ('1,-3:', 'C'),
-                                       ('2,:3', 'N'), ('2,-3:', 'C'),
-                                       ('3,:3', 'N'), ('3,-3:', 'C'), ])
-    segments = [Segment([trimer], '_C'),  # origin_seg
+@pytest.mark.xfail
+@only_if_pyrosetta
+def test_peace_sign_pose_construction(c1pose, c2pose, c3_splay_pose):
+    from .misc_test_data import peace_sign_test_segpos
+    helix = Spliceable(c1pose, [
+        (':1', 'N'), ('-7:', 'C')])
+    dimer = Spliceable(c2pose, sites=[
+        ('1,:1', 'N'), ('1,-1:', 'C'),
+        ('2,:1', 'N'), ('2,-1:', 'C'), ])
+    hub = Spliceable(c3_splay_pose, sites=[
+        ('1,:1', 'N'), ('1,-1:', 'C'), ])
+    trimer = Spliceable(c3_splay_pose, sites=[
+        ('1,:1', 'N'), ('1,-1:', 'C'),
+        ('2,:1', 'N'), ('2,-1:', 'C'),
+        ('3,:1', 'N'), ('3,-1:', 'C'), ])
+    segments = [Segment([hub], '_C'),  # origin_seg
+                Segment([helix], 'NC'),
+                Segment([helix], 'NC'),
                 Segment([helix], 'NC'),
                 Segment([helix], 'NC'),
                 Segment([helix], 'NC'),
                 Segment([helix], 'NC'),
                 Segment([trimer], 'NN'),  # from_seg
                 Segment([helix], 'CN'),
-                Segment([dimer], 'CC'),
-                Segment([helix], 'NC'),
-                Segment([helix], 'NC'),
-                Segment([trimer], 'N_'), ]  # to_seg
-    w = grow(segments, Cyclic(3, from_seg=5, origin_seg=0), thresh=1)
-
-    assert 0
+                Segment([helix], 'CN'),
+                Segment([helix], 'CN'),
+                Segment([helix], 'CN'),
+                Segment([helix], 'CN'),
+                Segment([helix], 'CN'),
+                Segment([helix], 'CN'),
+                Segment([helix], 'CN'),
+                Segment([trimer], 'C_'), ]  # to_seg
+    from_seg = util.first_duplicate(segments)
+    criteria = Cyclic(3, from_seg=from_seg, origin_seg=0)
+    scores = np.array([0.75118001, 0.81080516])
+    indices = np.array([[0, 4, 0, 6, 4, 1, 2, 4, 5, 5, 6, 3, 0, 5, 2, 6, 1],
+                        [0, 3, 3, 1, 2, 2, 1, 2, 1, 2, 1, 5, 3, 4, 6, 3, 1]], dtype='i')
+    w = Worms(segments=segments, scores=scores, indices=indices,
+              positions=peace_sign_test_segpos,
+              criteria=criteria, detail='')
+    # w.pose(0)
+    w.pose(1)

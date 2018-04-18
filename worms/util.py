@@ -1,4 +1,5 @@
 import os
+import re
 import functools as ft
 import itertools as it
 import operator
@@ -229,11 +230,22 @@ def get_symdata(name):
     return d
 
 
-def get_symdata_modified(name, mods):
+def get_symdata_modified(name,
+                         string_substitutions=None,
+                         scale_positions=None):
     if name is None: return None
     symfilestr = get_symfile_contents(name)
-    for k, v in mods.items():
-        symfilestr = symfilestr.replace(k, v)
+    if scale_positions is not None:
+        if string_substitutions is None:
+            string_substitutions = dict()
+        for line in symfilestr.splitlines():
+            if not line.startswith('xyz'): continue
+            posstr = re.split('\s+', line)[-1]
+            x, y, z = [float(x) * scale_positions for x in posstr.split(',')]
+            string_substitutions[posstr] = '%f,%f,%f' % (x, y, z)
+    if string_substitutions is not None:
+        for k, v in string_substitutions.items():
+            symfilestr = symfilestr.replace(k, v)
     ss = ros.std.stringstream(symfilestr)
     d = ros.core.conformation.symmetry.SymmData()
     d.read_symmetry_data_from_stream(ss)
@@ -267,3 +279,11 @@ class MultiRange:
 
     def __len__(self):
         return self.len
+
+
+def first_duplicate(segs):
+    for i in range(len(segs) - 1, 0, -1):
+        for j in range(i):
+            if segs[i].spliceables == segs[j].spliceables:
+                return j
+    return None

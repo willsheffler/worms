@@ -774,7 +774,7 @@ class Worms:
         if self.criteria.symfile_modifiers:
             symdata = util.get_symdata_modified(
                 self.criteria.symname,
-                self.criteria.symfile_modifiers(segpos=self.positions[which]))
+                **self.criteria.symfile_modifiers(segpos=self.positions[which]))
         else:
             symdata = util.get_symdata(self.criteria.symname)
         sfxn = self.score0sym
