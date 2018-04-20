@@ -2,6 +2,12 @@
 History
 =======
 
+0.1.21 (2018-04-19)
+------------------
+
+* peace sign heterotrimer site compatibility bug fix
+* xindex search now stores lists instead of one-per-bin
+
 0.1.20 (2018-04-16)
 ------------------
 
