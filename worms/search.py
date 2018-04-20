@@ -5,6 +5,7 @@ import os
 import pickle
 import itertools as it
 import numpy as np
+from collections import defaultdict
 from xbin import XformBinner
 from homog import hinv, hrot
 from concurrent.futures import ProcessPoolExecutor
@@ -64,7 +65,9 @@ class MakeXIndexAccumulator:
         self.to_seg = to_seg
         self.tmp = []
         self.binner = XformBinner(cart_resl, ori_resl)
-        self.xindex = dict()
+
+        self.xindex = defaultdict(list)
+        # self.xindex = dict()
 
     def checkpoint(self):
         print('MakeXIndexAccumulator checkpoint', end='')
@@ -78,7 +81,12 @@ class MakeXIndexAccumulator:
         to_pos = positions[:, self.to_seg]
         xtgt = hinv(from_pos) @ to_pos
         bin_idx = self.binner.get_bin_index(xtgt)
-        self.xindex = {**{k: v for k, v in zip(bin_idx, indices)}, **self.xindex}
+
+        for k, v in zip(bin_idx, indices):
+            self.xindex[k].append(v)
+        # self.xindex = {**{k: v for k, v in zip(bin_idx, indices)},
+        # **self.xindex}
+
         # print('IndexAcculator checkpoint, xindex size:', len(self.xindex))
         self.tmp = []
         print('done, xindex size:', len(self.xindex))
@@ -143,14 +151,17 @@ class XIndexedCriteria(WormCriteria):
 
 class XIndexedAccumulator:
 
-    def __init__(self, tail, splitseg, head, xindex, binner,
-                 nfold, from_seg=-1, max_tmp_size=1024, max_results=100000):
+    def __init__(self, segments, tail, splitpoint, head, xindex, binner,
+                 nfold, from_seg, to_seg,
+                 max_tmp_size=1024, max_results=100000):
+        self.segments = segments
         self.tail = tail
-        self.splitseg = splitseg
+        self.splitpoint = splitpoint
         self.head = head
         self.xindex = xindex
         self.binner = binner
         self.from_seg = from_seg
+        self.to_seg = to_seg
         self.cyclic_xform = hrot([0, 0, 1], 360 / nfold)
         self.max_tmp_size = max_tmp_size
         self.max_results = max_results
@@ -173,18 +184,27 @@ class XIndexedAccumulator:
         scores = scores[:self.max_results]
         lowpos = lowpos[:self.max_results]
         lowidx = lowidx[:self.max_results]
-        from_pos = lowpos[:, self.from_seg]
+        from_pos = lowpos[:, -1]
         to_pos = self.cyclic_xform @ from_pos
         xtgt = hinv(from_pos) @ to_pos
         bin_idx = self.binner.get_bin_index(xtgt)
-        head_idx = np.stack([self.xindex[i] for i in bin_idx])
-        join_idx, valid = self.splitseg.merge_idx(
+
+        # head_idx = np.stack([self.xindex[i] for i in bin_idx])
+        lowidxtmp, headidxtmp = [], []
+        for i, b in enumerate(bin_idx):
+            for headidx in self.xindex[b]:
+                lowidxtmp.append(lowidx[i])
+                headidxtmp.append(headidx)
+        lowidx = np.stack(lowidxtmp)
+        head_idx = np.stack(headidxtmp)
+
+        join_idx, valid = self.segments[self.splitpoint].merge_idx(
             self.tail[-1], lowidx[:, -1],
             self.head[0], head_idx[:, 0])
         lowidx = lowidx[valid][join_idx >= 0]
         head_idx = head_idx[valid][join_idx >= 0]
         join_idx = join_idx[join_idx >= 0]
-        # join_idx = self.splitseg.merge_idx_slow(
+        # join_idx = self.segments[self.splitpoint].merge_idx_slow(
         #     self.tail[-1], lowidx[:, -1],
         #     self.head[0], head_idx[:, 0])
         # lowidx = lowidx[join_idx >= 0]
@@ -192,6 +212,18 @@ class XIndexedAccumulator:
         # join_idx = join_idx[join_idx >= 0]
         lowidx = np.concatenate(
             [lowidx[:, :-1], join_idx[:, None], head_idx[:, 1:]], axis=1)
+
+        ifrom, ito = lowidx[:, self.from_seg], lowidx[:, self.to_seg]
+        site1 = self.segments[self.from_seg].entrysiteid[ifrom]
+        site2 = self.segments[self.from_seg].exitsiteid[ifrom]
+        site3 = self.segments[self.to_seg].entrysiteid[ito]
+        ok = (site1 != site2) * (site1 != site3) * (site2 != site3)
+        # print('!!!!!!!!', np.sum(ok), ok.shape)
+        # print('site1', *['%6i' % np.sum(site1 == i) for i in range(10)])
+        # print('site2', *['%6i' % np.sum(site2 == i) for i in range(10)])
+        # print('site3', *['%6i' % np.sum(site3 == i) for i in range(10)])
+        lowidx = lowidx[ok]
+
         if hasattr(self, 'lowidx'):
             self.lowidx = np.concatenate([self.lowidx, lowidx])
         else:
@@ -336,7 +368,6 @@ def grow(
 
         splitpoint = criteria.from_seg
         tail, head = segments.split_at(splitpoint)
-        splitseg = segments[splitpoint]
 
         print('HASH PROTOCOL splitting at segment', splitpoint)
         print('    full:', [len(s) for s in segments])
@@ -366,7 +397,7 @@ def grow(
             accum1 = MakeXIndexAccumulator(headsizes, from_seg=0, to_seg=-1,
                                            cart_resl=cart_resl, ori_resl=ori_resl)
             headcriteria = Cyclic(criteria[0].nfold, from_seg=0, to_seg=-1,
-                                  tol=criteria[0].tol * 2,
+                                  tol=criteria[0].tol * 1.25,
                                   lever=criteria[0].lever)
             print('STEP ONE: growing head into xindex')
             print('    ntot            {:,}'.format(ntot))
@@ -407,9 +438,11 @@ def grow(
 
         tailcriteria = XIndexedCriteria(xindex, binner,
                                         criteria[0].nfold, from_seg=-1)
-        accum2 = XIndexedAccumulator(tail, splitseg, head, xindex,
+        accum2 = XIndexedAccumulator(segments, tail, splitpoint, head, xindex,
                                      binner, criteria[0].nfold,
-                                     from_seg=-1, max_results=max_results * 20)
+                                     from_seg=criteria.from_seg,
+                                     to_seg=criteria.to_seg,
+                                     max_results=max_results * 20)
 
         tailsizes = [len(s) for s in tail]
         tailend = _get_chunk_end_seg(tailsizes, max_workers, memsize)

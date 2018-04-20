@@ -1154,27 +1154,3 @@ def test_Segments_split_at(c1pose):
     assert tail[-1].exitpol is None
     assert head[0].entrypol is None
     assert head[-1].exitpol is None
-
-
-@pytest.mark.skip  # if('not HAVE_PYROSETTA')
-def test_origin_seg(c1pose, c2pose, c3pose):
-    helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', 'C')])
-    dimer = Spliceable(c2pose, sites=[('1,:3', 'N'), ('1,-3:', 'C'),
-                                      ('2,:3', 'N'), ('2,-3:', 'C'), ])
-    trimer = Spliceable(c3pose, sites=[('1,:3', 'N'), ('1,-3:', 'C'),
-                                       ('2,:3', 'N'), ('2,-3:', 'C'),
-                                       ('3,:3', 'N'), ('3,-3:', 'C'), ])
-    segments = [Segment([trimer], '_C'),  # origin_seg
-                Segment([helix], 'NC'),
-                Segment([helix], 'NC'),
-                Segment([helix], 'NC'),
-                Segment([helix], 'NC'),
-                Segment([trimer], 'NN'),  # from_seg
-                Segment([helix], 'CN'),
-                Segment([dimer], 'CC'),
-                Segment([helix], 'NC'),
-                Segment([helix], 'NC'),
-                Segment([trimer], 'N_'), ]  # to_seg
-    w = grow(segments, Cyclic(3, from_seg=5, origin_seg=0), thresh=1)
-
-    assert 0

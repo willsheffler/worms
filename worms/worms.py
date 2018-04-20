@@ -286,7 +286,9 @@ class Segment:
         return idx
 
     def merge_idx(self, head, head_idx, tail, tail_idx):
-        ok = head.bodyid[head_idx] == tail.bodyid[tail_idx]
+        ok1 = (head.bodyid[head_idx] == tail.bodyid[tail_idx])
+        ok2 = (head.entrysiteid[head_idx] != tail.exitsiteid[tail_idx])
+        ok = np.logical_and(ok1, ok2)
         return self.merge_idx_slow(head, head_idx[ok], tail, tail_idx[ok]), ok
 
     def split_idx(self, idx, head, tail):
@@ -416,7 +418,8 @@ class Segment:
         if isinstance(indices, int):
             assert not cyclictrim
             index = indices
-        else: index = indices[iseg]
+        else:
+            index = indices[iseg]
         spliceable = self.spliceables[self.bodyid[index]]
         pose, chains = spliceable.body, spliceable.chains
         ir_en, ir_ex = self.entryresid[index], self.exitresid[index]
@@ -427,14 +430,20 @@ class Segment:
         if cyclictrim and iseg == cyclictrim[0]:
             # assert ir_en == -1, 'paece sign not implemented yet'
             sym_ir = segments[cyclictrim[1]].entryresid[indices[cyclictrim[1]]]
+            sym_ch = pose.chain(sym_ir)
+            sym_pol = segments[cyclictrim[1]].entrypol
+            cyclictrim_in_rest = False
             if ir_en == -1:
                 ir_en = sym_ir
-                cyclictrim_in_rest = False
             else:
-                cyclictrim_in_rest = True
+                entry_chain, exit_chain = pose.chain(ir_en), pose.chain(ir_ex)
+                if sym_ch not in (entry_chain, exit_chain):
+                    cyclictrim_in_rest = True
+                assert sym_ch != entry_chain or sym_pol != self.entrypol
+                assert sym_ch != exit_chain or sym_pol != self.exitpol
             # annotate enex entries with cyclictrim info
             cyclic_entry[pose.chain(sym_ir)] = (iseg, sym_ir,
-                                                segments[-1].entrypol)
+                                                segments[cyclictrim[1]].entrypol)
         if cyclictrim and iseg == cyclictrim[1]:
             assert ir_ex == -1
             assert iseg + 1 == len(segments)
@@ -442,17 +451,19 @@ class Segment:
             p = util.subpose(pose, i, i)
             if position is not None: util.xform_pose(position, p)
             return [AnnoPose(p, iseg, pose, i, i, None)], []
+
         ch_en = pose.chain(ir_en) if ir_en > 0 else None
         ch_ex = pose.chain(ir_ex) if ir_ex > 0 else None
         pl_en, pl_ex = self.entrypol, self.exitpol
         if cyclictrim and iseg == 0:
             pl_en = segments[-1].entrypol
         if cyclictrim and iseg + 1 == len(segments):
-            assert 0
+            assert 0, 'last segment not returned as single entry residue?!?'
             pl_ex = segments[0].exitpol
         if ch_en: ir_en -= spliceable.start_of_chain[ch_en]
         if ch_ex: ir_ex -= spliceable.start_of_chain[ch_ex]
         assert ch_en or ch_ex
+
         rest = OrderedDict()
         did_cyclictrim_in_rest = False
         for i in range(1, len(chains) + 1):
@@ -470,7 +481,11 @@ class Segment:
                                        cyclic_entry[i])
             assert rest[chains[i]].seq() == rest[chains[i]].srcseq()
         if cyclictrim and iseg == cyclictrim[0]:
-            assert cyclictrim_in_rest == did_cyclictrim_in_rest
+            if cyclictrim_in_rest != did_cyclictrim_in_rest:
+                print('cyclictrim_in_rest', cyclictrim_in_rest,
+                      'did_cyclictrim_in_rest', did_cyclictrim_in_rest)
+                print('iseg', iseg, 'len(chains)', len(chains))
+                assert cyclictrim_in_rest == did_cyclictrim_in_rest
         if ch_en: del rest[chains[ch_en]]
         if ch_en == ch_ex:
             assert len(rest) + 1 == len(chains)
@@ -774,7 +789,7 @@ class Worms:
         if self.criteria.symfile_modifiers:
             symdata = util.get_symdata_modified(
                 self.criteria.symname,
-                self.criteria.symfile_modifiers(segpos=self.positions[which]))
+                **self.criteria.symfile_modifiers(segpos=self.positions[which]))
         else:
             symdata = util.get_symdata(self.criteria.symname)
         sfxn = self.score0sym
