@@ -2,7 +2,7 @@
 
 import sys
 import os
-import pickle
+import _pickle as pickle
 import itertools as it
 import numpy as np
 from collections import defaultdict
@@ -89,7 +89,8 @@ class MakeXIndexAccumulator:
 
         # print('IndexAcculator checkpoint, xindex size:', len(self.xindex))
         self.tmp = []
-        print('done, xindex size:', len(self.xindex))
+        print('done, xindex size:', len(self.xindex),
+              sum(len(v) for v in self.xindex.values()))
         sys.stdout.flush()
 
     def accumulate(self, gen):
@@ -364,7 +365,7 @@ def grow(
     else:  # hash-based protocol...
 
         assert len(criteria) is 1
-        matchlast = _check_topology(segments, criteria, expert)
+        _check_topology(segments, criteria, expert)
 
         splitpoint = criteria.from_seg
         tail, head = segments.split_at(splitpoint)
@@ -464,7 +465,8 @@ def grow(
             max_results=max_results, nworker=nworker,
             verbosity=verbosity)
 
-        print('STEP TWO: using xindex, nentries {:,}'.format(len(xindex)))
+        print('STEP TWO: using xindex, nbins: {:,} nentries: {:,}'.format(
+            len(xindex), sum(len(x) for x in xindex.values())))
         print('    ntot            {:,}'.format(ntot))
         print('    tailsizes       {}'.format(tailsizes))
         print('    tailend         {:,}'.format(tailend))

@@ -1,5 +1,5 @@
 import pytest
-import pickle
+import _pickle as pickle
 import numpy as np
 from homog import hrot, htrans, axis_angle_of, axis_ang_cen_of
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor

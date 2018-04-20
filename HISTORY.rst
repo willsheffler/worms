@@ -2,6 +2,11 @@
 History
 =======
 
+0.1.22 (2018-04-20)
+------------------
+
+* add initial draft of Una's criteria for P3, P4 and P6 layers
+
 0.1.21 (2018-04-19)
 ------------------
 
