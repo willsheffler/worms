@@ -21,6 +21,7 @@ except ImportError:
 
 only_if_pyrosetta = pytest.mark.skipif('not HAVE_PYROSETTA')
 
+#@pytest.mark.skip
 @only_if_pyrosetta
 def test_sheet_P6(c2pose, c6pose, c1pose):
     helix = Spliceable(c1pose, [(':1', 'N'), ('-7:', 'C')])
@@ -48,7 +49,8 @@ def test_sheet_P6(c2pose, c6pose, c1pose):
             p.dump_pdb('P6_%i_asymm.pdb'%i)
 
     assert util.no_overlapping_residues(p)
-    assert 0
+
+#@pytest.mark.skip
 @only_if_pyrosetta
 def test_sheet_P4212(c2pose, c4pose, c1pose):
     helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', 'C')])
@@ -71,6 +73,7 @@ def test_sheet_P4212(c2pose, c4pose, c1pose):
 
     assert util.no_overlapping_residues(p) ## basic check on pose to make sure residues are not on top of each other
 
+#@pytest.mark.skip
 @only_if_pyrosetta
 def test_sheet_P321(c2pose, c3pose, c1pose):
     helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', 'C')])
@@ -93,4 +96,28 @@ def test_sheet_P321(c2pose, c3pose, c1pose):
     assert util.no_overlapping_residues(p)
 
     # print(len(p))
+
+@only_if_pyrosetta
+def test_crystal_P213(c3pose, c3_splay_pose, c1pose):
+    helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', 'C')])
+    trimer = Spliceable(c3pose, sites=[('1,:1', 'N'), ('1,-2:', 'C')])
+    trimer2 = Spliceable(c3_splay_pose, sites=[('1,:1', 'N'), ('1,-2:', 'C')])
+    segments = [Segment([trimer], '_C'),
+                Segment([helix], 'NC'),
+                Segment([helix], 'NC'),
+                Segment([helix], 'NC'),
+                Segment([trimer2], 'N_')]
+    w = grow(segments, Crystal_P213(c3a=0, c3b=-1), thresh=1)
+    print(len(w))
+
+    # print(w.scores)
+    # vis.show_with_z_axes(w, 0)
+    for i in range(10):
+        p = w.pose(i, only_connected=0)
+        q = w.sympose(i, fullatom=True )
+    #p.dump_pdb('p.pdb')
+        q.dump_pdb('P213_symm_%i.pdb'%i)
+        p.dump_pdb('P213_asymm_%i.pdb'%i)
+
+    assert util.no_overlapping_residues(p) ## basic check on pose to make sure residues are not on top of each other
 

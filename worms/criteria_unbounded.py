@@ -19,15 +19,22 @@ class AxesAngle(WormCriteria): ## for 2D arrays (maybe 3D in the future?)
         """
 
         self.symname = symname
-        self.tgtaxis1 = tgtaxis1 ## we are treating these as vectors for now
-        self.tgtaxis2 = tgtaxis2
+        self.tgtaxis1 = np.asarray(tgtaxis1,dtype='f8') ## we are treating these as vectors for now, make it an array if it isn't yet, set array type to 8-type float
+        self.tgtaxis2 = np.asarray(tgtaxis2,dtype='f8')
+        print(self.tgtaxis1.shape)
+        print(np.linalg.norm(tgtaxis1))
+        self.tgtaxis1 /= np.linalg.norm(self.tgtaxis1) #normalize target axes to 1,1,1
+        self.tgtaxis2 /= np.linalg.norm(self.tgtaxis2)
+        if hm.angle(self.tgtaxis1,self.tgtaxis2) > np.pi/2:
+            self.tgtaxis2 = -self.tgtaxis2
         self.from_seg = from_seg
         self.tol = tol
         self.lever = lever
         self.to_seg = to_seg
         ## if you want to store arguments, you have to write these self.argument lines
 
-        self.target_angle = np.arccos(np.abs(hm.hdot(tgtaxis1, tgtaxis2))) ## already set to a non- self.argument in this function
+        self.target_angle = np.arccos(np.abs(hm.hdot(self.tgtaxis1, self.tgtaxis2))) ## already set to a non- self.argument in this function
+        print(self.target_angle * (180/np.pi))
 
     def score(self, segpos, **kw):
         """ Score
@@ -44,7 +51,7 @@ class AxesAngle(WormCriteria): ## for 2D arrays (maybe 3D in the future?)
         angle = np.arccos(np.abs(hm.hdot(ax1, ax2))) ## this is better because it contains absolutel value, which ensures that you always get the smaller of the angles resulting from intersecting two lines
         return np.abs((angle - self.target_angle)) / self.tol * self.lever ## as tolerance goes up, you care about the angle error less. as lever goes up, you care about the angle error more. 
 
-    def alignment(self, segpos, **kw):
+    def alignment(self, segpos, out_cell_spacing=False, **kw):
         """ Alignment to move stuff to be in line with symdef file
 
         Args:
@@ -60,19 +67,55 @@ class AxesAngle(WormCriteria): ## for 2D arrays (maybe 3D in the future?)
             ax2 = -ax2
         if abs(hm.angle(self.tgtaxis1, self.tgtaxis2)) < 0.1 :
             d = hm.proj_perp(ax1, cen2 - cen1) #vector delta between cen2 and cen1
-            x = hm.align_vectors(ax1, d, self.tgtaxis1, [0,1,0,0] ) #align d to Y axis
-            x[..., :, 3] = - x @ cen1
+            Xalign = hm.align_vectors(ax1, d, self.tgtaxis1, [0,1,0,0] ) #align d to Y axis
+            Xalign[..., :, 3] = - Xalign @ cen1
+            cell_dist = (Xalign @ cen2)[..., 1]
+
         else:
-            x = hm.align_vectors(ax1, ax2, self.tgtaxis1, self.tgtaxis2) ## utility function that tries to align ax1 and ax2 to the target axes
-            x[..., :, 3] = - x @ cen1 ## move from_seg cen1 to origin
-            x[..., 2, 3] = - (x @ cen2)[...,2] ##move cen2 down along z, such that it's centered at z=0
-        return x
+            Xalign = hm.align_vectors(ax1, ax2, self.tgtaxis1, self.tgtaxis2) ## utility function that tries to align ax1 and ax2 to the target axes
+            Xalign[..., :, 3] = - Xalign @ cen1 ## move from_seg cen1 to origin
+            cen2_0 = Xalign@cen2 #moving cen2 by Xalign
+            D = np.stack([self.tgtaxis1[:3] , [0,1,0] , self.tgtaxis2[:3]]).T #matrix where the columns are the things in the list
+            #CHANGE Uy to an ARGUMENT SOON!!!!
+            #print("D: ", D)
+            A1offset, cell_dist, _ = np.linalg.inv(D)@cen2_0[:3] #transform of A1 offest, cell distance (offset along other axis), and A2 offset (<-- we are ignoring this)
+            Xalign[..., :, 3] = Xalign[..., :, 3] - (A1offset * self.tgtaxis1)
+
+        if out_cell_spacing:
+            return Xalign, cell_dist
+        else:
+            return Xalign
+
+
+            #this other attempt to do things with math
+            # a = (cen2_0[2] * self.tgtaxis2[0]) - (cen2_0[0] *(self.tgtaxis2[0])) / ((self.tgtaxis2[2] * self.tgtaxis1[0]) - (self.tgtaxis1[2] * self.tgtaxis2[0]) )
+            # print("a denominator: ",((self.tgtaxis2[2] * self.tgtaxis1[0]) - (self.tgtaxis1[2] * self.tgtaxis2[0]) ) )
+            # c = (cen2_0[2] + (a * self.tgtaxis1[2])) / self.tgtaxis2[2]
+            # b = (c * self.tgtaxis2[1]) - cen2_0[0] - (a * self.tgtaxis1[1])
+
+            # Xalign[...,:, 3] = Xalign[...,:, 3] + (a * self.tgtaxis1)
+            # print("a: ",a)
+            # print("b: ",b)
+            # print("c: ",c)
+            # print("Xalign: ",Xalign)
+
+            #original transformations for when center's are aligned on coordinate axes
+            #Xalign[..., :, 3] = - Xalign @ cen1 ## move from_seg cen1 to origin
+            #Xalign[..., 2, 3] = - (Xalign @ cen2)[...,2] ##move cen2 down along z, such that it's centered at z=0
+            
+
+            # print("ax1: ",ax1)
+            # print("ax2: ",ax2)
+            # print("angle between ax1 & ax2: ",np.arccos(np.abs(hm.hdot(ax1, ax2)))* (180/np.pi))
+            # print("angle between tgtaxis1 & tgtaxis2: ",np.arccos(np.abs(hm.hdot(self.tgtaxis1, self.tgtaxis2)))* (180/np.pi))
+            # print("tgtaxis1: ",self.tgtaxis1)
+            # print("tgtaxis2: ",self.tgtaxis2)
+            # print("aligned ax1: ",Xalign@ax1)
+            # print("aligned ax2: ",Xalign@ax2)
 
     def symfile_modifiers(self, segpos):
-        x = self.alignment(segpos)
-        cen2 = segpos[self.to_seg][..., :, 3]
-        cell_spacing = (x @ cen2)[..., 1] ## setting cell_spacing equal to offset of dimer from origin
-        return dict(scale_positions = cell_spacing)
+        x, cell_dist = self.alignment(segpos, out_cell_spacing=True)
+        return dict(scale_positions = cell_dist)
 
 def Sheet_P321(c3=None, c2=None, **kw):
     if c3 is None or c2 is None:
@@ -89,4 +132,7 @@ def Sheet_P6(c6=None, c2=None, **kw): ##should there be options for multiple C2'
         raise ValueError('must specify ...?') #one or two of c6, c2
     return AxesAngle('Sheet_P6_C6_C2_depth3_1comp', Uz, Uz, from_seg=c6, to_seg=c2, **kw)
 
-##def Crystal_example():
+def Crystal_P213(c3a=None, c3b=None, **kw):
+    if c3a is None or c3b is None:
+        raise ValueError('must specify ...?') #one or two of c6, c2
+    return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [-1,1,1,0], [1,-1,1,0], from_seg=c3a, to_seg=c3b, **kw)
