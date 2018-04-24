@@ -11,7 +11,7 @@
     [
         {
             "name": "pytest",
-            "shell_cmd": "cd $folder; /Users/natteruw/anaconda3/envs/wormsdev/bin/python -m pytest worms/tests/test_una2d.py --duration=10 &> log/sublime_build.log"
+            "shell_cmd": "cd $folder; pytest --duration=10 &> log/sublime_build.log"
         },
         {
             "name": "worms_peace_sign",

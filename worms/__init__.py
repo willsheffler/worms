@@ -9,5 +9,6 @@ __version__ = '0.1.22'
 from .worms import *
 from .search import *
 from .criteria import *
+from .criteria_unbounded import *
 from . import data
 from . import vis
