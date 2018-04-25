@@ -24,5 +24,6 @@ test_db_files = [
 ]
 
 
+@pytest.mark.skip
 def test_database_simple(tmpdir):
     db = Database(test_db_files, cachefile=os.path.join(tmpdir, 'tmp.pickle'))
