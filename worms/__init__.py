@@ -4,7 +4,7 @@
 
 __author__ = """Will Sheffler"""
 __email__ = 'willsheffler@gmail.com'
-__version__ = '0.1.25'
+__version__ = '0.1.26'
 
 from .worms import *
 from .search import *
