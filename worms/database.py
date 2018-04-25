@@ -1,4 +1,5 @@
 import os
+import json
 import _pickle as pickle
 from . import util
 try:
@@ -12,44 +13,50 @@ except ImportError:
 
 class Database:
 
-    def __init__(self, cachefile='.worms_database.pickle'):
+    def __init__(self, json_db_files, *, cachefile='.worms_database.pickle'):
         self.cachefile = cachefile
         if os.path.exists(cachefile):
             with open(self.cachefile, 'rb') as f:
                 self.cache = pickle.load(f)
         else:
             self.cache = dict(poses=dict(), coords=dict(), secstruct=dict)
+        for json_db_file in json_db_files:
+            with open(json_db_file) as f:
+                db = json.load(f)
+                print('-' * 100)
+                print(json_db_file)
+                print(db)
 
-        def _save(self):
-            with open(self.cachefile, 'wb') as f:
-                pickle.dump(self.cache, f)
+    def _save(self):
+        with open(self.cachefile, 'wb') as f:
+            pickle.dump(self.cache, f)
 
-        def get_pose(self, pdb_file):
-            if pdb_file not in self.cache['poses']:
-                pose = pose_from_file(pdb_file)
-                self.cache['poses'][pdb_file] = pose
-            return self.cache['poses'][pdb_file]
+    def get_pose(self, pdb_file):
+        if pdb_file not in self.cache['poses']:
+            pose = pose_from_file(pdb_file)
+            self.cache['poses'][pdb_file] = pose
+        return self.cache['poses'][pdb_file]
 
-        def clear_poses(self):
-            self.cache['poses'] = dict()
+    def clear_poses(self):
+        self.cache['poses'] = dict()
 
-        def get_coords(self, pdb_file):
-            if pdb_file not in self.cache['coords']:
-                pose = self.get_pose(pdb_file)
-                coords = util.get_bb_stubs(pose)
-                self.cache['coords'][pdb_file] = pose
-            return self.cache['coords'][pdb_file]
-
-        def get_secstruct(self, pdb_file):
+    def get_coords(self, pdb_file):
+        if pdb_file not in self.cache['coords']:
             pose = self.get_pose(pdb_file)
-            ss = Dssp(pose).get_dssp_secstruct()
-            self.cache['secstruct'][pdb_file] = ss
+            coords = util.get_bb_stubs(pose)
+            self.cache['coords'][pdb_file] = pose
+        return self.cache['coords'][pdb_file]
 
-        def add_pdb_file(self, pdb_file):
-            get_pose(pdb_file)
-            get_coords(pdb_file)
-            get_secstruct(pdb_file)
+    def get_secstruct(self, pdb_file):
+        pose = self.get_pose(pdb_file)
+        ss = Dssp(pose).get_dssp_secstruct()
+        self.cache['secstruct'][pdb_file] = ss
 
-        def __del__(self):
-            print('Database.__del__', id(self))
-            self._save()
+    def add_pdb_file(self, pdb_file):
+        get_pose(pdb_file)
+        get_coords(pdb_file)
+        get_secstruct(pdb_file)
+
+    def __del__(self):
+        print('Database.__del__', id(self))
+        self._save()

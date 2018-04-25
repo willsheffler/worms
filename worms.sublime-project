@@ -1,29 +1,40 @@
 {
+	"build_systems":
+	[
+		{
+			"name": "pytest",
+			"shell_cmd": "cd $folder; pytest worms/tests/test_database.py --duration=10 &> log/sublime_build.log"
+		},
+		{
+			"name": "worms_peace_sign",
+			"shell_cmd": "cd $folder; echo pwd: `pwd` > log/sublime_build.log; echo python: `which python` >> log/sublime_build.log; PYTHONPATH=. python examples/worms_peace_sign.py &>> log/sublime_build.log"
+		},
+		{
+			"name": "pytest util",
+			"shell_cmd": "cd $folder; echo pwd: `pwd` > log/sublime_build.log; echo python: `which python` >> log/sublime_build.log; pytest --duration=10 worms/tests/test_util.py &>> log/sublime_build.log"
+		},
+		{
+			"name": "make_docs",
+			"shell_cmd": "cd $folder; make docs &> log/sublime_build.log"
+		}
+	],
 	"folders":
 	[
 		{
-			"path": ".",
-            "folder_exclude_patterns" : [".cache", ".tox", "build", "dist",
-                "*.egg-info", "__pycache__", "_build"]
+			"folder_exclude_patterns":
+			[
+				".cache",
+				".tox",
+				"build",
+				"dist",
+				"*.egg-info",
+				"__pycache__",
+				"_build"
+			],
+			"path": "."
+		},
+		{
+			"path": "/home/sheffler/will_fusion"
 		}
-	],
-    "build_systems":
-    [
-        {
-            "name": "pytest",
-            "shell_cmd": "cd $folder; pytest --duration=10 &> log/sublime_build.log"
-        },
-        {
-            "name": "worms_peace_sign",
-            "shell_cmd": "cd $folder; echo pwd: `pwd` > log/sublime_build.log; echo python: `which python` >> log/sublime_build.log; PYTHONPATH=. python examples/worms_peace_sign.py &>> log/sublime_build.log"
-        },
-        {
-            "name": "pytest util",
-            "shell_cmd": "cd $folder; echo pwd: `pwd` > log/sublime_build.log; echo python: `which python` >> log/sublime_build.log; pytest --duration=10 worms/tests/test_util.py &>> log/sublime_build.log"
-        },
-        {
-            "name": "make_docs",
-            "shell_cmd": "cd $folder; make docs &> log/sublime_build.log"
-        }
-    ]
+	]
 }

@@ -2,6 +2,11 @@
 History
 =======
 
+0.1.24 (2018-04-25)
+------------------
+
+* change two-stage xindex thershold multiplier for 1st stage from 1.25 to 2.0
+
 0.1.23 (2018-04-24)
 ------------------
 

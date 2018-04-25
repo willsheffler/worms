@@ -398,7 +398,7 @@ def grow(
             accum1 = MakeXIndexAccumulator(headsizes, from_seg=0, to_seg=-1,
                                            cart_resl=cart_resl, ori_resl=ori_resl)
             headcriteria = Cyclic(criteria[0].nfold, from_seg=0, to_seg=-1,
-                                  tol=criteria[0].tol * 1.25,
+                                  tol=criteria[0].tol * 2.0,
                                   lever=criteria[0].lever)
             print('STEP ONE: growing head into xindex')
             print('    ntot            {:,}'.format(ntot))
