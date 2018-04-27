@@ -14,6 +14,7 @@ requirements = [
     'numpy',
     'homog >= 0.1.10',
     'tqdm',
+    'numba',
 ]
 
 setup_requirements = []
@@ -29,6 +30,7 @@ test_requirements = [
     'pytest',
     'pytest-runner',
     'numpy',
+    'numba',
     'homog >= 0.1.10',
     'xbin >= 0.1.5',
     'tqdm',
