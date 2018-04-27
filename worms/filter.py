@@ -14,7 +14,6 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
 from collections import defaultdict, namedtuple, Counter
 
-
 sys.path.insert(0, '/home/sheffler/src/rif/buildR/lib.linux-x86_64-3.6')
 from rif import rcl, vis  # 'rosetta compatibility layer'
 
@@ -28,20 +27,18 @@ def count_contacts_accross_junction(pose, resN):
         ss, resN)
     before_contact_res = get_contacts(in_helix,
                                       before_helix[-1] + before_helix[-2],
-                                      after_helix[1] + after_helix[2],
-                                      pose)
-    after_contact_res = get_contacts(in_helix,
-                                     after_helix[1] + after_helix[2],
-                                     before_helix[-1] + before_helix[-2],
-                                     pose)
-    contact_res_no_helix = get_contacts(
-        [], before_helix[-1] + before_helix[-2], after_helix[1] + after_helix[2], pose)
+                                      after_helix[1] + after_helix[2], pose)
+    after_contact_res = get_contacts(in_helix, after_helix[1] + after_helix[2],
+                                     before_helix[-1] + before_helix[-2], pose)
+    contact_res_no_helix = get_contacts([],
+                                        before_helix[-1] + before_helix[-2],
+                                        after_helix[1] + after_helix[2], pose)
     begin_res = before_helix[min(before_helix.keys())][0]
     end_res = after_helix[max(after_helix.keys())][-1]
 
     return (len(before_contact_res) + len(after_contact_res),
-            len(contact_res_no_helix), get_number_helices_contacted(
-                in_helix, helix_id, pose),
+            len(contact_res_no_helix),
+            get_number_helices_contacted(in_helix, helix_id, pose),
             get_number_helices_contacted(before_helix[-1], helix_id, pose),
             get_number_helices_contacted(after_helix[1], helix_id, pose),
             begin_res, end_res)
@@ -55,10 +52,9 @@ def get_number_helices_contacted(helix, helix_id, pose):
     nb_selector = NeighborhoodResidueSelector(res_indices, 8, False)
     nb_indices = nb_selector.apply(pose)
     contact_res = [
-        index for index in range(
-            1,
-            len(nb_indices) +
-            1) if nb_indices[index]]
+        index for index in range(1,
+                                 len(nb_indices) + 1) if nb_indices[index]
+    ]
     helices_contacted = set()
     for res in contact_res:
         if res in helix_id.keys(): helices_contacted.add(helix_id[res])
@@ -76,10 +72,9 @@ def get_contacts(helix, set1, set2, pose):
     nb_selector = NeighborhoodResidueSelector(res_indices, 8, False)
     nb_indices = nb_selector.apply(pose)
     contact_res = [
-        index for index in range(
-            1,
-            len(nb_indices) +
-            1) if nb_indices[index]]
+        index for index in range(1,
+                                 len(nb_indices) + 1) if nb_indices[index]
+    ]
     nearby_contact_res = set(contact_res).intersection(set(set2))
     return nearby_contact_res
 
@@ -103,8 +98,8 @@ def identify_helical_segments(ss, resN):
         resi = resi + 1
     H_end = resi - 1
 
-# identify residues in preceding three helices
-# actually, just need one dict, use -1 for helix before and +1 for helix after
+    # identify residues in preceding three helices
+    # actually, just need one dict, use -1 for helix before and +1 for helix after
     before_helix = defaultdict(list)
     h_index = 0
     in_H = False
@@ -119,6 +114,7 @@ def identify_helical_segments(ss, resN):
 
         else:
             in_H = False
+
 
 # identify residues in following two helices
     after_helix = defaultdict(list)
@@ -142,17 +138,17 @@ def PRINTDBG(msg):
     # print(msg)
     return
 
+
 # holds pose-related info and lazily constructs subposes for secondary
 # structure elements
 
 
 class PoseInfo:
-
     def __init__(self, pose):
         self._pose = pose
-#        self._chains=pose.split_by_chain()
-#        self._Nchains=len(chains)
-# self._dssp = Dssp(pose).get_dssp_secstruct() for chain in self._chains]
+        #        self._chains=pose.split_by_chain()
+        #        self._Nchains=len(chains)
+        # self._dssp = Dssp(pose).get_dssp_secstruct() for chain in self._chains]
 
         # lookup of pose to _dssp
         self._dssp = Dssp(pose).get_dssp_secstruct()
@@ -184,9 +180,9 @@ class PoseInfo:
         if self._length_rhs is None:
             self._length_rhs = [0 for x in self._dssp]
             for position in range(len(self._dssp) - 2, 0, -1):
-                if(self._dssp[position] == self._dssp[position + 1]):
-                    self._length_rhs[position] = self._length_rhs[
-                        position + 1] + 1
+                if (self._dssp[position] == self._dssp[position + 1]):
+                    self._length_rhs[
+                        position] = self._length_rhs[position + 1] + 1
         return self._length_rhs[position0]
 
     # determines the remaining secondary structure element length on the left
@@ -195,24 +191,23 @@ class PoseInfo:
         if self._length_lhs is None:
             self._length_lhs = [0 for x in self._dssp]
             for position in range(1, len(self._dssp)):
-                if(self._dssp[position] == self._dssp[position - 1]):
-                    self._length_lhs[position] = self._length_lhs[
-                        position - 1] + 1
+                if (self._dssp[position] == self._dssp[position - 1]):
+                    self._length_lhs[
+                        position] = self._length_lhs[position - 1] + 1
         return self._length_lhs[position0]
 
     def dssp_all_positions(self):
-        return self._dssp   # start at 1 or 0?
+        return self._dssp  # start at 1 or 0?
 
     def dssp_single_position(self, position0):
         return self._dssp[position0]
 
 
 class AlignmentValidator:
-
     def __init__(self, superimpose_rmsd=0.4, superimpose_length=10):
-        assert(0 < superimpose_rmsd)
-        assert(0 < superimpose_length)
-#        self._pose_infos = {} # map of pose to PoseInfo
+        assert (0 < superimpose_rmsd)
+        assert (0 < superimpose_length)
+        #        self._pose_infos = {} # map of pose to PoseInfo
         self._superimpose_rmsd = superimpose_rmsd
         self._superimpose_length = superimpose_length
 
@@ -228,11 +223,18 @@ class AlignmentValidator:
             self._pose_infos[pdb_name] = PoseInfo(pose)
 
         pose_info = self._pose_infos[pose]
-        return [i + 1 for i in range(0, pose.size())
-                if pose_info.dssp(i) == sse_type]
+        return [
+            i + 1 for i in range(0, pose.size())
+            if pose_info.dssp(i) == sse_type
+        ]
 
-    def test_pair_alignment(self, pose_info_n, pose_info_c, index_n1,
-                            index_c1, superimpose_rmsd=None, superimpose_length=None):
+    def test_pair_alignment(self,
+                            pose_info_n,
+                            pose_info_c,
+                            index_n1,
+                            index_c1,
+                            superimpose_rmsd=None,
+                            superimpose_length=None):
         index_n0 = index_n1 - 1
         index_c0 = index_c1 - 1
 
@@ -242,8 +244,8 @@ class AlignmentValidator:
         if superimpose_length is None:
             superimpose_length = self._superimpose_length
 
-        if pose_info_n._pose.size() < superimpose_length or pose_info_c._pose.size(
-        ) < superimpose_length:
+        if pose_info_n._pose.size(
+        ) < superimpose_length or pose_info_c._pose.size() < superimpose_length:
             print('failed size filter')
             return None, min(pose_info_n._pose.size(),
                              pose_info_c._pose.size())
@@ -265,7 +267,7 @@ class AlignmentValidator:
             pose_info_c.get_run_length_rhs(index_c0))
         sse_shared_length = sse_shared_left + sse_shared_right + 1
 
-        if(sse_shared_left + sse_shared_right + 1 < superimpose_length):
+        if (sse_shared_left + sse_shared_right + 1 < superimpose_length):
             print(
                 'failed superimpose_length position index_n0,index_c0=%d,%d' %
                 (index_n0, index_c0))
@@ -276,18 +278,18 @@ class AlignmentValidator:
         #PRINTDBG('sse_shared_left ' + str(sse_shared_left))
         #PRINTDBG('sse_shared_right ' + str(sse_shared_right))
 
-        assert(index_n0 - sse_shared_left + 1 >= 0)
-        assert(index_n0 + sse_shared_right < pose_info_n._pose.size())
-        assert(index_c0 - sse_shared_left + 1 >= 0)
-        assert(index_c0 + sse_shared_right < pose_info_c._pose.size())
+        assert (index_n0 - sse_shared_left + 1 >= 0)
+        assert (index_n0 + sse_shared_right < pose_info_n._pose.size())
+        assert (index_c0 - sse_shared_left + 1 >= 0)
+        assert (index_c0 + sse_shared_right < pose_info_c._pose.size())
         # look up the poses for each sse, determine the align indices,
         # reinitialize the coordinates to the original values,
         sse_n = pose_info_n.get_subpose(index_n0)
         sse_c = pose_info_c.get_subpose(index_c0)
         sse_index_n = pose_info_n.get_run_length_lhs(index_n0)
         sse_index_c = pose_info_c.get_run_length_lhs(index_c0)
-        assert(0 <= sse_index_n and sse_index_n < sse_n.size())
-        assert(0 <= sse_index_c and sse_index_c < sse_c.size())
+        assert (0 <= sse_index_n and sse_index_n < sse_n.size())
+        assert (0 <= sse_index_c and sse_index_c < sse_c.size())
 
         #PRINTDBG('sse_n ' + str(sse_n))
         #PRINTDBG('sse_c ' + str(sse_c))
@@ -296,23 +298,22 @@ class AlignmentValidator:
         #PRINTDBG('sse_index_n ' + str(sse_index_n))
         #PRINTDBG('sse_index_c ' + str(sse_index_c))
 
-        self.align_pose_at_position1_sheffler(
-            sse_n, sse_c, sse_index_n + 1, sse_index_c + 1)
+        self.align_pose_at_position1_sheffler(sse_n, sse_c, sse_index_n + 1,
+                                              sse_index_c + 1)
         residue_distances2 = [
             self.residue_ncac_avg_distance2(
-                sse_n.residue(
-                    sse_index_n + x + 1),
-                sse_c.residue(
-                    sse_index_c + x + 1)) for x in range(
-                -sse_shared_left,
-                sse_shared_right)]
+                sse_n.residue(sse_index_n + x + 1),
+                sse_c.residue(sse_index_c + x + 1))
+            for x in range(-sse_shared_left, sse_shared_right)
+        ]
         #PRINTDBG('residue distances = ' + str(residue_distances))
 
         sum_distance2 = 0
-        max_sum_distance2 = superimpose_length * superimpose_rmsd ** 2
+        max_sum_distance2 = superimpose_length * superimpose_rmsd**2
         PRINTDBG(
-            'superimpose_length = %f, superimpose_rmsd = %f, max_sum_distance2 = %f, residue count = %d' %
-            (superimpose_length, superimpose_rmsd, max_sum_distance2, len(residue_distances2)))
+            'superimpose_length = %f, superimpose_rmsd = %f, max_sum_distance2 = %f, residue count = %d'
+            % (superimpose_length, superimpose_rmsd, max_sum_distance2,
+               len(residue_distances2)))
         lowest_observed_distance2 = math.inf
         for index in range(0, len(residue_distances2)):
             sum_distance2 = sum_distance2 + residue_distances2[index]
@@ -322,11 +323,9 @@ class AlignmentValidator:
                 sum_distance2 = sum_distance2 - \
                     residue_distances2[index - superimpose_length]
                 PRINTDBG(
-                    'subtract %f' %
-                    residue_distances2[
-                        index -
-                        superimpose_length])
-                assert(subtract_index >= 0)
+                    'subtract %f' % residue_distances2[index
+                                                       - superimpose_length])
+                assert (subtract_index >= 0)
             PRINTDBG('compute')
             if superimpose_length <= index + 1 and sum_distance2 < lowest_observed_distance2:
                 lowest_observed_distance2 = sum_distance2
@@ -334,38 +333,34 @@ class AlignmentValidator:
             if lowest_observed_distance2 <= max_sum_distance2:
                 return 'PASS', np.sqrt(
                     lowest_observed_distance2 / superimpose_length)
-           # else:
-            #    print('Filter failure:  lowest observed distance = %s %s'%(lowest_observed_distance2,max_sum_distance2))
-                # if dump_once:
-                #    # ALIGN SUCCESS
-                #    sse_n.dump_pdb('sse_n.pdb')
-                #    sse_c.dump_pdb('sse_c.pdb')
-                #    dump_once = False
-                #print('residue_pair found: ' + str([index_n0, index_c0]))
-                #PRINTDBG('rmsd: ' + str(rmsd))
-                # else:
-                #    # ALIGN FAIL
-                #    if dump_once:
-                #        sse_n.dump_pdb('fail_sse_n.pdb')
-                #        sse_c.dump_pdb('fail_sse_c.pdb')
-                #        dump_once = False
+        # else:
+        #    print('Filter failure:  lowest observed distance = %s %s'%(lowest_observed_distance2,max_sum_distance2))
+        # if dump_once:
+        #    # ALIGN SUCCESS
+        #    sse_n.dump_pdb('sse_n.pdb')
+        #    sse_c.dump_pdb('sse_c.pdb')
+        #    dump_once = False
+        #print('residue_pair found: ' + str([index_n0, index_c0]))
+        #PRINTDBG('rmsd: ' + str(rmsd))
+        # else:
+        #    # ALIGN FAIL
+        #    if dump_once:
+        #        sse_n.dump_pdb('fail_sse_n.pdb')
+        #        sse_c.dump_pdb('fail_sse_c.pdb')
+        #        dump_once = False
 
-        print(
-            'failed rmsd filter %f, sum_distance2 %f, threshold %f' %
-            (np.sqrt(
-                lowest_observed_distance2 /
-                superimpose_length),
-                sum_distance2,
-                max_sum_distance2))
+        print('failed rmsd filter %f, sum_distance2 %f, threshold %f' %
+              (np.sqrt(lowest_observed_distance2 / superimpose_length),
+               sum_distance2, max_sum_distance2))
         return None, np.sqrt(lowest_observed_distance2 / superimpose_length)
 
     # align pose_move to pose_ref at the indicated positions (using 1-indexing)
-    def align_pose_at_position1_sheffler(
-            self, pose_move, pose_ref, position_move, position_ref):
-        stubs_ref = rcl.bbstubs(pose_ref, [position_ref])[
-            'raw']  # gets 'stub' for reslist
-        stubs_move = rcl.bbstubs(pose_move, [position_move])[
-            'raw']  # raw field is position matrix
+    def align_pose_at_position1_sheffler(self, pose_move, pose_ref,
+                                         position_move, position_ref):
+        stubs_ref = rcl.bbstubs(
+            pose_ref, [position_ref])['raw']  # gets 'stub' for reslist
+        stubs_move = rcl.bbstubs(
+            pose_move, [position_move])['raw']  # raw field is position matrix
         # PRINTDBG(stubs_ref.shape)  # homo coords numpy array n x 4 x 4
         # PRINTDBG(stubs_move.shape)
         # a @ b is np.matmul(a, b)
@@ -398,7 +393,6 @@ class AlignmentValidator:
 # pass BakerFilter AND pose_info_all dict into grow so can filter and use
 # cached pose info
 class BakerFilter:
-
     def __init__(self,
                  score0_cutoff=1.0,
                  num_contact_threshold=40,
@@ -425,8 +419,17 @@ class BakerFilter:
             self.pose_info_all = pose_info_all
             self.input = 'PoseInfo'
 
-    def filter_worm(self, pose, junction_res, src_pose_N_jct_res, src_pose_C_jct_res, src_pose_N=None,
-                    src_pose_C=None, src_pose_N_name=None, src_pose_C_name=None, src_pose_N_chain=None, src_pose_C_chain=None):
+    def filter_worm(self,
+                    pose,
+                    junction_res,
+                    src_pose_N_jct_res,
+                    src_pose_C_jct_res,
+                    src_pose_N=None,
+                    src_pose_C=None,
+                    src_pose_N_name=None,
+                    src_pose_C_name=None,
+                    src_pose_N_chain=None,
+                    src_pose_C_chain=None):
         if self.input == 'Pose':
             if src_pose_N not in self.pose_info_all:
                 self.pose_info_all[src_pose_N] = PoseInfo(src_pose_N)
@@ -436,19 +439,21 @@ class BakerFilter:
             src_pose_C_info = self.pose_info_all[src_pose_C]
 
         elif self.input == 'PoseInfo':
-            src_pose_N_info = self.pose_info_all[
-                (src_pose_N_name, src_pose_N_chain)]
-            src_pose_C_info = self.pose_info_all[
-                (src_pose_C_name, src_pose_C_name)]
+            src_pose_N_info = self.pose_info_all[(src_pose_N_name,
+                                                  src_pose_N_chain)]
+            src_pose_C_info = self.pose_info_all[(src_pose_C_name,
+                                                  src_pose_C_name)]
 
         else:
             print('undefined input type')
 
         return self.filter_junction(pose, junction_res, src_pose_N_info,
-                                    src_pose_C_info, src_pose_N_jct_res, src_pose_C_jct_res)
+                                    src_pose_C_info, src_pose_N_jct_res,
+                                    src_pose_C_jct_res)
 
     def filter_junction(self, pose, junction_res, src_pose_N_info,
-                        src_pose_C_info, src_pose_N_jct_res, src_pose_C_jct_res):
+                        src_pose_C_info, src_pose_N_jct_res,
+                        src_pose_C_jct_res):
 
         nc, nc_no_helix, n_helix_contacted, n_helix_contacted_before, n_helix_contacted_after, begin_res, end_res = count_contacts_accross_junction(
             pose, junction_res)
@@ -456,16 +461,18 @@ class BakerFilter:
         for res_id in range(begin_res, end_res):
             jct_pose.append_residue_by_bond(pose.residue(res_id))
 
+
 #     mode=pyrosetta.rosetta.core.chemical.type_set_mode_from_string("centroid")
 #     centroid_jct_pose=jct_pose.clone()
 #     pyrosetta.rosetta.core.util.switch_to_residue_type_set(centroid_jct_pose,mode )
 
         score0 = self.scorefxn(jct_pose)
-#        AV.test_pair_alignment(,resN,resC)
+        #        AV.test_pair_alignment(,resN,resC)
         test, result = self.AV.test_pair_alignment(
-            src_pose_N_info, src_pose_C_info, src_pose_N_jct_res, src_pose_C_jct_res)
+            src_pose_N_info, src_pose_C_info, src_pose_N_jct_res,
+            src_pose_C_jct_res)
 
-# Assign grades
+        # Assign grades
         if test is None:
             super_grade = 'F'
         elif result < self.superimpose_rmsd:

@@ -3,31 +3,29 @@ import numpy as np
 import homog as hm
 from numpy.linalg import inv
 
-
 Ux = np.array([1, 0, 0, 0])
 Uy = np.array([0, 1, 0, 0])
 Uz = np.array([0, 0, 1, 0])
 
 
 class WormCriteria(abc.ABC):
-
     @abc.abstractmethod
     def score(self, **kw):
         pass
 
-    allowed_attributes = ('last_body_same_as',
-                          'symname',
-                          'is_cyclic',
-                          'alignment',
-                          'from_seg',
-                          'to_seg',
-                          'origin_seg',
-                          'symfile_modifiers',
-                          )
+    allowed_attributes = (
+        'last_body_same_as',
+        'symname',
+        'is_cyclic',
+        'alignment',
+        'from_seg',
+        'to_seg',
+        'origin_seg',
+        'symfile_modifiers',
+    )
 
 
 class CriteriaList(WormCriteria):
-
     def __init__(self, children):
         if isinstance(children, WormCriteria):
             children = [children]
@@ -56,7 +54,6 @@ class CriteriaList(WormCriteria):
 
 
 class NullCriteria(WormCriteria):
-
     def __init__(self, from_seg=0, to_seg=-1, origin_seg=None):
         self.from_seg = from_seg
         self.to_seg = to_seg
@@ -71,9 +68,16 @@ class NullCriteria(WormCriteria):
 
 
 class AxesIntersect(WormCriteria):
-
-    def __init__(self, symname, tgtaxis1, tgtaxis2, from_seg, *, tol=1.0,
-                 lever=50, to_seg=-1, distinct_axes=False):
+    def __init__(self,
+                 symname,
+                 tgtaxis1,
+                 tgtaxis2,
+                 from_seg,
+                 *,
+                 tol=1.0,
+                 lever=50,
+                 to_seg=-1,
+                 distinct_axes=False):
         if from_seg == to_seg:
             raise ValueError('from_seg should not be same as to_seg')
         self.symname = symname
@@ -126,7 +130,7 @@ class AxesIntersect(WormCriteria):
         # ax1 = hm.hnormalized(cen1 - cen)
         # ax2 = hm.hnormalized(cen2 - cen)
         x = hm.align_vectors(ax1, ax2, self.tgtaxis1[1], self.tgtaxis2[1])
-        x[..., :, 3] = - x @cen
+        x[..., :, 3] = -x @ cen
         if debug:
             print('angs', hm.angle_degrees(ax1, ax2),
                   hm.angle_degrees(self.tgtaxis1[1], self.tgtaxis2[1]))
@@ -176,10 +180,14 @@ def Tetrahedral(c3=None, c2=None, c3b=None, **kw):
     if c2 is None: from_seg, to_seg, nf1, nf2, ex = c3b, c3, 7, 3, 2
     if c3 is None: from_seg, to_seg, nf1, nf2, ex = c3b, c2, 7, 2, 3
     if c3b is None: from_seg, to_seg, nf1, nf2, ex = c3, c2, 3, 2, 7
-    return AxesIntersect('T', from_seg=from_seg, to_seg=to_seg,
-                         tgtaxis1=(max(3, nf1), hm.sym.tetrahedral_axes[nf1]),
-                         tgtaxis2=(max(3, nf2), hm.sym.tetrahedral_axes[nf2]),
-                         distinct_axes=(nf1 == 7), **kw)
+    return AxesIntersect(
+        'T',
+        from_seg=from_seg,
+        to_seg=to_seg,
+        tgtaxis1=(max(3, nf1), hm.sym.tetrahedral_axes[nf1]),
+        tgtaxis2=(max(3, nf2), hm.sym.tetrahedral_axes[nf2]),
+        distinct_axes=(nf1 == 7),
+        **kw)
 
 
 def Octahedral(c4=None, c3=None, c2=None, **kw):
@@ -188,9 +196,13 @@ def Octahedral(c4=None, c3=None, c2=None, **kw):
     if c2 is None: from_seg, to_seg, nf1, nf2, ex = c4, c3, 4, 3, 2
     if c3 is None: from_seg, to_seg, nf1, nf2, ex = c4, c2, 4, 2, 3
     if c4 is None: from_seg, to_seg, nf1, nf2, ex = c3, c2, 3, 2, 4
-    return AxesIntersect('O', from_seg=from_seg, to_seg=to_seg,
-                         tgtaxis1=(nf1, hm.sym.octahedral_axes[nf1]),
-                         tgtaxis2=(nf2, hm.sym.octahedral_axes[nf2]), **kw)
+    return AxesIntersect(
+        'O',
+        from_seg=from_seg,
+        to_seg=to_seg,
+        tgtaxis1=(nf1, hm.sym.octahedral_axes[nf1]),
+        tgtaxis2=(nf2, hm.sym.octahedral_axes[nf2]),
+        **kw)
 
 
 def Icosahedral(c5=None, c3=None, c2=None, **kw):
@@ -199,15 +211,24 @@ def Icosahedral(c5=None, c3=None, c2=None, **kw):
     if c2 is None: from_seg, to_seg, nf1, nf2, ex = c5, c3, 5, 3, 2
     if c3 is None: from_seg, to_seg, nf1, nf2, ex = c5, c2, 5, 2, 3
     if c5 is None: from_seg, to_seg, nf1, nf2, ex = c3, c2, 3, 2, 5
-    return AxesIntersect('I', from_seg=from_seg, to_seg=to_seg,
-                         tgtaxis1=(nf1, hm.sym.icosahedral_axes[nf1]),
-                         tgtaxis2=(nf2, hm.sym.icosahedral_axes[nf2]), **kw)
+    return AxesIntersect(
+        'I',
+        from_seg=from_seg,
+        to_seg=to_seg,
+        tgtaxis1=(nf1, hm.sym.icosahedral_axes[nf1]),
+        tgtaxis2=(nf2, hm.sym.icosahedral_axes[nf2]),
+        **kw)
 
 
 class Cyclic(WormCriteria):
-
-    def __init__(self, symmetry=1, from_seg=0, *, tol=1.0, origin_seg=None,
-                 lever=50.0, to_seg=-1):
+    def __init__(self,
+                 symmetry=1,
+                 from_seg=0,
+                 *,
+                 tol=1.0,
+                 origin_seg=None,
+                 lever=50.0,
+                 to_seg=-1):
         if from_seg == to_seg:
             raise ValueError('from_seg should not be same as to_seg')
         if from_seg == origin_seg:
@@ -228,7 +249,8 @@ class Cyclic(WormCriteria):
             if self.nfold <= 0:
                 raise ValueError('invalid symmetry: ' + symmetry)
             self.symangle = np.pi * 2.0 / self.nfold
-        else: raise ValueError('can only do Cx symmetry for now')
+        else:
+            raise ValueError('can only do Cx symmetry for now')
         if self.tol <= 0: raise ValueError('tol should be > 0')
         self.last_body_same_as = self.from_seg
         self.is_cyclic = True
@@ -271,8 +293,7 @@ class Cyclic(WormCriteria):
                 print('dot trans', hm.hdot(trans, axis)[0])
                 print('angle', angle[0] * 180 / np.pi)
 
-        return np.sqrt(carterrsq / self.tol**2 +
-                       roterrsq / self.rot_tol**2)
+        return np.sqrt(carterrsq / self.tol**2 + roterrsq / self.rot_tol**2)
 
     def alignment(self, segpos, **kwargs):
         if self.origin_seg is not None:

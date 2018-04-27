@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """The setup script."""
 
 from setuptools import setup, find_packages
@@ -17,8 +16,7 @@ requirements = [
     'tqdm',
 ]
 
-setup_requirements = [
-]
+setup_requirements = []
 
 test_requirements = [
     'pip',

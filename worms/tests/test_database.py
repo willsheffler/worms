@@ -1,7 +1,6 @@
 import pytest
 from ..database import *
 
-
 test_db_files = [
     '/home/rubul/database/fusion/hb_dhr/master_database_generation2.txt',
     '/home/yhsia/helixdock/database/HBRP_Cx_database.txt',
@@ -27,9 +26,12 @@ test_db_files = [
 
 @pytest.mark.xfail
 def test_database_simple(tmpdir):
-    with DatabaseContext(test_db_files,
-                         cachefile=os.path.join(str(tmpdir), 'tmp.pickle')) as db:
+    with DatabaseContext(
+            test_db_files, cachefile=os.path.join(str(tmpdir),
+                                                  'tmp.pickle')) as db:
         fresh_len = len(db.cache['poses'])
-    db = Database(test_db_files, cache_only=True,
-                  cachefile=os.path.join(str(tmpdir), 'tmp.pickle'))
+    db = Database(
+        test_db_files,
+        cache_only=True,
+        cachefile=os.path.join(str(tmpdir), 'tmp.pickle'))
     assert len(db.cache['poses']) == fresh_len

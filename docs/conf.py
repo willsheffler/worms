@@ -106,7 +106,6 @@ pygments_style = 'sphinx'
 # documents.
 #keep_warnings = False
 
-
 # -- Options for HTML output -------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -190,7 +189,6 @@ html_static_path = []  # ['_static']
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'wormsdoc'
 
-
 # -- Options for LaTeX output ------------------------------------------
 
 latex_elements = {
@@ -208,9 +206,7 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass
 # [howto/manual]).
 latex_documents = [
-    ('index', 'worms.tex',
-     u'worms Documentation',
-     u'Will Sheffler', 'manual'),
+    ('index', 'worms.tex', u'worms Documentation', u'Will Sheffler', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at
@@ -233,20 +229,14 @@ latex_documents = [
 # If false, no module index is generated.
 #latex_domain_indices = True
 
-
 # -- Options for manual page output ------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    ('index', 'worms',
-     u'worms Documentation',
-     [u'Will Sheffler'], 1)
-]
+man_pages = [('index', 'worms', u'worms Documentation', [u'Will Sheffler'], 1)]
 
 # If true, show URL addresses after external links.
 #man_show_urls = False
-
 
 # -- Options for Texinfo output ----------------------------------------
 
@@ -254,12 +244,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    ('index', 'worms',
-     u'worms Documentation',
-     u'Will Sheffler',
-     'worms',
-     'One line description of project.',
-     'Miscellaneous'),
+    ('index', 'worms', u'worms Documentation', u'Will Sheffler', 'worms',
+     'One line description of project.', 'Miscellaneous'),
 ]
 
 # Documents to append as an appendix to all manuals.

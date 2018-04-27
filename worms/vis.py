@@ -53,6 +53,7 @@ def pymol_load(to_show, state=None, name=None, **kw):
             "don't know how to show " + str(type(to_show)))
     return state
 
+
 showme_state = dict(launched=0, seenit=defaultdict(lambda: -1))
 
 
@@ -91,8 +92,8 @@ def showcom(sel="all"):
     global numcom
     c = com(sel)
     print("Center of mass: ", c)
-    cgo = [pymol.cgo.COLOR, 1.0, 1.0, 1.0, cgo.SPHERE,
-           c[0], c[1], c[2], 1.0]  # white sphere with 3A radius
+    cgo = [pymol.cgo.COLOR, 1.0, 1.0, 1.0, cgo.SPHERE, c[0], c[1], c[2],
+           1.0]  # white sphere with 3A radius
     cmd.load_cgo(cgo, "com%i" % numcom)
     numcom += 1
 
@@ -121,10 +122,8 @@ def showvecfrompoint(a, c, col=(1, 1, 1), lbl=''):
     cmd.delete(lbl)
     v = cmd.get_view()
     OBJ = [
-        cgo.BEGIN, cgo.LINES,
-        cgo.COLOR, col[0], col[1], col[2],
-        cgo.VERTEX, c[0], c[1], c[2],
-        cgo.VERTEX, c[0] + a[0], c[1] + a[1], c[2] + a[2],
+        cgo.BEGIN, cgo.LINES, cgo.COLOR, col[0], col[1], col[2], cgo.VERTEX,
+        c[0], c[1], c[2], cgo.VERTEX, c[0] + a[0], c[1] + a[1], c[2] + a[2],
         cgo.END
     ]
     cmd.load_cgo(OBJ, lbl)
@@ -138,11 +137,8 @@ def showvecfrompoint(a, c, col=(1, 1, 1), lbl=''):
 
 def cgo_segment(c1, c2, col=(1, 1, 1)):
     OBJ = [
-        cgo.BEGIN, cgo.LINES,
-        cgo.COLOR, col[0], col[1], col[2],
-        cgo.VERTEX, c1[0], c1[1], c1[2],
-        cgo.VERTEX, c2[0], c2[1], c2[2],
-        cgo.END
+        cgo.BEGIN, cgo.LINES, cgo.COLOR, col[0], col[1], col[2], cgo.VERTEX,
+        c1[0], c1[1], c1[2], cgo.VERTEX, c2[0], c2[1], c2[2], cgo.END
     ]
     # cmd.load_cgo([cgo.COLOR, col[0],col[1],col[2],
     #             cgo.CYLINDER, c1[0],     c1[1],     c1[2],
@@ -170,9 +166,21 @@ def cgo_cyl(c1, c2, r, col=(1, 1, 1), col2=None):
     if not col2:
         col2 = col
     return [  # cgo.COLOR, col[0],col[1],col[2],
-        cgo.CYLINDER, c1[0], c1[1], c1[2],
-        c2[0], c2[1], c2[2], r,
-        col[0], col[1], col[2], col2[0], col2[1], col2[2], ]
+        cgo.CYLINDER,
+        c1[0],
+        c1[1],
+        c1[2],
+        c2[0],
+        c2[1],
+        c2[2],
+        r,
+        col[0],
+        col[1],
+        col[2],
+        col2[0],
+        col2[1],
+        col2[2],
+    ]
 
 
 def showcyl(c1, c2, r, col=(1, 1, 1), col2=None, lbl=''):
@@ -194,11 +202,9 @@ def showline(a, c, col=(1, 1, 1), lbl=''):
     cmd.delete(lbl)
     v = cmd.get_view()
     OBJ = [
-        cgo.BEGIN, cgo.LINES,
-        cgo.COLOR, col[0], col[1], col[2],
-        cgo.VERTEX, c[0] - a[0], c[1] - a[1], c[2] - a[2],
-        cgo.VERTEX, c[0] + a[0], c[1] + a[1], c[2] + a[2],
-        cgo.END
+        cgo.BEGIN, cgo.LINES, cgo.COLOR, col[0], col[1], col[2], cgo.VERTEX,
+        c[0] - a[0], c[1] - a[1], c[2] - a[2], cgo.VERTEX, c[0] + a[0],
+        c[1] + a[1], c[2] + a[2], cgo.END
     ]
     cmd.load_cgo(OBJ, lbl)
     cmd.set_view(v)
@@ -206,11 +212,8 @@ def showline(a, c, col=(1, 1, 1), lbl=''):
 
 def cgo_lineabs(a, c, col=(1, 1, 1)):
     return [
-        cgo.BEGIN, cgo.LINES,
-        cgo.COLOR, col[0], col[1], col[2],
-        cgo.VERTEX, c[0], c[1], c[2],
-        cgo.VERTEX, a[0], a[1], a[2],
-        cgo.END
+        cgo.BEGIN, cgo.LINES, cgo.COLOR, col[0], col[1], col[2], cgo.VERTEX,
+        c[0], c[1], c[2], cgo.VERTEX, a[0], a[1], a[2], cgo.END
     ]
 
 

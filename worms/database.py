@@ -12,9 +12,11 @@ except ImportError:
 
 
 class Database:
-
-    def __init__(self, json_db_files, *,
-                 cachefile='.worms_database.pickle', cache_only=False):
+    def __init__(self,
+                 json_db_files,
+                 *,
+                 cachefile='.worms_database.pickle',
+                 cache_only=False):
         self.cachefile = cachefile
         self.json_db_files = json_db_files
         if os.path.exists(cachefile):
@@ -68,7 +70,6 @@ class Database:
 
 
 class DatabaseContext:
-
     def __init__(self, json_db_files, **kw):
         self.json_db_files = json_db_files
         self.kw = kw

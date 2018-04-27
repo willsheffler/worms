@@ -12,11 +12,11 @@ from concurrent.futures import ProcessPoolExecutor
 from .worms import Segment, Segments, Worms
 from .criteria import CriteriaList, Cyclic, WormCriteria
 from . import util
+
 # import numba
 
 
 class SimpleAccumulator:
-
     def __init__(self, max_results=1000000, max_tmp_size=1024):
         self.max_tmp_size = max_tmp_size
         self.max_results = max_results
@@ -55,9 +55,14 @@ class SimpleAccumulator:
 
 
 class MakeXIndexAccumulator:
-
-    def __init__(self, sizes, thresh=1, from_seg=0, to_seg=-1,
-                 max_tmp_size=1024, cart_resl=2.0, ori_resl=15.0):
+    def __init__(self,
+                 sizes,
+                 thresh=1,
+                 from_seg=0,
+                 to_seg=-1,
+                 max_tmp_size=1024,
+                 cart_resl=2.0,
+                 ori_resl=15.0):
         self.sizes = sizes
         self.thresh = thresh
         self.max_tmp_size = max_tmp_size
@@ -109,7 +114,6 @@ class MakeXIndexAccumulator:
 
 # GLOBAL_xindex_set = set([0])
 
-
 # @numba.vectorize([numba.float64(numba.int64)])
 # def is_in_xindex_set_numba(idx):
 # global GLOBAL_xindex_set
@@ -120,7 +124,6 @@ class MakeXIndexAccumulator:
 
 
 class XIndexedCriteria(WormCriteria):
-
     def __init__(self, xindex, binner, nfold, from_seg=-1):
         self.xindex_set = set(xindex.keys())
         self.binner = binner
@@ -151,10 +154,18 @@ class XIndexedCriteria(WormCriteria):
 
 
 class XIndexedAccumulator:
-
-    def __init__(self, segments, tail, splitpoint, head, xindex, binner,
-                 nfold, from_seg, to_seg,
-                 max_tmp_size=1024, max_results=100000):
+    def __init__(self,
+                 segments,
+                 tail,
+                 splitpoint,
+                 head,
+                 xindex,
+                 binner,
+                 nfold,
+                 from_seg,
+                 to_seg,
+                 max_tmp_size=1024,
+                 max_results=100000):
         self.segments = segments
         self.tail = tail
         self.splitpoint = splitpoint
@@ -200,8 +211,7 @@ class XIndexedAccumulator:
         head_idx = np.stack(headidxtmp)
 
         join_idx, valid = self.segments[self.splitpoint].merge_idx(
-            self.tail[-1], lowidx[:, -1],
-            self.head[0], head_idx[:, 0])
+            self.tail[-1], lowidx[:, -1], self.head[0], head_idx[:, 0])
         lowidx = lowidx[valid][join_idx >= 0]
         head_idx = head_idx[valid][join_idx >= 0]
         join_idx = join_idx[join_idx >= 0]
@@ -252,29 +262,28 @@ class XIndexedAccumulator:
 
 def _get_chunk_end_seg(sizes, max_workers, memsize):
     end = len(sizes) - 1
-    while end > 1 and (util.bigprod(sizes[end:]) < max_workers or
-                       memsize <= 64 * util.bigprod(sizes[:end])): end -= 1
+    while end > 1 and (util.bigprod(sizes[end:]) < max_workers
+                       or memsize <= 64 * util.bigprod(sizes[:end])):
+        end -= 1
     return end
 
 
-def grow(
-    segments,
-    criteria,
-    *,
-    thresh=2,
-    expert=0,
-    memsize=1e6,
-    executor=None,
-    executor_args=None,
-    max_workers=None,
-    verbosity=2,
-    chunklim=None,
-    max_samples=int(1e12),
-    max_results=int(1e4),
-    cart_resl=2.0,
-    ori_resl=15.0,
-    xindex_cache_file=None
-):
+def grow(segments,
+         criteria,
+         *,
+         thresh=2,
+         expert=0,
+         memsize=1e6,
+         executor=None,
+         executor_args=None,
+         max_workers=None,
+         verbosity=2,
+         chunklim=None,
+         max_samples=int(1e12),
+         max_results=int(1e4),
+         cart_resl=2.0,
+         ori_resl=15.0,
+         xindex_cache_file=None):
     if True:  # setup
         os.environ['OMP_NUM_THREADS'] = '1'
         os.environ['MKL_NUM_THREADS'] = '1'
@@ -282,14 +291,14 @@ def grow(
         if isinstance(segments, list):
             segments = Segments(segments)
         # if isinstance(executor, (ProcessPoolExecutor, ThreadPoolExecutor)):
-            # raise ValueError('please use dask.distributed executor')
+        # raise ValueError('please use dask.distributed executor')
         if verbosity > 0:
             print('grow, from', criteria.from_seg, 'to', criteria.to_seg)
             for i, seg in enumerate(segments):
-                print(' segment', i,
-                      'enter:', seg.entrypol,
-                      'exit:', seg.exitpol)
-                for sp in seg.spliceables: print('   ', sp)
+                print(' segment', i, 'enter:', seg.entrypol, 'exit:',
+                      seg.exitpol)
+                for sp in seg.spliceables:
+                    print('   ', sp)
         elif verbosity == 0:
             print('grow, nseg:', len(segments))
         if verbosity > 2:
@@ -330,21 +339,29 @@ def grow(
         actual_perjob = int(ntot / every_other / njob)
         actual_chunkperjob = int(nchunks / every_other / njob)
         if verbosity >= 0:
-            print('tot: {:,} chunksize: {:,} nchunks: {:,} nworker: {} njob: {}'.format(
-                ntot, chunksize, nchunks, nworker, njob))
-            print('worm/job: {:,} chunk/job: {} sizes={} every_other={}'.format(
-                int(ntot / njob), int(nchunks / njob), sizes, every_other))
+            print(
+                'tot: {:,} chunksize: {:,} nchunks: {:,} nworker: {} njob: {}'.
+                format(ntot, chunksize, nchunks, nworker, njob))
+            print(
+                'worm/job: {:,} chunk/job: {} sizes={} every_other={}'.format(
+                    int(ntot / njob), int(nchunks / njob), sizes, every_other))
             print('max_samples: {:,} max_results: {:,}'.format(
                 max_samples, max_results))
             print('actual tot:        {:,}'.format(int(actual_ntot)))
             print('actual nchunks:    {:,}'.format(int(actual_nchunk)))
             print('actual worms/job:  {:,}'.format(int(actual_perjob)))
             print('actual chunks/job: {:,}'.format(int(actual_chunkperjob)))
-        _grow_args = dict(executor=executor, executor_args=executor_args,
-                          njob=njob, end=end, thresh=thresh,
-                          matchlast=matchlast, every_other=every_other,
-                          max_results=max_results, nworker=nworker,
-                          verbosity=verbosity)
+        _grow_args = dict(
+            executor=executor,
+            executor_args=executor_args,
+            njob=njob,
+            end=end,
+            thresh=thresh,
+            matchlast=matchlast,
+            every_other=every_other,
+            max_results=max_results,
+            nworker=nworker,
+            verbosity=verbosity)
         if njob > 1e9 or nchunks >= 2**63 or every_other >= 2**63:
             print('too big?!?')
             print('    njob', njob)
@@ -359,8 +376,14 @@ def grow(
         lowposlist = [lowpos[:, i] for i in range(len(segments))]
         score_check = criteria.score(segpos=lowposlist, verbosity=verbosity)
         assert np.allclose(score_check, scores)
-        detail = dict(ntot=ntot, chunksize=chunksize, nchunks=nchunks,
-                      nworker=nworker, njob=njob, sizes=sizes, end=end)
+        detail = dict(
+            ntot=ntot,
+            chunksize=chunksize,
+            nchunks=nchunks,
+            nworker=nworker,
+            njob=njob,
+            sizes=sizes,
+            end=end)
 
     else:  # hash-based protocol...
 
@@ -383,11 +406,17 @@ def grow(
         every_other = max(1, int(ntot / max_samples)) if max_samples else 1
         njob = int(np.sqrt(nchunks / every_other) / 8 / nworker) * nworker
         njob = np.clip(nworker, njob, nchunks)
-        _grow_args = dict(executor=executor, executor_args=executor_args,
-                          njob=njob, end=headend, thresh=thresh,
-                          matchlast=0, every_other=every_other,
-                          max_results=max_results, nworker=nworker,
-                          verbosity=verbosity)
+        _grow_args = dict(
+            executor=executor,
+            executor_args=executor_args,
+            njob=njob,
+            end=headend,
+            thresh=thresh,
+            matchlast=0,
+            every_other=every_other,
+            max_results=max_results,
+            nworker=nworker,
+            verbosity=verbosity)
         t1 = 0
         if xindex_cache_file and os.path.exists(xindex_cache_file):
             print('!' * 100)
@@ -395,11 +424,18 @@ def grow(
             xindex, binner = pickle.load(open(xindex_cache_file, 'rb'))
         else:
             # if 1:
-            accum1 = MakeXIndexAccumulator(headsizes, from_seg=0, to_seg=-1,
-                                           cart_resl=cart_resl, ori_resl=ori_resl)
-            headcriteria = Cyclic(criteria[0].nfold, from_seg=0, to_seg=-1,
-                                  tol=criteria[0].tol * 2.0,
-                                  lever=criteria[0].lever)
+            accum1 = MakeXIndexAccumulator(
+                headsizes,
+                from_seg=0,
+                to_seg=-1,
+                cart_resl=cart_resl,
+                ori_resl=ori_resl)
+            headcriteria = Cyclic(
+                criteria[0].nfold,
+                from_seg=0,
+                to_seg=-1,
+                tol=criteria[0].tol * 2.0,
+                lever=criteria[0].lever)
             print('STEP ONE: growing head into xindex')
             print('    ntot            {:,}'.format(ntot))
             print('    headsizes       {}'.format(headsizes))
@@ -437,13 +473,19 @@ def grow(
 
         ################### PHASE TWO ####################
 
-        tailcriteria = XIndexedCriteria(xindex, binner,
-                                        criteria[0].nfold, from_seg=-1)
-        accum2 = XIndexedAccumulator(segments, tail, splitpoint, head, xindex,
-                                     binner, criteria[0].nfold,
-                                     from_seg=criteria.from_seg,
-                                     to_seg=criteria.to_seg,
-                                     max_results=max_results * 20)
+        tailcriteria = XIndexedCriteria(
+            xindex, binner, criteria[0].nfold, from_seg=-1)
+        accum2 = XIndexedAccumulator(
+            segments,
+            tail,
+            splitpoint,
+            head,
+            xindex,
+            binner,
+            criteria[0].nfold,
+            from_seg=criteria.from_seg,
+            to_seg=criteria.to_seg,
+            max_results=max_results * 20)
 
         tailsizes = [len(s) for s in tail]
         tailend = _get_chunk_end_seg(tailsizes, max_workers, memsize)
@@ -452,17 +494,21 @@ def grow(
                                               tailsizes[tailend:]))
         if max_samples is not None:
             max_samples = np.clip(chunksize * max_workers, max_samples, ntot)
-        every_other = max(1, int(ntot / max_samples * 20)
-                          ) if max_samples else 1
+        every_other = max(1,
+                          int(ntot / max_samples * 20)) if max_samples else 1
         njob = int(np.ceil(np.sqrt(nchunks / every_other) / 32 / nworker))
         njob = np.clip(nworker, njob * nworker, nchunks)
 
         _grow_args = dict(
             executor=executor,
             executor_args=executor_args,
-            njob=njob, end=tailend, thresh=thresh,
-            matchlast=None, every_other=every_other,
-            max_results=max_results, nworker=nworker,
+            njob=njob,
+            end=tailend,
+            thresh=thresh,
+            matchlast=None,
+            every_other=every_other,
+            max_results=max_results,
+            nworker=nworker,
             verbosity=verbosity)
 
         print('STEP TWO: using xindex, nbins: {:,} nentries: {:,}'.format(
@@ -479,8 +525,7 @@ def grow(
         print('    max_results     {:,}'.format(max_results))
         print('    nworker         {:,}'.format(nworker))
         print('    act. ntot       {:,}'.format(int(ntot / every_other)))
-        print('    act. nchunks    {:,}'.format(
-            int(nchunks / every_other)))
+        print('    act. nchunks    {:,}'.format(int(nchunks / every_other)))
         print('    act. worms/job  {:,}'.format(
             int(ntot / every_other / njob)))
         print('    act. chunks/job {:,}'.format(
@@ -521,8 +566,14 @@ def grow(
         scores = scores[order]
         lowpos = lowpos[order]
         lowidx = lowidx[order]
-        detail = dict(ntot=ntot, chunksize=chunksize, nchunks=nchunks,
-                      nworker=nworker, njob=njob, sizes=tailsizes, end=tailend)
+        detail = dict(
+            ntot=ntot,
+            chunksize=chunksize,
+            nchunks=nchunks,
+            nworker=nworker,
+            njob=njob,
+            sizes=tailsizes,
+            end=tailend)
 
     return Worms(segments, scores, lowidx, lowpos, criteria, detail)
 
@@ -539,11 +590,15 @@ def _refold_segments(segments, lowidx):
 def _chain_xforms(segments):
     x2exit = [s.x2exit for s in segments]
     x2orgn = [s.x2orgn for s in segments]
-    fullaxes = (np.newaxis,) * (len(x2exit) - 1)
-    xconn = [x2exit[0][fullaxes], ]
-    xbody = [x2orgn[0][fullaxes], ]
+    fullaxes = (np.newaxis, ) * (len(x2exit) - 1)
+    xconn = [
+        x2exit[0][fullaxes],
+    ]
+    xbody = [
+        x2orgn[0][fullaxes],
+    ]
     for iseg in range(1, len(x2exit)):
-        fullaxes = (slice(None),) + (np.newaxis,) * iseg
+        fullaxes = (slice(None), ) + (np.newaxis, ) * iseg
         xconn.append(xconn[iseg - 1] @ x2exit[iseg][fullaxes])
         xbody.append(xconn[iseg - 1] @ x2orgn[iseg][fullaxes])
     perm = list(range(len(xbody) - 1, -1, -1)) + [len(xbody), len(xbody) + 1]
@@ -574,9 +629,9 @@ def _grow_chunk(samp, segpos, conpos, context):
             site1 = segs[ML].entrysiteid
             site2 = segs[ML].exitsiteid
             allowed = (bidA == bidB) * (site1 != site3) * (site2 != site3)
-            idx = (slice(None),) * ML + (allowed,)
-            segpos = segpos[: ML] + [x[idx] for x in segpos[ML:]]
-            conpos = conpos[: ML] + [x[idx] for x in conpos[ML:]]
+            idx = (slice(None), ) * ML + (allowed, )
+            segpos = segpos[:ML] + [x[idx] for x in segpos[ML:]]
+            conpos = conpos[:ML] + [x[idx] for x in conpos[ML:]]
             idxmap = np.where(allowed)[0]
         else:
             bidA = segs[ML].bodyid[samp[ML - ndimchunk]]
@@ -609,10 +664,10 @@ def _grow_chunk(samp, segpos, conpos, context):
     lowpostmp = []
     # print('  make lowpos')
     for iseg in range(len(segpos)):
-        ilow = ilow0[: iseg + 1] + (0,) * (segpos[0].ndim - 2 - (iseg + 1))
+        ilow = ilow0[:iseg + 1] + (0, ) * (segpos[0].ndim - 2 - (iseg + 1))
         lowpostmp.append(segpos[iseg][ilow])
     ilow1 = (ilow0 if (ML is None or ML >= ndimchunk) else
-             ilow0[:ML] + (idxmap[ilow0[ML]],) + ilow0[ML + 1:])
+             ilow0[:ML] + (idxmap[ilow0[ML]], ) + ilow0[ML + 1:])
     return score[ilow0], np.array(ilow1 + sampidx).T, np.stack(lowpostmp, 1)
 
 
@@ -623,8 +678,7 @@ def _grow_chunks(ijob, context):
     sampsizes, njob, segments, end, _, _, _, every_other, max_results = context
     samples = list(util.MultiRange(sampsizes)[ijob::njob * every_other])
     segpos, connpos = _chain_xforms(segments[:end])  # common data
-    args = [samples, it.repeat(segpos),
-            it.repeat(connpos), it.repeat(context)]
+    args = [samples, it.repeat(segpos), it.repeat(connpos), it.repeat(context)]
     chunks = list(map(_grow_chunk, *args))
     chunks = [c for c in chunks if c is not None]
     if not chunks: return None
@@ -632,9 +686,10 @@ def _grow_chunks(ijob, context):
     lowidx = np.concatenate([x[1] for x in chunks])
     lowpos = np.concatenate([x[2] for x in chunks])
     order = np.argsort(scores)
-    return [scores[order[:max_results]],
-            lowidx[order[:max_results]],
-            lowpos[order[:max_results]]]
+    return [
+        scores[order[:max_results]], lowidx[order[:max_results]],
+        lowpos[order[:max_results]]
+    ]
 
 
 def _check_topology(segments, criteria, expert=False):
@@ -644,15 +699,14 @@ def _check_topology(segments, criteria, expert=False):
         raise ValueError('end of worm cant have exit')
     for a, b in zip(segments[:-1], segments[1:]):
         if not (a.exitpol and b.entrypol and a.exitpol != b.entrypol):
-            raise ValueError('incompatible exit->entry polarity: '
-                             + str(a.exitpol) + '->'
-                             + str(b.entrypol) + ' on segment pair: '
-                             + str((segments.index(a), segments.index(b))))
+            raise ValueError('incompatible exit->entry polarity: ' + str(
+                a.exitpol) + '->' + str(b.entrypol) + ' on segment pair: ' +
+                             str((segments.index(a), segments.index(b))))
     matchlast = criteria.last_body_same_as
     if matchlast is not None and not expert and (
             not segments[matchlast].same_bodies_as(segments[-1])):
-        raise ValueError("segments[matchlast] not same as segments[-1], "
-                         + "if you're sure, pass expert=True")
+        raise ValueError("segments[matchlast] not same as segments[-1], " +
+                         "if you're sure, pass expert=True")
     if criteria.is_cyclic and not criteria.to_seg in (-1, len(segments) - 1):
         raise ValueError('Cyclic and to_seg is not last segment,'
                          'if you\'re sure, pass expert=True')
@@ -681,8 +735,10 @@ def _check_topology(segments, criteria, expert=False):
 
 def _grow(segments, criteria, accumulator, **kw):
     # terrible hack... xfering the poses too expensive
-    tmp = {spl: (spl.body, spl.chains)
-           for seg in segments for spl in seg.spliceables}
+    tmp = {
+        spl: (spl.body, spl.chains)
+        for seg in segments for spl in seg.spliceables
+    }
     for seg in segments:
         for spl in seg.spliceables:
             spl.body, spl.chains = None, None  # poses not pickleable...
@@ -704,8 +760,7 @@ def _grow(segments, criteria, accumulator, **kw):
             ascii=0,
             desc='growing worms',
             unit_scale=int(ntot / kw['njob'] / 1000 / kw['every_other']),
-            disable=kw['verbosity'] < 0
-        )
+            disable=kw['verbosity'] < 0)
 
     # put the poses back...
     for seg in segments:

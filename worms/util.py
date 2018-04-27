@@ -15,7 +15,6 @@ except ImportError:
 
 
 class InProcessExecutor:
-
     def __init__(self, *args, **kw):
         pass
 
@@ -30,7 +29,6 @@ class InProcessExecutor:
 
 
 class NonFuture:
-
     def __init__(self, result):
         self._result = result
 
@@ -39,12 +37,14 @@ class NonFuture:
 
 
 def cpu_count():
-    try: return int(os.environ['SLURM_CPUS_ON_NODE'])
-    except: return multiprocessing.cpu_count()
+    try:
+        return int(os.environ['SLURM_CPUS_ON_NODE'])
+    except:
+        return multiprocessing.cpu_count()
 
 
-def parallel_batch_map(pool, function, accumulator,
-                       batch_size, map_func_args, **kw):
+def parallel_batch_map(pool, function, accumulator, batch_size, map_func_args,
+                       **kw):
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ['MKL_NUM_THREADS'] = '1'
     os.environ['NUMEXPR_NUM_THREADS'] = '1'
@@ -67,8 +67,8 @@ def parallel_batch_map(pool, function, accumulator,
         accumulator.checkpoint()
 
 
-def parallel_nobatch_map(pool, function, accumulator,
-                         batch_size, map_func_args, **kw):
+def parallel_nobatch_map(pool, function, accumulator, batch_size,
+                         map_func_args, **kw):
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ['MKL_NUM_THREADS'] = '1'
     os.environ['NUMEXPR_NUM_THREADS'] = '1'
@@ -84,11 +84,18 @@ def parallel_nobatch_map(pool, function, accumulator,
     accumulator.checkpoint()
 
 
-def tqdm_parallel_map(pool, function, accumulator,
-                      map_func_args, batch_size, **kw):
-    for _ in tqdm(parallel_batch_map(pool, function, accumulator, batch_size,
-                                     map_func_args=map_func_args, **kw),
-                  total=len(map_func_args[0]), **kw):
+def tqdm_parallel_map(pool, function, accumulator, map_func_args, batch_size,
+                      **kw):
+    for _ in tqdm(
+            parallel_batch_map(
+                pool,
+                function,
+                accumulator,
+                batch_size,
+                map_func_args=map_func_args,
+                **kw),
+            total=len(map_func_args[0]),
+            **kw):
         pass
 
 
@@ -138,8 +145,7 @@ def pose_bounds(pose, lb, ub):
     if ub < 0: ub = len(pose) + 1 + ub
     if lb < 1 or ub > len(pose):
         raise ValueError('lb/ub ' + str(lb) + '/' + str(ub) +
-                         ' out of bounds for pose with len '
-                         + str(len(pose)))
+                         ' out of bounds for pose with len ' + str(len(pose)))
     return lb, ub
 
 
@@ -154,8 +160,8 @@ def xform_pose(xform, pose, lb=1, ub=-1):
     lb, ub = pose_bounds(pose, lb, ub)
     if xform.shape != (4, 4):
         raise ValueError(
-            'invalid xform, must be 4x4 homogeneous matrix, shape is: '
-            + str(xform.shape))
+            'invalid xform, must be 4x4 homogeneous matrix, shape is: ' +
+            str(xform.shape))
     xform = rosetta_stub_from_numpy_stub(xform)
     ros.protocols.sic_dock.xform_pose(pose, xform, lb, ub)
 
@@ -163,10 +169,9 @@ def xform_pose(xform, pose, lb=1, ub=-1):
 def worst_CN_connect(p):
     for ir in range(1, len(p)):
         worst = 0
-        if (p.residue(ir).is_protein() and
-                p.residue(ir + 1).is_protein() and not (
-                ros.core.pose.is_upper_terminus(p, ir) or
-                ros.core.pose.is_lower_terminus(p, ir + 1))):
+        if (p.residue(ir).is_protein() and p.residue(ir + 1).is_protein()
+                and not (ros.core.pose.is_upper_terminus(p, ir)
+                         or ros.core.pose.is_lower_terminus(p, ir + 1))):
             dist = p.residue(ir).xyz('C').distance(p.residue(ir + 1).xyz('N'))
             worst = max(abs(dist - 1.32), worst)
     return worst
@@ -188,8 +193,7 @@ def no_overlapping_residues(p):
         for jr in range(1, ir):
             if not p.residue(jr).is_protein():
                 continue
-            dist = p.residue(ir).xyz('CA').distance(
-                p.residue(jr).xyz('CA'))
+            dist = p.residue(ir).xyz('CA').distance(p.residue(jr).xyz('CA'))
             if dist < 0.5: return False
     return True
 
@@ -230,8 +234,7 @@ def get_symdata(name):
     return d
 
 
-def get_symdata_modified(name,
-                         string_substitutions=None,
+def get_symdata_modified(name, string_substitutions=None,
                          scale_positions=None):
     if name is None: return None
     symfilestr = get_symfile_contents(name)
@@ -261,7 +264,6 @@ def bigprod(iterable):
 
 
 class MultiRange:
-
     def __init__(self, nside):
         self.nside = np.array(nside, dtype='i')
         self.psum = np.concatenate(

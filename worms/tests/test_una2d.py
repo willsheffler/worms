@@ -18,21 +18,30 @@ try:
 except ImportError:
     HAVE_PYROSETTA = HAVE_PYROSETTA_DISTRIBUTED = False
 
-
 only_if_pyrosetta = pytest.mark.skipif('not HAVE_PYROSETTA')
 
 
 @only_if_pyrosetta
 def test_sheet_P6(c2pose, c6pose, c1pose):
     helix = Spliceable(c1pose, [(':1', 'N'), ('-7:', 'C')])
-    dimer = Spliceable(c2pose, sites=[('1,:2', 'N'), ('1,-1:', 'C'), ])
-    hexamer = Spliceable(c6pose, sites=[('1,:1', 'N'), ('1,-2:', 'C'), ])
-    segments = [Segment([hexamer], '_C'),
-                Segment([helix], 'NC'),
-                Segment([helix], 'NC'),
-                Segment([helix], 'NC'),
-                Segment([helix], 'NC'),
-                Segment([dimer], 'N_')]
+    dimer = Spliceable(
+        c2pose, sites=[
+            ('1,:2', 'N'),
+            ('1,-1:', 'C'),
+        ])
+    hexamer = Spliceable(
+        c6pose, sites=[
+            ('1,:1', 'N'),
+            ('1,-2:', 'C'),
+        ])
+    segments = [
+        Segment([hexamer], '_C'),
+        Segment([helix], 'NC'),
+        Segment([helix], 'NC'),
+        Segment([helix], 'NC'),
+        Segment([helix], 'NC'),
+        Segment([dimer], 'N_')
+    ]
     w = grow(segments, Sheet_P6(c2=-1, c6=0), thresh=1)
     assert len(w) > 0
     p = w.pose(0, only_connected=0)
@@ -47,11 +56,13 @@ def test_sheet_P4212(c2pose, c4pose, c1pose):
     helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', 'C')])
     dimer = Spliceable(c2pose, sites=[('1,:2', 'N'), ('1,-1:', 'C')])
     tetramer = Spliceable(c4pose, sites=[('1,:1', 'N'), ('1,-2:', 'C')])
-    segments = [Segment([tetramer], '_C'),
-                Segment([helix], 'NC'),
-                Segment([helix], 'NC'),
-                Segment([helix], 'NC'),
-                Segment([dimer], 'N_')]
+    segments = [
+        Segment([tetramer], '_C'),
+        Segment([helix], 'NC'),
+        Segment([helix], 'NC'),
+        Segment([helix], 'NC'),
+        Segment([dimer], 'N_')
+    ]
     w = grow(segments, Sheet_P4212(c2=-1, c4=0), thresh=1)
     assert len(w) > 0
     # print(w.scores)
@@ -69,13 +80,23 @@ def test_sheet_P4212(c2pose, c4pose, c1pose):
 @only_if_pyrosetta
 def test_sheet_P321(c2pose, c3pose, c1pose):
     helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', 'C')])
-    dimer = Spliceable(c2pose, sites=[('1,:2', 'N'), ('1,-1:', 'C'), ])
-    trimer = Spliceable(c3pose, sites=[('1,:1', 'N'), ('1,-2:', 'C'), ])
-    segments = [Segment([trimer], '_C'),
-                Segment([helix], 'NC'),
-                Segment([helix], 'NC'),
-                Segment([helix], 'NC'),
-                Segment([dimer], 'N_')]
+    dimer = Spliceable(
+        c2pose, sites=[
+            ('1,:2', 'N'),
+            ('1,-1:', 'C'),
+        ])
+    trimer = Spliceable(
+        c3pose, sites=[
+            ('1,:1', 'N'),
+            ('1,-2:', 'C'),
+        ])
+    segments = [
+        Segment([trimer], '_C'),
+        Segment([helix], 'NC'),
+        Segment([helix], 'NC'),
+        Segment([helix], 'NC'),
+        Segment([dimer], 'N_')
+    ]
     w = grow(segments, Sheet_P321(c2=-1, c3=0), thresh=1)
     assert len(w) > 0
     # print(w.scores)
@@ -95,11 +116,13 @@ def test_crystal_P213(c3pose, c3_splay_pose, c1pose):
     helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', 'C')])
     trimer = Spliceable(c3pose, sites=[('1,:1', 'N'), ('1,-2:', 'C')])
     trimer2 = Spliceable(c3_splay_pose, sites=[('1,:1', 'N'), ('1,-2:', 'C')])
-    segments = [Segment([trimer], '_C'),
-                Segment([helix], 'NC'),
-                Segment([helix], 'NC'),
-                Segment([helix], 'NC'),
-                Segment([trimer2], 'N_')]
+    segments = [
+        Segment([trimer], '_C'),
+        Segment([helix], 'NC'),
+        Segment([helix], 'NC'),
+        Segment([helix], 'NC'),
+        Segment([trimer2], 'N_')
+    ]
     w = grow(segments, Crystal_P213(c3a=0, c3b=-1), thresh=1)
     print(len(w))
 
@@ -108,7 +131,7 @@ def test_crystal_P213(c3pose, c3_splay_pose, c1pose):
     for i in range(1):
         p = w.pose(i, only_connected=0)
         # q = w.sympose(i, fullatom=True)
-    # p.dump_pdb('p.pdb')
+        # p.dump_pdb('p.pdb')
         # q.dump_pdb('P213_symm_%i.pdb' % i)
         # p.dump_pdb('P213_asymm_%i.pdb' % i)
         assert util.no_overlapping_residues(p)

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 """Top-level package for worms."""
 
 __author__ = """Will Sheffler"""

@@ -13,7 +13,6 @@ try:
 except ImportError:
     HAVE_PYROSETTA = HAVE_PYROSETTA_DISTRIBUTED = False
 
-
 only_if_pyrosetta = pytest.mark.skipif('not HAVE_PYROSETTA')
 
 

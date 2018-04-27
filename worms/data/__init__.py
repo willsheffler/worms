@@ -8,7 +8,6 @@ from functools import lru_cache
 
 
 class PoseLib:
-
     @lru_cache()
     def get(self, name):
         if name.startswith('__'): return
