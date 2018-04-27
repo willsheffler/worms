@@ -1,15 +1,15 @@
-name: wormsdev36
+name: wormsdev
 channels:
- - schrodinger
+ # - schrodinger
  - conda-forge
 dependencies:
- - python >= 3.6
+ - python == 3.5.5
  - numpy
  - pytest
  - pytest-cov
  - sphinx_rtd_theme
  - ipython
- - pymol >= 2.1
+ # - pymol >= 2.1
  - pip:
    - homog >= 0.1.10
    - xbin >= 0.1.5

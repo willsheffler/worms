@@ -25,6 +25,11 @@ test_db_files = [
 ]
 
 
-@pytest.mark.skip
+@pytest.mark.xfail
 def test_database_simple(tmpdir):
-    db = Database(test_db_files, cachefile=os.path.join(tmpdir, 'tmp.pickle'))
+    with DatabaseContext(test_db_files,
+                         cachefile=os.path.join(str(tmpdir), 'tmp.pickle')) as db:
+        fresh_len = len(db.cache['poses'])
+    db = Database(test_db_files, cache_only=True,
+                  cachefile=os.path.join(str(tmpdir), 'tmp.pickle'))
+    assert len(db.cache['poses']) == fresh_len
