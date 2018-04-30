@@ -132,15 +132,13 @@ class PDBPile:
         os.makedirs(self.cachedir + '/coord', exist_ok=True)
         self.cache, self.poses = dict(), dict()
         self.exe = exe
-        for f in bakerdb_files:
-            self.add_bakerdb_file(f)
-
-    def add_bakerdb_file(self, json_db_file):
-        with open(json_db_file) as f:
-            db = json.load(f)
-            info('PDBPile.add_bakerdb_file %s %i' % (json_db_file, len(db)))
-            with self.exe() as pool:
-                [_ for _ in pool.map(self.add_entry, db)]
+        self.alldb = []
+        for dbfile in bakerdb_files:
+            with open(dbfile) as f:
+                self.alldb.extend(json.load(f))
+        print('loading %i db entries'% len(self.alldb))
+        with self.exe(max_workers=28) as pool:
+            [_ for _ in pool.map(self.add_entry, self.alldb)]
 
     def posefile(self, pdbfile):
         return os.path.join(self.cachedir, 'poses', flatten_path(pdbfile))
@@ -216,6 +214,7 @@ class PDBPile:
                     assert np.allclose(tmp.stubs, pdbdat.stubs)
             with open(posefile, 'wb') as f:
                 pickle.dump(pose, f)
+                print('dumped cache files for', pdbfile)
         self.cache[pdbfile] = pdbdat
         if self.load_poses:
             self.poses[pdbfile] = pose
