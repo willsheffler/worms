@@ -24,6 +24,7 @@ except ImportError:
     ('file', nt.int8[:]),
     ('components', nt.int8[:]),
     ('protocol', nt.int8[:]),
+    ('name', nt.int8[:]),
     ('classes', nt.int8[:]),
     ('validated', nt.boolean),
     ('_type', nt.int8[:]),
@@ -40,6 +41,7 @@ class PDBDat:
             file,
             components,
             protocol,
+            name,
             classes,
             validated,
             _type,
@@ -53,6 +55,7 @@ class PDBDat:
         self.file = file
         self.components = components
         self.protocol = protocol
+        self.name = name
         self.classes = classes
         self.validated = validated
         self._type = _type
@@ -68,6 +71,7 @@ class PDBDat:
             self.file,
             self.components,
             self.protocol,
+            self.name,
             self.classes,
             self.validated,
             self._type,
@@ -100,6 +104,7 @@ def pdbdat_str(pdbdat):
         '    file=' + str(bytes(pdbdat.file)),
         '    components=' + str(pdbdat_components(pdbdat)),
         '    protocol=' + str(bytes(pdbdat.protocol)),
+        '    name=' + str(bytes(pdbdat.name)),
         '    classes=' + str(bytes(pdbdat.classes)),
         '    validated=' + str(pdbdat.validated),
         '    _type=' + str(bytes(pdbdat._type)),
@@ -122,12 +127,17 @@ def flatten_path(pdbfile):
 class PDBPile:
     def __init__(self,
                  *,
-                 cachedir=os.environ['HOME'] + os.sep + '.worms/cache',
+                 cachedir=None,
                  bakerdb_files=[],
                  load_poses=False,
                  nprocs=1,
                  metaonly=False,
                  read_new_pdbs=False):
+        if cachedir is None:
+            if 'HOME' in os.environ:
+                cachedir = os.environ['HOME'] + os.sep + '.worms/cache'
+            else:
+                cachedir = '.worms/cache'
         self.cachedir = str(cachedir)
         self.load_poses = load_poses
         os.makedirs(self.cachedir + '/poses', exist_ok=True)
@@ -185,6 +195,15 @@ class PDBPile:
                     hits.append(db['file'])
         return hits
 
+    def query(self, s):
+        '''
+        match name, _type, _class
+        if one match, use it
+        if _type and _class match, check useclass option
+        Het:NNCx/y require exact number or require extra
+        '''
+        pass
+
     def classes(self):
         x = set()
         for db in self.alldb:
@@ -214,6 +233,7 @@ class PDBPile:
 
     def add_entry(self, entry):
         pdbfile = entry['file']
+        if 'name' not in entry: entry['name'] = ''
         cachefile = os.path.join(self.cachedir, 'coord', flatten_path(pdbfile))
         posefile = self.posefile(pdbfile)
         if os.path.exists(cachefile):
@@ -246,6 +266,7 @@ class PDBPile:
                 components=np.frombuffer(
                     str(entry['components']).encode(), dtype='i1'),
                 protocol=np.frombuffer(entry['protocol'].encode(), dtype='i1'),
+                name=np.frombuffer(entry['name'].encode(), dtype='i1'),
                 classes=np.frombuffer(','.join(entry['class']).encode(), 'i1'),
                 validated=entry['validated'],
                 _type=np.frombuffer(entry['type'].encode(), dtype='i1'),
@@ -272,6 +293,7 @@ class PDBPile:
                     assert bytes(tmp.file) == bytes(pdbdat.file)
                     assert bytes(tmp.components) == bytes(pdbdat.components)
                     assert bytes(tmp.protocol) == bytes(pdbdat.protocol)
+                    assert bytes(tmp.name) == bytes(pdbdat.name)
                     assert bytes(tmp.classes) == bytes(pdbdat.classes)
                     assert tmp.validated == pdbdat.validated
                     assert bytes(tmp._type) == bytes(pdbdat._type)
