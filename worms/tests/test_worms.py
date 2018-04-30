@@ -3,7 +3,7 @@ import _pickle as pickle
 import numpy as np
 from homog import hrot, htrans, axis_angle_of, axis_ang_cen_of
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-from .. import *
+from worms import *
 from homog.sym import icosahedral_axes as IA
 import time
 try:
@@ -182,7 +182,7 @@ def test_geom_check():
 def test_segment_geom(c1pose):
     "currently only a basic sanity checkb... only checks translation distances"
     body = c1pose
-    stubs = util.get_bb_stubs(body)
+    stubs, _ = util.get_bb_stubs(body)
     assert stubs.shape == (body.size(), 4, 4)
 
     nsplice = SpliceSite(
@@ -746,7 +746,8 @@ def test_multichain_mixed_pol(c2pose, c3pose, c1pose):
     # vis.show_with_axis(w, 0)
     # vis.showme(p)
 
-    assert 1 > residue_sym_err(p, 120, 2, 62, 7)
+    # print(residue_sym_err(p, 120, 2, 62, 7))
+    assert 0.3 > residue_sym_err(p, 120, 2, 62, 7)
 
 
 @only_if_pyrosetta

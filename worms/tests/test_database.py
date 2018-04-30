@@ -1,5 +1,8 @@
 import pytest
-from ..database import *
+from worms.database import *
+import logging
+import json
+from worms.util import InProcessExecutor
 
 test_db_files = [
     '/home/rubul/database/fusion/hb_dhr/master_database_generation2.txt',
@@ -24,14 +27,8 @@ test_db_files = [
 ]
 
 
-@pytest.mark.xfail
-def test_database_simple(tmpdir):
-    with DatabaseContext(
-            test_db_files, cachefile=os.path.join(str(tmpdir),
-                                                  'tmp.pickle')) as db:
-        fresh_len = len(db.cache['poses'])
-    db = Database(
-        test_db_files,
-        cache_only=True,
-        cachefile=os.path.join(str(tmpdir), 'tmp.pickle'))
-    assert len(db.cache['poses']) == fresh_len
+# make a real test...
+@pytest.mark.skip
+def test_database_simple(tmpdir, caplog):
+    pp = PDBPile(bakerdb_files=test_db_files[:1], cachedir=tmpdir)
+    assert 0

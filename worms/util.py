@@ -27,6 +27,10 @@ class InProcessExecutor:
     def submit(self, function, *args, **kw):
         return NonFuture(function(*args, **kw))
 
+    def map(self, function, *iterables):
+        return map(function, *iterables)
+        # return (NonFuture(function(*args) for args in zip(iterables)))
+
 
 class NonFuture:
     def __init__(self, result):
@@ -130,15 +134,28 @@ def get_bb_stubs(pose, which_resi=None):
     'extract rif style stubs from rosetta pose'
     if which_resi is None:
         which_resi = list(range(1, pose.size() + 1))
-    npstubs = []
+    npstubs, n_ca_c = [], []
     for ir in which_resi:
         r = pose.residue(ir)
         if not r.is_protein():
-            continue
-        ros_stub = ros.core.kinematics.Stub(
-            r.xyz('CA'), r.xyz('N'), r.xyz('CA'), r.xyz('C'))
+            raise ValueError('non-protein residue %s at position %i' %
+                             (r.name(), ir))
+        n, ca, c = r.xyz('N'), r.xyz('CA'), r.xyz('C')
+        ros_stub = ros.core.kinematics.Stub(ca, n, ca, c)
         npstubs.append(numpy_stub_from_rosetta_stub(ros_stub))
-    return np.stack(npstubs)
+        n_ca_c.append(
+            np.array([[n.x, n.y, n.z], [ca.x, ca.y, ca.z], [c.x, c.y, c.z]]))
+    return np.stack(npstubs).astype('f8'), np.stack(n_ca_c).astype('f8')
+
+
+def get_chain_bounds(pose):
+    ch = np.array([pose.chain(i + 1) for i in range(len(pose))])
+    chains = list()
+    for i in range(ch[-1]):
+        chains.append((np.sum(ch <= i), np.sum(ch <= i + 1)))
+    assert chains[0][0] == 0
+    assert chains[-1][-1] == len(pose)
+    return chains
 
 
 def pose_bounds(pose, lb, ub):
@@ -158,11 +175,7 @@ def subpose(pose, lb, ub=-1):
 
 def xform_pose(xform, pose, lb=1, ub=-1):
     lb, ub = pose_bounds(pose, lb, ub)
-    if xform.shape != (4, 4):
-        raise ValueError(
-            'invalid xform, must be 4x4 homogeneous matrix, shape is: ' +
-            str(xform.shape))
-    xform = rosetta_stub_from_numpy_stub(xform)
+    xform = rosetta_stub_from_numpy_stub(xform.reshape(4, 4))
     ros.protocols.sic_dock.xform_pose(pose, xform, lb, ub)
 
 
@@ -289,3 +302,20 @@ def first_duplicate(segs):
             if segs[i].spliceables == segs[j].spliceables:
                 return j
     return None
+
+
+def dicts_to_items(inp):
+    if isinstance(inp, list):
+        return [dicts_to_items(x) for x in inp]
+    elif isinstance(inp, dict):
+        return [(k, dicts_to_items(v)) for k, v in inp.items()]
+    return inp
+
+
+def items_to_dicts(inp):
+    if (isinstance(inp, list) and isinstance(inp[0], tuple)
+            and len(inp[0]) is 2):
+        return {k: items_to_dicts(v) for k, v in inp}
+    elif isinstance(inp, list):
+        return [items_to_dicts(x) for x in inp]
+    return inp

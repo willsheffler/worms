@@ -9,7 +9,7 @@ from collections import defaultdict
 from xbin import XformBinner
 from homog import hinv, hrot
 from concurrent.futures import ProcessPoolExecutor
-from .worms import Segment, Segments, Worms
+from .segments import Segment, Segments, Worms
 from .criteria import CriteriaList, Cyclic, WormCriteria
 from . import util
 
@@ -61,8 +61,8 @@ class MakeXIndexAccumulator:
                  from_seg=0,
                  to_seg=-1,
                  max_tmp_size=1024,
-                 cart_resl=2.0,
-                 ori_resl=15.0):
+                 cart_resl=None,
+                 ori_resl=None):
         self.sizes = sizes
         self.thresh = thresh
         self.max_tmp_size = max_tmp_size
@@ -215,6 +215,7 @@ class XIndexedAccumulator:
         lowidx = lowidx[valid][join_idx >= 0]
         head_idx = head_idx[valid][join_idx >= 0]
         join_idx = join_idx[join_idx >= 0]
+
         # join_idx = self.segments[self.splitpoint].merge_idx_slow(
         #     self.tail[-1], lowidx[:, -1],
         #     self.head[0], head_idx[:, 0])
@@ -280,9 +281,9 @@ def grow(segments,
          verbosity=2,
          chunklim=None,
          max_samples=int(1e12),
-         max_results=int(1e4),
+         max_results=int(1e6),
          cart_resl=2.0,
-         ori_resl=15.0,
+         ori_resl=10.0,
          xindex_cache_file=None):
     if True:  # setup
         os.environ['OMP_NUM_THREADS'] = '1'
@@ -314,6 +315,8 @@ def grow(segments,
             executor_args = dict(max_workers=max_workers)
         elif executor_args is not None and max_workers is not None:
             raise ValueError('executor_args incompatible with max_workers')
+
+    max_results = int(max_results)
 
     if executor is None:
         executor = util.InProcessExecutor
@@ -404,7 +407,7 @@ def grow(segments,
         if max_samples is not None:
             max_samples = np.clip(chunksize * max_workers, max_samples, ntot)
         every_other = max(1, int(ntot / max_samples)) if max_samples else 1
-        njob = int(np.sqrt(nchunks / every_other) / 8 / nworker) * nworker
+        njob = int(np.sqrt(nchunks / every_other) / 16 / nworker) * nworker
         njob = np.clip(nworker, njob, nchunks)
         _grow_args = dict(
             executor=executor,
@@ -414,7 +417,7 @@ def grow(segments,
             thresh=thresh,
             matchlast=0,
             every_other=every_other,
-            max_results=max_results,
+            max_results=1e9,
             nworker=nworker,
             verbosity=verbosity)
         t1 = 0
@@ -485,7 +488,7 @@ def grow(segments,
             criteria[0].nfold,
             from_seg=criteria.from_seg,
             to_seg=criteria.to_seg,
-            max_results=max_results * 20)
+            max_results=max_results * 200)
 
         tailsizes = [len(s) for s in tail]
         tailend = _get_chunk_end_seg(tailsizes, max_workers, memsize)
@@ -687,8 +690,8 @@ def _grow_chunks(ijob, context):
     lowpos = np.concatenate([x[2] for x in chunks])
     order = np.argsort(scores)
     return [
-        scores[order[:max_results]], lowidx[order[:max_results]],
-        lowpos[order[:max_results]]
+        scores[order[:int(max_results)]], lowidx[order[:int(max_results)]],
+        lowpos[order[:int(max_results)]]
     ]
 
 
@@ -727,7 +730,7 @@ def _check_topology(segments, criteria, expert=False):
             if beg.min_sites[pol] < sites_required[pol]:
                 msg = 'Not enough %s sites in all of segment %i Spliceables, %i required, some have only %i available (pass expert=True if you really want to run anyway)' % (
                     pol, criteria.from_seg, sites_required[pol],
-                    beg.max_sites[pol])
+                    beg.min_sites[pol])
                 if not expert: raise ValueError(msg)
                 print("WARNING:", msg)
     return matchlast

@@ -16,7 +16,7 @@ except ImportError:
     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
     print('pyrosetta not available, worms won\'t work')
     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-from . import util
+from worms import util
 import inspect
 
 
@@ -248,7 +248,7 @@ class Segment:
                 self.min_sites[p] = min(self.min_sites[p], spliceable.nsite[p])
                 self.max_sites[p] = max(self.max_sites[p], spliceable.nsite[p])
             resid_subset, to_subset = spliceable.spliceable_positions()
-            stubs = util.get_bb_stubs(spliceable.body, resid_subset)
+            stubs, _ = util.get_bb_stubs(spliceable.body, resid_subset)
             self.resid_subset.append(resid_subset)
             self.to_subset.append(to_subset)
             self.stubs.append(stubs)

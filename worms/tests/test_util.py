@@ -1,4 +1,5 @@
-from .. import util
+from worms import util
+import json
 import itertools as it
 import pytest
 try:
@@ -20,3 +21,15 @@ def test_MultiRange():
     for i, tup in enumerate(prod):
         assert tup == mr[i]
     assert i + 1 == len(mr)
+
+
+@pytest.mark.skip()
+def test_remove_dicts():
+    jd = json.load(open(test_db_files[0]))[0]
+    ji = dicts_to_items(jd)
+    assert jd == items_to_dicts(ji)
+    assert ji == dicts_to_items(jd)
+    assert isinstance(jd, dict)
+    assert isinstance(ji, list)
+    assert isinstance(ji[0], tuple)
+    assert len(ji[0]) is 2
