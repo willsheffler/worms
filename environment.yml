@@ -2,9 +2,12 @@ name: wormsdev
 channels:
  # - schrodinger
  - conda-forge
+ - numba
 dependencies:
  - python == 3.5.5
  - numpy
+ - numba
+ - icc_rt
  - pytest
  - pytest-cov
  - sphinx_rtd_theme

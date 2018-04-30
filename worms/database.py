@@ -125,28 +125,92 @@ class PDBPile:
                  cachedir=os.environ['HOME'] + os.sep + '.worms/cache',
                  bakerdb_files=[],
                  load_poses=False,
-                 exe=ThreadPoolExecutor):
+                 nprocs=1,
+                 metaonly=False,
+                 read_new_pdbs=False):
         self.cachedir = str(cachedir)
         self.load_poses = load_poses
         os.makedirs(self.cachedir + '/poses', exist_ok=True)
         os.makedirs(self.cachedir + '/coord', exist_ok=True)
         self.cache, self.poses = dict(), dict()
-        self.exe = exe
+        self.nprocs = nprocs
+        self.metaonly = metaonly
+        self.read_new_pdbs = read_new_pdbs
         self.alldb = []
         for dbfile in bakerdb_files:
             with open(dbfile) as f:
                 self.alldb.extend(json.load(f))
-        print('loading %i db entries'% len(self.alldb))
-        with self.exe(max_workers=28) as pool:
-            [_ for _ in pool.map(self.add_entry, self.alldb)]
+        self.dictdb = {e['file']: e for e in self.alldb}
+        if len(self.alldb) != len(self.dictdb):
+            print('!' * 100)
+            print('!' * 23,
+                  'DIRE WARNING: %6i duplicate pdb files in database' %
+                  (len(self.alldb) - len(self.dictdb)), '!' * 23)
+            print('!' * 100)
+        print('loading %i db entries' % len(self.alldb))
+        self.n_new_entries = 0
+        self.n_missing_entries = len(self.alldb)
+        if not self.metaonly:
+            if self.read_new_pdbs:
+                assert not os.path.exists(cachedir + '/lock'), (
+                    "database is locked! if you're sure no other jobs are editing it, remove "
+                    + self.cachedir + "/lock")
+                open(cachedir + '/lock', 'w').close()
+                assert os.path.exists(cachedir + '/lock')
+            self.n_new_entries, self.n_missing_entries = self.load()
+            if self.read_new_pdbs:
+                os.remove(cachedir + '/lock')
+            if nprocs != 1:
+                self.nprocs = 1
+                self.load()
+
+    def __len__(self):
+        return len(self.cache)
+
+    def find_by_class(self, _class):
+        c = _class
+        subc = None
+        if _class.count(':'):
+            c, subc = _class.split(':')
+        if subc is None:
+            hits = [db['file'] for db in self.alldb if c in db['class']]
+        else:
+            hits = list()
+            assert c == 'Het'
+            for db in self.alldb:
+                if not c in db['class']: continue
+                nc = [x for x in db['connections'] if x['direction'] == 'C']
+                nn = [x for x in db['connections'] if x['direction'] == 'N']
+                if subc.count('C') <= len(nc) and subc.count('N') <= len(nn):
+                    hits.append(db['file'])
+        return hits
+
+    def classes(self):
+        x = set()
+        for db in self.alldb:
+            x.update(db['class'])
+        return list(x)
+
+    def load(self):
+        if self.nprocs is 1:
+            with util.InProcessExecutor() as pool:
+                result = [_ for _ in pool.map(self.add_entry, self.alldb)]
+        else:
+            with ProcessPoolExecutor(max_workers=self.nprocs) as pool:
+                result = [_ for _ in pool.map(self.add_entry, self.alldb)]
+        return sum(x[0] for x in result), sum(x[1] for x in result)
 
     def posefile(self, pdbfile):
         return os.path.join(self.cachedir, 'poses', flatten_path(pdbfile))
 
     def load_cached_pose_into_memory(self, pdbfile):
         posefile = self.posefile(pdbfile)
-        with open(posefile, 'rb') as f:
-            self.poses[pdbfile] = pickle.load(f)
+        try:
+            with open(posefile, 'rb') as f:
+                self.poses[pdbfile] = pickle.load(f)
+                return True
+        except FileNotFound:
+            return False
 
     def add_entry(self, entry):
         pdbfile = entry['file']
@@ -156,8 +220,12 @@ class PDBPile:
             with open(cachefile, 'rb') as f:
                 pdbdat = PDBDat(*pickle.load(f))
             if self.load_poses:
-                self.load_cached_pose_into_memory(pdbfile)
-        else:
+                assert self.load_cached_pose_into_memory(pdbfile)
+            self.cache[pdbfile] = pdbdat
+            if self.load_poses:
+                self.poses[pdbfile] = pose
+            return 0, 0
+        elif self.read_new_pdbs:
             info('PDBPile.add_entry reading %s' % pdbfile)
             if os.path.exists(posefile):
                 with open(posefile, 'rb') as f:
@@ -215,9 +283,14 @@ class PDBPile:
             with open(posefile, 'wb') as f:
                 pickle.dump(pose, f)
                 print('dumped cache files for', pdbfile)
-        self.cache[pdbfile] = pdbdat
-        if self.load_poses:
-            self.poses[pdbfile] = pose
+                sys.stdout.flush()
+            self.cache[pdbfile] = pdbdat
+            if self.load_poses:
+                self.poses[pdbfile] = pose
+            return 1, 0
+        else:
+            print('no cached data for', pdbfile)
+            return 0, 1
 
     # def compress_poses(self):
     # for k, pose in self.poses.items():
@@ -227,11 +300,9 @@ class PDBPile:
     def pose(self, pdbfile):
         'load pose from cache, read from file if not in memory'
         if not pdbfile in self.poses:
-            self.load_cached_pose_into_memory(pdbfile)
-        pose = self.poses[pdbfile]
-        # if isinstance(pose, bytes):
-        # pose = pickle.loads(pose)
-        return pose
+            if not self.load_cached_pose_into_memory(pdbfile):
+                self.poses[pdbfile] = pose_from_file(pdbfile)
+        return self.poses[pdbfile]
 
 
 if __name__ == '__main__':
@@ -239,8 +310,20 @@ if __name__ == '__main__':
     import pyrosetta
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--database_files', type=str, nargs='+', dest='database_files')
+        '--add_database_files_to_cache',
+        type=str,
+        nargs='+',
+        dest='database_files')
+    parser.add_argument('--nprocs', type=int, dest='nprocs', default=1)
+    parser.add_argument(
+        '--read_new_pdbs', type=bool, dest='read_new_pdbs', default=False)
     args = parser.parse_args()
     pyrosetta.init('-mute all -ignore_unrecognized_res')
-    pp = PDBPile(bakerdb_files=args.database_files, exe=ProcessPoolExecutor)
-    print(len(pp.cache))
+    pp = PDBPile(
+        bakerdb_files=args.database_files,
+        nprocs=args.nprocs,
+        read_new_pdbs=args.read_new_pdbs,
+    )
+    print('new entries', pp.n_new_entries)
+    print('missing entries', pp.n_missing_entries)
+    print('total entries', len(pp.cache))

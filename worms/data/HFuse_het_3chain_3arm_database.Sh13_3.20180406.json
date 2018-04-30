@@ -1,0 +1,494 @@
+[{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR10_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR08_BA_C_0001_0003/Sh13_3_Sh13_3_DHR10_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR08_BA_C_0001_0003.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0001" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR10", "DHR53", "DHR08"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR10_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR53_BA_C_0001/Sh13_3_Sh13_3_DHR10_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR53_BA_C_0001.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0002" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR10", "DHR53", "DHR53"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR10_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR64_BA_C_0001_0002/Sh13_3_Sh13_3_DHR10_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR64_BA_C_0001_0002.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0003" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR10", "DHR53", "DHR64"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR10_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR76_BA_C_0001_0004/Sh13_3_Sh13_3_DHR10_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR76_BA_C_0001_0004.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0004" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR10", "DHR53", "DHR76"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR10_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR79_BA_C_0001/Sh13_3_Sh13_3_DHR10_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR79_BA_C_0001.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0005" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR10", "DHR53", "DHR79"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR18_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR08_BA_C_0001_0003/Sh13_3_Sh13_3_DHR18_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR08_BA_C_0001_0003.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0006" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR18", "DHR53", "DHR08"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR18_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR53_BA_C_0001/Sh13_3_Sh13_3_DHR18_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR53_BA_C_0001.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0007" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR18", "DHR53", "DHR53"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR18_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR64_BA_C_0001_0002/Sh13_3_Sh13_3_DHR18_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR64_BA_C_0001_0002.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0008" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR18", "DHR53", "DHR64"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR18_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR76_BA_C_0001_0004/Sh13_3_Sh13_3_DHR18_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR76_BA_C_0001_0004.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0009" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR18", "DHR53", "DHR76"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR18_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR79_BA_C_0001/Sh13_3_Sh13_3_DHR18_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR79_BA_C_0001.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0010" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR18", "DHR53", "DHR79"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR49_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR08_BA_C_0001_0003/Sh13_3_Sh13_3_DHR49_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR08_BA_C_0001_0003.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0011" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR49", "DHR53", "DHR08"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR49_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR53_BA_C_0001/Sh13_3_Sh13_3_DHR49_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR53_BA_C_0001.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0012" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR49", "DHR53", "DHR53"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR49_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR64_BA_C_0001_0002/Sh13_3_Sh13_3_DHR49_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR64_BA_C_0001_0002.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0013" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR49", "DHR53", "DHR64"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR49_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR76_BA_C_0001_0004/Sh13_3_Sh13_3_DHR49_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR76_BA_C_0001_0004.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0014" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR49", "DHR53", "DHR76"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR49_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR79_BA_C_0001/Sh13_3_Sh13_3_DHR49_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR79_BA_C_0001.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0015" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR49", "DHR53", "DHR79"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR53_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR08_BA_C_0001_0003/Sh13_3_Sh13_3_DHR53_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR08_BA_C_0001_0003.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0016" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR53", "DHR53", "DHR08"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR53_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR53_BA_C_0001/Sh13_3_Sh13_3_DHR53_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR53_BA_C_0001.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0017" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR53", "DHR53", "DHR53"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR53_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR64_BA_C_0001_0002/Sh13_3_Sh13_3_DHR53_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR64_BA_C_0001_0002.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0018" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR53", "DHR53", "DHR64"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR53_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR76_BA_C_0001_0004/Sh13_3_Sh13_3_DHR53_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR76_BA_C_0001_0004.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0019" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR53", "DHR53", "DHR76"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR53_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR79_BA_C_0001/Sh13_3_Sh13_3_DHR53_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR79_BA_C_0001.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0020" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR53", "DHR53", "DHR79"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR71_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR08_BA_C_0001_0003/Sh13_3_Sh13_3_DHR71_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR08_BA_C_0001_0003.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0021" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR71", "DHR53", "DHR08"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR71_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR53_BA_C_0001/Sh13_3_Sh13_3_DHR71_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR53_BA_C_0001.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0022" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR71", "DHR53", "DHR53"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR71_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR64_BA_C_0001_0002/Sh13_3_Sh13_3_DHR71_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR64_BA_C_0001_0002.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0023" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR71", "DHR53", "DHR64"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR71_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR76_BA_C_0001_0004/Sh13_3_Sh13_3_DHR71_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR76_BA_C_0001_0004.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0024" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR71", "DHR53", "DHR76"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR71_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR79_BA_C_0001/Sh13_3_Sh13_3_DHR71_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR79_BA_C_0001.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0025" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR71", "DHR53", "DHR79"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR76_AB_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR53_BA_C_0001/Sh13_3_Sh13_3_DHR76_AB_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR53_BA_C_0001.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0026" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR76", "DHR53", "DHR53"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-100:"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR76_AB_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR64_BA_C_0001_0002/Sh13_3_Sh13_3_DHR76_AB_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR64_BA_C_0001_0002.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0027" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR76", "DHR53", "DHR64"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-100:"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR76_AB_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR79_BA_C_0001/Sh13_3_Sh13_3_DHR76_AB_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR79_BA_C_0001.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0028" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR76", "DHR53", "DHR79"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-100:"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR76_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR08_BA_C_0001_0003/Sh13_3_Sh13_3_DHR76_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR08_BA_C_0001_0003.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0029" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR76", "DHR53", "DHR08"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR76_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR53_BA_C_0001/Sh13_3_Sh13_3_DHR76_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR53_BA_C_0001.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0030" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR76", "DHR53", "DHR53"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR76_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR64_BA_C_0001_0002/Sh13_3_Sh13_3_DHR76_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR64_BA_C_0001_0002.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0031" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR76", "DHR53", "DHR64"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR76_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR76_BA_C_0001_0004/Sh13_3_Sh13_3_DHR76_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR76_BA_C_0001_0004.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0032" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR76", "DHR53", "DHR76"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixfuse/asym_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR76_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR79_BA_C_0001/Sh13_3_Sh13_3_DHR76_BA_A_0001_Sh13_3_DHR53_BA_B_0001_Sh13_3_DHR79_BA_C_0001.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_0033" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR76", "DHR53", "DHR79"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":100"]},
+   {"chain": 2, "direction": "N", "residues":[":100"]},
+   {"chain": 3, "direction": "N", "residues":[":100"]}
+  ]
+}]

@@ -1,0 +1,272 @@
+[{"file": "/home/yhsia/helixdock/database/pdbs/un/UN_19.pdb",
+  "name": "HBRP_un_019" ,
+  "class": ["C3_N"],
+  "type": "HBRP_C3_N" ,
+  "base": "?" ,
+  "components": ["?"],
+  "validated": false,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":30"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixdock/database/pdbs/un/UN_22.pdb",
+  "name": "HBRP_un_022" ,
+  "class": ["C3_C"],
+  "type": "HBRP_C3_C" ,
+  "base": "?" ,
+  "components": ["?"],
+  "validated": false,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-30:"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixdock/database/pdbs/yh/1BH_03.pdb",
+  "name": "HBRP_yh_003" ,
+  "class": ["C3_N"],
+  "type": "HBRP_C3_N" ,
+  "base": "hp23" ,
+  "components": ["DHR47"],
+  "validated": false,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":30"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixdock/database/pdbs/yh/1BH_05.pdb",
+  "name": "HBRP_yh_005" ,
+  "class": ["C3_C"],
+  "type": "HBRP_C3_C" ,
+  "base": "triangle" ,
+  "components": ["DHR07"],
+  "validated": false,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-30:"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixdock/database/pdbs/yh/1BH_10.pdb",
+  "name": "HBRP_yh_010" ,
+  "class": ["C6_N"],
+  "type": "HBRP_C6_N" ,
+  "base": "3H22-C6" ,
+  "components": ["DHR09"],
+  "validated": false,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":30"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixdock/database/pdbs/yh/1BH_11.pdb",
+  "name": "HBRP_yh_011" ,
+  "class": ["C6_N"],
+  "type": "HBRP_C6_N" ,
+  "base": "3H22-C6" ,
+  "components": ["DHR15"],
+  "validated": false,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":30"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixdock/database/pdbs/yh/1BH_12.pdb",
+  "name": "HBRP_yh_012" ,
+  "class": ["C6_N"],
+  "type": "HBRP_C6_N" ,
+  "base": "3H22-C6" ,
+  "components": ["DHR18"],
+  "validated": false,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":30"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixdock/database/pdbs/yh/1BH_38.pdb",
+  "name": "HBRP_yh_038" ,
+  "class": ["C3_N"],
+  "type": "HBRP_C3_N" ,
+  "base": "pH2" ,
+  "components": ["DHR09"],
+  "validated": false,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":30"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixdock/database/pdbs/yh/1BH_41.pdb",
+  "name": "HBRP_yh_041" ,
+  "class": ["C3_N"],
+  "type": "HBRP_C3_N" ,
+  "base": "pH2" ,
+  "components": ["DHR04"],
+  "validated": false,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":30"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixdock/database/pdbs/yh/1BH_62.pdb",
+  "name": "HBRP_yh_062" ,
+  "class": ["C3_N"],
+  "type": "HBRP_C3_N" ,
+  "base": "2L6HC3-6" ,
+  "components": ["DHR46"],
+  "validated": false,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":30"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixdock/database/pdbs/yh/1BH_64.pdb",
+  "name": "HBRP_yh_064" ,
+  "class": ["C3_N"],
+  "type": "HBRP_C3_N" ,
+  "base": "2L6HC3-6" ,
+  "components": ["DHR47"],
+  "validated": false,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":30"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixdock/database/pdbs/yh/1BH_65.pdb",
+  "name": "HBRP_yh_065" ,
+  "class": ["C3_N"],
+  "type": "HBRP_C3_N" ,
+  "base": "2L6HC3-6" ,
+  "components": ["DHR53"],
+  "validated": false,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":30"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixdock/database/pdbs/yh/1BH_66.pdb",
+  "name": "HBRP_yh_066" ,
+  "class": ["C3_N"],
+  "type": "HBRP_C3_N" ,
+  "base": "2L6HC3-6" ,
+  "components": ["DHR58"],
+  "validated": false,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":30"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixdock/database/pdbs/yh/1BH_67.pdb",
+  "name": "HBRP_yh_067" ,
+  "class": ["C3_N"],
+  "type": "HBRP_C3_N" ,
+  "base": "2L6HC3-6" ,
+  "components": ["DHR46"],
+  "validated": false,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":30"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixdock/database/pdbs/yh/1BH_68.pdb",
+  "name": "HBRP_yh_068" ,
+  "class": ["C3_N"],
+  "type": "HBRP_C3_N" ,
+  "base": "2L6HC3-6" ,
+  "components": ["DHR47"],
+  "validated": false,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":30"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixdock/database/pdbs/yh/1BH_69.pdb",
+  "name": "HBRP_yh_069" ,
+  "class": ["C3_N"],
+  "type": "HBRP_C3_N" ,
+  "base": "2L6HC3-6" ,
+  "components": ["DHR53"],
+  "validated": false,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":[":30"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixdock/database/pdbs/yh/1BH_91.pdb",
+  "name": "HBRP_yh_091" ,
+  "class": ["C2_C"],
+  "type": "HBRP_C2_C" ,
+  "base": "ZC16" ,
+  "components": ["DHR24"],
+  "validated": false,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-30:"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixdock/database/pdbs/yh/1BH_92.pdb",
+  "name": "HBRP_yh_092" ,
+  "class": ["C2_C"],
+  "type": "HBRP_C2_C" ,
+  "base": "ZC16" ,
+  "components": ["DHR24"],
+  "validated": false,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-30:"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixdock/database/pdbs/yh/1BH_93.pdb",
+  "name": "HBRP_yh_093" ,
+  "class": ["C2_C"],
+  "type": "HBRP_C2_C" ,
+  "base": "ZC16" ,
+  "components": ["DHR46"],
+  "validated": false,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-30:"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixdock/database/pdbs/yh/1BH_96.pdb",
+  "name": "HBRP_yh_096" ,
+  "class": ["C2_C"],
+  "type": "HBRP_C2_C" ,
+  "base": "ZC16" ,
+  "components": ["DHR53"],
+  "validated": false,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-30:"]}
+  ]
+},
+
+{"file": "/home/yhsia/helixdock/database/pdbs/yh/1BH_97.pdb",
+  "name": "HBRP_yh_097" ,
+  "class": ["C2_C"],
+  "type": "HBRP_C2_C" ,
+  "base": "ZC31" ,
+  "components": ["DHR07"],
+  "validated": false,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-30:"]}
+  ]
+}]

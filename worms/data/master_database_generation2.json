@@ -1,0 +1,787 @@
+[{
+    "file": "/home/rubul/database/fusion/hb_dhr/F1/Sh13/RM1_Sh13A.pdb",
+  "class": ["Het", "Het_C3_C"],
+  "type": "Het_C3_C" ,
+  "base": "SH13" ,
+  "components": ["DHR62"],
+  "validated": true, 
+  "protocol": "Rubul_fusion",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-150:"]}
+  ]
+},
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F1/Sh13/pqk04_Sh13B.pdb",  
+  "class": ["Het", "Het_C3_N"],
+  "type": "Het_C3_N" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": true,
+  "protocol": "pqk_fusion",
+  "connections": [
+    {"chain": 2, "direction": "N", "residues": [":150"]}    
+  ]
+},
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F1/Sh13/pqk06_Sh13B.pdb",  
+  "class": ["Het", "Het_C3_C"],
+  "type": "Het_C3_C" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": true,
+  "protocol": "pqk_fusion",
+  "connections": [
+    {"chain": 2, "direction": "C", "residues": ["-150:"]}    
+  ]
+  },
+
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F1/Sh13/h1BH09_Sh13A.pdb",  
+  "class": ["Het", "Het_C3_C"],
+  "type": "Het_C3_C" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": true,
+  "protocol": "yang_fusion",
+  "connections": [
+    {"chain": 1, "direction": "C", "residues": ["-150:"]}   
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F1/Sh13/h1BH16_Sh13C.pdb",  
+  "class": ["Het", "Het_C3_C"],
+  "type": "Het_C3_C" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": true,
+  "protocol": "yang_fusion",
+  "connections": [
+    {"chain": 3, "direction": "C", "residues": ["-150:"]} 
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F1/Sh29/RM4_Sh29B.pdb",  
+  "class": ["Het", "Het_C3_C"],
+  "type": "Het_C3_C" ,
+  "base": "SH29" ,
+  "components": ["DHR62"],
+  "validated": true,
+  "protocol": "Rubul_fusion",
+  "connections": [
+    {"chain": 2, "direction": "C", "residues": ["-150:"]}   
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/h1BH09_pqk04_Sh13AB.pdb",  
+  "class": ["Het", "Het_C3_C", "Het_C3_N"],
+  "type": "Het_C3_C-N" ,
+  "base": "SH13",
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [
+    {"chain": 1, "direction": "C", "residues": ["-150:"]}, 
+    {"chain": 2, "direction": "N", "residues": [":150"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/h1BH09_pqk06_Sh13AB.pdb",  
+  "class": ["Het", "Het_C3_C"],
+  "type": "Het_C3_C-C" ,
+  "base": "SH13",
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [
+    {"chain": 1, "direction": "C", "residues": ["-150:"]}, 
+    {"chain": 2, "direction": "C", "residues": ["-150:"]}   
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/h1BH09_h1BH16_Sh13AC.pdb",  
+  "class": ["Het", "Het_C3_C"],
+  "type": "Het_C3_C-C" ,
+  "base": "SH13",
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [
+    {"chain": 1, "direction": "C", "residues": ["-150:"]},
+    {"chain": 3, "direction": "C", "residues": ["-150:"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/pqk04_h1BH16_Sh13BC.pdb",  
+  "class": ["Het", "Het_C3_N", "Het_C3_C"],
+  "type": "Het_C3_N-C" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 2, "direction": "N", "residues": [":150"]}, 
+    {"chain": 3, "direction": "C", "residues": ["-150:"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/pqk06_h1BH16_Sh13BC.pdb",  
+  "class": ["Het", "Het_C3_C"],
+  "type": "Het_C3_C-C" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 2, "direction": "C", "residues": ["-150:"]}, 
+    {"chain": 3, "direction": "C", "residues": ["-150:"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_h1BH09A_h1BH23C.pdb",  
+  "class": ["Het", "Het_C3_C", "Het_C3_N"],
+  "type": "Het_C3_C-N" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 1, "direction": "C", "residues": ["-150:"]}, 
+    {"chain": 3, "direction": "N", "residues": [":150"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_h1BH24A_h1BH16C.pdb",  
+  "class": ["Het", "Het_C3_C"],
+  "type": "Het_C3_C-C" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 1, "direction": "C", "residues": ["-150:"]}, 
+    {"chain": 3, "direction": "C", "residues": ["-150:"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_h1BH24A_h1BH23C.pdb",  
+  "class": ["Het", "Het_C3_C", "Het_C3_N"],
+  "type": "Het_C3_C-N" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 1, "direction": "C", "residues": ["-150:"]}, 
+    {"chain": 3, "direction": "N", "residues": [":150"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_h1BH24A_pqk04B.pdb",  
+  "class": ["Het", "Het_C3_C", "Het_C3_N"],
+  "type": "Het_C3_C-N" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 1, "direction": "C", "residues": ["-150:"]}, 
+    {"chain": 2, "direction": "N", "residues": [":150"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_h1BH24A_pqk06B.pdb",  
+  "class": ["Het", "Het_C3_C"],
+  "type": "Het_C3_C-C" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 1, "direction": "C", "residues": ["-150:"]}, 
+    {"chain": 2, "direction": "C", "residues": ["-150:"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_h1BH25A_h1BH16C.pdb",  
+  "class": ["Het", "Het_C3_C"],
+  "type": "Het_C3_C-C" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 1, "direction": "C", "residues": ["-150:"]}, 
+    {"chain": 3, "direction": "C", "residues": ["-150:"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_h1BH25A_h1BH23C.pdb",  
+  "class": ["Het", "Het_C3_C", "Het_C3_N"],
+  "type": "Het_C3_C-N" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 1, "direction": "C", "residues": ["-150:"]}, 
+    {"chain": 3, "direction": "N", "residues": [":150"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_h1BH25A_pqk04B.pdb",  
+  "class": ["Het", "Het_C3_C", "Het_C3_N"],
+  "type": "Het_C3_C-N" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 1, "direction": "C", "residues": ["-150:"]}, 
+    {"chain": 2, "direction": "N", "residues": [":150"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_h1BH25A_pqk06B.pdb",  
+  "class": ["Het", "Het_C3_C"],
+  "type": "Het_C3_C-C" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 1, "direction": "C", "residues": ["-150:"]}, 
+    {"chain": 2, "direction": "C", "residues": ["-150:"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_h1BH26A_h1BH16C.pdb",  
+  "class": ["Het", "Het_C3_N", "Het_C3_C"],
+  "type": "Het_C3_N-C" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 1, "direction": "N", "residues": [":150"]}, 
+    {"chain": 3, "direction": "C", "residues": ["-150:"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_h1BH26A_h1BH23C.pdb",  
+  "class": ["Het", "Het_C3_N"],
+  "type": "Het_C3_N-N" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 1, "direction": "N", "residues": [":150"]}, 
+    {"chain": 3, "direction": "N", "residues": [":150"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_h1BH26A_pqk04B.pdb",  
+  "class": ["Het", "Het_C3_N"],
+  "type": "Het_C3_N-N" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 1, "direction": "N", "residues": [":150"]}, 
+    {"chain": 2, "direction": "N", "residues": [":150"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_h1BH26A_pqk06B.pdb",  
+  "class": ["Het", "Het_C3_N", "Het_C3_C"],
+  "type": "Het_C3_N-C" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 1, "direction": "N", "residues": [":150"]}, 
+    {"chain": 2, "direction": "C", "residues": ["-150:"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_h1BH27A_h1BH16C.pdb",  
+  "class": ["Het", "Het_C3_N", "Het_C3_C"],
+  "type": "Het_C3_N-C" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 1, "direction": "N", "residues": [":150"]}, 
+    {"chain": 3, "direction": "C", "residues": ["-150:"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_h1BH27A_h1BH23C.pdb",  
+  "class": ["Het", "Het_C3_N"],
+  "type": "Het_C3_N-N" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 1, "direction": "N", "residues": [":150"]}, 
+    {"chain": 3, "direction": "N", "residues": [":150"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_h1BH27A_pqk04B.pdb",  
+  "class": ["Het", "Het_C3_N"],
+  "type": "Het_C3_N-N" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 1, "direction": "N", "residues": [":150"]}, 
+    {"chain": 2, "direction": "N", "residues": [":150"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_h1BH27A_pqk06B.pdb",  
+  "class": ["Het", "Het_C3_N", "Het_C3_C"],
+  "type": "Het_C3_N-C" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 1, "direction": "N", "residues": [":150"]}, 
+    {"chain": 2, "direction": "C", "residues": ["-150:"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_pqk04B_h1BH23C.pdb",  
+  "class": ["Het", "Het_C3_N"],
+  "type": "Het_C3_N-N" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 2, "direction": "N", "residues": [":150"]}, 
+    {"chain": 3, "direction": "N", "residues": [":150"]}    
+  ]
+  },
+
+ {"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_pqk06B_h1BH23C.pdb",  
+  "class": ["Het", "Het_C3_C", "Het_C3_N"],
+  "type": "Het_C3_C-N" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 2, "direction": "C", "residues": ["-150:"]}, 
+    {"chain": 3, "direction": "N", "residues": [":150"]}    
+  ]
+  }, 
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_RM01A_h1BH16C.pdb",  
+  "class": ["Het", "Het_C3_C"],
+  "type": "Het_C3_C-C" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 1, "direction": "C", "residues": ["-150:"]}, 
+    {"chain": 3, "direction": "C", "residues": ["-150:"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_RM01A_h1BH23C.pdb",  
+  "class": ["Het", "Het_C3_C", "Het_C3_N"],
+  "type": "Het_C3_C-N" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 1, "direction": "C", "residues": ["-150:"]}, 
+    {"chain": 3, "direction": "N", "residues": [":150"]}    
+  ]
+  }, 
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_RM01A_pqk04B.pdb",  
+  "class": ["Het", "Het_C3_C", "Het_C3_N"],
+  "type": "Het_C3_C-N" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 1, "direction": "C", "residues": ["-150:"]}, 
+    {"chain": 2, "direction": "N", "residues": [":150"]}    
+  ]
+  }, 
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F2/Sh13_RM01A_pqk06B.pdb",  
+  "class": ["Het", "Het_C3_C"],
+  "type": "Het_C3_C-C" ,
+  "base": "SH13" ,
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [ 
+    {"chain": 1, "direction": "C", "residues": ["-150:"]}, 
+    {"chain": 2, "direction": "C", "residues": ["-150:"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F3/h1BH09_pqk04_h1BH16_Sh13ABC.pdb",  
+  "class": ["Het", "Het_C3_C", "Het_C3_N"],
+  "type": "Het_C3_C-N-C" ,
+  "base": "SH13",
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [
+    {"chain": 1, "direction": "C", "residues": ["-150:"]}, 
+    {"chain": 2, "direction": "N", "residues": [":150"]}, 
+    {"chain": 3, "direction": "C", "residues": ["-150:"]}    
+  ]
+  },
+
+{"file": "/home/rubul/database/fusion/hb_dhr/F3/h1BH09_pqk06_h1BH16_Sh13ABC.pdb",  
+  "class": ["Het", "Het_C3_C"],
+  "type": "Het_C3_C-C-C" ,
+  "base": "SH13",
+  "components": ["DHR"],
+  "validated": false,
+  "protocol": "yang_fusion",
+  "connections": [
+    {"chain": 1, "direction": "C", "residues": ["-150:"]}, 
+    {"chain": 2, "direction": "C", "residues": ["-150:"]}, 
+    {"chain": 3, "direction": "C", "residues": ["-150:"]}    
+  ]
+  },
+
+{"file": "/work/gtueda/working_designs/C3_all_validated/1na0C3_1.pdb",
+  "class": ["C3_C"],
+  "type": "C3_C",
+  "base": "1na0C3",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-50:"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/C3_all_validated/1na0C3_3.pdb",
+  "class": ["C3_C"],
+  "type": "C3_C",
+  "base": "1na0C3",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-50:"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/C3_all_validated/1na0C3_6.pdb",
+  "class": ["C3_C"],
+  "type": "C3_C",
+  "base": "1na0C3",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-50:"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/C3_all_validated/1na0C3_G1.pdb",
+  "class": ["C3_C"],
+  "type": "C3_C",
+  "base": "1na0C3",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-50:"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/C3_all_validated/1na0C3_int2.pdb",
+  "class": ["C3_C"],
+  "type": "C3_C",
+  "base": "1na0C3",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-50:"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/C3_all_validated/3ltjC3_int1.pdb",
+  "class": ["C3_C"],
+  "type": "C3_C",
+  "base": "3ltjC3",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-30:"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/C3_all_validated/tj04C3_int5v2.pdb",
+  "class": ["C3_N"],
+  "type": "C3_N",
+  "base": "tj04C3",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "N", "residues":[":20"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/C3_all_validated/TJ41C3_pm1v2.pdb",
+  "class": ["C3_C"],
+  "type": "C3_C",
+  "base": "TJ41C3",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-30:"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/C3_all_validated/tj07C3_V03.pdb",
+  "class": ["C3_C"],
+  "type": "C3_C",
+  "base": "tj07C3_V03",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-50:"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/C3_all_validated/tj08C3_V13.pdb",
+  "class": ["C3_C", "C3_N"],
+  "type": "C3_C-N",
+  "base": "tj08C3_V13",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-1:"]},
+    {"chain": 1, "direction": "N", "residues":[":1"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/C3_all_validated/tj18C3_V04.pdb",
+  "class": ["C3_N"],
+  "type": "C3_N",
+  "base": "tj18C3_V04",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "N", "residues":[":20"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/C3_all_validated/tj71C3_V06.pdb",
+  "class": ["C3_C"],
+  "type": "C3_C",
+  "base": "tj71C3_V06",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":[":5"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/C2_all_validated/ank1C2_G3.pdb",
+  "class": ["C2_N"],
+  "type": "C2_N",
+  "base": "ank1C2",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "N", "residues":[":25"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/C2_all_validated/ank3C2_1.pdb",
+  "class": ["C2_N", "C2_C"],
+  "type": "C2_N-C",
+  "base": "ank3C2",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "N", "residues":[":5"]},
+    {"chain": 2, "direction": "C", "residues":["-5:"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/C2_all_validated/ank3C2_2.pdb",
+  "class": ["C2_N", "C2_C"],
+  "type": "C2_N-C",
+  "base": "ank3C2",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "N", "residues":[":5"]},
+    {"chain": 2, "direction": "C", "residues":["-5:"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/C2_all_validated/bex2C2_G2.pdb",
+  "class": ["C2_N"],
+  "type": "C2_N",
+  "base": "bex2C2",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "N", "residues":[":20"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/asym_C2/all_validated/tj18_asym13.pdb",
+  "class": ["Het_C2_N"],
+  "type": "PseudoC2_N",
+  "base": "tj18",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "N", "residues":[":150"]},
+    {"chain": 2, "direction": "N", "residues":[":150"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/asym_C2/all_validated/tj49_asym24.pdb",
+  "class": ["Het_C2_C"],
+  "type": "PseudoC2_C",
+  "base": "tj49",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-60:"]},
+    {"chain": 2, "direction": "C", "residues":["-60:"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/asym_C2/all_validated/tj79_asym02.pdb",
+  "class": ["Het_C2_C"],
+  "type": "PseudoC2_C",
+  "base": "tj79",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-100:"]},
+    {"chain": 2, "direction": "C", "residues":["-100:"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/asym_C2/all_validated/tj79_asym04.pdb",
+  "class": ["Het_C2_C"],
+  "type": "PseudoC2_C",
+  "base": "tj79",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-120:"]},
+    {"chain": 2, "direction": "C", "residues":["-120:"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/asym_C2/all_validated/tj81_asym05.pdb",
+  "class": ["Het_C2_C"],
+  "type": "PseudoC2_C",
+  "base": "tj81",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-50:"]},
+    {"chain": 2, "direction": "C", "residues":["-50:"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/asym_C2/all_validated/tj81_asym09.pdb",
+  "class": ["Het_C2_C"],
+  "type": "PseudoC2_C",
+  "base": "tj81",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-100:"]},
+    {"chain": 2, "direction": "C", "residues":["-100:"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/C4_saxs_validated/tpr1C4_pm3.pdb",
+  "class": ["C4_C"],
+  "type": "C4_C",
+  "base": "tpr1C4_pm3",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-30:"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/C4_all_validated/ank1C4_7.pdb",
+  "class": ["C4_C"],
+  "type": "C4_C",
+  "base": "ank1C4_7",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-50:"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/C4_all_validated/tj10C4_G1.pdb",
+  "class": ["C4_N"],
+  "type": "C4_N",
+  "base": "tj10C4_G1",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "N", "residues":[":50"]}
+ ]
+},
+
+{"file": "/work/gtueda/working_designs/C4_all_validated/1na0C4_G1.pdb",
+  "class": ["C4_C"],
+  "type": "C4_C",
+  "base": "1na0C4_G1",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-30:"]}
+ ]
+}
+]
