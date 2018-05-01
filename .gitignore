@@ -69,3 +69,7 @@ target/
 dask-worker-space
 
 *~
+
+*.o
+
+_khash_ffi.c

@@ -15,6 +15,9 @@ requirements = [
     'numba',
     'homog >= 0.1.10',
     'tqdm',
+    'toolz',
+    'cffi',
+    'xbin >= 0.1.5',
 ]
 
 setup_requirements = []
@@ -34,6 +37,8 @@ test_requirements = [
     'homog >= 0.1.10',
     'xbin >= 0.1.5',
     'tqdm',
+    'toolz',
+    'cffi',
     # https://storage.googleapis.com/protein-design-ipd-public/wheelhouse/pyrosetta-2017.48.post0.dev0%2B93.fordas.dev.f126926bdc8-cp35-cp35m-linux_x86_64.whl
     'pytest',
 ]

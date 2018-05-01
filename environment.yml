@@ -12,6 +12,8 @@ dependencies:
  - pytest-cov
  - sphinx_rtd_theme
  - ipython
+ - toolz
+ - cffi
  # - pymol >= 2.1
  - pip:
    - homog >= 0.1.10

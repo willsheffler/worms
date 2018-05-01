@@ -3,7 +3,7 @@
 	[
 		{
 			"name": "pytest",
-			"shell_cmd": "cd $folder; pytest worms/tests/test_database.py --duration=10 &> log/sublime_build.log"
+			"shell_cmd": "cd $folder; pytest -k worms/tests/test_numba.py --duration=10 &> log/sublime_build.log"
 		},
 		{
 			"name": "worms_peace_sign",

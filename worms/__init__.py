@@ -12,3 +12,4 @@ from .criteria_unbounded import *
 from . import data
 from . import vis
 from . import util
+from .khash import *
