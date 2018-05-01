@@ -131,7 +131,7 @@ class PDBPile:
                  bakerdb_files=[],
                  load_poses=False,
                  nprocs=1,
-                 metaonly=False,
+                 metaonly=True,
                  read_new_pdbs=False):
         if cachedir is None:
             if 'HOME' in os.environ:
@@ -150,6 +150,9 @@ class PDBPile:
         for dbfile in bakerdb_files:
             with open(dbfile) as f:
                 self.alldb.extend(json.load(f))
+        for entry in self.alldb:
+            if 'name' not in entry:
+                entry['name'] = ''
         self.dictdb = {e['file']: e for e in self.alldb}
         if len(self.alldb) != len(self.dictdb):
             print('!' * 100)
@@ -167,60 +170,64 @@ class PDBPile:
                     + self.cachedir + "/lock")
                 open(cachedir + '/lock', 'w').close()
                 assert os.path.exists(cachedir + '/lock')
-            self.n_new_entries, self.n_missing_entries = self.load()
+            self.n_new_entries, self.n_missing_entries = self.load_from_pdbs()
             if self.read_new_pdbs:
                 os.remove(cachedir + '/lock')
             if nprocs != 1:
                 self.nprocs = 1
-                self.load()
+                self.load_from_pdbs()
 
     def __len__(self):
         return len(self.cache)
 
-    def find_by_class(self, _class):
-        c = _class
-        subc = None
-        if _class.count(':'):
-            c, subc = _class.split(':')
-        if subc is None:
-            hits = [db['file'] for db in self.alldb if c in db['class']]
-        else:
-            hits = list()
-            assert c == 'Het'
-            for db in self.alldb:
-                if not c in db['class']: continue
-                nc = [x for x in db['connections'] if x['direction'] == 'C']
-                nn = [x for x in db['connections'] if x['direction'] == 'N']
-                if subc.count('C') <= len(nc) and subc.count('N') <= len(nn):
-                    hits.append(db['file'])
-        return hits
+    def pose(self, pdbfile):
+        'load pose from cache, read from file if not in memory'
+        if not pdbfile in self.poses:
+            if not self.load_cached_pose_into_memory(pdbfile):
+                self.poses[pdbfile] = pose_from_file(pdbfile)
+        return self.poses[pdbfile]
 
-    def query(self, s):
+    def coord(self, pdbfile):
+        if not pdbfile in self.coord:
+            if not self.load_cached_coords_into_memory(pdbfile):
+                self.coord[pdbfile] = pose_from_file(pdbfile)
+        return self.coord[pdbfile]
+
+    def query(self, query, *, useclass=True):
         '''
         match name, _type, _class
         if one match, use it
         if _type and _class match, check useclass option
         Het:NNCx/y require exact number or require extra
         '''
-        pass
-
-    def classes(self):
-        x = set()
-        for db in self.alldb:
-            x.update(db['class'])
-        return list(x)
-
-    def load(self):
-        if self.nprocs is 1:
-            with util.InProcessExecutor() as pool:
-                result = [_ for _ in pool.map(self.add_entry, self.alldb)]
+        query, subq = query.split(':') if query.count(':') else (query, None)
+        if subq is None:
+            c_hits = [db['file'] for db in self.alldb if query in db['class']]
+            n_hits = [db['file'] for db in self.alldb if query == db['name']]
+            t_hits = [db['file'] for db in self.alldb if query == db['type']]
+            if not c_hits and not n_hits: return t_hits
+            if not c_hits and not t_hits: return n_hits
+            if not t_hits and not n_hits: return c_hits
+            if not n_hits: return c_hits if useclass else t_hits
+            assert False, 'invalid database or query'
         else:
-            with ProcessPoolExecutor(max_workers=self.nprocs) as pool:
-                result = [_ for _ in pool.map(self.add_entry, self.alldb)]
-        return sum(x[0] for x in result), sum(x[1] for x in result)
-
-    def posefile(self, pdbfile):
-        return os.path.join(self.cachedir, 'poses', flatten_path(pdbfile))
+            excon = None
+            if subq.endswith('X'): excon = True
+            if subq.endswith('Y'): excon = False
+            hits = list()
+            assert query == 'Het'
+            for db in self.alldb:
+                if not query in db['class']: continue
+                nc = [_ for _ in db['connections'] if _['direction'] == 'C']
+                nn = [_ for _ in db['connections'] if _['direction'] == 'N']
+                nc, tc = len(nc), subq.count('C')
+                nn, tn = len(nn), subq.count('N')
+                if nc >= tc and nn >= tn:
+                    if nc + nn == tc + tn and excon is not True:
+                        hits.append(db['file'])
+                    elif nc + nn > tc + tn and excon is not False:
+                        hits.append(db['file'])
+        return hits
 
     def load_cached_pose_into_memory(self, pdbfile):
         posefile = self.posefile(pdbfile)
@@ -231,9 +238,37 @@ class PDBPile:
         except FileNotFound:
             return False
 
-    def add_entry(self, entry):
+    def coordfile(self, pdbfile):
+        return os.path.join(self.cachedir, 'coord', flatten_path(pdbfile))
+
+    def load_cached_coord_into_memory(self, pdbfile):
+        if not isinstance(pdbfile, str):
+            success = True
+            for f in pdbfile:
+                success &= self.load_cached_coord_into_memory(f)
+            return success
+        coordfile = self.coordfile(pdbfile)
+        try:
+            with open(coordfile, 'rb') as f:
+                self.cache[pdbfile] = pickle.load(f)
+                return True
+        except FileNotFound:
+            return False
+
+    def load_from_pdbs(self):
+        if self.nprocs is 1:
+            with util.InProcessExecutor() as pool:
+                result = [_ for _ in pool.map(self.build_pdb_data, self.alldb)]
+        else:
+            with ProcessPoolExecutor(max_workers=self.nprocs) as pool:
+                result = [_ for _ in pool.map(self.build_pdb_data, self.alldb)]
+        return sum(x[0] for x in result), sum(x[1] for x in result)
+
+    def posefile(self, pdbfile):
+        return os.path.join(self.cachedir, 'poses', flatten_path(pdbfile))
+
+    def build_pdb_data(self, entry):
         pdbfile = entry['file']
-        if 'name' not in entry: entry['name'] = ''
         cachefile = os.path.join(self.cachedir, 'coord', flatten_path(pdbfile))
         posefile = self.posefile(pdbfile)
         if os.path.exists(cachefile):
@@ -246,7 +281,7 @@ class PDBPile:
                 self.poses[pdbfile] = pose
             return 0, 0
         elif self.read_new_pdbs:
-            info('PDBPile.add_entry reading %s' % pdbfile)
+            info('PDBPile.build_pdb_data reading %s' % pdbfile)
             if os.path.exists(posefile):
                 with open(posefile, 'rb') as f:
                     pose = pickle.load(f)
@@ -314,18 +349,6 @@ class PDBPile:
             print('no cached data for', pdbfile)
             return 0, 1
 
-    # def compress_poses(self):
-    # for k, pose in self.poses.items():
-    # if not isinstance(pose, bytes):
-    # self.poses[k] = pickle.dumps(pose)
-
-    def pose(self, pdbfile):
-        'load pose from cache, read from file if not in memory'
-        if not pdbfile in self.poses:
-            if not self.load_cached_pose_into_memory(pdbfile):
-                self.poses[pdbfile] = pose_from_file(pdbfile)
-        return self.poses[pdbfile]
-
 
 if __name__ == '__main__':
     import argparse
@@ -345,6 +368,7 @@ if __name__ == '__main__':
         bakerdb_files=args.database_files,
         nprocs=args.nprocs,
         read_new_pdbs=args.read_new_pdbs,
+        metaonly=False,
     )
     print('new entries', pp.n_new_entries)
     print('missing entries', pp.n_missing_entries)

@@ -36,21 +36,13 @@ test_db_files = [dirname(__file__) + '/../data/' + f for f in test_db_files]
 
 
 def test_database_simple(tmpdir, caplog):
-    pprint(test_db_files)
-    pp = PDBPile(bakerdb_files=test_db_files, metaonly=True)
-    assert len(pp.find_by_class('C4_C')) == 20
-    assert len(pp.find_by_class('Het_C3_N')) == 21
-    assert len(pp.find_by_class('Het_C2_N')) == 1
-    assert len(pp.find_by_class('C5_N')) == 20
-    assert len(pp.find_by_class('C6_N')) == 11
-    assert len(pp.find_by_class('Het')) == 19494
-    assert len(pp.find_by_class('C3_C')) == 56
-    assert len(pp.find_by_class('Het_C2_C')) == 5
-    assert len(pp.find_by_class('C3_N')) == 213
-    assert len(pp.find_by_class('C2_C')) == 30
-    assert len(pp.find_by_class('Het_C3_C')) == 30
-    assert len(pp.find_by_class('C4_N')) == 9
-    assert len(pp.find_by_class('C2_N')) == 11
-    assert len(pp.find_by_class('Het:CCN')) == 1169
-    assert len(pp.find_by_class('Het:NNC')) == 5962
-    assert len(pp.find_by_class('Het:NNN')) == 1539
+    pp = PDBPile(bakerdb_files=test_db_files)
+    assert len(pp.query('C3_N')) == 213
+    assert len(pp.query('Het_C3_C')) == 30
+    assert len(pp.query('C2_N')) == 11
+    assert len(pp.query('Het:NN')) == 9805
+    assert len(pp.query('Het:NNX')) == 7501
+    assert len(pp.query('Het:NNY')) == 2304
+    assert 7501 + 2304 == 9805
+    # pp.load_cached_coord_into_memory(pp.query('C3_N'))
+    # assert len(pp.cache) == 213
