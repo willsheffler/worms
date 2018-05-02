@@ -23,6 +23,7 @@ class WormCriteria(abc.ABC):
                           'to_seg',
                           'origin_seg',
                           'symfile_modifiers',
+                          'crystinfo'
                           )
 
 

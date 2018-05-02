@@ -727,6 +727,22 @@ class Worms:
                 prov0.append(source)
         assert util.worst_CN_connect(pose) < 0.5
         assert util.no_overlapping_adjacent_residues(pose)
+        if self.criteria.crystinfo:
+            x = self.criteria.crystinfo(segpos=self.positions[which])
+            if x is not None:
+                #print("I am in worms.py crystinfo")
+                ci = pyrosetta.rosetta.core.io.CrystInfo()
+                ci.A(x[0]) #cell dimensions
+                ci.B(x[1])
+                ci.C(x[2])
+                ci.alpha(x[3]) #cell angles
+                ci.beta(x[4])
+                ci.gamma(x[5])
+                ci.spacegroup(x[6]) #sace group
+                pi = pyrosetta.rosetta.core.pose.PDBInfo(pose)
+                pi.set_crystinfo(ci)
+                pose.pdb_info(pi)
+                #print(pose.pdb_info().crystinfo().spacegroup())
         if not provenance and make_chain_list: return pose, ret_chain_list
         if not provenance: return pose
         prov = []

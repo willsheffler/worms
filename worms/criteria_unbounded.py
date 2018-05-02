@@ -1,10 +1,11 @@
 from .criteria import WormCriteria, Ux, Uz
 import numpy as np
 import homog as hm ## python library that Will wrote to do geometry things
+import pyrosetta
 
 class AxesAngle(WormCriteria): ## for 2D arrays (maybe 3D in the future?)
     def __init__(self, symname, tgtaxis1, tgtaxis2, from_seg, *, tol=1.0,
-                 lever=50, to_seg=-1):
+                 lever=50, to_seg=-1, space_group_str=None):
         """ Worms criteria for non-intersecting axes re: unbounded things
 
         Args:
@@ -15,6 +16,7 @@ class AxesAngle(WormCriteria): ## for 2D arrays (maybe 3D in the future?)
             tol (float): A geometry/alignment error threshold. Vaguely Angstroms.
             lever (float): Tradeoff with distances and angles for a lever-like object. To convert an angle error to a distance error for an oblong shape.
             to_seg (int): The segment # to end at.
+            space_group_str: The target space group.
 
         """
 
@@ -31,6 +33,7 @@ class AxesAngle(WormCriteria): ## for 2D arrays (maybe 3D in the future?)
         self.tol = tol
         self.lever = lever
         self.to_seg = to_seg
+        self.space_group_str = space_group_str
         ## if you want to store arguments, you have to write these self.argument lines
 
         self.target_angle = np.arccos(np.abs(hm.hdot(self.tgtaxis1, self.tgtaxis2))) ## already set to a non- self.argument in this function
@@ -80,8 +83,9 @@ class AxesAngle(WormCriteria): ## for 2D arrays (maybe 3D in the future?)
             #print("D: ", D)
             A1offset, cell_dist, _ = np.linalg.inv(D)@cen2_0[:3] #transform of A1 offest, cell distance (offset along other axis), and A2 offset (<-- we are ignoring this)
             Xalign[..., :, 3] = Xalign[..., :, 3] - (A1offset * self.tgtaxis1)
-
+            #Xalign[..., :, 3] = Xalign[..., :, 3] + [0,cell_dist,0,0]
         if out_cell_spacing:
+            print(2*cell_dist)
             return Xalign, cell_dist
         else:
             return Xalign
@@ -117,6 +121,15 @@ class AxesAngle(WormCriteria): ## for 2D arrays (maybe 3D in the future?)
         x, cell_dist = self.alignment(segpos, out_cell_spacing=True)
         return dict(scale_positions = cell_dist)
 
+    def crystinfo(self, segpos):
+        #CRYST1   85.001   85.001   85.001  90.00  90.00  90.00 P 21 3 
+        if self.space_group_str is None:
+            return None
+        #print("hi")
+        x, cell_dist = self.alignment(segpos, out_cell_spacing=True)
+        cell_dist=abs(2*cell_dist)
+        return cell_dist, cell_dist, cell_dist, 90, 90, 90, self.space_group_str
+
 def Sheet_P321(c3=None, c2=None, **kw):
     if c3 is None or c2 is None:
         raise ValueError('must specify ...?') #one or two of c3, c2
@@ -135,4 +148,5 @@ def Sheet_P6(c6=None, c2=None, **kw): ##should there be options for multiple C2'
 def Crystal_P213(c3a=None, c3b=None, **kw):
     if c3a is None or c3b is None:
         raise ValueError('must specify ...?') #one or two of c6, c2
-    return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [-1,1,1,0], [1,-1,1,0], from_seg=c3a, to_seg=c3b, **kw)
+    #return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
+    return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,1,1,0], [-1,-1,1,0], from_seg=c3a, to_seg=c3b, space_group_str="P 21 3", **kw)

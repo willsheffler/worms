@@ -38,16 +38,15 @@ def test_sheet_P6(c2pose, c6pose, c1pose):
     assert len(w) > 0
     # print(w.scores)
     # vis.show_with_z_axes(w, 0)
-    for i in range(len(w)):
+    for i in range(1):
 
         p = w.pose(i, only_connected=0)
-        q,s = w.sympose(i, score=True )
-        print(i,s)
-        if s < 100:
+        #q,s = w.sympose(i, score=True )
+        #print(i,s)
+        #if s < 100:
         #p.dump_pdb('p.pdb')
-            q.dump_pdb('P6_%i_symm.pdb'%i)
-            p.dump_pdb('P6_%i_asymm.pdb'%i)
-
+        #q.dump_pdb('P6_%i_symm.pdb'%i)
+        #p.dump_pdb('P6_%i_asymm.pdb'%i)
     assert util.no_overlapping_residues(p)
 
 #@pytest.mark.skip
@@ -66,10 +65,10 @@ def test_sheet_P4212(c2pose, c4pose, c1pose):
     # print(w.scores)
     # vis.show_with_z_axes(w, 0)
     p = w.pose(0, only_connected=0)
-    q = w.sympose(0, )
+    #q = w.sympose(0, )
     #p.dump_pdb('p.pdb')
-    q.dump_pdb('P4212_symm.pdb')
-    p.dump_pdb('P4212_asymm.pdb')
+    #q.dump_pdb('P4212_symm.pdb')
+    #p.dump_pdb('P4212_asymm.pdb')
 
     assert util.no_overlapping_residues(p) ## basic check on pose to make sure residues are not on top of each other
 
@@ -88,10 +87,10 @@ def test_sheet_P321(c2pose, c3pose, c1pose):
     # print(w.scores)
     # vis.show_with_z_axes(w, 0)
     p = w.pose(0, only_connected=0)
-    q = w.sympose(0, )
+    #q = w.sympose(0, )
     #p.dump_pdb('p.pdb')
-    q.dump_pdb('P321_symm.pdb')
-    p.dump_pdb('P321_asymm.pdb')
+    #q.dump_pdb('P321_symm.pdb')
+    #p.dump_pdb('P321_asymm.pdb')
 
     assert util.no_overlapping_residues(p)
 
@@ -112,12 +111,13 @@ def test_crystal_P213(c3pose, c3_splay_pose, c1pose):
 
     # print(w.scores)
     # vis.show_with_z_axes(w, 0)
-    for i in range(10):
+    for i in range(1):
         p = w.pose(i, only_connected=0)
+        print(p.pdb_info().crystinfo().spacegroup())
         q = w.sympose(i, fullatom=True )
     #p.dump_pdb('p.pdb')
         q.dump_pdb('P213_symm_%i.pdb'%i)
         p.dump_pdb('P213_asymm_%i.pdb'%i)
 
     assert util.no_overlapping_residues(p) ## basic check on pose to make sure residues are not on top of each other
-
+    assert 0
