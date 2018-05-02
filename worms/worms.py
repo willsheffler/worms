@@ -727,7 +727,7 @@ class Worms:
                 prov0.append(source)
         assert util.worst_CN_connect(pose) < 0.5
         assert util.no_overlapping_adjacent_residues(pose)
-        if self.criteria.crystinfo:
+        if self.criteria.crystinfo: ### UNA - add documentation here
             x = self.criteria.crystinfo(segpos=self.positions[which])
             if x is not None:
                 #print("I am in worms.py crystinfo")
@@ -812,10 +812,16 @@ class Worms:
         if symdata is None:
             sfxn = self.score0
         else:
-            ros.core.pose.symmetry.make_symmetric_pose(pcen, symdata)
+            if pcen.pdb_info() and pcen.pdb_info().crystinfo().A() > 0:
+                pyrosetta.rosetta.protocols.cryst.MakeLatticeMover().apply(pcen)
+            else:
+                ros.core.pose.symmetry.make_symmetric_pose(pcen, symdata)
         if fullatom:
             if symdata is not None:
-                ros.core.pose.symmetry.make_symmetric_pose(pfull, symdata)
+                if pfull.pdb_info() and pfull.pdb_info().crystinfo().A() > 0:
+                    pyrosetta.rosetta.protocols.cryst.MakeLatticeMover().apply(pfull)
+                else:
+                    ros.core.pose.symmetry.make_symmetric_pose(pfull, symdata)
             p = pfull
         else:
             p = pcen

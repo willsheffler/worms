@@ -113,11 +113,17 @@ def test_crystal_P213(c3pose, c3_splay_pose, c1pose):
     # vis.show_with_z_axes(w, 0)
     for i in range(1):
         p = w.pose(i, only_connected=0)
-        print(p.pdb_info().crystinfo().spacegroup())
+        assert util.no_overlapping_residues(p) ## basic check on pose to make sure residues are not on top of each other
+
+        #print(p.pdb_info().crystinfo().spacegroup())
         q = w.sympose(i, fullatom=True )
     #p.dump_pdb('p.pdb')
         q.dump_pdb('P213_symm_%i.pdb'%i)
         p.dump_pdb('P213_asymm_%i.pdb'%i)
 
-    assert util.no_overlapping_residues(p) ## basic check on pose to make sure residues are not on top of each other
+        ### testing MakeLatticeMover
+        #m = pyrosetta.rosetta.protocols.cryst.MakeLatticeMover()
+        #m.apply(p)
+        #p.dump_pdb('P213_symm_%i.pdb'%i)
+
     assert 0

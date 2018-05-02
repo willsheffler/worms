@@ -85,7 +85,7 @@ class AxesAngle(WormCriteria): ## for 2D arrays (maybe 3D in the future?)
             Xalign[..., :, 3] = Xalign[..., :, 3] - (A1offset * self.tgtaxis1)
             #Xalign[..., :, 3] = Xalign[..., :, 3] + [0,cell_dist,0,0]
         if out_cell_spacing:
-            print(2*cell_dist)
+            #print(2*cell_dist)
             return Xalign, cell_dist
         else:
             return Xalign

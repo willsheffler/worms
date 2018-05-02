@@ -3,7 +3,7 @@ import os
 from os.path import join, dirname, abspath, exists
 try:
     import pyrosetta
-    pyrosetta.init('-corrections:beta_nov16 -mute all -preserve_crystinfo')
+    pyrosetta.init('-corrections:beta_nov16 -mute all -preserve_crystinfo -symmetry::symmetry_definition dummy')
     HAVE_PYROSETTA = True
     print("pyrosetta initialized successfully!")
 except ImportError:
