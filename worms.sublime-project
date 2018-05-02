@@ -2,8 +2,8 @@
 	"build_systems":
 	[
 		{
-			"name": "pytest",
-			"shell_cmd": "cd $folder; pytest -k worms/tests/test_numba.py --duration=10 &> log/sublime_build.log"
+			"name": "util_runtests.py",
+			"shell_cmd": "cd $folder; python util/runtests.py $file &> log/sublime_build.log"
 		},
 		{
 			"name": "worms_peace_sign",
