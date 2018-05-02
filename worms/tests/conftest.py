@@ -1,6 +1,11 @@
 import pytest
 import os
+import sys
 from os.path import join, dirname, abspath, exists
+
+# sys.path.insert(0, os.path.dirname(__file__) + '/../..')
+# from worms.database import PDBPile
+
 try:
     import pyrosetta
     pyrosetta.init('-corrections:beta_nov16 -mute all')
@@ -19,11 +24,19 @@ def pdbdir():
     return d
 
 
+@pytest.fixture(scope='session')
+def datadir():
+    root = join(dirname(__file__), '..')
+    d = join(root, 'data')
+    assert exists(d)
+    return d
+
+
 def get_pose(pdbdir, fname):
     if not HAVE_PYROSETTA:
         return None
-    pose = pyrosetta.pose_from_file(join(pdbdir, fname))
-    return pose
+    return pyrosetta.pose_from_file(join(pdbdir, fname))
+    # return tmp.pose(join(pdbdir, fname))
 
 
 @pytest.fixture(scope='session')

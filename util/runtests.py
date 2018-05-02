@@ -3,12 +3,22 @@
 import sys
 import os
 
-file = sys.argv[1]
+file = file0 = sys.argv[1]
+print(file)
 if not os.path.basename(file).startswith("test_"):
     file = os.path.dirname(file) + "/tests/test_" + os.path.basename(file)
-    if not os.path.exists(file):
-        file = ''
+    if os.path.exists(file):
+        cmd = 'pytest --duration=5 %s' % file
+    else:
+        cmd = 'python %s' % file0
+else:
+    cmd = 'pytest --duration=5 %s' % file
 if not file.endswith('.py'):
-    file = ''
+    cmd = 'pytest --duration=5'
 
-os.system('pytest --duration=5 %s' % file)
+print('cwd:', os.getcwd())
+print('cmd:', cmd)
+print('----------- running  ------------')
+
+sys.stdout.flush()
+os.system(cmd)

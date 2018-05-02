@@ -8,8 +8,7 @@ from numba import cffi_support
 # from cffi import _cffi_backend
 
 _ffi = FFI()
-_ffi.set_source('_khash_ffi',
-                '#include "%s/khash_int2int.h"' % os.path.dirname(__file__))
+_ffi.set_source('_khash_ffi', '#include "khash_int2int.h"')
 
 _ffi.cdef('''\
 typedef int... khint64_t;
@@ -20,7 +19,10 @@ static inline khint64_t khash_int2int_get(void *, khint64_t, khint64_t);
 static inline int khash_int2int_set(void *, khint64_t, khint64_t);
 ''')
 
-_ffi.compile(tmpdir=os.path.dirname(__file__))
+_dir = os.path.dirname(__file__)
+if not os.path.exists(_dir + '/_khash_ffi.o'):
+    print('worms.khash first run, building...')
+    _ffi.compile(tmpdir=_dir)
 
 from . import _khash_ffi
 

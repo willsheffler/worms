@@ -7,7 +7,7 @@ from concurrent.futures import *
 from logging import info, error
 import itertools as it
 import numpy as np
-import numba
+import numba as nb
 import numba.types as nt
 
 try:
@@ -19,8 +19,8 @@ except ImportError:
     error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
 
-@numba.jitclass((
-    ('connections', nt.int8[:]),
+@nb.jitclass((
+    ('connections', nt.int32[:, :]),
     ('file', nt.int8[:]),
     ('components', nt.int8[:]),
     ('protocol', nt.int8[:]),
@@ -64,6 +64,13 @@ class PDBDat:
         self.chains = chains
         self.ss = ss
         self.stubs = stubs
+
+    @property
+    def n_connections(self):
+        return len(self.connections)
+
+    def connect_resids(self, i):
+        return self.connections[i, 2:self.connections[i, 1]]
 
     def getstate(self):
         return (
@@ -124,6 +131,35 @@ def flatten_path(pdbfile):
     return pdbfile.replace(os.sep, '__') + '.pickle'
 
 
+def _get_connection_residues(entry, chain_bounds):
+    chain_bounds[-1][-1]
+    r, c, d = entry['residues'], int(entry['chain']), entry['direction']
+    if r.startswith('['): return eval(r)
+    if r.count(','):
+        c2, r = r.split(',')
+        assert int(c2) == c
+    b, e = r.split(':')
+    nres = chain_bounds[c - 1][1] - chain_bounds[c - 1][0]
+    b = int(b) if b else 0
+    e = int(e) if e else nres
+    if e < 0: e += nres
+    return list(range(*chain_bounds[c - 1])[b:e])
+
+
+def make_connections_array(entries, chain_bounds):
+    reslists = [_get_connection_residues(e, chain_bounds) for e in entries]
+    mx = max(len(x) for x in reslists)
+    conn = np.zeros((len(reslists), mx + 2), 'i4') - 1
+    for i, rl in enumerate(reslists):
+        conn[i, 0] = entries[i]['direction'] == 'C'
+        conn[i, 1] = len(rl) + 2
+        for j, r in enumerate(rl):
+            conn[i, j + 2] = r
+    return conn
+    # print(chain_bounds)
+    # print(repr(conn))
+
+
 class PDBPile:
     def __init__(self,
                  *,
@@ -153,6 +189,9 @@ class PDBPile:
         for entry in self.alldb:
             if 'name' not in entry:
                 entry['name'] = ''
+            entry['file'] = entry['file'].replace(
+                '__DATADIR__',
+                os.path.dirname(__file__) + '/data')
         self.dictdb = {e['file']: e for e in self.alldb}
         if len(self.alldb) != len(self.dictdb):
             print('!' * 100)
@@ -160,7 +199,7 @@ class PDBPile:
                   'DIRE WARNING: %6i duplicate pdb files in database' %
                   (len(self.alldb) - len(self.dictdb)), '!' * 23)
             print('!' * 100)
-        print('loading %i db entries' % len(self.alldb))
+        info('loading %i db entries' % len(self.alldb))
         self.n_new_entries = 0
         self.n_missing_entries = len(self.alldb)
         if not self.metaonly:
@@ -200,6 +239,8 @@ class PDBPile:
         if _type and _class match, check useclass option
         Het:NNCx/y require exact number or require extra
         '''
+        if query.lower() == "all":
+            return [db['file'] for db in self.alldb]
         query, subq = query.split(':') if query.count(':') else (query, None)
         if subq is None:
             c_hits = [db['file'] for db in self.alldb if query in db['class']]
@@ -295,8 +336,10 @@ class PDBPile:
             assert len(pose) == len(stubs)
             assert len(pose) == len(ss)
             pdbdat = PDBDat(
-                connections=np.frombuffer(
-                    str(entry['connections']).encode(), dtype='i1'),
+                # connections=np.frombuffer(
+                # str(entry['connections']).encode(), dtype='i1'),
+                connections=make_connections_array(entry['connections'],
+                                                   chains),
                 file=np.frombuffer(entry['file'].encode(), dtype='i1'),
                 components=np.frombuffer(
                     str(entry['components']).encode(), dtype='i1'),
@@ -339,8 +382,7 @@ class PDBPile:
                     assert np.allclose(tmp.stubs, pdbdat.stubs)
             with open(posefile, 'wb') as f:
                 pickle.dump(pose, f)
-                print('dumped cache files for', pdbfile)
-                sys.stdout.flush()
+                info('dumped cache files for', pdbfile)
             self.cache[pdbfile] = pdbdat
             if self.load_poses:
                 self.poses[pdbfile] = pose
