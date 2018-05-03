@@ -253,8 +253,7 @@ class XIndexedCriteria(WormCriteria):
 
         Args:
             segpos (TYPE): Description
-            **kw: Description
-
+            kw: passthru args
         Returns:
             TYPE: Description
         """
@@ -269,8 +268,7 @@ class XIndexedCriteria(WormCriteria):
 
         Args:
             segpos (TYPE): Description
-            **kw: Description
-
+            kw: passthru args
         Returns:
             TYPE: Description
         """
@@ -1000,8 +998,7 @@ def _grow(segments, criteria, accumulator, **kw):
         segments (TYPE): Description
         criteria (TYPE): Description
         accumulator (TYPE): Description
-        **kw: Description
-    """
+        kw: passthru args    """
     # terrible hack... xfering the poses too expensive
     tmp = {
         spl: (spl.body, spl.chains)

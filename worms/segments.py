@@ -1042,8 +1042,7 @@ class Worms:
             cyclictrim (None, optional): Description
             provenance (bool, optional): Description
             make_chain_list (bool, optional): Description
-            **kw: Description
-
+            kw: passthru args
         Returns:
             TYPE: Description
 

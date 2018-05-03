@@ -69,8 +69,7 @@ def pymol_load(to_show, state=None, name=None, **kw):
         to_show (TYPE): Description
         state (None, optional): Description
         name (None, optional): Description
-        **kw: Description
-
+        kw: passthru args
     Returns:
         TYPE: Description
 
@@ -108,8 +107,7 @@ def showme_pymol(what, headless=False, block=False, **kw):
         what (TYPE): Description
         headless (bool, optional): Description
         block (bool, optional): Description
-        **kw: Description
-
+        kw: passthru args
     Returns:
         TYPE: Description
     """
@@ -133,10 +131,9 @@ def showme(*args, how='pymol', **kw):
     """TODO: Summary
 
     Args:
-        *args: Description
+        args: passthru args
         how (str, optional): Description
-        **kw: Description
-
+        kw: passthru args
     Returns:
         TYPE: Description
 
@@ -428,8 +425,7 @@ def show_with_z_axes(worms, idx=0, only_connected=0, **kw):
         worms (TYPE): Description
         idx (int, optional): Description
         only_connected (int, optional): Description
-        **kw: Description
-    """
+        kw: passthru args    """
     pose = worms.pose(idx, align=0, end=1, only_connected=only_connected, **kw)
     x_from = worms.positions[idx][worms.criteria.from_seg]
     x_to = worms.positions[idx][worms.criteria.to_seg]

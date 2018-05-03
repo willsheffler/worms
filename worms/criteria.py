@@ -27,8 +27,7 @@ class WormCriteria(abc.ABC):
         """TODO: Summary
 
         Args:
-            **kw: Description
-        """
+            kw: passthru args        """
         pass
 
     allowed_attributes = (
@@ -64,8 +63,7 @@ class CriteriaList(WormCriteria):
         """TODO: Summary
 
         Args:
-            **kw: Description
-
+            kw: passthru args
         Returns:
             TYPE: Description
         """
@@ -143,8 +141,7 @@ class NullCriteria(WormCriteria):
 
         Args:
             segpos (TYPE): Description
-            **kw: Description
-
+            kw: passthru args
         Returns:
             TYPE: Description
         """
@@ -155,8 +152,7 @@ class NullCriteria(WormCriteria):
 
         Args:
             segpos (TYPE): Description
-            **kw: Description
-
+            kw: passthru args
         Returns:
             TYPE: Description
         """
@@ -233,8 +229,7 @@ class AxesIntersect(WormCriteria):
         Args:
             segpos (TYPE): Description
             verbosity (bool, optional): Description
-            **kw: Description
-
+            kw: passthru args
         Returns:
             TYPE: Description
         """
@@ -263,8 +258,7 @@ class AxesIntersect(WormCriteria):
         Args:
             segpos (TYPE): Description
             debug (int, optional): Description
-            **kw: Description
-
+            kw: passthru args
         Returns:
             TYPE: Description
 
@@ -312,8 +306,7 @@ def D2(c2=0, c2b=-1, **kw):
     Args:
         c2 (int, optional): Description
         c2b (TYPE, optional): Description
-        **kw: Description
-
+        kw: passthru args
     Returns:
         TYPE: Description
     """
@@ -326,8 +319,7 @@ def D3(c3=0, c2=-1, **kw):
     Args:
         c3 (int, optional): Description
         c2 (TYPE, optional): Description
-        **kw: Description
-
+        kw: passthru args
     Returns:
         TYPE: Description
     """
@@ -340,8 +332,7 @@ def D4(c4=0, c2=-1, **kw):
     Args:
         c4 (int, optional): Description
         c2 (TYPE, optional): Description
-        **kw: Description
-
+        kw: passthru args
     Returns:
         TYPE: Description
     """
@@ -354,8 +345,7 @@ def D5(c5=0, c2=-1, **kw):
     Args:
         c5 (int, optional): Description
         c2 (TYPE, optional): Description
-        **kw: Description
-
+        kw: passthru args
     Returns:
         TYPE: Description
     """
@@ -368,8 +358,7 @@ def D6(c6=0, c2=-1, **kw):
     Args:
         c6 (int, optional): Description
         c2 (TYPE, optional): Description
-        **kw: Description
-
+        kw: passthru args
     Returns:
         TYPE: Description
     """
@@ -383,8 +372,7 @@ def Tetrahedral(c3=None, c2=None, c3b=None, **kw):
         c3 (None, optional): Description
         c2 (None, optional): Description
         c3b (None, optional): Description
-        **kw: Description
-
+        kw: passthru args
     Returns:
         TYPE: Description
 
@@ -413,8 +401,7 @@ def Octahedral(c4=None, c3=None, c2=None, **kw):
         c4 (None, optional): Description
         c3 (None, optional): Description
         c2 (None, optional): Description
-        **kw: Description
-
+        kw: passthru args
     Returns:
         TYPE: Description
 
@@ -442,8 +429,7 @@ def Icosahedral(c5=None, c3=None, c2=None, **kw):
         c5 (None, optional): Description
         c3 (None, optional): Description
         c2 (None, optional): Description
-        **kw: Description
-
+        kw: passthru args
     Returns:
         TYPE: Description
 
@@ -540,8 +526,7 @@ class Cyclic(WormCriteria):
         Args:
             segpos (TYPE): Description
             verbosity (bool, optional): Description
-            **kw: Description
-
+            kw: passthru args
         Returns:
             TYPE: Description
         """
@@ -580,12 +565,12 @@ class Cyclic(WormCriteria):
 
         return np.sqrt(carterrsq / self.tol**2 + roterrsq / self.rot_tol**2)
 
-    def alignment(self, segpos, **kwargs):
+    def alignment(self, segpos, **kw):
         """TODO: Summary
 
         Args:
             segpos (TYPE): Description
-            **kwargs: Description
+            kw: passthru args
 
         Returns:
             TYPE: Description

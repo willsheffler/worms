@@ -26,8 +26,7 @@ class InProcessExecutor:
 
         Args:
             *args: Description
-            **kw: Description
-        """
+            kw: passthru args        """
         pass
 
     def __enter__(self):
@@ -51,9 +50,8 @@ class InProcessExecutor:
 
         Args:
             function (TYPE): Description
-            *args: Description
-            **kw: Description
-
+            args: Description
+            kw: passthru args
         Returns:
             TYPE: Description
         """
@@ -64,7 +62,7 @@ class InProcessExecutor:
 
         Args:
             function (TYPE): Description
-            *iterables: Description
+            iterables: Description
 
         Returns:
             TYPE: Description
@@ -116,8 +114,7 @@ def parallel_batch_map(pool, function, accumulator, batch_size, map_func_args,
         accumulator (TYPE): Description
         batch_size (TYPE): Description
         map_func_args (TYPE): Description
-        **kw: Description
-
+        kw: passthru args
     Yields:
         TYPE: Description
     """
@@ -153,8 +150,7 @@ def parallel_nobatch_map(pool, function, accumulator, batch_size,
         accumulator (TYPE): Description
         batch_size (TYPE): Description
         map_func_args (TYPE): Description
-        **kw: Description
-
+        kw: passthru args
     Yields:
         TYPE: Description
     """
@@ -183,8 +179,7 @@ def tqdm_parallel_map(pool, function, accumulator, map_func_args, batch_size,
         accumulator (TYPE): Description
         map_func_args (TYPE): Description
         batch_size (TYPE): Description
-        **kw: Description
-    """
+        kw: passthru args    """
     for _ in tqdm(
             parallel_batch_map(
                 pool,

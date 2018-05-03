@@ -69,8 +69,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
 
         Args:
             segpos (lst): List of segment positions / coordinates.
-            **kw: Description
-            **kw I'll accept any "non-positional" argument as name = value, and store in a dictionary
+            kw: I'll accept any "non-positional" argument as name = value, and store in a dictionary
 
         Returns:
             TYPE: Description
@@ -95,8 +94,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
         Args:
             segpos (lst): List of segment positions / coordinates.
             out_cell_spacing (bool, optional): Description
-            **kw: Description
-            **kw I'll accept any "non-positional" argument as name = value, and store in a dictionary
+            kw: I'll accept any "non-positional" argument as name = value, and store in a dictionary
 
         Returns:
             TYPE: Description
@@ -185,8 +183,7 @@ def Sheet_P321(c3=None, c2=None, **kw):
     Args:
         c3 (None, optional): Description
         c2 (None, optional): Description
-        **kw: Description
-
+        kw: passthru args
     Returns:
         TYPE: Description
 
@@ -207,8 +204,7 @@ def Sheet_P4212(c4=None, c2=None,
     Args:
         c4 (None, optional): Description
         c2 (None, optional): Description
-        **kw: Description
-
+        kw: passthru args
     Returns:
         TYPE: Description
 
@@ -228,8 +224,7 @@ def Sheet_P6(c6=None, c2=None,
     Args:
         c6 (None, optional): Description
         c2 (None, optional): Description
-        **kw: Description
-
+        kw: passthru args
     Returns:
         TYPE: Description
 
@@ -248,8 +243,7 @@ def Crystal_P213(c3a=None, c3b=None, **kw):
     Args:
         c3a (None, optional): Description
         c3b (None, optional): Description
-        **kw: Description
-
+        kw: passthru args
     Returns:
         TYPE: Description
 
