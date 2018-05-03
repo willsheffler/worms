@@ -7,6 +7,7 @@ from concurrent.futures import *
 import itertools as it
 import logging
 from logging import info, error
+from random import shuffle
 
 import numpy as np
 from tqdm import tqdm
@@ -49,16 +50,20 @@ def _get_connection_residues(entry, chain_bounds):
     """
     chain_bounds[-1][-1]
     r, c, d = entry['residues'], int(entry['chain']), entry['direction']
+    if r.startswith('['):
+        r = eval(r)
     if isinstance(r, list):
         try:
             return [int(_) for _ in r]
         except ValueError:
+            assert len(r) is 1
             r = r[0]
-    if r.startswith('['): return eval(r)
     if r.count(','):
         c2, r = r.split(',')
         assert int(c2) == c
     b, e = r.split(':')
+    if b == '-': b = 0
+    if e == '-': e = -1    
     nres = chain_bounds[c - 1][1] - chain_bounds[c - 1][0]
     b = int(b) if b else 0
     e = int(e) if e else nres
@@ -330,7 +335,7 @@ class PDBPile:
            TYPE: Description
        """
         # return exe.map(self.build_pdb_data, self.alldb)
-
+        shuffle(self.alldb)
         r = []
         print('load_from_pdbs', len(self.alldb))
         kwargs = {
