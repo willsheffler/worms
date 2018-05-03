@@ -1,4 +1,5 @@
-'search stuff'
+"""search stuff
+"""
 
 import sys
 import os
@@ -9,20 +10,39 @@ from collections import defaultdict
 from xbin import XformBinner
 from homog import hinv, hrot
 from concurrent.futures import ProcessPoolExecutor
-from .segments import Segment, Segments, Worms
-from .criteria import CriteriaList, Cyclic, WormCriteria
-from . import util
+from worms.segments import Segment, Segments, Worms
+from worms.criteria import CriteriaList, Cyclic, WormCriteria
+from worms import util
 
 # import numba
 
 
 class SimpleAccumulator:
+    """TODO: Summary
+
+    Attributes:
+        lowidx (TYPE): Description
+        lowpos (TYPE): Description
+        max_results (TYPE): Description
+        max_tmp_size (TYPE): Description
+        scores (TYPE): Description
+        temporary (list): Description
+    """
+
     def __init__(self, max_results=1000000, max_tmp_size=1024):
+        """TODO: Summary
+
+        Args:
+            max_results (int, optional): Description
+            max_tmp_size (int, optional): Description
+        """
         self.max_tmp_size = max_tmp_size
         self.max_results = max_results
         self.temporary = []
 
     def checkpoint(self):
+        """TODO: Summary
+        """
         if len(self.temporary) is 0: return
         if hasattr(self, 'scores'):
             sc, li, lp = [self.scores], [self.lowidx], [self.lowpos]
@@ -38,6 +58,14 @@ class SimpleAccumulator:
         self.temporary = []
 
     def accumulate(self, gen):
+        """TODO: Summary
+
+        Args:
+            gen (TYPE): Description
+
+        Yields:
+            TYPE: Description
+        """
         for future in gen:
             result = future.result()
             if result is not None:
@@ -47,6 +75,11 @@ class SimpleAccumulator:
             yield None
 
     def final_result(self):
+        """TODO: Summary
+
+        Returns:
+            TYPE: Description
+        """
         self.checkpoint()
         try:
             return self.scores, self.lowidx, self.lowpos
@@ -55,6 +88,19 @@ class SimpleAccumulator:
 
 
 class MakeXIndexAccumulator:
+    """TODO: Summary
+
+    Attributes:
+        binner (TYPE): Description
+        from_seg (TYPE): Description
+        max_tmp_size (TYPE): Description
+        sizes (TYPE): Description
+        thresh (TYPE): Description
+        tmp (list): Description
+        to_seg (TYPE): Description
+        xindex (TYPE): Description
+    """
+
     def __init__(self,
                  sizes,
                  thresh=1,
@@ -63,6 +109,17 @@ class MakeXIndexAccumulator:
                  max_tmp_size=1024,
                  cart_resl=None,
                  ori_resl=None):
+        """TODO: Summary
+
+        Args:
+            sizes (TYPE): Description
+            thresh (int, optional): Description
+            from_seg (int, optional): Description
+            to_seg (TYPE, optional): Description
+            max_tmp_size (int, optional): Description
+            cart_resl (None, optional): Description
+            ori_resl (None, optional): Description
+        """
         self.sizes = sizes
         self.thresh = thresh
         self.max_tmp_size = max_tmp_size
@@ -75,6 +132,8 @@ class MakeXIndexAccumulator:
         # self.xindex = dict()
 
     def checkpoint(self):
+        """TODO: Summary
+        """
         print('MakeXIndexAccumulator checkpoint', end='')
         sys.stdout.flush()
         if len(self.tmp) is 0: return
@@ -99,6 +158,14 @@ class MakeXIndexAccumulator:
         sys.stdout.flush()
 
     def accumulate(self, gen):
+        """TODO: Summary
+
+        Args:
+            gen (TYPE): Description
+
+        Yields:
+            TYPE: Description
+        """
         for future in gen:
             result = future.result()
             if result is not None:
@@ -108,6 +175,11 @@ class MakeXIndexAccumulator:
             yield None
 
     def final_result(self):
+        """TODO: Summary
+
+        Returns:
+            TYPE: Description
+        """
         self.checkpoint()
         return self.xindex, self.binner
 
@@ -124,7 +196,24 @@ class MakeXIndexAccumulator:
 
 
 class XIndexedCriteria(WormCriteria):
+    """TODO: Summary
+
+    Attributes:
+        binner (TYPE): Description
+        cyclic_xform (TYPE): Description
+        from_seg (TYPE): Description
+        xindex_set (TYPE): Description
+    """
+
     def __init__(self, xindex, binner, nfold, from_seg=-1):
+        """TODO: Summary
+
+        Args:
+            xindex (TYPE): Description
+            binner (TYPE): Description
+            nfold (TYPE): Description
+            from_seg (TYPE, optional): Description
+        """
         self.xindex_set = set(xindex.keys())
         self.binner = binner
         self.from_seg = from_seg
@@ -133,9 +222,26 @@ class XIndexedCriteria(WormCriteria):
         # GLOBAL_xindex_set = self.xindex_set
 
     def get_xform_commutator(self, from_pos, to_pos):
+        """TODO: Summary
+
+        Args:
+            from_pos (TYPE): Description
+            to_pos (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         return np.linalg.inv(from_pos) @ to_pos
 
     def is_in_xindex_set(self, idxary):
+        """TODO: Summary
+
+        Args:
+            idxary (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         is_in = np.ones(idxary.size, dtype='f') * 999999.
         for i, idx in enumerate(idxary.flat):
             if idx in self.xindex_set:
@@ -143,6 +249,15 @@ class XIndexedCriteria(WormCriteria):
         return is_in.reshape(idxary.shape)
 
     def score(self, segpos, **kw):
+        """TODO: Summary
+
+        Args:
+            segpos (TYPE): Description
+            **kw: Description
+
+        Returns:
+            TYPE: Description
+        """
         from_pos = segpos[self.from_seg]
         to_pos = self.cyclic_xform @ from_pos
         xtgt = self.get_xform_commutator(from_pos, to_pos)
@@ -150,10 +265,37 @@ class XIndexedCriteria(WormCriteria):
         return self.is_in_xindex_set(bin_idx)
 
     def alignment(self, segpos, **kw):
+        """TODO: Summary
+
+        Args:
+            segpos (TYPE): Description
+            **kw: Description
+
+        Returns:
+            TYPE: Description
+        """
         return np.eye(4)
 
 
 class XIndexedAccumulator:
+    """TODO: Summary
+
+    Attributes:
+        binner (TYPE): Description
+        cyclic_xform (TYPE): Description
+        from_seg (TYPE): Description
+        head (TYPE): Description
+        lowidx (TYPE): Description
+        max_results (TYPE): Description
+        max_tmp_size (TYPE): Description
+        segments (TYPE): Description
+        splitpoint (TYPE): Description
+        tail (TYPE): Description
+        temporary (list): Description
+        to_seg (TYPE): Description
+        xindex (TYPE): Description
+    """
+
     def __init__(self,
                  segments,
                  tail,
@@ -166,6 +308,21 @@ class XIndexedAccumulator:
                  to_seg,
                  max_tmp_size=1024,
                  max_results=100000):
+        """TODO: Summary
+
+        Args:
+            segments (TYPE): Description
+            tail (TYPE): Description
+            splitpoint (TYPE): Description
+            head (TYPE): Description
+            xindex (TYPE): Description
+            binner (TYPE): Description
+            nfold (TYPE): Description
+            from_seg (TYPE): Description
+            to_seg (TYPE): Description
+            max_tmp_size (int, optional): Description
+            max_results (int, optional): Description
+        """
         self.segments = segments
         self.tail = tail
         self.splitpoint = splitpoint
@@ -180,6 +337,8 @@ class XIndexedAccumulator:
         self.temporary = []
 
     def checkpoint(self):
+        """TODO: Summary
+        """
         if len(self.temporary) is 0: return
         ntmp = sum(len(tmp[0]) for tmp in self.temporary)
         print('XIndexedAccumulator checkpoint... ncandidates:', ntmp, end=' ')
@@ -245,6 +404,14 @@ class XIndexedAccumulator:
         sys.stdout.flush()
 
     def accumulate(self, gen):
+        """TODO: Summary
+
+        Args:
+            gen (TYPE): Description
+
+        Yields:
+            TYPE: Description
+        """
         for future in gen:
             result = future.result()
             if result is not None:
@@ -254,6 +421,11 @@ class XIndexedAccumulator:
             yield None
 
     def final_result(self):
+        """TODO: Summary
+
+        Returns:
+            TYPE: Description
+        """
         self.checkpoint()
         try:
             return self.lowidx
@@ -262,6 +434,16 @@ class XIndexedAccumulator:
 
 
 def _get_chunk_end_seg(sizes, max_workers, memsize):
+    """TODO: Summary
+
+    Args:
+        sizes (TYPE): Description
+        max_workers (TYPE): Description
+        memsize (TYPE): Description
+
+    Returns:
+        TYPE: Description
+    """
     end = len(sizes) - 1
     while end > 1 and (util.bigprod(sizes[end:]) < max_workers
                        or memsize <= 64 * util.bigprod(sizes[:end])):
@@ -285,6 +467,31 @@ def grow(segments,
          cart_resl=2.0,
          ori_resl=10.0,
          xindex_cache_file=None):
+    """TODO: Summary
+
+    Args:
+        segments (TYPE): Description
+        criteria (TYPE): Description
+        thresh (int, optional): Description
+        expert (int, optional): Description
+        memsize (float, optional): Description
+        executor (None, optional): Description
+        executor_args (None, optional): Description
+        max_workers (None, optional): Description
+        verbosity (int, optional): Description
+        chunklim (None, optional): Description
+        max_samples (TYPE, optional): Description
+        max_results (TYPE, optional): Description
+        cart_resl (float, optional): Description
+        ori_resl (float, optional): Description
+        xindex_cache_file (None, optional): Description
+
+    Returns:
+        TYPE: Description
+
+    Raises:
+        ValueError: Description
+    """
     if True:  # setup
         os.environ['OMP_NUM_THREADS'] = '1'
         os.environ['MKL_NUM_THREADS'] = '1'
@@ -582,6 +789,15 @@ def grow(segments,
 
 
 def _refold_segments(segments, lowidx):
+    """TODO: Summary
+
+    Args:
+        segments (TYPE): Description
+        lowidx (TYPE): Description
+
+    Returns:
+        TYPE: Description
+    """
     pos = np.zeros_like(lowidx, dtype='(4,4)f') + np.eye(4)
     end = np.eye(4)
     for i, seg in enumerate(segments):
@@ -591,6 +807,14 @@ def _refold_segments(segments, lowidx):
 
 
 def _chain_xforms(segments):
+    """TODO: Summary
+
+    Args:
+        segments (TYPE): Description
+
+    Returns:
+        TYPE: Description
+    """
     x2exit = [s.x2exit for s in segments]
     x2orgn = [s.x2orgn for s in segments]
     fullaxes = (np.newaxis, ) * (len(x2exit) - 1)
@@ -615,6 +839,17 @@ __best_score = 9e9
 
 
 def _grow_chunk(samp, segpos, conpos, context):
+    """TODO: Summary
+
+    Args:
+        samp (TYPE): Description
+        segpos (TYPE): Description
+        conpos (TYPE): Description
+        context (TYPE): Description
+
+    Returns:
+        TYPE: Description
+    """
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ['MKL_NUM_THREADS'] = '1'
     os.environ['NUMEXPR_NUM_THREADS'] = '1'
@@ -675,6 +910,15 @@ def _grow_chunk(samp, segpos, conpos, context):
 
 
 def _grow_chunks(ijob, context):
+    """TODO: Summary
+
+    Args:
+        ijob (TYPE): Description
+        context (TYPE): Description
+
+    Returns:
+        TYPE: Description
+    """
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ['MKL_NUM_THREADS'] = '1'
     os.environ['NUMEXPR_NUM_THREADS'] = '1'
@@ -696,6 +940,19 @@ def _grow_chunks(ijob, context):
 
 
 def _check_topology(segments, criteria, expert=False):
+    """TODO: Summary
+
+    Args:
+        segments (TYPE): Description
+        criteria (TYPE): Description
+        expert (bool, optional): Description
+
+    Returns:
+        TYPE: Description
+
+    Raises:
+        ValueError: Description
+    """
     if segments[0].entrypol is not None:
         raise ValueError('beginning of worm cant have entry')
     if segments[-1].exitpol is not None:
@@ -737,6 +994,14 @@ def _check_topology(segments, criteria, expert=False):
 
 
 def _grow(segments, criteria, accumulator, **kw):
+    """TODO: Summary
+
+    Args:
+        segments (TYPE): Description
+        criteria (TYPE): Description
+        accumulator (TYPE): Description
+        **kw: Description
+    """
     # terrible hack... xfering the poses too expensive
     tmp = {
         spl: (spl.body, spl.chains)

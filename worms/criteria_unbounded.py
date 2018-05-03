@@ -1,9 +1,24 @@
+"""TODO: Summary
+"""
 from .criteria import WormCriteria, Ux, Uz
 import numpy as np
 import homog as hm  ## python library that Will wrote to do geometry things
 
 
 class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
+    """TODO: Summary
+
+    Attributes:
+        from_seg (TYPE): Description
+        lever (TYPE): Description
+        symname (TYPE): Description
+        target_angle (TYPE): Description
+        tgtaxis1 (TYPE): Description
+        tgtaxis2 (TYPE): Description
+        to_seg (TYPE): Description
+        tol (TYPE): Description
+    """
+
     def __init__(self,
                  symname,
                  tgtaxis1,
@@ -13,12 +28,12 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
                  tol=1.0,
                  lever=50,
                  to_seg=-1):
-        """ Worms criteria for non-intersecting axes re: unbounded things
+        """Worms criteria for non-intersecting axes re: unbounded things
 
         Args:
             symname (str): Symmetry identifier, to label stuff and look up the symdef file.
             tgtaxis1: Target axis 1.
-            tgtaxis2: Target axis 2. 
+            tgtaxis2: Target axis 2.
             from_seg (int): The segment # to start at.
             tol (float): A geometry/alignment error threshold. Vaguely Angstroms.
             lever (float): Tradeoff with distances and angles for a lever-like object. To convert an angle error to a distance error for an oblong shape.
@@ -50,11 +65,15 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
         print(self.target_angle * (180 / np.pi))
 
     def score(self, segpos, **kw):
-        """ Score
+        """Score
 
         Args:
             segpos (lst): List of segment positions / coordinates.
+            **kw: Description
             **kw I'll accept any "non-positional" argument as name = value, and store in a dictionary
+
+        Returns:
+            TYPE: Description
 
         """
         ## numpy arrays of how many things you are scoring, and a 4x4 translation/rotation matrix
@@ -71,11 +90,16 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
         ) / self.tol * self.lever  ## as tolerance goes up, you care about the angle error less. as lever goes up, you care about the angle error more.
 
     def alignment(self, segpos, out_cell_spacing=False, **kw):
-        """ Alignment to move stuff to be in line with symdef file
+        """Alignment to move stuff to be in line with symdef file
 
         Args:
             segpos (lst): List of segment positions / coordinates.
+            out_cell_spacing (bool, optional): Description
+            **kw: Description
             **kw I'll accept any "non-positional" argument as name = value, and store in a dictionary
+
+        Returns:
+            TYPE: Description
 
         """
         cen1 = segpos[self.from_seg][..., :,
@@ -143,11 +167,32 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
             # print("aligned ax2: ",Xalign@ax2)
 
     def symfile_modifiers(self, segpos):
+        """TODO: Summary
+
+        Args:
+            segpos (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         x, cell_dist = self.alignment(segpos, out_cell_spacing=True)
         return dict(scale_positions=cell_dist)
 
 
 def Sheet_P321(c3=None, c2=None, **kw):
+    """TODO: Summary
+
+    Args:
+        c3 (None, optional): Description
+        c2 (None, optional): Description
+        **kw: Description
+
+    Returns:
+        TYPE: Description
+
+    Raises:
+        ValueError: Description
+    """
     if c3 is None or c2 is None:
         raise ValueError('must specify ...?')  #one or two of c3, c2
     return AxesAngle(
@@ -157,6 +202,19 @@ def Sheet_P321(c3=None, c2=None, **kw):
 
 def Sheet_P4212(c4=None, c2=None,
                 **kw):  ##should there be options for multiple C2's?
+    """TODO: Summary
+
+    Args:
+        c4 (None, optional): Description
+        c2 (None, optional): Description
+        **kw: Description
+
+    Returns:
+        TYPE: Description
+
+    Raises:
+        ValueError: Description
+    """
     if c4 is None or c2 is None:
         raise ValueError('must specify ...?')  #one or two of c4, c2
     return AxesAngle(
@@ -165,6 +223,19 @@ def Sheet_P4212(c4=None, c2=None,
 
 def Sheet_P6(c6=None, c2=None,
              **kw):  ##should there be options for multiple C2's?
+    """TODO: Summary
+
+    Args:
+        c6 (None, optional): Description
+        c2 (None, optional): Description
+        **kw: Description
+
+    Returns:
+        TYPE: Description
+
+    Raises:
+        ValueError: Description
+    """
     if c6 is None or c2 is None:
         raise ValueError('must specify ...?')  #one or two of c6, c2
     return AxesAngle(
@@ -172,6 +243,19 @@ def Sheet_P6(c6=None, c2=None,
 
 
 def Crystal_P213(c3a=None, c3b=None, **kw):
+    """TODO: Summary
+
+    Args:
+        c3a (None, optional): Description
+        c3b (None, optional): Description
+        **kw: Description
+
+    Returns:
+        TYPE: Description
+
+    Raises:
+        ValueError: Description
+    """
     if c3a is None or c3b is None:
         raise ValueError('must specify ...?')  #one or two of c6, c2
     return AxesAngle(

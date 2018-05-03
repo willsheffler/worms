@@ -1,3 +1,10 @@
+"""TODO: Summary
+
+Attributes:
+    Ux (TYPE): Description
+    Uy (TYPE): Description
+    Uz (TYPE): Description
+"""
 import abc
 import numpy as np
 import homog as hm
@@ -9,8 +16,19 @@ Uz = np.array([0, 0, 1, 0])
 
 
 class WormCriteria(abc.ABC):
+    """TODO: Summary
+
+    Attributes:
+        allowed_attributes (TYPE): Description
+    """
+
     @abc.abstractmethod
     def score(self, **kw):
+        """TODO: Summary
+
+        Args:
+            **kw: Description
+        """
         pass
 
     allowed_attributes = (
@@ -26,15 +44,45 @@ class WormCriteria(abc.ABC):
 
 
 class CriteriaList(WormCriteria):
+    """TODO: Summary
+
+    Attributes:
+        children (TYPE): Description
+    """
+
     def __init__(self, children):
+        """TODO: Summary
+
+        Args:
+            children (TYPE): Description
+        """
         if isinstance(children, WormCriteria):
             children = [children]
         self.children = children
 
     def score(self, **kw):
+        """TODO: Summary
+
+        Args:
+            **kw: Description
+
+        Returns:
+            TYPE: Description
+        """
         return sum(c.score(**kw) for c in self.children)
 
     def __getattr__(self, name):
+        """TODO: Summary
+
+        Args:
+            name (TYPE): Description
+
+        Returns:
+            TYPE: Description
+
+        Raises:
+            AttributeError: Description
+        """
         if name not in WormCriteria.allowed_attributes:
             raise AttributeError('CriteriaList has no attribute: ' + name)
         r = [getattr(c, name) for c in self.children if hasattr(c, name)]
@@ -43,31 +91,97 @@ class CriteriaList(WormCriteria):
         return r[0] if len(r) else None
 
     def __getitem__(self, index):
+        """TODO: Summary
+
+        Args:
+            index (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         assert isinstance(index, int)
         return self.children[index]
 
     def __len__(self):
+        """TODO: Summary
+
+        Returns:
+            TYPE: Description
+        """
         return len(self.children)
 
     def __iter__(self):
+        """TODO: Summary
+
+        Returns:
+            TYPE: Description
+        """
         return iter(self.children)
 
 
 class NullCriteria(WormCriteria):
+    """TODO: Summary
+
+    Attributes:
+        from_seg (TYPE): Description
+        to_seg (TYPE): Description
+    """
+
     def __init__(self, from_seg=0, to_seg=-1, origin_seg=None):
+        """TODO: Summary
+
+        Args:
+            from_seg (int, optional): Description
+            to_seg (TYPE, optional): Description
+            origin_seg (None, optional): Description
+        """
         self.from_seg = from_seg
         self.to_seg = to_seg
 
     def score(self, segpos, **kw):
+        """TODO: Summary
+
+        Args:
+            segpos (TYPE): Description
+            **kw: Description
+
+        Returns:
+            TYPE: Description
+        """
         return np.zeros(segpos[-1].shape[:-2])
 
     def alignment(self, segpos, **kw):
+        """TODO: Summary
+
+        Args:
+            segpos (TYPE): Description
+            **kw: Description
+
+        Returns:
+            TYPE: Description
+        """
         r = np.empty_like(segpos[-1])
         r[..., :, :] = np.eye(4)
         return r
 
 
 class AxesIntersect(WormCriteria):
+    """TODO: Summary
+
+    Attributes:
+        angle (TYPE): Description
+        distinct_axes (TYPE): Description
+        from_seg (TYPE): Description
+        lever (TYPE): Description
+        rot_tol (TYPE): Description
+        sym_axes (TYPE): Description
+        symname (TYPE): Description
+        tgtaxis1 (TYPE): Description
+        tgtaxis2 (TYPE): Description
+        to_seg (TYPE): Description
+        tol (TYPE): Description
+    """
+
     def __init__(self,
                  symname,
                  tgtaxis1,
@@ -78,6 +192,21 @@ class AxesIntersect(WormCriteria):
                  lever=50,
                  to_seg=-1,
                  distinct_axes=False):
+        """TODO: Summary
+
+        Args:
+            symname (TYPE): Description
+            tgtaxis1 (TYPE): Description
+            tgtaxis2 (TYPE): Description
+            from_seg (TYPE): Description
+            tol (float, optional): Description
+            lever (int, optional): Description
+            to_seg (TYPE, optional): Description
+            distinct_axes (bool, optional): Description
+
+        Raises:
+            ValueError: Description
+        """
         if from_seg == to_seg:
             raise ValueError('from_seg should not be same as to_seg')
         self.symname = symname
@@ -99,6 +228,16 @@ class AxesIntersect(WormCriteria):
         self.sym_axes = [self.tgtaxis1, self.tgtaxis2]
 
     def score(self, segpos, verbosity=False, **kw):
+        """TODO: Summary
+
+        Args:
+            segpos (TYPE): Description
+            verbosity (bool, optional): Description
+            **kw: Description
+
+        Returns:
+            TYPE: Description
+        """
         cen1 = segpos[self.from_seg][..., :, 3]
         cen2 = segpos[self.to_seg][..., :, 3]
         ax1 = segpos[self.from_seg][..., :, 2]
@@ -119,6 +258,19 @@ class AxesIntersect(WormCriteria):
         return np.sqrt(roterr2 / self.rot_tol**2 + (dist / self.tol)**2)
 
     def alignment(self, segpos, debug=0, **kw):
+        """TODO: Summary
+
+        Args:
+            segpos (TYPE): Description
+            debug (int, optional): Description
+            **kw: Description
+
+        Returns:
+            TYPE: Description
+
+        Raises:
+            AssertionError: Description
+        """
         cen1 = segpos[self.from_seg][..., :, 3]
         cen2 = segpos[self.to_seg][..., :, 3]
         ax1 = segpos[self.from_seg][..., :, 2]
@@ -155,26 +307,90 @@ class AxesIntersect(WormCriteria):
 
 
 def D2(c2=0, c2b=-1, **kw):
+    """TODO: Summary
+
+    Args:
+        c2 (int, optional): Description
+        c2b (TYPE, optional): Description
+        **kw: Description
+
+    Returns:
+        TYPE: Description
+    """
     return AxesIntersect('D2', (2, Uz), (2, Ux), c2, to_seg=c2b, **kw)
 
 
 def D3(c3=0, c2=-1, **kw):
+    """TODO: Summary
+
+    Args:
+        c3 (int, optional): Description
+        c2 (TYPE, optional): Description
+        **kw: Description
+
+    Returns:
+        TYPE: Description
+    """
     return AxesIntersect('D3', (3, Uz), (2, Ux), c3, to_seg=c2, **kw)
 
 
 def D4(c4=0, c2=-1, **kw):
+    """TODO: Summary
+
+    Args:
+        c4 (int, optional): Description
+        c2 (TYPE, optional): Description
+        **kw: Description
+
+    Returns:
+        TYPE: Description
+    """
     return AxesIntersect('D4', (4, Uz), (2, Ux), c4, to_seg=c2, **kw)
 
 
 def D5(c5=0, c2=-1, **kw):
+    """TODO: Summary
+
+    Args:
+        c5 (int, optional): Description
+        c2 (TYPE, optional): Description
+        **kw: Description
+
+    Returns:
+        TYPE: Description
+    """
     return AxesIntersect('D5', (5, Uz), (2, Ux), c5, to_seg=c2, **kw)
 
 
 def D6(c6=0, c2=-1, **kw):
+    """TODO: Summary
+
+    Args:
+        c6 (int, optional): Description
+        c2 (TYPE, optional): Description
+        **kw: Description
+
+    Returns:
+        TYPE: Description
+    """
     return AxesIntersect('D6', (6, Uz), (2, Ux), c6, to_seg=c2, **kw)
 
 
 def Tetrahedral(c3=None, c2=None, c3b=None, **kw):
+    """TODO: Summary
+
+    Args:
+        c3 (None, optional): Description
+        c2 (None, optional): Description
+        c3b (None, optional): Description
+        **kw: Description
+
+    Returns:
+        TYPE: Description
+
+    Raises:
+        ValueError: Description
+    """
     if 1 is not (c3b is None) + (c3 is None) + (c2 is None):
         raise ValueError('must specify exactly two of c3, c2, c3b')
     if c2 is None: from_seg, to_seg, nf1, nf2, ex = c3b, c3, 7, 3, 2
@@ -191,6 +407,20 @@ def Tetrahedral(c3=None, c2=None, c3b=None, **kw):
 
 
 def Octahedral(c4=None, c3=None, c2=None, **kw):
+    """TODO: Summary
+
+    Args:
+        c4 (None, optional): Description
+        c3 (None, optional): Description
+        c2 (None, optional): Description
+        **kw: Description
+
+    Returns:
+        TYPE: Description
+
+    Raises:
+        ValueError: Description
+    """
     if 1 is not (c4 is None) + (c3 is None) + (c2 is None):
         raise ValueError('must specify exactly two of c4, c3, c2')
     if c2 is None: from_seg, to_seg, nf1, nf2, ex = c4, c3, 4, 3, 2
@@ -206,6 +436,20 @@ def Octahedral(c4=None, c3=None, c2=None, **kw):
 
 
 def Icosahedral(c5=None, c3=None, c2=None, **kw):
+    """TODO: Summary
+
+    Args:
+        c5 (None, optional): Description
+        c3 (None, optional): Description
+        c2 (None, optional): Description
+        **kw: Description
+
+    Returns:
+        TYPE: Description
+
+    Raises:
+        ValueError: Description
+    """
     if 1 is not (c5 is None) + (c3 is None) + (c2 is None):
         raise ValueError('must specify exactly two of c5, c3, c2')
     if c2 is None: from_seg, to_seg, nf1, nf2, ex = c5, c3, 5, 3, 2
@@ -221,6 +465,24 @@ def Icosahedral(c5=None, c3=None, c2=None, **kw):
 
 
 class Cyclic(WormCriteria):
+    """TODO: Summary
+
+    Attributes:
+        from_seg (TYPE): Description
+        is_cyclic (bool): Description
+        last_body_same_as (TYPE): Description
+        lever (TYPE): Description
+        nfold (TYPE): Description
+        origin_seg (TYPE): Description
+        rot_tol (TYPE): Description
+        sym_axes (TYPE): Description
+        symangle (TYPE): Description
+        symmetry (TYPE): Description
+        symname (TYPE): Description
+        to_seg (TYPE): Description
+        tol (TYPE): Description
+    """
+
     def __init__(self,
                  symmetry=1,
                  from_seg=0,
@@ -229,6 +491,19 @@ class Cyclic(WormCriteria):
                  origin_seg=None,
                  lever=50.0,
                  to_seg=-1):
+        """TODO: Summary
+
+        Args:
+            symmetry (int, optional): Description
+            from_seg (int, optional): Description
+            tol (float, optional): Description
+            origin_seg (None, optional): Description
+            lever (float, optional): Description
+            to_seg (TYPE, optional): Description
+
+        Raises:
+            ValueError: Description
+        """
         if from_seg == to_seg:
             raise ValueError('from_seg should not be same as to_seg')
         if from_seg == origin_seg:
@@ -260,6 +535,16 @@ class Cyclic(WormCriteria):
         self.sym_axes = [(self.nfold, Uz, [0, 0, 0, 1])]
 
     def score(self, segpos, *, verbosity=False, **kw):
+        """TODO: Summary
+
+        Args:
+            segpos (TYPE): Description
+            verbosity (bool, optional): Description
+            **kw: Description
+
+        Returns:
+            TYPE: Description
+        """
         x_from = segpos[self.from_seg]
         x_to = segpos[self.to_seg]
         xhat = x_to @ inv(x_from)
@@ -296,6 +581,15 @@ class Cyclic(WormCriteria):
         return np.sqrt(carterrsq / self.tol**2 + roterrsq / self.rot_tol**2)
 
     def alignment(self, segpos, **kwargs):
+        """TODO: Summary
+
+        Args:
+            segpos (TYPE): Description
+            **kwargs: Description
+
+        Returns:
+            TYPE: Description
+        """
         if self.origin_seg is not None:
             return inv(segpos[self.origin_seg])
         x_from = segpos[self.from_seg]

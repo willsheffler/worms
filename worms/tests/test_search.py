@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from worms import *
 from homog.sym import icosahedral_axes as IA
 import time
+from worms.util import residue_sym_err
 try:
     import pyrosetta
     HAVE_PYROSETTA = True
@@ -21,51 +22,28 @@ only_if_pyrosetta = pytest.mark.skipif('not HAVE_PYROSETTA')
 
 
 @only_if_pyrosetta
-def test_Segment_merge_split_idx(c1pose):
-    helix = Spliceable(c1pose, sites=[((1, 2, 3), 'N'), ((9, 10, 11), 'C')])
-    helix2 = Spliceable(c1pose, sites=[((2, 5), 'N'), ((8, 11, 13), 'C')])
-    seg = Segment([helix, helix2], 'NC')
-    head, tail = seg.make_head(), seg.make_tail()
-    head_idx = np.array(
-        [i for i in range(len(head)) for j in range(len(tail))])
-    tail_idx = np.array(
-        [j for i in range(len(head)) for j in range(len(tail))])
-    idx = seg.merge_idx_slow(head, head_idx, tail, tail_idx)
-    # print('merged_idx', idx)
-    head_idx2, tail_idx2 = seg.split_idx(idx, head, tail)
-    assert np.all(head_idx2[idx >= 0] == head_idx[idx >= 0])
-    assert np.all(tail_idx2[idx >= 0] == tail_idx[idx >= 0])
+def test_grow_cycle(c1pose):
+    helix = Spliceable(c1pose, sites=[(1, 'N'), ('-4:', 'C')])
+    segments = ([
+        Segment([helix], exit='C'),
+    ] + [Segment([helix], 'N', 'C')] * 3 + [Segment([helix], entry='N')])
+    worms = grow(segments, Cyclic('C2', lever=20), thresh=20)
+    assert 0.1411 < np.min(worms.scores) < 0.1412
 
 
 @only_if_pyrosetta
-def test_Segment_split_merge_idx(c1pose):
-    helix = Spliceable(c1pose, sites=[((1, 2, 3), 'N'), ((9, 10, 11), 'C')])
-    helix2 = Spliceable(c1pose, sites=[((2, 5), 'N'), ((8, 11, 13), 'C')])
-    seg = Segment([helix2], 'NC')
-    idx = np.arange(len(seg))
-    head, tail = seg.make_head(), seg.make_tail()
-    head_idx, tail_idx = seg.split_idx(idx, head, tail)
-    idx2 = seg.merge_idx_slow(head, head_idx, tail, tail_idx)
-    assert np.all(idx == idx2)
-
-
-@only_if_pyrosetta
-def test_Segment_split_merge_invalid_pairs(c1pose):
-    helix = Spliceable(
-        c1pose, sites=[((1, 2, 3), 'N'), ((9, 10, 11), 'C')], min_seg_len=10)
-    helix2 = Spliceable(
-        c1pose, sites=[((2, 5), 'N'), ((8, 11, 13), 'C')], min_seg_len=10)
-    seg = Segment([helix, helix2], 'NC')
-    head, tail = seg.make_head(), seg.make_tail()
-    head_idx = np.array(
-        [i for i in range(len(head)) for j in range(len(tail))])
-    tail_idx = np.array(
-        [j for i in range(len(head)) for j in range(len(tail))])
-    idx = seg.merge_idx_slow(head, head_idx, tail, tail_idx)
-    # print('merged_idx', idx)
-    head_idx2, tail_idx2 = seg.split_idx(idx, head, tail)
-    assert np.all(head_idx2[idx >= 0] == head_idx[idx >= 0])
-    assert np.all(tail_idx2[idx >= 0] == tail_idx[idx >= 0])
+def test_grow_cycle_thread_pool(c1pose):
+    helix = Spliceable(c1pose, sites=[(1, 'N'), ('-4:', 'C')])
+    segments = ([
+        Segment([helix], exit='C'),
+    ] + [Segment([helix], 'N', 'C')] * 3 + [Segment([helix], entry='N')])
+    worms = grow(
+        segments,
+        Cyclic('C2', lever=20),
+        executor=ThreadPoolExecutor,
+        max_workers=2)
+    assert 0.1411 < np.min(worms.scores) < 0.1412
+    assert np.sum(worms.scores < 0.1412) == 4
 
 
 @only_if_pyrosetta
@@ -93,194 +71,6 @@ def test_sym_bug(c1pose, c2pose):
     # vis.showme(p, name='carterr')
     # vis.showme(q, name='angerr')
     assert residue_sym_err(wnc.pose(0, end=True), 120, 2, 46, 6) < 1.0
-
-
-@only_if_pyrosetta
-def test_SpliceSite(pose, c3pose):
-    assert len(pose) == 7
-    ss = SpliceSite(1, 'N')
-    spliceable = Spliceable(pose, [])
-    spliceablec3 = Spliceable(c3pose, [])
-    assert 1 == ss.resid(1, spliceable.body)
-    assert pose.size() == ss.resid(-1, spliceable.body)
-    assert ss._resids(spliceable) == [1]
-    assert SpliceSite('1:7', 'N')._resids(spliceable) == [1, 2, 3, 4, 5, 6, 7]
-    assert SpliceSite(':7', 'N')._resids(spliceable) == [1, 2, 3, 4, 5, 6, 7]
-    assert SpliceSite('-3:-1', 'N')._resids(spliceable) == [5, 6, 7]
-    assert SpliceSite('-3:', 'N')._resids(spliceable) == [5, 6, 7]
-    assert SpliceSite(':2', 'N')._resids(spliceable) == [1, 2]
-    assert SpliceSite(':-5', 'N')._resids(spliceable) == [1, 2, 3]
-    assert SpliceSite('::2', 'N')._resids(spliceable) == [1, 3, 5, 7]
-    with pytest.raises(ValueError):
-        SpliceSite('-1:-3', 'N')._resids(spliceable)
-    with pytest.raises(ValueError):
-        SpliceSite('-1:3', 'N')._resids(spliceable)
-    assert SpliceSite([1, 2, 3], 'N', 1)._resids(spliceablec3) == [1, 2, 3]
-    assert SpliceSite([1, 2, 3], 'N', 2)._resids(spliceablec3) == [10, 11, 12]
-    assert SpliceSite([1, 2, 3], 'N', 3)._resids(spliceablec3) == [19, 20, 21]
-
-
-@only_if_pyrosetta
-def test_spliceable(c2pose):
-    site1 = SpliceSite([1, 2, 3], 'N', 1)
-    site2 = SpliceSite([1, 2, 3], 'N', 2)
-    dimer = Spliceable(c2pose, sites=[site1, site2])
-    assert dimer.sites[0]._resids(dimer) == [1, 2, 3]
-    assert dimer.sites[1]._resids(dimer) == [13, 14, 15]
-
-    site1 = {'sele': [1, 2, 3], 'polarity': 'N', 'chain': 1}
-    site2 = {'sele': [1, 2, 3], 'polarity': 'N', 'chain': 2}
-    dimer = Spliceable(c2pose, sites=[site1, site2])
-    assert dimer.sites[0]._resids(dimer) == [1, 2, 3]
-    assert dimer.sites[1]._resids(dimer) == [13, 14, 15]
-
-    site1 = ([1, 2, 3], 'N', 1)
-    site2 = ([1, 2, 3], 'N', 2)
-    dimer = Spliceable(c2pose, sites=[site1, site2])
-    assert dimer.sites[0]._resids(dimer) == [1, 2, 3]
-    assert dimer.sites[1]._resids(dimer) == [13, 14, 15]
-
-    site1 = (':3', 'N')
-    site2 = ('2,:3', 'N')
-    dimer = Spliceable(c2pose, sites=[site1, site2])
-    assert dimer.sites[0]._resids(dimer) == [1, 2, 3]
-    assert dimer.sites[1]._resids(dimer) == [13, 14, 15]
-
-
-@pytest.mark.skipif('not HAVE_PYROSETTA_DISTRIBUTED')
-def test_spliceable_pickle(tmpdir, c2pose):
-    site1 = SpliceSite([1, 2, 3], 'N', 1)
-    site2 = SpliceSite([1, 2, 3], 'N', 2)
-    dimer = Spliceable(c2pose, sites=[site1, site2])
-    pickle.dump(dimer, open(os.path.join(str(tmpdir), 'test.pickle'), 'wb'))
-    dimer2 = pickle.load(open(os.path.join(str(tmpdir), 'test.pickle'), 'rb'))
-    assert str(dimer) == str(dimer2)
-
-
-def test_geom_check():
-    SX = Cyclic
-    I = np.identity(4)
-    rotx1rad = hrot([1, 0, 0], 1)
-    transx10 = htrans([10, 0, 0])
-    randaxes = np.random.randn(1, 3)
-
-    assert 0 == SX('c1').score([I, I])
-    assert 0.001 > abs(50 - SX('c1').score([I, rotx1rad]))
-    assert 1e-5 > abs(SX('c2').score([I, hrot([1, 0, 0], np.pi)]))
-
-    score = Cyclic('c2').score([I, hrot(randaxes, np.pi)])
-    assert np.allclose(0, score, atol=1e-5, rtol=1)
-
-    score = Cyclic('c3').score([I, hrot(randaxes, np.pi * 2 / 3)])
-    assert np.allclose(0, score, atol=1e-5, rtol=1)
-
-    score = Cyclic('c4').score([I, hrot(randaxes, np.pi / 2)])
-    assert np.allclose(0, score, atol=1e-5, rtol=1)
-
-
-@only_if_pyrosetta
-def test_segment_geom(c1pose):
-    "currently only a basic sanity checkb... only checks translation distances"
-    body = c1pose
-    stubs, _ = util.get_bb_stubs(body)
-    assert stubs.shape == (body.size(), 4, 4)
-
-    nsplice = SpliceSite(
-        polarity='N', sele=[
-            1,
-            2,
-        ])
-    csplice = SpliceSite(polarity='C', sele=[9, 10, 11, 12, 13])
-    Npairs0 = len(nsplice.selections) * len(csplice.selections)
-
-    # N to N and C to C invalid, can't splice to same
-    spliceable = Spliceable(body, sites=[nsplice, csplice])
-    with pytest.raises(ValueError):
-        seg = Segment([spliceable], entry='N', exit='N')
-    with pytest.raises(ValueError):
-        seg = Segment([spliceable] * 3, entry='C', exit='C')
-
-    # add some extra splice sites
-    Nexsite = 2
-    spliceable = Spliceable(body, sites=[nsplice, csplice] * Nexsite)
-
-    # test beginning segment.. only has exit
-    seg = Segment([spliceable], exit='C')
-    assert seg.x2exit.shape == (Nexsite * len(csplice.selections), 4, 4)
-    assert seg.x2orgn.shape == (Nexsite * len(csplice.selections), 4, 4)
-    assert np.all(seg.x2exit[..., 3, :3] == 0)
-    assert np.all(seg.x2exit[..., 3, 3] == 1)
-    for e2x, e2o, ir, jr in zip(seg.x2exit, seg.x2orgn, seg.entryresid,
-                                seg.exitresid):
-        assert ir == -1
-        assert np.allclose(e2o, np.eye(4))
-        assert np.allclose(e2x, stubs[jr - 1])
-
-    # test middle segment with entry and exit
-    seg = Segment([spliceable], 'N', 'C')
-    assert seg.x2exit.shape == (Nexsite**2 * Npairs0, 4, 4)
-    assert seg.x2orgn.shape == (Nexsite**2 * Npairs0, 4, 4)
-    assert np.all(seg.x2exit[..., 3, :3] == 0)
-    assert np.all(seg.x2exit[..., 3, 3] == 1)
-    for e2x, e2o, ir, jr in zip(seg.x2exit, seg.x2orgn, seg.entryresid,
-                                seg.exitresid):
-        assert np.allclose(stubs[ir - 1] @ e2o, np.eye(4), atol=1e-5)
-        assert np.allclose(stubs[ir - 1] @ e2x, stubs[jr - 1], atol=1e-5)
-
-    # test ending segment.. only has entry
-    seg = Segment([spliceable], entry='N')
-    assert seg.x2exit.shape == (Nexsite * len(nsplice.selections), 4, 4)
-    assert seg.x2orgn.shape == (Nexsite * len(nsplice.selections), 4, 4)
-    assert np.all(seg.x2exit[..., 3, :3] == 0)
-    assert np.all(seg.x2exit[..., 3, 3] == 1)
-    for e2x, e2o, ir, jr in zip(seg.x2exit, seg.x2orgn, seg.entryresid,
-                                seg.exitresid):
-        assert jr == -1
-        assert np.allclose(e2o, e2x)
-        assert np.allclose(e2o @ stubs[ir - 1], np.eye(4), atol=1e-5)
-
-    # test now with multiple spliceables input to segment
-    Nexbody = 3
-    seg = Segment([spliceable] * Nexbody, 'N', 'C')
-    Npairs_expected = Nexbody * Nexsite**2 * Npairs0
-    assert seg.x2exit.shape == (Npairs_expected, 4, 4)
-    assert seg.x2orgn.shape == (Npairs_expected, 4, 4)
-    assert len(seg.entryresid) == Npairs_expected
-    assert len(seg.exitresid) == Npairs_expected
-    assert len(seg.bodyid) == Npairs_expected
-    for i in range(Nexbody):
-        assert i == seg.bodyid[0 + i * Npairs0 * Nexsite**2]
-    assert np.all(seg.x2exit[..., 3, :3] == 0)
-    assert np.all(seg.x2exit[..., 3, 3] == 1)
-    for e2x, e2o, ir, jr in zip(seg.x2exit, seg.x2orgn, seg.entryresid,
-                                seg.exitresid):
-        assert np.allclose(stubs[ir - 1] @ e2o, np.eye(4), atol=1e-5)
-        assert np.allclose(stubs[ir - 1] @ e2x, stubs[jr - 1], atol=1e-5)
-
-
-@only_if_pyrosetta
-def test_grow_cycle(c1pose):
-    helix = Spliceable(c1pose, sites=[(1, 'N'), ('-4:', 'C')])
-    segments = ([
-        Segment([helix], exit='C'),
-    ] + [Segment([helix], 'N', 'C')] * 3 + [Segment([helix], entry='N')])
-    worms = grow(segments, Cyclic('C2', lever=20), thresh=20)
-    assert 0.1411 < np.min(worms.scores) < 0.1412
-
-
-@only_if_pyrosetta
-def test_grow_cycle_thread_pool(c1pose):
-    helix = Spliceable(c1pose, sites=[(1, 'N'), ('-4:', 'C')])
-    segments = ([
-        Segment([helix], exit='C'),
-    ] + [Segment([helix], 'N', 'C')] * 3 + [Segment([helix], entry='N')])
-    worms = grow(
-        segments,
-        Cyclic('C2', lever=20),
-        executor=ThreadPoolExecutor,
-        max_workers=2)
-    assert 0.1411 < np.min(worms.scores) < 0.1412
-    assert np.sum(worms.scores < 0.1412) == 4
 
 
 @pytest.mark.skipif('not HAVE_PYROSETTA_DISTRIBUTED')
@@ -524,31 +314,6 @@ def test_make_pose_chains_dimer(c2pose):
     assert rest[0][0] is dimer.chains[1]
     with pytest.raises(IndexError):
         enex, rest = dimerseg.make_pose_chains(4, pad=(0, 1))
-
-
-def residue_coords(p, ir, n=3):
-    crd = (p.residue(ir).xyz(i) for i in range(1, n + 1))
-    return np.stack([c.x, c.y, c.z, 1] for c in crd)
-
-
-def residue_sym_err(p, ang, ir, jr, n=1, axis=[0, 0, 1], verbose=0):
-    mxdist = 0
-    for i in range(n):
-        xyz0 = residue_coords(p, ir + i)
-        xyz1 = residue_coords(p, jr + i)
-        xyz3 = hrot(axis, ang) @ xyz1.T
-        xyz4 = hrot(axis, -ang) @ xyz1.T
-        if verbose:
-            print(i, xyz0)
-            print(i, xyz1)
-            print(i, xyz3.T)
-            print(i, xyz4.T)
-            print()
-        mxdist = max(mxdist,
-                     min(
-                         np.max(np.sum((xyz0 - xyz3.T)**2, axis=1)),
-                         np.max(np.sum((xyz0 - xyz4.T)**2, axis=1))))
-    return np.sqrt(mxdist)
 
 
 @only_if_pyrosetta
@@ -1288,31 +1053,3 @@ def test_NullCriteria(c1pose):
     results = grow(segments, NullCriteria())
     assert len(results) == 16
     # vis.showme(results.pose(0))
-
-
-@only_if_pyrosetta
-def test_Segment_make_head_tail(c1pose):
-    helix = Spliceable(c1pose, [(':3', 'N'), ('-4:', 'C')])
-    seg = Segment([helix], 'NC')
-    assert len(seg) == 12
-    assert len(seg.make_head()) == 3
-    assert len(seg.make_tail()) == 4
-    assert np.all(seg.make_head().entryresid != -1)
-    assert np.all(seg.make_head().exitresid == -1)
-    assert np.all(seg.make_tail().entryresid == -1)
-    assert np.all(seg.make_tail().exitresid != -1)
-
-
-@only_if_pyrosetta
-def test_Segments_split_at(c1pose):
-    helix = Spliceable(c1pose, [(':3', 'N'), ('-4:', 'C')])
-    segs = Segments([Segment([helix], '_C')] + [Segment([helix], 'NC')] * 4 +
-                    [Segment([helix], 'N_')])
-    assert len(segs) == 6
-    tail, head = segs.split_at(2)
-    assert len(tail) == 3
-    assert len(head) == 4
-    assert tail[0].entrypol is None
-    assert tail[-1].exitpol is None
-    assert head[0].entrypol is None
-    assert head[-1].exitpol is None

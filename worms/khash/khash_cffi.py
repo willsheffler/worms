@@ -10,21 +10,21 @@ from numba import cffi_support
 _ffi = FFI()
 _ffi.set_source('_khash_ffi', '#include "khash_int2int.h"')
 
-_ffi.cdef('''\
+_ffi.cdef("""\
 typedef int... khint64_t;
 
 static inline void *khash_int2int_init(void);
 static void khash_int2int_destroy(void *);
 static inline khint64_t khash_int2int_get(void *, khint64_t, khint64_t);
 static inline int khash_int2int_set(void *, khint64_t, khint64_t);
-''')
+""")
 
 _dir = os.path.dirname(__file__)
 if not os.path.exists(_dir + '/_khash_ffi.o'):
     print('worms.khash first run, building...')
     _ffi.compile(tmpdir=_dir)
 
-from . import _khash_ffi
+from worms.khash import _khash_ffi
 
 _khash_init = _khash_ffi.lib.khash_int2int_init
 _khash_get = _khash_ffi.lib.khash_int2int_get

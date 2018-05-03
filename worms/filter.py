@@ -1,3 +1,5 @@
+"""TODO: Summary
+"""
 from pyrosetta import *
 from pyrosetta import rosetta
 from pyrosetta.rosetta.core.pose import Pose
@@ -19,6 +21,15 @@ from rif import rcl, vis  # 'rosetta compatibility layer'
 
 
 def count_contacts_accross_junction(pose, resN):
+    """TODO: Summary
+
+    Args:
+        pose (TYPE): Description
+        resN (TYPE): Description
+
+    Returns:
+        TYPE: Description
+    """
     ss = Dssp(pose).get_dssp_secstruct()
     if ss[resN] != 'H':
         print('Warning: junction residue not helix:  %s' % resN)
@@ -45,6 +56,16 @@ def count_contacts_accross_junction(pose, resN):
 
 
 def get_number_helices_contacted(helix, helix_id, pose):
+    """TODO: Summary
+
+    Args:
+        helix (TYPE): Description
+        helix_id (TYPE): Description
+        pose (TYPE): Description
+
+    Returns:
+        TYPE: Description
+    """
     res_selector = ResidueIndexSelector()
     for index in helix:
         res_selector.append_index(index)
@@ -62,6 +83,17 @@ def get_number_helices_contacted(helix, helix_id, pose):
 
 
 def get_contacts(helix, set1, set2, pose):
+    """TODO: Summary
+
+    Args:
+        helix (TYPE): Description
+        set1 (TYPE): Description
+        set2 (TYPE): Description
+        pose (TYPE): Description
+
+    Returns:
+        TYPE: Description
+    """
     res_selector = ResidueIndexSelector()
     for index in helix:
         res_selector.append_index(index)
@@ -80,6 +112,15 @@ def get_contacts(helix, set1, set2, pose):
 
 
 def identify_helical_segments(ss, resN):
+    """TODO: Summary
+
+    Args:
+        ss (TYPE): Description
+        resN (TYPE): Description
+
+    Returns:
+        TYPE: Description
+    """
     # identify residues in same helix
     helix_id = {}
     in_helix = []
@@ -135,6 +176,14 @@ def identify_helical_segments(ss, resN):
 
 
 def PRINTDBG(msg):
+    """TODO: Summary
+
+    Args:
+        msg (TYPE): Description
+
+    Returns:
+        TYPE: Description
+    """
     # print(msg)
     return
 
@@ -144,7 +193,15 @@ def PRINTDBG(msg):
 
 
 class PoseInfo:
+    """TODO: Summary
+    """
+
     def __init__(self, pose):
+        """TODO: Summary
+
+        Args:
+            pose (TYPE): Description
+        """
         self._pose = pose
         #        self._chains=pose.split_by_chain()
         #        self._Nchains=len(chains)
@@ -164,6 +221,14 @@ class PoseInfo:
     # position0 falls is at index get_run_length_lhs(position) within the
     # returned pose
     def get_subpose(self, position0):
+        """TODO: Summary
+
+        Args:
+            position0 (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         if self._subposes[position0] is None:
             start0 = position0 - self.get_run_length_lhs(position0)
             end0 = position0 + self.get_run_length_rhs(position0)
@@ -177,6 +242,14 @@ class PoseInfo:
     # determines the remaining secondary structure element length on the right
     # of a position
     def get_run_length_rhs(self, position0):
+        """TODO: Summary
+
+        Args:
+            position0 (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         if self._length_rhs is None:
             self._length_rhs = [0 for x in self._dssp]
             for position in range(len(self._dssp) - 2, 0, -1):
@@ -188,6 +261,14 @@ class PoseInfo:
     # determines the remaining secondary structure element length on the left
     # of a position
     def get_run_length_lhs(self, position0):
+        """TODO: Summary
+
+        Args:
+            position0 (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         if self._length_lhs is None:
             self._length_lhs = [0 for x in self._dssp]
             for position in range(1, len(self._dssp)):
@@ -197,14 +278,36 @@ class PoseInfo:
         return self._length_lhs[position0]
 
     def dssp_all_positions(self):
+        """TODO: Summary
+
+        Returns:
+            TYPE: Description
+        """
         return self._dssp  # start at 1 or 0?
 
     def dssp_single_position(self, position0):
+        """TODO: Summary
+
+        Args:
+            position0 (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         return self._dssp[position0]
 
 
 class AlignmentValidator:
+    """TODO: Summary
+    """
+
     def __init__(self, superimpose_rmsd=0.4, superimpose_length=10):
+        """TODO: Summary
+
+        Args:
+            superimpose_rmsd (float, optional): Description
+            superimpose_length (int, optional): Description
+        """
         assert (0 < superimpose_rmsd)
         assert (0 < superimpose_length)
         #        self._pose_infos = {} # map of pose to PoseInfo
@@ -212,6 +315,15 @@ class AlignmentValidator:
         self._superimpose_length = superimpose_length
 
     def get_dssp(self, pdb_name, pose):
+        """TODO: Summary
+
+        Args:
+            pdb_name (TYPE): Description
+            pose (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         if pdb_name not in self._pose_infos:
             self._pose_infos[pdb_name] = PoseInfo(pose)
 
@@ -219,6 +331,16 @@ class AlignmentValidator:
         return pose_info.dssp_all_positions()
 
     def get_allowed_alignment_positions(self, pdb_name, pose, sse_type='H'):
+        """TODO: Summary
+
+        Args:
+            pdb_name (TYPE): Description
+            pose (TYPE): Description
+            sse_type (str, optional): Description
+
+        Returns:
+            TYPE: Description
+        """
         if pdb_name not in self._pose_infos:
             self._pose_infos[pdb_name] = PoseInfo(pose)
 
@@ -235,6 +357,19 @@ class AlignmentValidator:
                             index_c1,
                             superimpose_rmsd=None,
                             superimpose_length=None):
+        """TODO: Summary
+
+        Args:
+            pose_info_n (TYPE): Description
+            pose_info_c (TYPE): Description
+            index_n1 (TYPE): Description
+            index_c1 (TYPE): Description
+            superimpose_rmsd (None, optional): Description
+            superimpose_length (None, optional): Description
+
+        Returns:
+            TYPE: Description
+        """
         index_n0 = index_n1 - 1
         index_c0 = index_c1 - 1
 
@@ -357,6 +492,14 @@ class AlignmentValidator:
     # align pose_move to pose_ref at the indicated positions (using 1-indexing)
     def align_pose_at_position1_sheffler(self, pose_move, pose_ref,
                                          position_move, position_ref):
+        """TODO: Summary
+
+        Args:
+            pose_move (TYPE): Description
+            pose_ref (TYPE): Description
+            position_move (TYPE): Description
+            position_ref (TYPE): Description
+        """
         stubs_ref = rcl.bbstubs(
             pose_ref, [position_ref])['raw']  # gets 'stub' for reslist
         stubs_move = rcl.bbstubs(
@@ -376,6 +519,15 @@ class AlignmentValidator:
     # i.e. if distances are 0.5, 1, and 1.5 angstroms, the result is (0.5^2 +
     # 1^2 + 1.5^2) / 3
     def residue_ncac_avg_distance2(self, res1, res2):
+        """TODO: Summary
+
+        Args:
+            res1 (TYPE): Description
+            res2 (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         # N, CA, C ... index based lookup is faster than string-lookup
         atom_positions = [1, 2, 3]
         err2 = 0
@@ -393,6 +545,21 @@ class AlignmentValidator:
 # pass BakerFilter AND pose_info_all dict into grow so can filter and use
 # cached pose info
 class BakerFilter:
+    """TODO: Summary
+
+    Attributes:
+        AV (TYPE): Description
+        input (str): Description
+        n_helix_contacted_threshold (TYPE): Description
+        num_contact_no_helix_threshold (TYPE): Description
+        num_contact_threshold (TYPE): Description
+        pose_info_all (dict): Description
+        score0_cutoff (TYPE): Description
+        scorefxn (TYPE): Description
+        superimpose_length (TYPE): Description
+        superimpose_rmsd (TYPE): Description
+    """
+
     def __init__(self,
                  score0_cutoff=1.0,
                  num_contact_threshold=40,
@@ -401,6 +568,17 @@ class BakerFilter:
                  superimpose_length=9,
                  superimpose_rmsd=0.7,
                  pose_info_all=None):
+        """TODO: Summary
+
+        Args:
+            score0_cutoff (float, optional): Description
+            num_contact_threshold (int, optional): Description
+            num_contact_no_helix_threshold (int, optional): Description
+            n_helix_contacted_threshold (int, optional): Description
+            superimpose_length (int, optional): Description
+            superimpose_rmsd (float, optional): Description
+            pose_info_all (None, optional): Description
+        """
         self.score0_cutoff = score0_cutoff
         self.num_contact_threshold = num_contact_threshold
         self.num_contact_no_helix_threshold = num_contact_no_helix_threshold
@@ -430,6 +608,23 @@ class BakerFilter:
                     src_pose_C_name=None,
                     src_pose_N_chain=None,
                     src_pose_C_chain=None):
+        """TODO: Summary
+
+        Args:
+            pose (TYPE): Description
+            junction_res (TYPE): Description
+            src_pose_N_jct_res (TYPE): Description
+            src_pose_C_jct_res (TYPE): Description
+            src_pose_N (None, optional): Description
+            src_pose_C (None, optional): Description
+            src_pose_N_name (None, optional): Description
+            src_pose_C_name (None, optional): Description
+            src_pose_N_chain (None, optional): Description
+            src_pose_C_chain (None, optional): Description
+
+        Returns:
+            TYPE: Description
+        """
         if self.input == 'Pose':
             if src_pose_N not in self.pose_info_all:
                 self.pose_info_all[src_pose_N] = PoseInfo(src_pose_N)
@@ -454,7 +649,19 @@ class BakerFilter:
     def filter_junction(self, pose, junction_res, src_pose_N_info,
                         src_pose_C_info, src_pose_N_jct_res,
                         src_pose_C_jct_res):
+        """TODO: Summary
 
+        Args:
+            pose (TYPE): Description
+            junction_res (TYPE): Description
+            src_pose_N_info (TYPE): Description
+            src_pose_C_info (TYPE): Description
+            src_pose_N_jct_res (TYPE): Description
+            src_pose_C_jct_res (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         nc, nc_no_helix, n_helix_contacted, n_helix_contacted_before, n_helix_contacted_after, begin_res, end_res = count_contacts_accross_junction(
             pose, junction_res)
         jct_pose = Pose()

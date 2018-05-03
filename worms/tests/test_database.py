@@ -7,6 +7,19 @@ from pprint import pprint
 from os.path import dirname
 import numba as nb
 
+try:
+    import pyrosetta
+    HAVE_PYROSETTA = True
+    try:
+        import pyrosetta.distributed
+        HAVE_PYROSETTA_DISTRIBUTED = True
+    except ImportError:
+        HAVE_PYROSETTA_DISTRIBUTED = False
+except ImportError:
+    HAVE_PYROSETTA = HAVE_PYROSETTA_DISTRIBUTED = False
+
+only_if_pyrosetta = pytest.mark.skipif('not HAVE_PYROSETTA')
+
 test_db_files = [
     'c6_database.json', 'HBRP_Cx_database.json',
     'HFuse_Cx_database.20180219.json',
@@ -36,6 +49,7 @@ test_db_files = [
 test_db_files = [dirname(__file__) + '/../data/' + f for f in test_db_files]
 
 
+@only_if_pyrosetta
 def test_database_simple(tmpdir, caplog):
     pp = PDBPile(bakerdb_files=test_db_files)
     assert len(pp.query('C3_N')) == 213
@@ -49,6 +63,7 @@ def test_database_simple(tmpdir, caplog):
     # assert len(pp.cache) == 213
 
 
+@only_if_pyrosetta
 def test_make_pdbdat(datadir, tmpdir):
     pp = PDBPile(
         cachedir=str(tmpdir),
@@ -61,11 +76,6 @@ def test_make_pdbdat(datadir, tmpdir):
     ]
 
     keys = sorted(pp.cache.keys())
-    for k, key in enumerate(keys):
-        pd = pp.cache[key]
-        for i in range(pd.n_connections):
-            # print(pd.connections)
-            print(k, i, repr(pd.connect_resids(i)))
 
     assert np.allclose(pp.cache[keys[0]].connect_resids(0), np.array([0]))
     assert np.allclose(pp.cache[keys[0]].connect_resids(1), np.array([12]))

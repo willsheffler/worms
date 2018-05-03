@@ -1,8 +1,18 @@
+"""TODO: Summary
+
+Attributes:
+    numcom (int): Description
+    numline (int): Description
+    numray (int): Description
+    numseg (int): Description
+    numvec (int): Description
+    showme_state (TYPE): Description
+"""
 import tempfile
 import numpy as np
 from collections import defaultdict
 import homog
-from . import util
+from worms import util
 try:
     from pymol import cmd
     from pymol import cgo
@@ -11,6 +21,14 @@ except:
 
 
 def is_rosetta_pose(to_show):
+    """TODO: Summary
+
+    Args:
+        to_show (TYPE): Description
+
+    Returns:
+        TYPE: Description
+    """
     try:
         from pyrosetta import rosetta
         return isinstance(to_show, rosetta.core.pose.Pose)
@@ -19,6 +37,12 @@ def is_rosetta_pose(to_show):
 
 
 def pymol_load_pose(pose, name):
+    """TODO: Summary
+
+    Args:
+        pose (TYPE): Description
+        name (TYPE): Description
+    """
     from pymol import cmd
     tmpdir = tempfile.mkdtemp()
     fname = tmpdir + '/' + name + '.pdb'
@@ -27,12 +51,32 @@ def pymol_load_pose(pose, name):
 
 
 def pymol_xform(name, xform):
+    """TODO: Summary
+
+    Args:
+        name (TYPE): Description
+        xform (TYPE): Description
+    """
     from pymol import cmd
     assert name in cmd.get_object_list()
     cmd.transform_object(name, xform.flatten())
 
 
 def pymol_load(to_show, state=None, name=None, **kw):
+    """TODO: Summary
+
+    Args:
+        to_show (TYPE): Description
+        state (None, optional): Description
+        name (None, optional): Description
+        **kw: Description
+
+    Returns:
+        TYPE: Description
+
+    Raises:
+        NotImplementedError: Description
+    """
     if isinstance(to_show, list):
         for t in to_show:
             state = pymol_load(t, state)
@@ -58,6 +102,17 @@ showme_state = dict(launched=0, seenit=defaultdict(lambda: -1))
 
 
 def showme_pymol(what, headless=False, block=False, **kw):
+    """TODO: Summary
+
+    Args:
+        what (TYPE): Description
+        headless (bool, optional): Description
+        block (bool, optional): Description
+        **kw: Description
+
+    Returns:
+        TYPE: Description
+    """
     import pymol
     pymol.pymol_argv = ['pymol']
     if headless:
@@ -75,6 +130,19 @@ def showme_pymol(what, headless=False, block=False, **kw):
 
 
 def showme(*args, how='pymol', **kw):
+    """TODO: Summary
+
+    Args:
+        *args: Description
+        how (str, optional): Description
+        **kw: Description
+
+    Returns:
+        TYPE: Description
+
+    Raises:
+        NotImplementedError: Description
+    """
     if how == 'pymol':
         return showme_pymol(*args, **kw)
     else:
@@ -89,6 +157,11 @@ numseg = 0
 
 
 def showcom(sel="all"):
+    """TODO: Summary
+
+    Args:
+        sel (str, optional): Description
+    """
     global numcom
     c = com(sel)
     print("Center of mass: ", c)
@@ -99,11 +172,29 @@ def showcom(sel="all"):
 
 
 def cgo_sphere(c, r=1, col=(1, 1, 1)):
+    """TODO: Summary
+
+    Args:
+        c (TYPE): Description
+        r (int, optional): Description
+        col (tuple, optional): Description
+
+    Returns:
+        TYPE: Description
+    """
     # white sphere with 3A radius
     return [cgo.COLOR, col[0], col[1], col[2], cgo.SPHERE, c[0], c[1], c[2], r]
 
 
 def showsphere(c, r=1, col=(1, 1, 1), lbl=''):
+    """TODO: Summary
+
+    Args:
+        c (TYPE): Description
+        r (int, optional): Description
+        col (tuple, optional): Description
+        lbl (str, optional): Description
+    """
     v = cmd.get_view()
     if not lbl:
         global numvec
@@ -115,6 +206,14 @@ def showsphere(c, r=1, col=(1, 1, 1), lbl=''):
 
 
 def showvecfrompoint(a, c, col=(1, 1, 1), lbl=''):
+    """TODO: Summary
+
+    Args:
+        a (TYPE): Description
+        c (TYPE): Description
+        col (tuple, optional): Description
+        lbl (str, optional): Description
+    """
     if not lbl:
         global numray
         lbl = "ray%i" % numray
@@ -136,6 +235,16 @@ def showvecfrompoint(a, c, col=(1, 1, 1), lbl=''):
 
 
 def cgo_segment(c1, c2, col=(1, 1, 1)):
+    """TODO: Summary
+
+    Args:
+        c1 (TYPE): Description
+        c2 (TYPE): Description
+        col (tuple, optional): Description
+
+    Returns:
+        TYPE: Description
+    """
     OBJ = [
         cgo.BEGIN, cgo.LINES, cgo.COLOR, col[0], col[1], col[2], cgo.VERTEX,
         c1[0], c1[1], c1[2], cgo.VERTEX, c2[0], c2[1], c2[2], cgo.END
@@ -148,6 +257,14 @@ def cgo_segment(c1, c2, col=(1, 1, 1)):
 
 
 def showsegment(c1, c2, col=(1, 1, 1), lbl=''):
+    """TODO: Summary
+
+    Args:
+        c1 (TYPE): Description
+        c2 (TYPE): Description
+        col (tuple, optional): Description
+        lbl (str, optional): Description
+    """
     if not lbl:
         global numseg
         lbl = "seg%i" % numseg
@@ -163,6 +280,18 @@ def showsegment(c1, c2, col=(1, 1, 1), lbl=''):
 
 
 def cgo_cyl(c1, c2, r, col=(1, 1, 1), col2=None):
+    """TODO: Summary
+
+    Args:
+        c1 (TYPE): Description
+        c2 (TYPE): Description
+        r (TYPE): Description
+        col (tuple, optional): Description
+        col2 (None, optional): Description
+
+    Returns:
+        TYPE: Description
+    """
     if not col2:
         col2 = col
     return [  # cgo.COLOR, col[0],col[1],col[2],
@@ -184,6 +313,16 @@ def cgo_cyl(c1, c2, r, col=(1, 1, 1), col2=None):
 
 
 def showcyl(c1, c2, r, col=(1, 1, 1), col2=None, lbl=''):
+    """TODO: Summary
+
+    Args:
+        c1 (TYPE): Description
+        c2 (TYPE): Description
+        r (TYPE): Description
+        col (tuple, optional): Description
+        col2 (None, optional): Description
+        lbl (str, optional): Description
+    """
     if not lbl:
         global numseg
         lbl = "seg%i" % numseg
@@ -195,6 +334,14 @@ def showcyl(c1, c2, r, col=(1, 1, 1), col2=None, lbl=''):
 
 
 def showline(a, c, col=(1, 1, 1), lbl=''):
+    """TODO: Summary
+
+    Args:
+        a (TYPE): Description
+        c (TYPE): Description
+        col (tuple, optional): Description
+        lbl (str, optional): Description
+    """
     if not lbl:
         global numline
         lbl = "line%i" % numline
@@ -211,6 +358,16 @@ def showline(a, c, col=(1, 1, 1), lbl=''):
 
 
 def cgo_lineabs(a, c, col=(1, 1, 1)):
+    """TODO: Summary
+
+    Args:
+        a (TYPE): Description
+        c (TYPE): Description
+        col (tuple, optional): Description
+
+    Returns:
+        TYPE: Description
+    """
     return [
         cgo.BEGIN, cgo.LINES, cgo.COLOR, col[0], col[1], col[2], cgo.VERTEX,
         c[0], c[1], c[2], cgo.VERTEX, a[0], a[1], a[2], cgo.END
@@ -218,6 +375,14 @@ def cgo_lineabs(a, c, col=(1, 1, 1)):
 
 
 def showlineabs(a, c, col=(1, 1, 1), lbl=''):
+    """TODO: Summary
+
+    Args:
+        a (TYPE): Description
+        c (TYPE): Description
+        col (tuple, optional): Description
+        lbl (str, optional): Description
+    """
     if not lbl:
         global numline
         lbl = "line%i" % numline
@@ -230,6 +395,12 @@ def showlineabs(a, c, col=(1, 1, 1), lbl=''):
 
 
 def show_with_axis(worms, idx=0):
+    """TODO: Summary
+
+    Args:
+        worms (TYPE): Description
+        idx (int, optional): Description
+    """
     pose = worms.pose(idx, align=0, end=1)
     x_from = worms.positions[idx][worms.criteria.from_seg]
     x_to = worms.positions[idx][worms.criteria.to_seg]
@@ -251,6 +422,14 @@ def show_with_axis(worms, idx=0):
 
 
 def show_with_z_axes(worms, idx=0, only_connected=0, **kw):
+    """TODO: Summary
+
+    Args:
+        worms (TYPE): Description
+        idx (int, optional): Description
+        only_connected (int, optional): Description
+        **kw: Description
+    """
     pose = worms.pose(idx, align=0, end=1, only_connected=only_connected, **kw)
     x_from = worms.positions[idx][worms.criteria.from_seg]
     x_to = worms.positions[idx][worms.criteria.to_seg]

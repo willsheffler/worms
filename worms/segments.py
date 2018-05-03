@@ -1,3 +1,5 @@
+"""TODO: Summary
+"""
 import multiprocessing
 import os
 import itertools as it
@@ -21,7 +23,22 @@ import inspect
 
 
 class SpliceSite:
+    """TODO: Summary
+
+    Attributes:
+        chain (TYPE): Description
+        polarity (TYPE): Description
+        selections (TYPE): Description
+    """
+
     def __init__(self, sele, polarity, chain=None):
+        """TODO: Summary
+
+        Args:
+            sele (TYPE): Description
+            polarity (TYPE): Description
+            chain (None, optional): Description
+        """
         if isinstance(sele, str) or isinstance(sele, int):
             sele = [sele]
         self.selections = list(sele)
@@ -30,6 +47,18 @@ class SpliceSite:
         self.chain = chain
 
     def resid(self, id, pose):
+        """TODO: Summary
+
+        Args:
+            id (TYPE): Description
+            pose (TYPE): Description
+
+        Returns:
+            TYPE: Description
+
+        Raises:
+            ValueError: Description
+        """
         resid = id if id >= 0 else len(pose) + 1 + id
         if not 0 < resid <= len(pose):
             raise ValueError('resid ' + str(resid) +
@@ -37,6 +66,18 @@ class SpliceSite:
         return resid
 
     def _resids_impl(self, sele, spliceable):
+        """TODO: Summary
+
+        Args:
+            sele (TYPE): Description
+            spliceable (TYPE): Description
+
+        Returns:
+            TYPE: Description
+
+        Raises:
+            ValueError: Description
+        """
         if isinstance(sele, int):
             if self.chain is None:
                 return set([self.resid(sele, spliceable.body)])
@@ -64,6 +105,17 @@ class SpliceSite:
             raise ValueError('selection must be int, str, or None')
 
     def _resids(self, spliceabe):
+        """TODO: Summary
+
+        Args:
+            spliceabe (TYPE): Description
+
+        Returns:
+            TYPE: Description
+
+        Raises:
+            ValueError: Description
+        """
         resids = set()
         for sele in self.selections:
             try:
@@ -77,12 +129,31 @@ class SpliceSite:
         return resids
 
     def __repr__(self):
+        """TODO: Summary
+
+        Returns:
+            TYPE: Description
+        """
         c = '' if self.chain is None else ', chain=' + str(self.chain)
         return 'SpliceSite(' + str(self.selections) + \
             ', ' + self.polarity + c + ')'
 
 
 class Spliceable:
+    """TODO: Summary
+
+    Attributes:
+        allowed_pairs (TYPE): Description
+        body (TYPE): Description
+        bodyid (TYPE): Description
+        chains (TYPE): Description
+        end_of_chain (TYPE): Description
+        min_seg_len (TYPE): Description
+        nsite (TYPE): Description
+        sites (TYPE): Description
+        start_of_chain (TYPE): Description
+    """
+
     def __init__(self,
                  body,
                  sites,
@@ -90,6 +161,18 @@ class Spliceable:
                  bodyid=None,
                  min_seg_len=1,
                  allowed_pairs=None):
+        """TODO: Summary
+
+        Args:
+            body (TYPE): Description
+            sites (TYPE): Description
+            bodyid (None, optional): Description
+            min_seg_len (int, optional): Description
+            allowed_pairs (None, optional): Description
+
+        Raises:
+            ValueError: Description
+        """
         self.body = body
         chains = list(body.split_by_chain())
         self.start_of_chain = {
@@ -128,11 +211,23 @@ class Spliceable:
         self.allowed_pairs = allowed_pairs
 
     def resids(self, isite):
+        """TODO: Summary
+
+        Args:
+            isite (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         if isite < 0: return [None]
         return self._resids_list[isite]
 
     def spliceable_positions(self):
-        """selection of resids, and map 'global' index to selected index"""
+        """selection of resids, and map 'global' index to selected index
+
+        Returns:
+            TYPE: Description
+        """
         resid_subset = set()
         for i in range(len(self.sites)):
             resid_subset |= set(self._resids_list[i])
@@ -147,6 +242,17 @@ class Spliceable:
         return resid_subset, to_subset
 
     def is_compatible(self, isite, ires, jsite, jres):
+        """TODO: Summary
+
+        Args:
+            isite (TYPE): Description
+            ires (TYPE): Description
+            jsite (TYPE): Description
+            jres (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         if ires < 0 or jres < 0: return True
         assert 0 < ires <= self._len_body and 0 < jres <= self._len_body
         ichain, jchain = self._chains[ires - 1], self._chains[jres - 1]
@@ -160,6 +266,15 @@ class Spliceable:
         return True
 
     def sitepair_allowed(self, isite, jsite):
+        """TODO: Summary
+
+        Args:
+            isite (TYPE): Description
+            jsite (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         if isite == jsite:
             return False
         if isite < 0 or jsite < 0:
@@ -170,6 +285,11 @@ class Spliceable:
         return True
 
     def __repr__(self):
+        """TODO: Summary
+
+        Returns:
+            TYPE: Description
+        """
         sites = str([(s._resids(self), s.polarity) for s in self.sites])
         if len(sites) > 30:
             sites = sites[:30] + '...'
@@ -186,7 +306,28 @@ class Spliceable:
 
 
 class AnnoPose:
+    """TODO: Summary
+
+    Attributes:
+        cyclic_entry (TYPE): Description
+        iseg (TYPE): Description
+        pose (TYPE): Description
+        src_lb (TYPE): Description
+        src_ub (TYPE): Description
+        srcpose (TYPE): Description
+    """
+
     def __init__(self, pose, iseg, srcpose, src_lb, src_ub, cyclic_entry):
+        """TODO: Summary
+
+        Args:
+            pose (TYPE): Description
+            iseg (TYPE): Description
+            srcpose (TYPE): Description
+            src_lb (TYPE): Description
+            src_ub (TYPE): Description
+            cyclic_entry (TYPE): Description
+        """
         self.pose = pose
         self.iseg = iseg
         self.srcpose = srcpose
@@ -195,27 +336,81 @@ class AnnoPose:
         self.cyclic_entry = cyclic_entry
 
     def __iter__(self):
+        """TODO: Summary
+
+        Yields:
+            TYPE: Description
+        """
         yield self.pose
         yield (self.iseg, self.srcpose, self.src_lb, self.src_ub)
 
     def __getitem__(self, i):
+        """TODO: Summary
+
+        Args:
+            i (TYPE): Description
+        """
         if i is 0: return self.pose
         if i is 1: return (self.iseg, self.srcpose, self.src_lb, self.src_ub)
 
     def seq(self):
+        """TODO: Summary
+
+        Returns:
+            TYPE: Description
+        """
         return self.pose.sequence()
 
     def srcseq(self):
+        """TODO: Summary
+
+        Returns:
+            TYPE: Description
+        """
         return self.srcpose.sequence()[self.src_lb - 1:self.src_ub]
 
 
 def lineno():
-    """Returns the current line number in our program."""
+    """Returns the current line number in our program.
+
+    Returns:
+        TYPE: Description
+    """
     return inspect.currentframe().f_back.f_lineno
 
 
 class Segment:
+    """TODO: Summary
+
+    Attributes:
+        bodyid (TYPE): Description
+        entrypol (TYPE): Description
+        entryresid (TYPE): Description
+        entrysiteid (TYPE): Description
+        exitpol (TYPE): Description
+        exitresid (TYPE): Description
+        exitsiteid (TYPE): Description
+        expert (TYPE): Description
+        max_sites (TYPE): Description
+        min_sites (TYPE): Description
+        nchains (TYPE): Description
+        spliceables (TYPE): Description
+        x2exit (TYPE): Description
+        x2orgn (TYPE): Description
+    """
+
     def __init__(self, spliceables, entry=None, exit=None, expert=False):
+        """TODO: Summary
+
+        Args:
+            spliceables (TYPE): Description
+            entry (None, optional): Description
+            exit (None, optional): Description
+            expert (bool, optional): Description
+
+        Raises:
+            ValueError: Description
+        """
         if entry and len(entry) is 2:
             entry, exit = entry
             if entry == '_': entry = None
@@ -255,6 +450,11 @@ class Segment:
         self.init_segment_data()
 
     def make_head(self):
+        """TODO: Summary
+
+        Returns:
+            TYPE: Description
+        """
         assert not (self.entrypol is None or self.exitpol is None)
         return Segment(
             self.spliceables,
@@ -263,6 +463,11 @@ class Segment:
             expert=self.expert)
 
     def make_tail(self):
+        """TODO: Summary
+
+        Returns:
+            TYPE: Description
+        """
         assert not (self.entrypol is None or self.exitpol is None)
         return Segment(
             self.spliceables,
@@ -271,7 +476,17 @@ class Segment:
             expert=self.expert)
 
     def merge_idx_slow(self, head, head_idx, tail, tail_idx):
-        "return joint index, -1 if head/tail pairing is invalid"
+        """TODO: Summary
+
+        Args:
+            head (TYPE): Description
+            head_idx (TYPE): Description
+            tail (TYPE): Description
+            tail_idx (TYPE): Description
+
+        Returns:
+            TYPE: return joint index, -1 if head/tail pairing is invalid
+        """
         "TODO THIS IS TOTALLY INEFFICEENT"
         head_idx, tail_idx = map(np.asarray, [head_idx, tail_idx])
         # print('merge_idx', head_idx.shape, tail_idx.shape)
@@ -295,13 +510,33 @@ class Segment:
         return idx
 
     def merge_idx(self, head, head_idx, tail, tail_idx):
+        """TODO: Summary
+
+        Args:
+            head (TYPE): Description
+            head_idx (TYPE): Description
+            tail (TYPE): Description
+            tail_idx (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         ok1 = (head.bodyid[head_idx] == tail.bodyid[tail_idx])
         ok2 = (head.entrysiteid[head_idx] != tail.exitsiteid[tail_idx])
         ok = np.logical_and(ok1, ok2)
         return self.merge_idx_slow(head, head_idx[ok], tail, tail_idx[ok]), ok
 
     def split_idx(self, idx, head, tail):
-        """return indices for separate head and tail segments"""
+        """return indices for separate head and tail segments
+
+        Args:
+            idx (TYPE): Description
+            head (TYPE): Description
+            tail (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         assert not (self.entrypol is None or self.exitpol is None)
         assert head.exitpol is None and tail.entrypol is None
         assert idx.ndim == 1
@@ -340,9 +575,19 @@ class Segment:
     #     self.init_segment_data()  # recompute the big stuff
 
     def __len__(self):
+        """TODO: Summary
+
+        Returns:
+            TYPE: Description
+        """
         return len(self.bodyid)
 
     def init_segment_data(self):
+        """TODO: Summary
+
+        Raises:
+            ValueError: Description
+        """
         # print('init_segment_data', len(self.spliceables))
         # each array has all in/out pairs
         self.x2exit, self.x2orgn, self.bodyid = [], [], []
@@ -414,6 +659,14 @@ class Segment:
         self.bodyid = np.array(self.bodyid)
 
     def same_bodies_as(self, other):
+        """TODO: Summary
+
+        Args:
+            other (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         bodies1 = [s.body for s in self.spliceables]
         bodies2 = [s.body for s in other.spliceables]
         return bodies1 == bodies2
@@ -433,6 +686,17 @@ class Segment:
         cyclictrim specifies segments which are spliced across the
         symmetric interface. segments only needed if cyclictrim==True
         if cyclictrim, last segment will only be a single entry residue
+
+        Args:
+            indices (TYPE): Description
+            position (None, optional): Description
+            pad (tuple, optional): Description
+            iseg (None, optional): Description
+            segments (None, optional): Description
+            cyclictrim (None, optional): Description
+
+        Returns:
+            TYPE: Description
         """
         if isinstance(indices, int):
             assert not cyclictrim
@@ -567,29 +831,78 @@ class Segment:
 
 
 class Segments:
-    "light wrapper around list of Segments"
+    """light wrapper around list of Segments
+
+    Attributes:
+        segments (TYPE): Description
+    """
 
     def __init__(self, segments):
+        """TODO: Summary
+
+        Args:
+            segments (TYPE): Description
+        """
         self.segments = segments
 
     def __getitem__(self, idx):
+        """TODO: Summary
+
+        Args:
+            idx (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         if isinstance(idx, slice):
             return Segments(self.segments[idx])
         return self.segments[idx]
 
     def __setitem__(self, idx, val):
+        """TODO: Summary
+
+        Args:
+            idx (TYPE): Description
+            val (TYPE): Description
+        """
         self.segments[idx] = val
 
     def __iter__(self):
+        """TODO: Summary
+
+        Returns:
+            TYPE: Description
+        """
         return iter(self.segments)
 
     def __len__(self):
+        """TODO: Summary
+
+        Returns:
+            TYPE: Description
+        """
         return len(self.segments)
 
     def index(self, val):
+        """TODO: Summary
+
+        Args:
+            val (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         return self.segments.index(val)
 
     def split_at(self, idx):
+        """TODO: Summary
+
+        Args:
+            idx (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         tail, head = self[:idx + 1], self[idx:]
         tail[-1] = tail[-1].make_head()
         head[0] = head[0].make_tail()
@@ -597,6 +910,12 @@ class Segments:
 
 
 def _cyclic_permute_chains(chainslist, polarity):
+    """TODO: Summary
+
+    Args:
+        chainslist (TYPE): Description
+        polarity (TYPE): Description
+    """
     chainslist_beg = 0
     for i, cl in enumerate(chainslist):
         if any(x.cyclic_entry for x in cl):
@@ -630,7 +949,18 @@ def _cyclic_permute_chains(chainslist, polarity):
 
 
 def reorder_spliced_as_N_to_C(body_chains, polarities):
-    "remap chains of each body such that concatenated chains are N->C"
+    """remap chains of each body such that concatenated chains are N->C
+
+    Args:
+        body_chains (TYPE): Description
+        polarities (TYPE): Description
+
+    Returns:
+        TYPE: Description
+
+    Raises:
+        ValueError: Description
+    """
     if len(body_chains) != len(polarities) + 1:
         raise ValueError('must be one more body_chains than polarities')
     chains, pol = [[]], {}
@@ -652,7 +982,31 @@ def reorder_spliced_as_N_to_C(body_chains, polarities):
 
 
 class Worms:
+    """TODO: Summary
+
+    Attributes:
+        criteria (TYPE): Description
+        detail (TYPE): Description
+        indices (TYPE): Description
+        positions (TYPE): Description
+        score0 (TYPE): Description
+        score0sym (TYPE): Description
+        scores (TYPE): Description
+        segments (TYPE): Description
+        splicepoint_cache (dict): Description
+    """
+
     def __init__(self, segments, scores, indices, positions, criteria, detail):
+        """TODO: Summary
+
+        Args:
+            segments (TYPE): Description
+            scores (TYPE): Description
+            indices (TYPE): Description
+            positions (TYPE): Description
+            criteria (TYPE): Description
+            detail (TYPE): Description
+        """
         self.segments = segments
         self.scores = scores
         self.indices = indices
@@ -676,7 +1030,26 @@ class Worms:
              provenance=False,
              make_chain_list=False,
              **kw):
-        "makes a pose for the ith worm"
+        """makes a pose for the ith worm
+
+        Args:
+            which (TYPE): Description
+            align (bool, optional): Description
+            end (None, optional): Description
+            only_connected (str, optional): Description
+            join (bool, optional): Description
+            cyclic_permute (None, optional): Description
+            cyclictrim (None, optional): Description
+            provenance (bool, optional): Description
+            make_chain_list (bool, optional): Description
+            **kw: Description
+
+        Returns:
+            TYPE: Description
+
+        Raises:
+            ValueError: Description
+        """
         if isinstance(which, Iterable):
             return (self.pose(
                 w,
@@ -790,12 +1163,22 @@ class Worms:
         return pose, prov
 
     def splicepoints(self, which):
+        """TODO: Summary
+
+        Args:
+            which (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         if not which in self.splicepoint_cache:
             self.pose(which)
         assert isinstance(which, int)
         return self.splicepoint_cache[which]
 
     def clear_caches(self):
+        """TODO: Summary
+        """
         self.splicepoint_cache = {}
 
     def sympose(self,
@@ -806,6 +1189,22 @@ class Worms:
                 *,
                 parallel=False,
                 asym_score_thresh=50):
+        """TODO: Summary
+
+        Args:
+            which (TYPE): Description
+            score (bool, optional): Description
+            provenance (bool, optional): Description
+            fullatom (bool, optional): Description
+            parallel (bool, optional): Description
+            asym_score_thresh (int, optional): Description
+
+        Returns:
+            TYPE: Description
+
+        Raises:
+            IndexError: Description
+        """
         if isinstance(which, Iterable):
             which = list(which)
             if not all(0 <= i < len(self) for i in which):
@@ -858,6 +1257,14 @@ class Worms:
         return p
 
     def splices(self, which):
+        """TODO: Summary
+
+        Args:
+            which (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         if isinstance(which, Iterable): return (self.splices(w) for w in which)
         splices = []
         for i in range(len(self.segments) - 1):
@@ -881,9 +1288,22 @@ class Worms:
         return splices
 
     def __len__(self):
+        """TODO: Summary
+
+        Returns:
+            TYPE: Description
+        """
         return len(self.scores)
 
     def __getitem__(self, i):
+        """TODO: Summary
+
+        Args:
+            i (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
         return (
             i,
             self.scores[i],
