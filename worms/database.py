@@ -134,6 +134,12 @@ def flatten_path(pdbfile):
 def _get_connection_residues(entry, chain_bounds):
     chain_bounds[-1][-1]
     r, c, d = entry['residues'], int(entry['chain']), entry['direction']
+    if isinstance(r, list):
+        try:
+            return [int(_) for _ in r]
+        except ValueError:
+            assert len(r) is 1
+            r = r[0]
     if r.startswith('['): return eval(r)
     if r.count(','):
         c2, r = r.split(',')
@@ -147,7 +153,10 @@ def _get_connection_residues(entry, chain_bounds):
 
 
 def make_connections_array(entries, chain_bounds):
-    reslists = [_get_connection_residues(e, chain_bounds) for e in entries]
+    try:
+        reslists = [_get_connection_residues(e, chain_bounds) for e in entries]
+    except:
+        print(entries)
     mx = max(len(x) for x in reslists)
     conn = np.zeros((len(reslists), mx + 2), 'i4') - 1
     for i, rl in enumerate(reslists):
