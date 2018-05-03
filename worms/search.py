@@ -14,8 +14,6 @@ from worms.segments import Segment, Segments, Worms
 from worms.criteria import CriteriaList, Cyclic, WormCriteria
 from worms import util
 
-# import numba
-
 
 class SimpleAccumulator:
     """TODO: Summary
@@ -182,17 +180,6 @@ class MakeXIndexAccumulator:
         """
         self.checkpoint()
         return self.xindex, self.binner
-
-
-# GLOBAL_xindex_set = set([0])
-
-# @numba.vectorize([numba.float64(numba.int64)])
-# def is_in_xindex_set_numba(idx):
-# global GLOBAL_xindex_set
-# if idx in GLOBAL_xindex_set:
-# return 0.
-# else:
-# return 999999.
 
 
 class XIndexedCriteria(WormCriteria):

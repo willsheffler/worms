@@ -10,6 +10,7 @@ from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from concurrent.futures import as_completed as cf_as_completed
 import multiprocessing
+import threading
 from homog import hrot
 try:
     from pyrosetta import rosetta as ros
@@ -82,6 +83,9 @@ class NonFuture:
             result (TYPE): Description
         """
         self._result = result
+        self._condition = threading.Condition()
+        self._state = 'FINISHED'
+        self._waiters = []
 
     def result(self):
         """TODO: Summary

@@ -1,5 +1,4 @@
 [
-
 {"file": "__DATADIR__/loop.pdb",
     "name": "loop" ,
     "class": ["loop"],
@@ -10,7 +9,6 @@
     "protocol": "?",
     "connections": [{"direction": "N", "chain": 1, "residues": "1,:1"}, {"direction": "C", "chain": 1, "residues": "1,-1:"}]
 },
-
 {"file": "__DATADIR__/c3_splay.pdb",
     "name": "c3_splay" ,
     "class": ["c3_splay"],
@@ -21,7 +19,6 @@
     "protocol": "?",
     "connections": [{"direction": "N", "chain": 1, "residues": "1,:1"}, {"direction": "C", "chain": 1, "residues": "1,-1:"}, {"direction": "N", "chain": 2, "residues": "2,:1"}, {"direction": "C", "chain": 2, "residues": "2,-1:"}, {"direction": "N", "chain": 3, "residues": "3,:1"}, {"direction": "C", "chain": 3, "residues": "3,-1:"}]
 },
-
 {"file": "__DATADIR__/c6.pdb",
     "name": "c6" ,
     "class": ["c6"],
@@ -32,7 +29,6 @@
     "protocol": "?",
     "connections": [{"direction": "N", "chain": 1, "residues": "1,:1"}, {"direction": "C", "chain": 1, "residues": "1,-1:"}]
 },
-
 {"file": "__DATADIR__/c1.pdb",
     "name": "c1" ,
     "class": ["c1"],
@@ -43,7 +39,16 @@
     "protocol": "?",
     "connections": [{"direction": "N", "chain": 1, "residues": "1,:1"}, {"direction": "C", "chain": 1, "residues": "1,-1:"}]
 },
-
+{"file": "__DATADIR__/1coi_A.pdb",
+    "name": "fail" ,
+    "class": ["c1"],
+    "type": "?" ,
+    "base": "?" ,
+    "components": ["?"],
+    "validated": false,
+    "protocol": "?",
+    "connections": [{"direction": "N", "chain": 1, "residues": ["1,ars:"]}, {"direction": "C", "chain": 1, "residues": "1,-1:"}]
+},
 {"file": "__DATADIR__/strand.pdb",
     "name": "strand" ,
     "class": ["strand"],
@@ -54,7 +59,6 @@
     "protocol": "?",
     "connections": [{"direction": "N", "chain": 1, "residues": "1,:1"}, {"direction": "C", "chain": 1, "residues": "1,-1:"}]
 },
-
 {"file": "__DATADIR__/small.pdb",
     "name": "small" ,
     "class": ["small"],
@@ -65,7 +69,6 @@
     "protocol": "?",
     "connections": [{"direction": "N", "chain": 1, "residues": "1,:1"}, {"direction": "C", "chain": 1, "residues": "1,-1:"}]
 },
-
 {"file": "__DATADIR__/curved_helix.pdb",
     "name": "curved_helix" ,
     "class": ["curved_helix"],
@@ -78,7 +81,6 @@
         {"direction": "N", "chain": 1, "residues": "1,:1"},
         {"direction": "C", "chain": 1, "residues": "1,-7:"}]
 },
-
 {"file": "__DATADIR__/c3het.pdb",
     "name": "c3het" ,
     "class": ["c3het"],
@@ -89,7 +91,6 @@
     "protocol": "?",
     "connections": [{"direction": "N", "chain": 1, "residues": "1,:1"}, {"direction": "C", "chain": 1, "residues": "1,-1:"}, {"direction": "N", "chain": 2, "residues": "2,:1"}, {"direction": "C", "chain": 2, "residues": "2,-1:"}, {"direction": "N", "chain": 3, "residues": "3,:1"}, {"direction": "C", "chain": 3, "residues": "3,-1:"}]
 },
-
 {"file": "__DATADIR__/c4.pdb",
     "name": "c4" ,
     "class": ["c4"],
@@ -100,7 +101,6 @@
     "protocol": "?",
     "connections": [{"direction": "N", "chain": 1, "residues": "1,:1"}, {"direction": "C", "chain": 1, "residues": "1,-1:"}]
 },
-
 {"file": "__DATADIR__/c3.pdb",
     "name": "c3" ,
     "class": ["c3"],
@@ -111,7 +111,6 @@
     "protocol": "?",
     "connections": [{"direction": "N", "chain": 1, "residues": "1,:1"}, {"direction": "C", "chain": 1, "residues": "1,-1:"}]
 },
-
 {"file": "__DATADIR__/c2.pdb",
     "name": "c2" ,
     "class": ["c2"],
@@ -122,7 +121,6 @@
     "protocol": "?",
     "connections": [{"direction": "N", "chain": 1, "residues": "1,:1"}, {"direction": "C", "chain": 1, "residues": "1,-1:"}]
 },
-
 {"file": "__DATADIR__/c5.pdb",
     "name": "c5" ,
     "class": ["c5"],
@@ -133,6 +131,4 @@
     "protocol": "?",
     "connections": [{"direction": "N", "chain": 1, "residues": "1,:1"}, {"direction": "C", "chain": 1, "residues": "1,-1:"}]
 }
-
-
 ]

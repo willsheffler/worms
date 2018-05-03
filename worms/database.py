@@ -3,13 +3,18 @@
 import os
 import json
 import _pickle as pickle
-from concurrent.futures import ProcessPoolExecutor
-from logging import info, error
+from concurrent.futures import *
 import itertools as it
+import logging
+from logging import info, error
+
 import numpy as np
+from tqdm import tqdm
 
 from worms import util
 from worms.jitcoord import BBlock
+
+logging.basicConfig(level=logging.INFO)
 
 try:
     from pyrosetta import pose_from_file
@@ -74,7 +79,7 @@ def make_connections_array(entries, chain_bounds):
     try:
         reslists = [_get_connection_residues(e, chain_bounds) for e in entries]
     except:
-        print('ERROR make_connections_array', entries)
+        print('WARNING: make_connections_array failed on', entries)
         return np.zeros((0, 0))
     mx = max(len(x) for x in reslists)
     conn = np.zeros((len(reslists), mx + 2), 'i4') - 1
@@ -263,18 +268,11 @@ class PDBPile:
             with open(posefile, 'rb') as f:
                 self.poses[pdbfile] = pickle.load(f)
                 return True
-        except FileNotFound:
+        except FileNotFoundError:
             return False
 
     def coordfile(self, pdbfile):
-        """TODO: Summary
-
-        Args:
-            pdbfile (TYPE): Description
-
-        Returns:
-            TYPE: Description
-        """
+        """TODO: Summary"""
         return os.path.join(self.cachedir, 'coord', flatten_path(pdbfile))
 
     def load_cached_coord_into_memory(self, pdbfile):
@@ -299,52 +297,52 @@ class PDBPile:
         except FileNotFound:
             return False
 
-    def load_from_pdbs(self):
-        """TODO: Summary
-
-        Returns:
-            TYPE: Description
-        """
-        if self.nprocs is 1:
-            with util.InProcessExecutor() as pool:
-                result = [_ for _ in pool.map(self.build_pdb_data, self.alldb)]
-        else:
-            with ProcessPoolExecutor(max_workers=self.nprocs) as pool:
-                result = [_ for _ in pool.map(self.build_pdb_data, self.alldb)]
-        return sum(x[0] for x in result), sum(x[1] for x in result)
-
     def posefile(self, pdbfile):
-        """TODO: Summary
-
-        Args:
-            pdbfile (TYPE): Description
-
-        Returns:
-            TYPE: Description
-        """
+        """TODO: Summary"""
         return os.path.join(self.cachedir, 'poses', flatten_path(pdbfile))
 
+    def load_from_pdbs(self):
+        """Summary
 
-#    def load_from_pdbs(self):
-#        print('load_from_pdbs', len(self.alldb))
-#        if self.nprocs is 1:
-#            with util.InProcessExecutor() as exe:
-#                x = self.load_from_pdbs_inner(exe)
-#        else:
-#            with ProcessPoolExecutor(max_workers=self.nprocs) as exe:
-#                x = self.load_from_pdbs_inner(exe)
-#        return sum(x[0] for x in result), sum(x[1] for x in result)
-#
-#    def load_from_pdbs_inner(self, exe):
-#        # return exe.map(self.build_pdb_data, self.alldb)
-#        futures = [exe.submit(self.build_pdb_data, e) for e in self.alldb]
-#        print('load_from_pdbs', len(futures))
-#        kwargs = {'total': len(futures)}
-#        r = []
-#        for f in tqdm(as_completed(futures), **kwargs):
-#            print('foo')
-#            r.append(f.result())
-#        return r
+       Returns:
+           TYPE: Description
+       """
+        if self.nprocs is 1:
+            with util.InProcessExecutor() as exe:
+                result = self.load_from_pdbs_inner(exe)
+        else:
+            with ProcessPoolExecutor(max_workers=self.nprocs) as exe:
+                result = self.load_from_pdbs_inner(exe)
+        new = [_[0] for _ in result if _[0]]
+        missing = [_[1] for _ in result if _[1]]
+        for miss in missing:
+            self.alldb.remove(self.dictdb[miss])
+            del self.dictdb[miss]
+        return len(new), len(missing)
+
+    def load_from_pdbs_inner(self, exe):
+        """Summary
+
+       Args:
+           exe (TYPE): Description
+
+       Returns:
+           TYPE: Description
+       """
+        # return exe.map(self.build_pdb_data, self.alldb)
+
+        r = []
+        print('load_from_pdbs', len(self.alldb))
+        kwargs = {
+            'total': len(self.alldb),
+            'unit': 'pdbs',
+            # 'unit_scale': True,
+            'leave': True
+        }
+        futures = [exe.submit(self.build_pdb_data, e) for e in self.alldb]
+        for f in tqdm(as_completed(futures), **kwargs):
+            r.append(f.result())
+        return r
 
     def build_pdb_data(self, entry):
         """return Nnew, Nmissing
@@ -366,13 +364,16 @@ class PDBPile:
             self.cache[pdbfile] = bblock
             if self.load_poses:
                 self.poses[pdbfile] = pose
-            return 0, 0  # new, missing
+            return None, None  # new, missing
         elif self.read_new_pdbs:
             info('PDBPile.build_pdb_data reading %s' % pdbfile)
             if os.path.exists(posefile):
                 with open(posefile, 'rb') as f:
                     pose = pickle.load(f)
             else:
+                if not os.path.exists(pdbfile):
+                    print("WARNING can't read", pdbfile)
+                    return None, pdbfile
                 pose = pose_from_file(pdbfile)
             chains = util.get_chain_bounds(pose)
             ss = np.frombuffer(
@@ -383,7 +384,10 @@ class PDBPile:
             assert len(pose) == len(ss)
             conn = make_connections_array(entry['connections'], chains)
             if len(conn) is 0:
-                return 0, 1  # new, missing
+                print('bad conn info!', pdbfile)
+                return None, pdbfile  # new, missing
+            if pdbfile.endswith('1coi_A.pdb'):
+                print(conn)
             bblock = BBlock(
                 connections=conn,
                 file=np.frombuffer(entry['file'].encode(), dtype='i1'),
@@ -405,24 +409,24 @@ class PDBPile:
                 pickle.dump(bblock.state, f)
             with open(posefile, 'wb') as f:
                 pickle.dump(pose, f)
-                info('dumped cache files for', pdbfile)
+                info('dumped cache files for %s' % pdbfile)
             self.cache[pdbfile] = bblock
             if self.load_poses:
                 self.poses[pdbfile] = pose
-            return 1, 0  # new, missing
+            return pdbfile, None  # new, missing
         else:
             print('no cached data for', pdbfile)
-            return 0, 1  # new, missing
+            return None, pdbfile  # new, missing
+
 
 if __name__ == '__main__':
     import argparse
     import pyrosetta
+    info('sent to info')
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--add_database_files_to_cache',
-        type=str,
-        nargs='+',
-        dest='database_files')
+        '--dbfiles', type=str, nargs='+', dest='database_files')
     parser.add_argument('--nprocs', type=int, dest='nprocs', default=1)
     parser.add_argument(
         '--read_new_pdbs', type=bool, dest='read_new_pdbs', default=False)
@@ -439,8 +443,9 @@ if __name__ == '__main__':
         print('new entries', pp.n_new_entries)
         print('missing entries', pp.n_missing_entries)
         print('total entries', len(pp.cache))
-    except AssertionError:
-        pass
+    except AssertionError as e:
+        print(e)
     except:
         if args.read_new_pdbs:
             os.remove(os.environ['HOME'] + '/.worms/cache/lock')
+        raise

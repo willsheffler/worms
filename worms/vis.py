@@ -13,11 +13,12 @@ import numpy as np
 from collections import defaultdict
 import homog
 from worms import util
+from logging import info
 try:
     from pymol import cmd
     from pymol import cgo
 except:
-    print('pymol not available!')
+    info('pymol not available!')
 
 
 def is_rosetta_pose(to_show):
