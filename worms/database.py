@@ -7,6 +7,7 @@ from concurrent.futures import *
 import itertools as it
 import logging
 from logging import info, error
+from random import shuffle
 
 import numpy as np
 from tqdm import tqdm
@@ -59,6 +60,8 @@ def _get_connection_residues(entry, chain_bounds):
         c2, r = r.split(',')
         assert int(c2) == c
     b, e = r.split(':')
+    if b == '-': b = 0
+    if e == '-': e = 0
     nres = chain_bounds[c - 1][1] - chain_bounds[c - 1][0]
     b = int(b) if b else 0
     e = int(e) if e else nres
@@ -78,8 +81,10 @@ def make_connections_array(entries, chain_bounds):
     """
     try:
         reslists = [_get_connection_residues(e, chain_bounds) for e in entries]
-    except:
-        print('WARNING: make_connections_array failed on', entries)
+    except Exception as e:
+
+        print('WARNING: make_connections_array failed on', entries,
+              'error was:', e)
         return np.zeros((0, 0))
     mx = max(len(x) for x in reslists)
     conn = np.zeros((len(reslists), mx + 2), 'i4') - 1
@@ -307,6 +312,7 @@ class PDBPile:
        Returns:
            TYPE: Description
        """
+        shuffle(self.alldb)
         if self.nprocs is 1:
             with util.InProcessExecutor() as exe:
                 result = self.load_from_pdbs_inner(exe)
@@ -366,15 +372,21 @@ class PDBPile:
                 self.poses[pdbfile] = pose
             return None, None  # new, missing
         elif self.read_new_pdbs:
+            read_pdb = False
             info('PDBPile.build_pdb_data reading %s' % pdbfile)
             if os.path.exists(posefile):
                 with open(posefile, 'rb') as f:
-                    pose = pickle.load(f)
-            else:
+                    try:
+                        pose = pickle.load(f)
+                    except EOFError:
+                        print('WARNING corrupt pickled pose', posefile)
+                        os.remove(posefile)
+            if 'pose' not in vars():
                 if not os.path.exists(pdbfile):
                     print("WARNING can't read", pdbfile)
                     return None, pdbfile
                 pose = pose_from_file(pdbfile)
+                read_pose = True
             chains = util.get_chain_bounds(pose)
             ss = np.frombuffer(
                 str(Dssp(pose).get_dssp_secstruct()).encode(), dtype='i1')
@@ -407,9 +419,10 @@ class PDBPile:
             assert bblock.chains == chains
             with open(cachefile, 'wb') as f:
                 pickle.dump(bblock.state, f)
-            with open(posefile, 'wb') as f:
-                pickle.dump(pose, f)
-                info('dumped cache files for %s' % pdbfile)
+            if not os.path.exists(posefile):
+                with open(posefile, 'wb') as f:
+                    pickle.dump(pose, f)
+                    info('dumped cache files for %s' % pdbfile)
             self.cache[pdbfile] = bblock
             if self.load_poses:
                 self.poses[pdbfile] = pose
