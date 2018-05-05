@@ -97,7 +97,7 @@ class PDBPile:
                 entry['name'] = ''
             entry['file'] = entry['file'].replace(
                 '__DATADIR__',
-                os.path.dirname(__file__) + '/data')
+                os.path.relpath(os.path.dirname(__file__) + '/data'))
         self.dictdb = {e['file']: e for e in self.alldb}
         if len(self.alldb) != len(self.dictdb):
             print('!' * 100)
@@ -109,20 +109,25 @@ class PDBPile:
         self.n_new_entries = 0
         self.n_missing_entries = len(self.alldb)
         if not self.lazy:
-            if self.read_new_pdbs:
-                assert not os.path.exists(cachedir + '/lock'), (
-                    "database is locked! if you're sure no other jobs are editing it, remove "
-                    + self.cachedir + "/lock")
-                open(cachedir + '/lock', 'w').close()
-                assert os.path.exists(cachedir + '/lock')
+            if self.read_new_pdbs: self.lock_cachedir()
             self.n_new_entries, self.n_missing_entries = self.load_from_pdbs()
-            if self.read_new_pdbs:
-                os.remove(cachedir + '/lock')
+            if self.read_new_pdbs: self.unlock_cachedir()
             if nprocs != 1:
+                # reload because processpool cache entries not serialized back
                 self.nprocs = 1
                 self.load_from_pdbs()
         for i, k in enumerate(sorted(self.dictdb)):
             self.alldb[i] = self.dictdb[k]
+
+    def lock_cachedir(self):
+        assert not os.path.exists(self.cachedir + '/lock'), (
+            "database is locked! if you're sure no other jobs are editing it, remove "
+            + self.cachedir + "/lock")
+        open(self.cachedir + '/lock', 'w').close()
+        assert os.path.exists(self.cachedir + '/lock')
+
+    def unlock_cachedir(self):
+        os.remove(self.cachedir + '/lock')
 
     def __getitem__(self, i):
         if isinstance(i, str):
@@ -338,9 +343,6 @@ class PDBPile:
             assert self.load_cached_bblock_into_memory(pdbfile)
             if self.load_poses:
                 assert self.load_cached_pose_into_memory(pdbfile)
-            self.bblock_cache[pdbfile] = bblock
-            if self.load_poses:
-                self.poses[pdbfile] = pose
             return None, None  # new, missing
         elif self.read_new_pdbs:
             read_pdb = False
