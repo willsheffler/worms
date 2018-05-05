@@ -21,7 +21,9 @@ logging.basicConfig(level=logging.INFO)
 try:
     from pyrosetta import pose_from_file
     from pyrosetta.rosetta.core.scoring.dssp import Dssp
+    HAVE_PYROSETTA = True
 except ImportError:
+    HAVE_PYROSETTA = False
     error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
     error('pyrosetta not available, worms won\'t work')
     error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
