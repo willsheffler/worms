@@ -7,7 +7,8 @@ dependencies:
  - python == 3.5.5
  - numpy
  - numba
- - icc_rt
+# - icc_rt
+ - pandas
  - pytest
  - pytest-cov
  - sphinx_rtd_theme

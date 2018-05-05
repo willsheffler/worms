@@ -78,3 +78,22 @@ def disabled_test_khash():
     s3 = with_khash(fids, values, fetch_ids)
     assert np.allclose(s1, s2)
     assert np.allclose(s1, s3)
+
+
+@nb.njit
+def foo(u):
+    return u[0] + u[1] + u[2] + u[3] + u[4] + u[5] + u[6] + u[7]
+
+
+@pytest.mark.skip
+def test_many_specs():
+    import itertools as it
+    n = 8
+    binary = np.right_shift(np.arange(2**n)[:, None], np.arange(n)[None]) % 2
+    tups = [tuple([(1, 1.)[i] for i in x]) for x in binary]
+    for x in tups:
+        foo(x)
+
+    print('num sigs', len(foo.nopython_signatures))
+
+    assert 0

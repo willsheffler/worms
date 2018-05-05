@@ -13,6 +13,7 @@ PyYAML
 pytest
 pytest-runner
 numpy
+pandas
 numba
 homog >= 0.1.10
 xbin >= 0.1.5

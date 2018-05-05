@@ -13,6 +13,7 @@ pytest
 pytest-runner
 numpy
 numba
+pandas
 homog >= 0.1.10
 xbin >= 0.1.5
 toolz
