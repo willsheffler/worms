@@ -22,6 +22,7 @@ else:
 
 print('cwd:', os.getcwd())
 print('cmd:', cmd)
-print('----------- running  ------------')
+print('----------- running -------------')
 sys.stdout.flush()
 os.system(cmd)
+print('------------ done ---------------')

@@ -3,8 +3,8 @@ import os
 import sys
 from os.path import join, dirname, abspath, exists
 
-# sys.path.insert(0, os.path.dirname(__file__) + '/../..')
-# from worms.database import PDBPile
+sys.path.insert(0, os.path.dirname(__file__) + '/../..')
+from worms.database import PDBPile
 
 try:
     import pyrosetta
@@ -14,6 +14,15 @@ try:
 except ImportError:
     print("no module pyrosetta")
     HAVE_PYROSETTA = False
+
+
+@pytest.fixture(scope='session')
+def pdbpile(datadir):
+    return PDBPile(
+        cachedir=str('.worms_pytest_cache'),
+        bakerdb_files=[os.path.join(datadir, 'test_db_file.json')],
+        metaonly=False,
+        read_new_pdbs=True)
 
 
 @pytest.fixture(scope='session')

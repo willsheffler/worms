@@ -73,3 +73,5 @@ dask-worker-space
 *.o
 
 _khash_ffi.c
+
+.worms_pytest_cache

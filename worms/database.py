@@ -13,7 +13,8 @@ import numpy as np
 from tqdm import tqdm
 
 from worms import util
-from worms.jitcoord import BBlock
+from worms import BBlock
+from worms.BBlock import _BBlock
 
 logging.basicConfig(level=logging.INFO)
 
@@ -38,68 +39,6 @@ def flatten_path(pdbfile):
     return pdbfile.replace(os.sep, '__') + '.pickle'
 
 
-def _get_connection_residues(entry, chain_bounds):
-    """TODO: Summary
-
-    Args:
-        entry (TYPE): Description
-        chain_bounds (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
-    chain_bounds[-1][-1]
-    r, c, d = entry['residues'], int(entry['chain']), entry['direction']
-    if r.startswith('['):
-        r = eval(r)
-    if isinstance(r, list):
-        try:
-            return [int(_) for _ in r]
-        except ValueError:
-            assert len(r) is 1
-            r = r[0]
-    if r.count(','):
-        c2, r = r.split(',')
-        assert int(c2) == c
-    b, e = r.split(':')
-    if b == '-': b = 0
-    if e == '-': e = -1
-    nres = chain_bounds[c - 1][1] - chain_bounds[c - 1][0]
-    b = int(b) if b else 0
-    e = int(e) if e else nres
-    if e < 0: e += nres
-    return list(range(*chain_bounds[c - 1])[b:e])
-
-
-def make_connections_array(entries, chain_bounds):
-    """TODO: Summary
-
-    Args:
-        entries (TYPE): Description
-        chain_bounds (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
-    try:
-        reslists = [_get_connection_residues(e, chain_bounds) for e in entries]
-    except Exception as e:
-
-        print('WARNING: make_connections_array failed on', entries,
-              'error was:', e)
-        return np.zeros((0, 0))
-    mx = max(len(x) for x in reslists)
-    conn = np.zeros((len(reslists), mx + 2), 'i4') - 1
-    for i, rl in enumerate(reslists):
-        conn[i, 0] = entries[i]['direction'] == 'C'
-        conn[i, 1] = len(rl) + 2
-        for j, r in enumerate(rl):
-            conn[i, j + 2] = r
-    return conn
-    # print(chain_bounds)
-    # print(repr(conn))
-
-
 class PDBPile:
     """TODO: Summary
 
@@ -115,14 +54,15 @@ class PDBPile:
         read_new_pdbs (TYPE): Description
     """
 
-    def __init__(self,
-                 *,
-                 cachedir=None,
-                 bakerdb_files=[],
-                 load_poses=False,
-                 nprocs=1,
-                 metaonly=True,
-                 read_new_pdbs=False):
+    def __init__(
+            self,
+            cachedir=None,
+            bakerdb_files=[],
+            load_poses=False,
+            nprocs=1,
+            metaonly=True,
+            read_new_pdbs=False,
+    ):
         """TODO: Summary
 
         Args:
@@ -179,6 +119,14 @@ class PDBPile:
             if nprocs != 1:
                 self.nprocs = 1
                 self.load_from_pdbs()
+        for i, k in enumerate(sorted(self.dictdb)):
+            self.alldb[i] = self.dictdb[k]
+
+    def __getitem__(self, i):
+        if isinstance(i, str):
+            return self.cache[i]
+        else:
+            return self.cache.values()[i]
 
     def __len__(self):
         """TODO: Summary
@@ -366,7 +314,10 @@ class PDBPile:
         posefile = self.posefile(pdbfile)
         if os.path.exists(cachefile):
             with open(cachefile, 'rb') as f:
-                bblock = BBlock(*pickle.load(f))
+                bbstate = list(pickle.load(f))
+                if isinstance(bbstate[10], list):
+                    bbstate[10] = np.array(bbstate[10], dtype='i4')
+                bblock = _BBlock(*bbstate)
             if self.load_poses:
                 assert self.load_cached_pose_into_memory(pdbfile)
             self.cache[pdbfile] = bblock
@@ -389,43 +340,18 @@ class PDBPile:
                     return None, pdbfile
                 pose = pose_from_file(pdbfile)
                 read_pose = True
-            chains = util.get_chain_bounds(pose)
-            ss = np.frombuffer(
-                str(Dssp(pose).get_dssp_secstruct()).encode(), dtype='i1')
-            stubs, ncac = util.get_bb_stubs(pose)
-            assert len(pose) == len(ncac)
-            assert len(pose) == len(stubs)
-            assert len(pose) == len(ss)
-            conn = make_connections_array(entry['connections'], chains)
-            if len(conn) is 0:
-                print('bad conn info!', pdbfile)
-                return None, pdbfile  # new, missing
-            if pdbfile.endswith('1coi_A.pdb'):
-                print(conn)
-            bblock = BBlock(
-                connections=conn,
-                file=np.frombuffer(entry['file'].encode(), dtype='i1'),
-                components=np.frombuffer(
-                    str(entry['components']).encode(), dtype='i1'),
-                protocol=np.frombuffer(entry['protocol'].encode(), dtype='i1'),
-                name=np.frombuffer(entry['name'].encode(), dtype='i1'),
-                classes=np.frombuffer(','.join(entry['class']).encode(), 'i1'),
-                validated=entry['validated'],
-                _type=np.frombuffer(entry['type'].encode(), dtype='i1'),
-                base=np.frombuffer(entry['base'].encode(), dtype='i1'),
-                ncac=ncac.astype('f4'),
-                chains=chains,
-                ss=ss,
-                stubs=stubs.astype('f4'),
-            )
-            assert bblock.chains == chains
+
+            ss = Dssp(pose).get_dssp_secstruct()
+            bblock = BBlock(entry, pdbfile, pose, ss)
+            self.cache[pdbfile] = bblock
+
             with open(cachefile, 'wb') as f:
-                pickle.dump(bblock.state, f)
+                pickle.dump(bblock._state, f)
             if not os.path.exists(posefile):
                 with open(posefile, 'wb') as f:
                     pickle.dump(pose, f)
                     info('dumped cache files for %s' % pdbfile)
-            self.cache[pdbfile] = bblock
+
             if self.load_poses:
                 self.poses[pdbfile] = pose
             return pdbfile, None  # new, missing
