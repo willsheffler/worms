@@ -145,8 +145,47 @@ def Sheet_P6(c6=None, c2=None, **kw): ##should there be options for multiple C2'
         raise ValueError('must specify ...?') #one or two of c6, c2
     return AxesAngle('Sheet_P6_C6_C2_depth3_1comp', Uz, Uz, from_seg=c6, to_seg=c2, **kw)
 
-def Crystal_P213(c3a=None, c3b=None, **kw):
+#### WORKING ####
+def Crystal_P213_C3_C3(c3a=None, c3b=None, **kw):
     if c3a is None or c3b is None:
         raise ValueError('must specify ...?') #one or two of c6, c2
     #return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
     return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,1,1,0], [-1,-1,1,0], from_seg=c3a, to_seg=c3b, space_group_str="P 21 3", **kw)
+    #dihedral angle = 70.5288
+
+#### IN PROGRESS ####
+# I just normalized all the angles, but I don't think you can do this...might need to check the angle between them. Print and check that it is correct. 
+def Crystal_P4132_C2_C3(c2a=None, c3b=None, **kw):
+    if c3a is None or c3b is None:
+        raise ValueError('must specify ...?') #one or two of c6, c2
+    #return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
+    return AxesAngle('Crystal_P4132_C2_C3_depth3_1comp', [0,-1,1,0], [-1,-1,0,0], from_seg=c2a, to_seg=c3b, space_group_str="P 41 3 2", **kw)
+    #dihedral angle = 35.2644
+
+def Crystal_I213_C2_C3(c2a=None, c3b=None, **kw):
+    if c3a is None or c3b is None:
+        raise ValueError('must specify ...?') #one or two of c6, c2
+    #return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
+    return AxesAngle('Crystal_I213_C2_C3_depth3_1comp', [0,0,1,0], [-1,1,1,0], from_seg=c2a, to_seg=c3b, space_group_str="I 21 3", **kw)
+    #dihedral angle = 54.7356
+
+def Crystal_I432_C2_C4(c2a=None, c4b=None, **kw):
+    if c3a is None or c3b is None:
+        raise ValueError('must specify ...?') #one or two of c6, c2
+    #return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
+    return AxesAngle('Crystal_I432_C2_C4_depth3_1comp', [-1,0,1,0], [0,0,1,0], from_seg=c2a, to_seg=c4b, space_group_str="I 4 3 2", **kw)
+    #dihedral angle = 45
+
+def Crystal_F432_C3_C4(c3a=None, c4b=None, **kw):
+    if c3a is None or c3b is None:
+        raise ValueError('must specify ...?') #one or two of c6, c2
+    #return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
+    return AxesAngle('Crystal_F432_C3_C4_depth3_1comp', [-1,1,1,0], [0,1,0,0], from_seg=c3a, to_seg=c4b, space_group_str="F 4 3 2", **kw)
+    #dihedral angle = 54.7356
+
+def Crystal_P432_C4_C4(c4a=None, c4b=None, **kw):
+    if c3a is None or c3b is None:
+        raise ValueError('must specify ...?') #one or two of c6, c2
+    #return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
+    return AxesAngle('Crystal_P432_C4_C4_depth3_1comp', [0,0,1,0], [0,1,0,0], from_seg=c4a, to_seg=c4b, space_group_str="P 4 3 2", **kw)
+    #dihedral angle = 90

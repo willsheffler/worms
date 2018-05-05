@@ -106,7 +106,7 @@ def test_crystal_P213(c3pose, c3_splay_pose, c1pose):
                 Segment([helix], 'NC'),
                 Segment([helix], 'NC'),
                 Segment([trimer2], 'N_')]
-    w = grow(segments, Crystal_P213(c3a=0, c3b=-1), thresh=1)
+    w = grow(segments, Crystal_P213_C3_C3(c3a=0, c3b=-1), thresh=1)
     print(len(w))
 
     # print(w.scores)
@@ -116,7 +116,7 @@ def test_crystal_P213(c3pose, c3_splay_pose, c1pose):
         assert util.no_overlapping_residues(p) ## basic check on pose to make sure residues are not on top of each other
 
         #print(p.pdb_info().crystinfo().spacegroup())
-        q = w.sympose(i, fullatom=True )
+        q = w.sympose(i, fullatom=True, min_cell_spacing=0 )
     #p.dump_pdb('p.pdb')
         q.dump_pdb('P213_symm_%i.pdb'%i)
         p.dump_pdb('P213_asymm_%i.pdb'%i)
