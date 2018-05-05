@@ -18,6 +18,7 @@ except ImportError:
 
 @pytest.fixture(scope='session')
 def pdbpile(datadir):
+    if not HAVE_PYROSETTA: return None
     return PDBPile(
         cachedir=str('.worms_pytest_cache'),
         bakerdb_files=[os.path.join(datadir, 'test_db_file.json')],
