@@ -5,7 +5,7 @@ import numpy as np
 
 
 def test_Vertex(pdbpile):
-    bbs = pdbpile.cache.values()
+    bbs = pdbpile.query('all')
     v = vertex(bbs, np.arange(len(bbs)), 'NC', 5)
     assert v.len == 55
     assert v.x2exit.shape == (55, 4, 4)

@@ -259,7 +259,7 @@ def vertex(bbs, bbids, dirn, min_seg_len):
             for bb, bid in zip(bbs, bbids)
         ]))
     assert len({x.shape[0] for x in tup}) == 1
-    x2exit, x2orig, ires, isite, ichain, ibb = tup
+    ibb, ires = tup[5], tup[2]
 
     index = np.stack(
         [_joint_index(ibb, ires[:, 0]),

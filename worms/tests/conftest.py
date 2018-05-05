@@ -21,8 +21,8 @@ def pdbpile(datadir):
     return PDBPile(
         cachedir=str('.worms_pytest_cache'),
         bakerdb_files=[os.path.join(datadir, 'test_db_file.json')],
-        metaonly=False,
-        read_new_pdbs=True)
+        lazy=True,
+        read_new_pdbs=False)
 
 
 @pytest.fixture(scope='session')
