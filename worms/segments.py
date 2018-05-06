@@ -20,7 +20,7 @@ except ImportError:
 from worms import util
 import inspect
 
-from worms.pose_gymnastics import make_pose_chains_from_seg, AnnoPose
+from worms.pose_contortions import make_pose_chains_from_seg, AnnoPose
 
 
 class SpliceSite:
