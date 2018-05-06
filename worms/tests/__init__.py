@@ -16,4 +16,4 @@ try:
         only_if_pyrosetta_distributed = pytest.mark.skip
 except ImportError:
     HAVE_PYROSETTA = HAVE_PYROSETTA_DISTRIBUTED = False
-    only_if_pyrosetta = pytest.mark.skip
+    only_if_pyrosetta = only_if_pyrosetta_distributed = pytest.mark.skip

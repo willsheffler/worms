@@ -6,17 +6,7 @@ from worms.util import InProcessExecutor
 from pprint import pprint
 from os.path import dirname
 import numba as nb
-
-try:
-    import pyrosetta
-    HAVE_PYROSETTA = True
-    try:
-        import pyrosetta.distributed
-        HAVE_PYROSETTA_DISTRIBUTED = True
-    except ImportError:
-        HAVE_PYROSETTA_DISTRIBUTED = False
-except ImportError:
-    HAVE_PYROSETTA = HAVE_PYROSETTA_DISTRIBUTED = False
+from worms.tests import only_if_pyrosetta, only_if_pyrosetta_distributed
 
 only_if_pyrosetta = pytest.mark.skipif('not HAVE_PYROSETTA')
 
@@ -63,8 +53,8 @@ def test_database_simple(tmpdir, caplog):
     # assert len(pp.cache) == 213
 
 
-@only_if_pyrosetta
-def test_make_pdbdat(tmpdir, datadir):
+@only_if_pyrosetta_distributed
+def test_construct_database_from_pdbs(tmpdir, datadir):
     pp = BBlockDB(
         cachedir=str(tmpdir),
         bakerdb_files=[os.path.join(datadir, 'test_db_file.json')],

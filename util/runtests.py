@@ -14,7 +14,8 @@ def dispatch(file, pytest_args='--duration=5'):
         ],
     }
     path, bname = os.path.split(file)
-    if not file.endswith('.py'):
+    if (not file.endswith('.py')
+            or not os.path.relpath(file).startswith('worms/')):
         return 'pytest {pytest_args}'.format(**vars())
     if not os.path.basename(file).startswith("test_"):
         if bname in dispatch:
@@ -31,12 +32,14 @@ def dispatch(file, pytest_args='--duration=5'):
 
 if len(sys.argv) != 2:
     cmd = 'pytest ' + pytest_args
+elif sys.argv[1].endswith(__file__):
+    cmd = 'pytest DUMMY_DEBUGGING_runtests.py'
 else:
     cmd = dispatch(sys.argv[1])
 
 print('cwd:', os.getcwd())
 print('cmd:', cmd)
-print('----------- running -------------')
+print('=' * 20, 'util/runtests.py running cmd in cwd', '=' * 23)
 sys.stdout.flush()
 os.system(cmd)
-print('------------ done ---------------')
+print('=' * 20, 'util/runtests.py done', '=' * 37)

@@ -5,11 +5,16 @@ import os
 import itertools as it
 from collections import defaultdict, OrderedDict
 
+import numpy as np
+
 from worms import util
 
 try:
     import pyrosetta
     from pyrosetta import rosetta as ros
+    from pyrosetta import rosetta as ros
+    rm_lower_t = ros.core.pose.remove_lower_terminus_type_from_pose_residue
+    rm_upper_t = ros.core.pose.remove_upper_terminus_type_from_pose_residue
 except ImportError:
     pass
 
@@ -77,78 +82,6 @@ class AnnoPose:
             TYPE: Description
         """
         return self.srcpose.sequence()[self.src_lb - 1:self.src_ub]
-
-
-def make_pose_chains_from_seg(
-        segment,
-        indices,
-        position=None,
-        pad=(0, 0),
-        iseg=None,
-        segments=None,
-        cyclictrim=None,
-):
-    """what a monster this has become. returns (segchains, rest)
-    segchains elems are [enterexitchain] or, [enterchain, ..., exitchain]
-    rest holds other chains IFF enter and exit in same chain
-    each element is a pair [pose, source] where source is
-    (origin_pose, start_res, stop_res)
-    cyclictrim specifies segments which are spliced across the
-    symmetric interface. segments only needed if cyclictrim==True
-    if cyclictrim, last segment will only be a single entry residue
-
-    Args:
-        indices (TYPE): Description
-        position (None, optional): Description
-        pad (tuple, optional): Description
-        iseg (None, optional): Description
-        segments (None, optional): Description
-        cyclictrim (None, optional): Description
-
-    Returns:
-        TYPE: Description
-    """
-
-    if isinstance(indices, int):
-        assert not cyclictrim
-        index = indices
-    else:
-        index = indices[iseg]
-
-    spliceable = segment.spliceables[segment.bodyid[index]]
-    ir_en, ir_ex = segment.entryresid[index], segment.exitresid[index]
-    pl_en, pl_ex = segment.entrypol, segment.exitpol
-    pose, chains = spliceable.body, spliceable.chains
-    chain_start = spliceable.start_of_chain
-    chain_end = spliceable.end_of_chain
-    nseg = len(segments) if segments else 0
-    if segments and cyclictrim:
-        last_seg_entrypol = segments[-1].entrypol
-        first_seg_exitpol = segments[0].exitpol
-        sym_ir = segments[cyclictrim[1]].entryresid[indices[cyclictrim[1]]]
-        sym_pol = segments[cyclictrim[1]].entrypol
-    else:
-        last_seg_entrypol = first_seg_exitpol = sym_ir = sym_pol = None
-
-    return contort_pose_chains(
-        pose,
-        chains,
-        nseg,
-        ir_en,
-        ir_ex,
-        pl_en,
-        pl_ex,
-        chain_start,
-        chain_end,
-        position=position,
-        pad=pad,
-        iseg=iseg,
-        cyclictrim=cyclictrim,
-        last_seg_entrypol=last_seg_entrypol,
-        first_seg_exitpol=first_seg_exitpol,
-        sym_ir=sym_ir,
-        sym_pol=sym_pol,
-    )
 
 
 def contort_pose_chains(
@@ -300,3 +233,171 @@ def contort_pose_chains(
         # print(b)
         # assert a == b
     return enex, rest
+
+
+def reorder_spliced_as_N_to_C(body_chains, polarities):
+    """remap chains of each body such that concatenated chains are N->C
+
+    Args:
+        body_chains (TYPE): Description
+        polarities (TYPE): Description
+
+    Returns:
+        TYPE: Description
+
+    Raises:
+        ValueError: Description
+    """
+    if len(body_chains) != len(polarities) + 1:
+        raise ValueError('must be one more body_chains than polarities')
+    chains, pol = [[]], {}
+    if not all(0 < len(dg) for dg in body_chains):
+        raise ValueError('body_chains values must be [enterexit], '
+                         '[enter,exit], or [enter, ..., exit')
+    for i in range(1, len(polarities)):
+        if len(body_chains[i]) == 1:
+            if polarities[i - 1] != polarities[i]:
+                raise ValueError('polarity mismatch on single chain connect')
+    for i, dg in enumerate(body_chains):
+        chains[-1].append(dg[0])
+        if i != 0: pol[len(chains) - 1] = polarities[i - 1]
+        if len(dg) > 1: chains.extend([x] for x in dg[1:])
+    for i, chain in enumerate(chains):
+        if i in pol and pol[i] == 'C':
+            chains[i] = chains[i][::-1]
+    return chains
+
+
+def _cyclic_permute_chains(chainslist, polarity):
+    """TODO: Summary
+
+    Args:
+        chainslist (TYPE): Description
+        polarity (TYPE): Description
+    """
+    chainslist_beg = 0
+    for i, cl in enumerate(chainslist):
+        if any(x.cyclic_entry for x in cl):
+            assert chainslist_beg == 0
+            chainslist_beg = i
+    beg, end = chainslist[chainslist_beg], chainslist[-1]
+    # if chainslist_beg != 0:
+    # raise NotImplementedError('peace sign not working yet')
+    n2c = (polarity == 'N')
+    if n2c:
+        stub1 = util.get_bb_stubs(beg[0][0], [1])
+        stub2 = util.get_bb_stubs(end[-1][0], [1])
+        rm_lower_t(beg[0][0], 1)
+        end = end[:-1]
+    else:
+        # from . import vis
+        # for i, b in enumerate(beg): vis.showme(b[0], name='beg_%i' % i)
+        # for i, e in enumerate(end): vis.showme(e[0], name='end_%i' % i)
+        stub1 = util.get_bb_stubs(beg[-1][0], [len(beg[-1][0])])
+        stub2 = util.get_bb_stubs(end[0][0], [1])
+        rm_upper_t(beg[-1][0], len(beg[-1][0]))
+        assert len(end[0][0]) == 1
+        end = end[1:]
+    xalign = stub1[0] @ np.linalg.inv(stub2[0])
+    # print(xalign.shape)
+    for p in end:
+        util.xform_pose(xalign, p[0])
+    if n2c: chainslist[chainslist_beg] = end + beg
+    else: chainslist[chainslist_beg] = beg + end
+    chainslist[-1] = []
+
+
+def make_contorted_pose(
+        *,
+        entryexits,
+        entrypol,
+        exitpol,
+        indices,
+        from_seg,
+        to_seg,
+        origin_seg,
+        seg_pos,
+        position,
+        is_cyclic,
+        align,
+        end,
+        iend,
+        only_connected,
+        join,
+        cyclic_permute,
+        cyclictrim,
+        provenance,
+        make_chain_list,
+):
+    """there be dragons here"""
+    nseg = len(entryexits)
+    entryexits, rest = zip(*entryexits)
+    for ap in it.chain(*entryexits, *rest):
+        assert isinstance(ap, AnnoPose)
+    chainslist = reorder_spliced_as_N_to_C(entryexits, entrypol[1:iend])
+    if align:
+        for ap in it.chain(*chainslist, *rest):
+            util.xform_pose(position, ap.pose)
+    if cyclic_permute and len(chainslist) > 1:
+        cyclic_entry_count = 0
+        for ap in it.chain(*entryexits, *rest):
+            cyclic_entry_count += (ap.cyclic_entry is not None)
+        assert cyclic_entry_count == 1
+        _cyclic_permute_chains(chainslist, entrypol[-1])
+        assert len(chainslist[-1]) == 0
+        chainslist = chainslist[:-1]
+    sourcelist = [[x[1] for x in c] for c in chainslist]
+    chainslist = [[x[0] for x in c] for c in chainslist]
+    ret_chain_list = []
+    pose = ros.core.pose.Pose()
+    prov0 = []
+    splicepoints = []
+    for chains, sources in zip(chainslist, sourcelist):
+        if (only_connected and len(chains) is 1
+                and (end or chains is not chainslist[-1])):
+            skipsegs = ((to_seg, from_seg) if not is_cyclic else [])
+            skipsegs = [nseg - 1 if x is -1 else x for x in skipsegs]
+            if origin_seg is not None:
+                skipsegs.append(origin_seg)
+            if ((only_connected == 'auto' and sources[0][0] in skipsegs)
+                    or only_connected != 'auto'):
+                continue
+        if make_chain_list: ret_chain_list.append(chains[0])
+        ros.core.pose.append_pose_to_pose(pose, chains[0], True)
+        prov0.append(sources[0])
+        for chain, source in zip(chains[1:], sources[1:]):
+            assert isinstance(chain, ros.core.pose.Pose)
+            rm_upper_t(pose, len(pose))
+            rm_lower_t(chain, 1)
+            splicepoints.append(len(pose))
+            if make_chain_list: ret_chain_list.append(chain)
+            ros.core.pose.append_pose_to_pose(pose, chain, not join)
+            prov0.append(source)
+    if not only_connected or only_connected == 'auto':
+        for chain, source in it.chain(*rest):
+            assert isinstance(chain, ros.core.pose.Pose)
+            if make_chain_list: ret_chain_list.append(chain)
+            ros.core.pose.append_pose_to_pose(pose, chain, True)
+            prov0.append(source)
+    assert util.worst_CN_connect(pose) < 0.5
+    assert util.no_overlapping_adjacent_residues(pose)
+    if not provenance and make_chain_list: return pose, ret_chain_list
+    if not provenance: return pose, splicepoints
+    prov = []
+    for i, pr in enumerate(prov0):
+        iseg, psrc, lb0, ub0 = pr
+        lb1 = sum(ub - lb + 1 for _, _, lb, ub in prov0[:i]) + 1
+        ub1 = lb1 + ub0 - lb0
+        if ub0 == lb0:
+            assert cyclic_permute
+            continue
+        assert ub0 - lb0 == ub1 - lb1
+        assert 0 < lb0 <= len(psrc) and 0 < ub0 <= len(psrc)
+        assert 0 < lb1 <= len(pose) and 0 < ub1 <= len(pose)
+        # if psrc.sequence()[lb0 - 1:ub0] != pose.sequence()[lb1 - 1:ub1]:
+        # print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        assert psrc.sequence()[lb0 - 1:ub0] == pose.sequence()[lb1 - 1:ub1]
+        prov.append((lb1, ub1, psrc, lb0, ub0))
+    if make_chain_list:
+        return pose, prov, ret_chain_list
+    return pose, prov

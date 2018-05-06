@@ -1,21 +1,23 @@
-name: wormsdev
+name: worms
 channels:
- # - schrodinger
+ - schrodinger
  - conda-forge
  - numba
+ - asford
 dependencies:
- - python == 3.5.5
+ - pyrosetta
+ - python >= 3.6
  - numpy
  - numba
-# - icc_rt
+ - icc_rt
  - pandas
  - pytest
- - pytest-cov
+ - pytest-faulthandler
  - sphinx_rtd_theme
  - ipython
  - toolz
  - cffi
- # - pymol >= 2.1
+ - pymol >= 2.1
  - pip:
    - homog >= 0.1.10
    - xbin >= 0.1.5
@@ -23,4 +25,4 @@ dependencies:
    - pytest-sugar
    - pytest-xdist
    - tqdm
-   - git+https://github.com/willsheffler/rif.git@devel
+

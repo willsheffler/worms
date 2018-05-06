@@ -3,6 +3,7 @@ import numba as nb
 import numba.types as nt
 import numpy as np
 import pytest
+from worms import vis
 
 
 def test_Vertex(bbdb):
