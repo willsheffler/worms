@@ -9,16 +9,16 @@ import itertools as it
 import numpy as np
 import numba as nb
 import numba.types as nt
-import pandas as pd
+
+from worms import util
 
 try:
+    # this is such bullshit...
     from pyrosetta import pose_from_file
     from pyrosetta.rosetta.core.scoring.dssp import Dssp
+    HAVE_PYROSETTA = True
 except ImportError:
-    error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-    error('pyrosetta not available, worms won\'t work')
-    error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-
+    HAVE_PYROSETTA = False
 
 
 
@@ -33,7 +33,7 @@ except ImportError:
     ('ibb' , nt.int32[:]),
     ('dirn'   , nt.int32[:]),
 ))  # yapf: disable
-class Vertex:
+class _Vertex:
     """contains data for one topological vertex in the topological graph
 
     Attributes:
@@ -83,9 +83,9 @@ class Vertex:
 
 
 @nb.jitclass((
-    ('splices', nt.int32[:, :, :]),
+    ('splices', nt.int32[:, :]),
 ))  # yapf: disable
-class Edge:
+class _Edge:
     """contains junction scores
     """
 
@@ -96,6 +96,14 @@ class Edge:
             splices (TYPE): Description
         """
         pass
+
+    def allowed_splices(self, i):
+        return self.splices[i, 2:self.splices[i, 1]]
+
+
+def Edge(vert_in, vert_out):
+    # ???
+    return _Edge(np.eye(2))
 
 
 def bblock_components(bblock):
@@ -223,21 +231,7 @@ def vertex_single(bb, bbid, din, dout, min_seg_len):
     )
 
 
-def _joint_index(a, b):
-    """Summary
-
-    Args:
-        a (TYPE): Description
-        b (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
-    mi = pd.MultiIndex.from_arrays([a, b]).drop_duplicates()
-    return mi.get_indexer([a, b])
-
-
-def vertex(bbs, bbids, dirn, min_seg_len):
+def Vertex(bbs, bbids, dirn, min_seg_len):
     """Summary
 
     Args:
@@ -262,17 +256,8 @@ def vertex(bbs, bbids, dirn, min_seg_len):
     ibb, ires = tup[5], tup[2]
 
     index = np.stack(
-        [_joint_index(ibb, ires[:, 0]),
-         _joint_index(ibb, ires[:, 1])],
+        [util.unique_key(ibb, ires[:, 0]),
+         util.unique_key(ibb, ires[:, 1])],
         axis=-1).astype('i4')
 
-    ####################################
-
-    # print(x2exit.shape)
-    # print(x2orig.shape)
-    # print(ires.shape)
-    # print(isite.shape)
-    # print(ichain.shape)
-    # print(ibb.shape)
-    # print(din, dout)
-    return Vertex(*tup, index, np.array([din, dout], dtype='i4'))
+    return _Vertex(*tup, index, np.array([din, dout], dtype='i4'))

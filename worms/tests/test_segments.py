@@ -6,18 +6,7 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from worms import *
 from homog.sym import icosahedral_axes as IA
 import time
-try:
-    import pyrosetta
-    HAVE_PYROSETTA = True
-    try:
-        import pyrosetta.distributed
-        HAVE_PYROSETTA_DISTRIBUTED = True
-    except ImportError:
-        HAVE_PYROSETTA_DISTRIBUTED = False
-except ImportError:
-    HAVE_PYROSETTA = HAVE_PYROSETTA_DISTRIBUTED = False
-
-only_if_pyrosetta = pytest.mark.skipif('not HAVE_PYROSETTA')
+from worms.tests import only_if_pyrosetta, only_if_pyrosetta_distributed
 
 
 @only_if_pyrosetta
@@ -120,7 +109,7 @@ def test_spliceable(c2pose):
     assert dimer.sites[1]._resids(dimer) == [13, 14, 15]
 
 
-@pytest.mark.skipif('not HAVE_PYROSETTA_DISTRIBUTED')
+@only_if_pyrosetta_distributed
 def test_spliceable_pickle(tmpdir, c2pose):
     site1 = SpliceSite([1, 2, 3], 'N', 1)
     site2 = SpliceSite([1, 2, 3], 'N', 2)

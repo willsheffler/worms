@@ -4,7 +4,7 @@ import sys
 from os.path import join, dirname, abspath, exists
 
 sys.path.insert(0, os.path.dirname(__file__) + '/../..')
-from worms.database import PDBPile
+from worms.database import BBlockDB
 
 try:
     import pyrosetta
@@ -17,8 +17,8 @@ except ImportError:
 
 
 @pytest.fixture(scope='session')
-def pdbpile(datadir):
-    return PDBPile(
+def bbdb(datadir):
+    return BBlockDB(
         cachedir=str('.worms_pytest_cache'),
         bakerdb_files=[os.path.join(datadir, 'test_db_file.json')],
         lazy=False,

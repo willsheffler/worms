@@ -4,7 +4,6 @@ import multiprocessing
 import os
 import itertools as it
 from collections.abc import Iterable
-from collections import defaultdict, OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from numpy.linalg import inv
@@ -20,6 +19,8 @@ except ImportError:
     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 from worms import util
 import inspect
+
+from worms.pose_gymnastics import make_pose_chains_from_seg, AnnoPose
 
 
 class SpliceSite:
@@ -303,71 +304,6 @@ class Spliceable:
     # def __setstate__(self, state):
     # body = pyrosetta.pose_from_file(state[0]) if state[0] else None
     # self.__init__(body, state[1], bodyid=state[2], min_seg_len=state[3])
-
-
-class AnnoPose:
-    """TODO: Summary
-
-    Attributes:
-        cyclic_entry (TYPE): Description
-        iseg (TYPE): Description
-        pose (TYPE): Description
-        src_lb (TYPE): Description
-        src_ub (TYPE): Description
-        srcpose (TYPE): Description
-    """
-
-    def __init__(self, pose, iseg, srcpose, src_lb, src_ub, cyclic_entry):
-        """TODO: Summary
-
-        Args:
-            pose (TYPE): Description
-            iseg (TYPE): Description
-            srcpose (TYPE): Description
-            src_lb (TYPE): Description
-            src_ub (TYPE): Description
-            cyclic_entry (TYPE): Description
-        """
-        self.pose = pose
-        self.iseg = iseg
-        self.srcpose = srcpose
-        self.src_lb = src_lb
-        self.src_ub = src_ub
-        self.cyclic_entry = cyclic_entry
-
-    def __iter__(self):
-        """TODO: Summary
-
-        Yields:
-            TYPE: Description
-        """
-        yield self.pose
-        yield (self.iseg, self.srcpose, self.src_lb, self.src_ub)
-
-    def __getitem__(self, i):
-        """TODO: Summary
-
-        Args:
-            i (TYPE): Description
-        """
-        if i is 0: return self.pose
-        if i is 1: return (self.iseg, self.srcpose, self.src_lb, self.src_ub)
-
-    def seq(self):
-        """TODO: Summary
-
-        Returns:
-            TYPE: Description
-        """
-        return self.pose.sequence()
-
-    def srcseq(self):
-        """TODO: Summary
-
-        Returns:
-            TYPE: Description
-        """
-        return self.srcpose.sequence()[self.src_lb - 1:self.src_ub]
 
 
 def lineno():
@@ -671,164 +607,6 @@ class Segment:
         bodies2 = [s.body for s in other.spliceables]
         return bodies1 == bodies2
 
-    def make_pose_chains(self,
-                         indices,
-                         position=None,
-                         pad=(0, 0),
-                         iseg=None,
-                         segments=None,
-                         cyclictrim=None):
-        """what a monster this has become. returns (segchains, rest)
-        segchains elems are [enterexitchain] or, [enterchain, ..., exitchain]
-        rest holds other chains IFF enter and exit in same chain
-        each element is a pair [pose, source] where source is
-        (origin_pose, start_res, stop_res)
-        cyclictrim specifies segments which are spliced across the
-        symmetric interface. segments only needed if cyclictrim==True
-        if cyclictrim, last segment will only be a single entry residue
-
-        Args:
-            indices (TYPE): Description
-            position (None, optional): Description
-            pad (tuple, optional): Description
-            iseg (None, optional): Description
-            segments (None, optional): Description
-            cyclictrim (None, optional): Description
-
-        Returns:
-            TYPE: Description
-        """
-        if isinstance(indices, int):
-            assert not cyclictrim
-            index = indices
-        else:
-            index = indices[iseg]
-        spliceable = self.spliceables[self.bodyid[index]]
-        pose, chains = spliceable.body, spliceable.chains
-        ir_en, ir_ex = self.entryresid[index], self.exitresid[index]
-        cyclic_entry = defaultdict(lambda: None)
-        if cyclictrim and cyclictrim[1] < 0:
-            cyclictrim = cyclictrim[0], cyclictrim[1] + len(segments)
-
-        if cyclictrim and iseg == cyclictrim[0]:
-            # assert ir_en == -1, 'paece sign not implemented yet'
-            sym_ir = segments[cyclictrim[1]].entryresid[indices[cyclictrim[1]]]
-            sym_ch = pose.chain(sym_ir)
-            sym_pol = segments[cyclictrim[1]].entrypol
-            cyclictrim_in_rest = False
-            if ir_en == -1:
-                ir_en = sym_ir
-            else:
-                entry_chain, exit_chain = pose.chain(ir_en), pose.chain(ir_ex)
-                if sym_ch not in (entry_chain, exit_chain):
-                    cyclictrim_in_rest = True
-                assert sym_ch != entry_chain or sym_pol != self.entrypol
-                assert sym_ch != exit_chain or sym_pol != self.exitpol
-            # annotate enex entries with cyclictrim info
-            cyclic_entry[pose.chain(sym_ir)] = (
-                iseg, sym_ir, segments[cyclictrim[1]].entrypol)
-        if cyclictrim and iseg == cyclictrim[1]:
-            assert ir_ex == -1
-            assert iseg + 1 == len(segments)
-            i = ir_en
-            p = util.subpose(pose, i, i)
-            if position is not None: util.xform_pose(position, p)
-            return [AnnoPose(p, iseg, pose, i, i, None)], []
-
-        ch_en = pose.chain(ir_en) if ir_en > 0 else None
-        ch_ex = pose.chain(ir_ex) if ir_ex > 0 else None
-        pl_en, pl_ex = self.entrypol, self.exitpol
-        if cyclictrim and iseg == 0:
-            pl_en = segments[-1].entrypol
-        if cyclictrim and iseg + 1 == len(segments):
-            assert 0, 'last segment not returned as single entry residue?!?'
-            pl_ex = segments[0].exitpol
-        if ch_en: ir_en -= spliceable.start_of_chain[ch_en]
-        if ch_ex: ir_ex -= spliceable.start_of_chain[ch_ex]
-        assert ch_en or ch_ex
-
-        rest = OrderedDict()
-        did_cyclictrim_in_rest = False
-        for i in range(1, len(chains) + 1):
-            pchain = chains[i]
-            lb = spliceable.start_of_chain[i] + 1
-            ub = spliceable.end_of_chain[i]
-            if cyclic_entry[i] is not None:
-                if i not in (ch_en, ch_ex):
-                    did_cyclictrim_in_rest = True
-                ir = cyclic_entry[i][1] - spliceable.start_of_chain[i]
-                pchain, lb, ub = util.trim_pose(pchain, ir, cyclic_entry[i][2])
-                lb += spliceable.start_of_chain[i]
-                ub += spliceable.start_of_chain[i]
-            rest[chains[i]] = AnnoPose(pchain, iseg, pose, lb, ub,
-                                       cyclic_entry[i])
-            assert rest[chains[i]].seq() == rest[chains[i]].srcseq()
-        if cyclictrim and iseg == cyclictrim[0]:
-            if cyclictrim_in_rest != did_cyclictrim_in_rest:
-                print('cyclictrim_in_rest', cyclictrim_in_rest,
-                      'did_cyclictrim_in_rest', did_cyclictrim_in_rest)
-                print('iseg', iseg, 'len(chains)', len(chains))
-                assert cyclictrim_in_rest == did_cyclictrim_in_rest
-        if ch_en: del rest[chains[ch_en]]
-        if ch_en == ch_ex:
-            assert len(rest) + 1 == len(chains)
-            p, l1, u1 = util.trim_pose(chains[ch_en], ir_en, pl_en, pad[0])
-            iexit1 = ir_ex - (pl_ex == 'C') * (len(chains[ch_en]) - len(p))
-            p, l2, u2 = util.trim_pose(p, iexit1, pl_ex, pad[1] - 1)
-            lb = l1 + l2 - 1 + spliceable.start_of_chain[ch_en]
-            ub = l1 + u2 - 1 + spliceable.start_of_chain[ch_en]
-            enex = [AnnoPose(p, iseg, pose, lb, ub, cyclic_entry[ch_en])]
-            assert p.sequence() == pose.sequence()[lb - 1:ub]
-            rest = list(rest.values())
-        else:
-            if ch_ex: del rest[chains[ch_ex]]
-            p_en = [chains[ch_en]] if ch_en else []
-            p_ex = [chains[ch_ex]] if ch_ex else []
-            if p_en:
-                p, lben, uben = util.trim_pose(p_en[0], ir_en, pl_en, pad[0])
-                lb = lben + spliceable.start_of_chain[ch_en]
-                ub = uben + spliceable.start_of_chain[ch_en]
-                p_en = [AnnoPose(p, iseg, pose, lb, ub, cyclic_entry[ch_en])]
-                assert p.sequence() == pose.sequence()[lb - 1:ub]
-            if p_ex:
-                p, lbex, ubex = util.trim_pose(p_ex[0], ir_ex, pl_ex,
-                                               pad[1] - 1)
-                lb = lbex + spliceable.start_of_chain[ch_ex]
-                ub = ubex + spliceable.start_of_chain[ch_ex]
-                p_ex = [AnnoPose(p, iseg, pose, lb, ub, cyclic_entry[ch_ex])]
-                assert p.sequence() == pose.sequence()[lb - 1:ub]
-            enex = p_en + list(rest.values()) + p_ex
-            rest = []
-        for ap in rest:
-            s1 = str(ap.pose.sequence())
-            s2 = str(ap.srcpose.sequence()[ap.src_lb - 1:ap.src_ub])
-            if s1 != s2:
-                print('WARNING: sequence mismatch in "rest", maybe OK, but '
-                      'proceed with caution and tell will to fix!')
-                # print(s1)
-                # print(s2)
-            assert s1 == s2
-        if position is not None:
-            position = util.rosetta_stub_from_numpy_stub(position)
-            for x in enex:
-                x.pose = x.pose.clone()
-            for x in rest:
-                x.pose = x.pose.clone()
-            for ap in it.chain(enex, rest):
-                ros.protocols.sic_dock.xform_pose(ap.pose, position)
-        for iap, ap in enumerate(it.chain(enex, rest)):
-            assert isinstance(ap, AnnoPose)
-            assert ap.iseg == iseg
-            assert ap.seq() == ap.srcseq()
-            # a = ap.seq()
-            # b = ap.srcseq()
-            # if a != b:
-            # print('WARNING sequence mismatch!', iap, len(enex), len(rest))
-            # print(a)
-            # print(b)
-            # assert a == b
-        return enex, rest
-
 
 class Segments:
     """light wrapper around list of Segments
@@ -1059,7 +837,6 @@ class Worms:
                 **kw) for w in which)
         # print("Will needs to fix bb O/H position!")
         rm_lower_t = ros.core.pose.remove_lower_terminus_type_from_pose_residue
-        rm_upper_t = ros.core.pose.remove_upper_terminus_type_from_pose_residue
         if end is None and cyclic_permute is None:
             cyclic_permute, end = self.criteria.is_cyclic, True
         if end is None:
@@ -1076,7 +853,8 @@ class Worms:
             cyclictrim = self.criteria.from_seg, self.criteria.to_seg
         iend = None if end else -1
         entryexits = [
-            seg.make_pose_chains(
+            make_pose_chains_from_seg(
+                seg,
                 self.indices[which],
                 self.positions[which][iseg],
                 iseg=iseg,

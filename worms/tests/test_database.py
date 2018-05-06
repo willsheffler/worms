@@ -51,7 +51,7 @@ test_db_files = [dirname(__file__) + '/../data/' + f for f in test_db_files]
 
 @only_if_pyrosetta
 def test_database_simple(tmpdir, caplog):
-    pp = PDBPile(bakerdb_files=test_db_files)
+    pp = BBlockDB(bakerdb_files=test_db_files)
     assert len(pp.query_names('C3_N')) == 213
     assert len(pp.query_names('Het_C3_C')) == 30
     assert len(pp.query_names('C2_N')) == 11
@@ -65,7 +65,7 @@ def test_database_simple(tmpdir, caplog):
 
 @only_if_pyrosetta
 def test_make_pdbdat(tmpdir, datadir):
-    pp = PDBPile(
+    pp = BBlockDB(
         cachedir=str(tmpdir),
         bakerdb_files=[os.path.join(datadir, 'test_db_file.json')],
         lazy=False,
@@ -111,5 +111,5 @@ def test_make_pdbdat(tmpdir, datadir):
     assert np.all(pp.bblock(keys[11]).conn_resids(1) == [8])
 
 
-def test_conftest_pdbfile(pdbpile):
-    assert len(pdbpile.query('all')) == 12
+def test_conftest_pdbfile(bbdb):
+    assert len(bbdb.query('all')) == 12

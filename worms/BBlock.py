@@ -158,17 +158,15 @@ def _make_connections_array(entries, chain_bounds):
     try:
         reslists = [_get_connection_residues(e, chain_bounds) for e in entries]
     except Exception as e:
-
         print('WARNING: make_connections_array failed on', entries,
               'error was:', e)
         return np.zeros((0, 0))
     mx = max(len(x) for x in reslists)
     conn = np.zeros((len(reslists), mx + 2), 'i4') - 1
-    for i, rl in enumerate(reslists):
+    for i, ires_ary in enumerate(reslists):
         conn[i, 0] = entries[i]['direction'] == 'C'
-        conn[i, 1] = len(rl) + 2
-        for j, r in enumerate(rl):
-            conn[i, j + 2] = r
+        conn[i, 1] = len(ires_ary) + 2
+        conn[i, 2:conn[i, 1]] = ires_ary
     return conn
     # print(chain_bounds)
     # print(repr(conn))
@@ -204,4 +202,4 @@ def _get_connection_residues(entry, chain_bounds):
     b = int(b) if b else 0
     e = int(e) if e else nres
     if e < 0: e += nres
-    return list(range(*chain_bounds[c - 1])[b:e])
+    return np.array(range(*chain_bounds[c - 1])[b:e], dtype='i4')

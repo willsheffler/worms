@@ -12,10 +12,13 @@ from concurrent.futures import as_completed as cf_as_completed
 import multiprocessing
 import threading
 from homog import hrot
+import pandas as pd
 try:
+    # god, I'm so tired of this crap....
     from pyrosetta import rosetta as ros
+    HAVE_PYROSETTA = True
 except ImportError:
-    pass
+    HAVE_PYROSETTA = False
 
 
 class InProcessExecutor:
@@ -644,3 +647,19 @@ def residue_sym_err(p, ang, ir, jr, n=1, axis=[0, 0, 1], verbose=0):
                          np.max(np.sum((xyz0 - xyz3.T)**2, axis=1)),
                          np.max(np.sum((xyz0 - xyz4.T)**2, axis=1))))
     return np.sqrt(mxdist)
+
+
+def unique_key(a, b=None):
+    """Summary
+
+    Args:
+        a (TYPE): Description
+        b (TYPE): Description
+
+    Returns:
+        TYPE: Description
+    """
+    if b is None:
+        raise NotImplementedError
+    mi = pd.MultiIndex.from_arrays([a, b]).drop_duplicates()
+    return mi.get_indexer([a, b])

@@ -19,14 +19,12 @@ from worms.BBlock import _BBlock
 logging.basicConfig(level=logging.INFO)
 
 try:
+    # god, I'm so tired of this crap....
     from pyrosetta import pose_from_file
     from pyrosetta.rosetta.core.scoring.dssp import Dssp
     HAVE_PYROSETTA = True
 except ImportError:
     HAVE_PYROSETTA = False
-    error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-    error('pyrosetta not available, worms won\'t work')
-    error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
 
 def flatten_path(pdbfile):
@@ -41,7 +39,7 @@ def flatten_path(pdbfile):
     return pdbfile.replace(os.sep, '__') + '.pickle'
 
 
-class PDBPile:
+class BBlockDB:
     """TODO: Summary
 
     Attributes:
@@ -77,9 +75,9 @@ class PDBPile:
         """
         if cachedir is None:
             if 'HOME' in os.environ:
-                cachedir = os.environ['HOME'] + os.sep + '.worms/bblock_cache'
+                cachedir = os.environ['HOME'] + os.sep + '.worms/cache'
             else:
-                cachedir = '.worms/bblock_cache'
+                cachedir = '.worms/cache'
         self.cachedir = str(cachedir)
         self.load_poses = load_poses
         os.makedirs(self.cachedir + '/poses', exist_ok=True)
@@ -239,11 +237,11 @@ class PDBPile:
         try:
             with open(posefile, 'rb') as f:
                 try:
-                    pose = pickle.load(f)
                     self.poses[pdbfile] = pickle.load(f)
                     return True
                 except EOFError:
-                    print('WARNING corrupt pickled pose', posefile)
+                    print('WARNING corrupt pickled pose will be replaced',
+                          posefile)
                     os.remove(posefile)
                     return False
         except FileNotFoundError:
@@ -346,7 +344,7 @@ class PDBPile:
             return None, None  # new, missing
         elif self.read_new_pdbs:
             read_pdb = False
-            info('PDBPile.build_pdb_data reading %s' % pdbfile)
+            info('BBlockDB.build_pdb_data reading %s' % pdbfile)
             pose = self.pose(pdbfile)
             ss = Dssp(pose).get_dssp_secstruct()
             bblock = BBlock(entry, pdbfile, pose, ss)
@@ -382,7 +380,7 @@ if __name__ == '__main__':
     pyrosetta.init('-mute all -ignore_unrecognized_res')
 
     try:
-        pp = PDBPile(
+        pp = BBlockDB(
             bakerdb_files=args.database_files,
             nprocs=args.nprocs,
             read_new_pdbs=args.read_new_pdbs,
@@ -395,5 +393,5 @@ if __name__ == '__main__':
         print(e)
     except:
         if args.read_new_pdbs:
-            os.remove(os.environ['HOME'] + '/.worms/bblock_cache/lock')
+            os.remove(os.environ['HOME'] + '/.worms/cache/lock')
         raise
