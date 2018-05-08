@@ -11,7 +11,6 @@ Contents:
    usage
    modules
    contributing
-   authors
    history
 
 

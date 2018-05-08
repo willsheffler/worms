@@ -6,87 +6,87 @@ Subpackages
 
 .. toctree::
 
+    worms.criteria
     worms.data
     worms.khash
-    worms.tests
 
 Submodules
 ----------
 
-worms.criteria module
----------------------
+worms\.bblock module
+--------------------
 
-.. automodule:: worms.criteria
+.. automodule:: worms.bblock
     :members:
     :undoc-members:
     :show-inheritance:
 
-worms.criteria\_unbounded module
---------------------------------
-
-.. automodule:: worms.unbounded
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-worms.database module
----------------------
+worms\.database module
+----------------------
 
 .. automodule:: worms.database
     :members:
     :undoc-members:
     :show-inheritance:
 
-worms.filter module
--------------------
+worms\.edge module
+------------------
 
-.. automodule:: worms.filter
+.. automodule:: worms.edge
     :members:
     :undoc-members:
     :show-inheritance:
 
-worms.jitcoord module
----------------------
-
-.. automodule:: worms.jitcoord
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-worms.jitsearch module
-----------------------
+worms\.jitsearch module
+-----------------------
 
 .. automodule:: worms.jitsearch
     :members:
     :undoc-members:
     :show-inheritance:
 
-worms.search module
--------------------
+worms\.pose\_contortions module
+-------------------------------
+
+.. automodule:: worms.pose_contortions
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+worms\.search module
+--------------------
 
 .. automodule:: worms.search
     :members:
     :undoc-members:
     :show-inheritance:
 
-worms.segments module
----------------------
+worms\.segments module
+----------------------
 
 .. automodule:: worms.segments
     :members:
     :undoc-members:
     :show-inheritance:
 
-worms.util module
------------------
+worms\.util module
+------------------
 
 .. automodule:: worms.util
     :members:
     :undoc-members:
     :show-inheritance:
 
-worms.vis module
-----------------
+worms\.vertex module
+--------------------
+
+.. automodule:: worms.vertex
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+worms\.vis module
+-----------------
 
 .. automodule:: worms.vis
     :members:

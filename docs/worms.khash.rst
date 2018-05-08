@@ -1,11 +1,11 @@
-worms.khash package
-===================
+worms\.khash package
+====================
 
 Submodules
 ----------
 
-worms.khash.khash\_cffi module
-------------------------------
+worms\.khash\.khash\_cffi module
+--------------------------------
 
 .. automodule:: worms.khash.khash_cffi
     :members:

@@ -1,3 +1,6 @@
+# this is an evil script for copying baker worms database files to a local machine...
+# probably better to copy your worms cache instead
+
 for i in /home/rubul/database/fusion/hb_dhr/master_database_generation2.txt \
 /home/yhsia/helixdock/database/HBRP_Cx_database.txt \
 /home/rubul/database/fusion/hb_dhr/c6_database.txt \

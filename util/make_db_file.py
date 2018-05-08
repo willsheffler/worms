@@ -1,3 +1,7 @@
+"""
+crappy little script to generate json db files from the pdbs in worms/data
+"""
+
 from glob import glob
 import pyrosetta as pr
 import sys

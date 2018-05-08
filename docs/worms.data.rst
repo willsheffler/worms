@@ -1,5 +1,5 @@
-worms.data package
-==================
+worms\.data package
+===================
 
 Module contents
 ---------------

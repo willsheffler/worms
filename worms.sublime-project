@@ -32,6 +32,11 @@
 				"_build",
 				".*",
 			],
+			"file_exclude_patterns":
+			[
+				"*~",
+				".*",
+			],
 			"path": "."
 		}
 	]

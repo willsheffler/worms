@@ -18,12 +18,7 @@ worms
      :alt: Updates
 
 
-
-Protein Origami via Genetic Fusions
-
-
-.. image:: https://lh5.googleusercontent.com/9OQLQnMD1IRah4lSRZtROkiLuabY6oclGnGhkGJhsT-gfiFBo_uAQyu-EOxRXziC75iiMpPkTBxmYxE214Si=w2177-h1945
-    :width: 300px
+Protein assembly design without protein interface design.
 
 
 * Free software: Apache Software License 2.0
