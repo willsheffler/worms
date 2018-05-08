@@ -24,18 +24,19 @@ if not os.path.exists(_dir + '/_khash_ffi.o'):
     print('worms.khash first run, building...')
     _ffi.compile(tmpdir=_dir)
 
-from worms.khash import _khash_ffi
+if not 'READTHEDOCS' in os.environ:
+    from worms.khash import _khash_ffi
 
-_khash_init = _khash_ffi.lib.khash_int2int_init
-_khash_get = _khash_ffi.lib.khash_int2int_get
-_khash_set = _khash_ffi.lib.khash_int2int_set
-_khash_destroy = _khash_ffi.lib.khash_int2int_destroy
+    _khash_init = _khash_ffi.lib.khash_int2int_init
+    _khash_get = _khash_ffi.lib.khash_int2int_get
+    _khash_set = _khash_ffi.lib.khash_int2int_set
+    _khash_destroy = _khash_ffi.lib.khash_int2int_destroy
 
-# cffi_support.register_type(
-# _ffi.typeof(_khash_init()),
-# nb.types.voidptr,
-# )
-cffi_support.register_module(_khash_ffi)
+    # cffi_support.register_type(
+    # _ffi.typeof(_khash_init()),
+    # nb.types.voidptr,
+    # )
+    cffi_support.register_module(_khash_ffi)
 
 
 @nb.jitclass((('hash', nb.types.voidptr), ))
