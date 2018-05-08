@@ -2,6 +2,7 @@
 
 import sys
 import os
+import re
 
 
 def dispatch(file, pytest_args='--duration=5'):
@@ -13,30 +14,35 @@ def dispatch(file, pytest_args='--duration=5'):
             'tests/test_search.py'
         ],
     }
+    file = os.path.relpath(file)
     path, bname = os.path.split(file)
-    if (not file.endswith('.py')
-            or not os.path.relpath(file).startswith('worms/')):
+    print('dispatch', file)
+    if (not file.endswith('.py') or not file.startswith('worms/')):
         return 'pytest {pytest_args}'.format(**vars())
     if not os.path.basename(file).startswith("test_"):
         if bname in dispatch:
             return ('pytest {pytest_args} '.format(**vars()) + ' '.join(
                 (os.path.join(path, n) for n in dispatch[bname])))
         else:
-            file = path + "/tests/test_" + bname
-            if os.path.exists(file):
-                return 'pytest {pytest_args} {file}'.format(**vars())
+            testfile = re.sub('^worms', 'worms/tests', path) + '/test_' + bname
+            print(testfile)
+            if os.path.exists(testfile):
+                return 'pytest {pytest_args} {testfile}'.format(**vars())
             else:
-                return 'python ' + file
+                return 'python ' + testfile
     return 'pytest {pytest_args} {file}'.format(**vars())
 
 
 if len(sys.argv) != 2:
-    cmd = 'pytest ' + pytest_args
+    cmd = 'pyteste'
 elif sys.argv[1].endswith(__file__):
-    cmd = 'pytest DUMMY_DEBUGGING_runtests.py'
+    # cmd = 'pytest DUMMY_DEBUGGING_runtests.py'
+    # cmd = 'python util/runtests.py worms/criteria/unbounded.py'
+    cmd = 'pytest'
 else:
     cmd = dispatch(sys.argv[1])
 
+print('call:', sys.argv)
 print('cwd:', os.getcwd())
 print('cmd:', cmd)
 print('=' * 20, 'util/runtests.py running cmd in cwd', '=' * 23)

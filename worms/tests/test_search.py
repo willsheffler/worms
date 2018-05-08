@@ -4,10 +4,9 @@ import numpy as np
 from homog import hrot, htrans, axis_angle_of, axis_ang_cen_of
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from worms import *
-from homog.sym import icosahedral_axes as IA
 import time
-from worms.util import residue_sym_err
 from worms.tests import only_if_pyrosetta, only_if_pyrosetta_distributed
+from worms.util import residue_sym_err
 
 
 @only_if_pyrosetta
@@ -375,185 +374,6 @@ def test_multichain_db(c2pose, c1pose):
 
 
 @only_if_pyrosetta
-def test_D3(c2pose, c3pose, c1pose):
-    # Spliceable: pose + splice site info
-    # Segment: list of spliceables
-    helix = Spliceable(c1pose, sites=[(':4', 'N'), ('-4:', 'C')])
-    dimer = Spliceable(
-        c2pose,
-        sites=[('1,:2', 'N'), ('1,-1:', 'C'), ('2,:2', 'N'), ('2,-1:', 'C')])
-    trimer = Spliceable(
-        c3pose,
-        sites=[('1,:1', 'N'), ('1,-2:', 'C'), ('2,:2', 'N'), ('2,-2:', 'C'),
-               ('3,:1', 'N'), ('3,-2:', 'C')])
-    segments = [
-        Segment([trimer], '_C'),
-        Segment([helix], 'NC'),
-        Segment([helix], 'NC'),
-        Segment([helix], 'NC'),
-        Segment([dimer], 'N_')
-    ]
-    w = grow(segments, D3(c2=-1, c3=0), thresh=1)
-
-    # vis.show_with_z_axes(w, 0)
-    # vis.showme(w.pose(0))
-    # assert 0
-    # print(w.scores[:5])
-    # print([len(s) for s in segments])
-    # print(w.indices[:5])
-    # for i in range(5):
-    # vis.showme(w.pose(i, join=False))
-    # vis.showme(w.sympose(i))
-
-    # assert 0
-
-    p = w.pose(0, only_connected=0)
-    assert util.no_overlapping_residues(p)
-    # print(len(p))
-
-    # print('foo')
-    # assert 0
-
-    assert 1 > residue_sym_err(p, 180, 53, 65, 6, axis=[1, 0, 0])
-    assert 1 > residue_sym_err(p, 120, 1, 10, 6, axis=[0, 0, 1])
-    # assert 0
-
-    segments = [
-        Segment([dimer], exit='C'),
-        Segment([helix], entry='N', exit='C'),
-        Segment([helix], entry='N', exit='C'),
-        Segment([helix], entry='N', exit='C'),
-        Segment([trimer], entry='N')
-    ]
-    w = grow(segments, D3(c2=0, c3=-1), thresh=1)
-    # print(w.scores)
-    # show_with_z_axes(w, 0)
-    p = w.pose(4, only_connected=0)
-    assert util.no_overlapping_residues(p)
-    # vis.showme(p)
-    assert 1 > residue_sym_err(p, 180, 1, 13, 6, axis=[1, 0, 0])
-    assert 1 > residue_sym_err(p, 120, 56, 65, 6, axis=[0, 0, 1])
-
-
-@only_if_pyrosetta
-def test_tet(c2pose, c3pose, c1pose):
-    helix = Spliceable(c1pose, [(':1', 'N'), ('-4:', 'C')])
-    dimer = Spliceable(
-        c2pose, sites=[
-            ('1,:2', 'N'),
-            ('1,-1:', 'C'),
-        ])
-    trimer = Spliceable(
-        c3pose, sites=[
-            ('1,:1', 'N'),
-            ('1,-2:', 'C'),
-        ])
-    segments = ([Segment([dimer], exit='C')] +
-                [Segment([helix], entry='N', exit='C')] * 5 +
-                [Segment([trimer], entry='N')])
-    w = grow(segments, Tetrahedral(c3=-1, c2=0), thresh=2)
-    assert len(w)
-    p = w.pose(3, only_connected=0)
-    assert util.no_overlapping_residues(p)
-    assert 2.5 > residue_sym_err(p, 120, 86, 95, 6, axis=[1, 1, 1])
-    assert 2.5 > residue_sym_err(p, 180, 2, 14, 6, axis=[1, 0, 0])
-
-
-@only_if_pyrosetta
-def test_tet33(c2pose, c3pose, c1pose):
-    helix = Spliceable(c1pose, [(':1', 'N'), ('-4:', 'C')])
-    trimer = Spliceable(
-        c3pose, sites=[
-            ('1,:1', 'N'),
-            ('1,-2:', 'C'),
-        ])
-    segments = ([Segment([trimer], exit='C')] +
-                [Segment([helix], entry='N', exit='C')] * 5 +
-                [Segment([trimer], entry='N')])
-    w = grow(segments, Tetrahedral(c3=-1, c3b=0), thresh=2)
-    assert len(w) == 3
-    p = w.pose(0, only_connected=0)
-    assert util.no_overlapping_residues(p)
-    assert 2.5 > residue_sym_err(p, 120, 2, 20, 6, axis=[1, 1, -1])
-    assert 2.5 > residue_sym_err(p, 120, 87, 96, 6, axis=[1, 1, 1])
-
-
-@only_if_pyrosetta
-def test_oct(c2pose, c3pose, c4pose, c1pose):
-    helix = Spliceable(c1pose, [(':1', 'N'), ('-4:', 'C')])
-    dimer = Spliceable(
-        c2pose, sites=[
-            ('1,:2', 'N'),
-            ('1,-1:', 'C'),
-        ])
-    trimer = Spliceable(
-        c3pose, sites=[
-            ('1,:1', 'N'),
-            ('1,-2:', 'C'),
-        ])
-    tetramer = Spliceable(
-        c4pose, sites=[
-            ('1,:1', 'N'),
-            ('1,-2:', 'C'),
-        ])
-    segments = ([Segment([dimer], exit='C')] +
-                [Segment([helix], entry='N', exit='C')] * 5 +
-                [Segment([trimer], entry='N')])
-    w = grow(segments, Octahedral(c3=-1, c2=0), thresh=1)
-    assert len(w) == 1
-    p = w.pose(0, only_connected=0)
-    assert util.no_overlapping_residues(p)
-    assert 1 > residue_sym_err(p, 120, 85, 94, 6, axis=[1, 1, 1])
-    assert 1 > residue_sym_err(p, 180, 1, 13, 6, axis=[1, 1, 0])
-
-    segments = ([Segment([tetramer], exit='C')] +
-                [Segment([helix], entry='N', exit='C')] * 5 +
-                [Segment([dimer], entry='N')])
-    w = grow(segments, Octahedral(c2=-1, c4=0), thresh=1)
-    assert len(w) == 5
-    assert np.allclose(w.indices,
-                       np.array([[0, 1, 1, 2, 0, 2, 1], [1, 0, 2, 3, 1, 0, 1],
-                                 [1, 0, 0, 0, 3, 2, 0], [0, 2, 0, 0, 1, 2, 0],
-                                 [1, 1, 2, 1, 1, 2, 0]]))
-    p = w.pose(0, only_connected=0)
-    assert p.sequence() == ('AIAAALAAIAAIAAALAAIAAIAAALAAIAAIAAALAAAAAAAAAAGA'
-                            + 'AAAAAAAAGAAAAAAAAAGAAAAAAAAAAGAAAAAAAAGAATAFLA'
-                            + 'AIPAINYTAFLAAIPAIN')
-    assert util.no_overlapping_residues(p)
-    # from socket import gethostname
-    # p.dump_pdb(gethostname() + '.pdb')
-    # assert np.allclose(p.residue(1).xyz('CA')[0], 33.0786722948)
-    assert 1 > residue_sym_err(p, 90, 1, 31, 6, axis=[1, 0, 0], verbose=0)
-    assert 1 > residue_sym_err(p, 180, 92, 104, 6, axis=[1, 1, 0], verbose=0)
-    # assert 0
-
-
-@only_if_pyrosetta
-def test_icos(c2pose, c3pose, c1pose):
-    helix = Spliceable(c1pose, [(':1', 'N'), ('-4:', 'C')])
-    dimer = Spliceable(
-        c2pose, sites=[
-            ('1,:2', 'N'),
-            ('1,-1:', 'C'),
-        ])
-    trimer = Spliceable(
-        c3pose, sites=[
-            ('1,:1', 'N'),
-            ('1,-2:', 'C'),
-        ])
-    segments = ([Segment([dimer], exit='C')] +
-                [Segment([helix], entry='N', exit='C')] * 5 +
-                [Segment([trimer], entry='N')])
-    w = grow(segments, Icosahedral(c3=-1, c2=0), thresh=2)
-    assert len(w) == 3
-    p = w.pose(2, only_connected=0)
-    assert util.no_overlapping_residues(p)
-    # vis.showme(p)
-    assert 2 > residue_sym_err(p, 120, 90, 99, 6, axis=IA[3])
-    assert 2 > residue_sym_err(p, 180, 2, 14, 6, axis=IA[2])
-
-
-@only_if_pyrosetta
 def test_score0_sym(c2pose, c3pose, c1pose):
     helix = Spliceable(c1pose, [(':1', 'N'), ((-4, -3, -2), 'C')])
     dimer = Spliceable(
@@ -757,64 +577,6 @@ def test_provenance(c1pose):
 
 
 @only_if_pyrosetta
-def test_extra_chain_handling_cyclic(c1pose, c2pose, c3hetpose):
-    helix = Spliceable(c1pose, [(':1', 'N'), ('-4:', 'C')])
-    dimer = Spliceable(c2pose, sites=[('1,:3', 'N'), ('1,-3:', 'C')])
-    trimer = Spliceable(c3hetpose, sites=[('1,:3', 'N'), ('2,-3:', 'C')])
-
-    segments = [
-        Segment([helix], '_C'),
-        Segment([dimer], 'NC'),
-        Segment([helix], 'N_'),
-    ]
-    w = grow(segments, Cyclic(9), thresh=3)
-    assert len(w) == 1
-    assert tuple(w.indices[0]) == (2, 7, 0)
-    p, prov = w.pose(0, provenance=1, only_connected=0)
-    assert len(prov) == 3
-    assert prov[0] == (1, 11, c1pose, 1, 11)
-    assert prov[1] == (12, 19, c2pose, 3, 10)
-    assert prov[2] == (21, 32, c2pose, 13, 24)
-    p, prov = w.pose(0, provenance=1, only_connected=1)
-    assert len(prov) == 2
-    assert prov[0] == (1, 11, c1pose, 1, 11)
-    assert prov[1] == (12, 19, c2pose, 3, 10)
-    p, prov = w.pose(0, provenance=1, only_connected='auto')
-    assert len(prov) == 3
-    assert prov[0] == (1, 11, c1pose, 1, 11)
-    assert prov[1] == (12, 19, c2pose, 3, 10)
-    assert prov[2] == (21, 32, c2pose, 13, 24)
-
-    segments = [
-        Segment([helix], '_C'),
-        Segment([trimer], 'NC'),
-        Segment([helix], 'N_'),
-    ]
-    w = grow(segments, Cyclic(6), thresh=3)
-    # vis.showme(w.pose(0))
-    assert len(w) == 1
-    assert tuple(w.indices[0]) == (3, 7, 0)
-    p, prov = w.pose(0, provenance=1, only_connected=0)
-    assert len(prov) == 4
-    assert prov[0] == (1, 7, c3hetpose, 10, 16)
-    assert prov[1] == (8, 19, c1pose, 1, 12)
-    assert prov[2] == (20, 26, c3hetpose, 3, 9)
-    assert prov[3] == (27, 35, c3hetpose, 19, 27)
-    p, prov = w.pose(0, provenance=1, only_connected=1)
-    assert len(prov) == 3
-    assert prov[0] == (1, 7, c3hetpose, 10, 16)
-    assert prov[1] == (8, 19, c1pose, 1, 12)
-    assert prov[2] == (20, 26, c3hetpose, 3, 9)
-    # assert prov[3] == (27, 35, c3hetpose, 19, 27)
-    p, prov = w.pose(0, provenance=1, only_connected='auto')
-    assert len(prov) == 4
-    assert prov[0] == (1, 7, c3hetpose, 10, 16)
-    assert prov[1] == (8, 19, c1pose, 1, 12)
-    assert prov[2] == (20, 26, c3hetpose, 3, 9)
-    assert prov[3] == (27, 35, c3hetpose, 19, 27)
-
-
-@only_if_pyrosetta
 def test_extra_chain_handling_noncyclic(c1pose, c2pose, c3pose, c3hetpose):
     helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', 'C')])
     dimer = Spliceable(c2pose, sites=[('1,:1', 'N'), ('1,-1:', 'C')])
@@ -890,12 +652,3 @@ def test_chunk_speed(c2pose, c3pose, c1pose):
                 (nseg - 2) + [Segment([helix], entry='N')])
     with pytest.raises(ValueError):
         grow(segments, Octahedral(c3=-1, c2=0), thresh=1, max_samples=1000000)
-
-
-@only_if_pyrosetta
-def test_NullCriteria(c1pose):
-    helix = Spliceable(c1pose, [(':4', 'N'), ('-4:', 'C')])
-    segments = [Segment([helix], '_C'), Segment([helix], 'N_')]
-    results = grow(segments, NullCriteria())
-    assert len(results) == 16
-    # vis.showme(results.pose(0))

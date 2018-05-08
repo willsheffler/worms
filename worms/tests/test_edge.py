@@ -13,4 +13,3 @@ def test_Edge(bbdb):
     v = Vertex(bbs, np.arange(len(bbs)), 'NC')
     e = Edge(bbs, bbs)
     print(e)
-    assert 0

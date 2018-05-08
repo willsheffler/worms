@@ -24,7 +24,7 @@ worms.criteria module
 worms.criteria\_unbounded module
 --------------------------------
 
-.. automodule:: worms.criteria_unbounded
+.. automodule:: worms.unbounded
     :members:
     :undoc-members:
     :show-inheritance:

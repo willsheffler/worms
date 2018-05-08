@@ -9,7 +9,6 @@ __version__ = '0.1.26'
 from .segments import *
 from .search import *
 from .criteria import *
-from .criteria_unbounded import *
 from . import data
 from . import vis
 from . import util

@@ -15,7 +15,7 @@ deploy:
       cFBBUCtaQnFlQ05JazJYRUFqc085S3crYTNTdy9idHJuNnZMMitoS1Y3NFRzSDdWSGJkZVpYVXJr
       UmpUWGVyc21KblNYZ0JJUUN0dlBYNUI2dEMxZ2pHL2l3anRaWTljRGdEZUpuWkdISlJPZnZjL1E9
   true:
-    python: 3.5
+    python: 3.6
     repo: willsheffler/worms
     tags: true
   distributions: sdist bdist_wheel
@@ -26,5 +26,4 @@ install: pip install -U tox-travis
 language: python
 python:
 - 3.6
-- 3.5
 script: tox

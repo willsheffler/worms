@@ -3,22 +3,11 @@ import pickle
 import numpy as np
 from homog import hrot, htrans, axis_angle_of, axis_ang_cen_of
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-from .. import *
-from ..criteria_unbounded import *
+from worms import *
+from worms.criteria.unbounded import *
 from homog.sym import icosahedral_axes as IA
 import time
-try:
-    import pyrosetta
-    HAVE_PYROSETTA = True
-    try:
-        import pyrosetta.distributed
-        HAVE_PYROSETTA_DISTRIBUTED = True
-    except ImportError:
-        HAVE_PYROSETTA_DISTRIBUTED = False
-except ImportError:
-    HAVE_PYROSETTA = HAVE_PYROSETTA_DISTRIBUTED = False
-
-only_if_pyrosetta = pytest.mark.skipif('not HAVE_PYROSETTA')
+from .. import only_if_pyrosetta
 
 
 @only_if_pyrosetta

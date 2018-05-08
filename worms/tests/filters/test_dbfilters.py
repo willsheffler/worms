@@ -3,20 +3,20 @@ import pytest
 try:
     import pyrosetta
     from pyrosetta import rosetta as ros
-    from ..filter import *
-    HAVE_PYROSETTA = True
+    from worms.filters.db_filters import BakerFilter
+    HAVE_PYROSETTA_AND_DBSTUFF = True
     try:
         import pyrosetta.distributed
         HAVE_PYROSETTA_DISTRIBUTED = True
     except ImportError:
         HAVE_PYROSETTA_DISTRIBUTED = False
 except ImportError:
-    HAVE_PYROSETTA = HAVE_PYROSETTA_DISTRIBUTED = False
+    HAVE_PYROSETTA_AND_DBSTUFF = HAVE_PYROSETTA_DISTRIBUTED = False
 
-only_if_pyrosetta = pytest.mark.skipif('not HAVE_PYROSETTA')
+only_if_pyrosetta = pytest.mark.skipif('not HAVE_PYROSETTA_AND_DBSTUFF')
 
 
-@pytest.mark.skip
+# @pytest.mark.skip
 @only_if_pyrosetta
 def test_BakerFilter(db_asu_pose, hetC2A_pose, hetC2B_pose):
     FW = BakerFilter(
