@@ -14,4 +14,6 @@ from . import data
 from . import vis
 from . import util
 from .khash import *
-from .BBlock import *
+from .bblock import *
+from .vertex import *
+from .edge import *

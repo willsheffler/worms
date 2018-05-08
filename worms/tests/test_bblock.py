@@ -1,5 +1,5 @@
 import numpy as np
-from worms.BBlock import _make_connections_array
+from worms.bblock import _make_connections_array
 
 
 def test_make_connections_array1():

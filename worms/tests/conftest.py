@@ -22,7 +22,8 @@ def bbdb(datadir):
         cachedir=str('.worms_pytest_cache'),
         bakerdb_files=[os.path.join(datadir, 'test_db_file.json')],
         lazy=False,
-        read_new_pdbs=HAVE_PYROSETTA)
+        read_new_pdbs=HAVE_PYROSETTA,
+        progressbar=False)
 
 
 @pytest.fixture(scope='session')

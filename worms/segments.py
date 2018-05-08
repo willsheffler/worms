@@ -493,22 +493,6 @@ class Segment:
                 tail_idx[i] = tail_tmp[0]
         return head_idx, tail_idx
 
-    # def __getstate__(self):
-    #     state = dict(self.__dict__)
-    #     # remove the big stuff
-    #     if 'x2exit' in state: del state['x2exit']
-    #     if 'x2orgn' in state: del state['x2orgn']
-    #     if 'entrysiteid' in state: del state['entrysiteid']
-    #     if 'entryresid' in state: del state['entryresid']
-    #     if 'exitsiteid' in state: del state['exitsiteid']
-    #     if 'exitresid' in state: del state['exitresid']
-    #     if 'bodyid' in state: del state['bodyid']
-    #     return state
-
-    # def __setstate__(self, state):
-    #     self.__dict__ = state
-    #     self.init_segment_data()  # recompute the big stuff
-
     def __len__(self):
         """TODO: Summary
 
@@ -658,15 +642,15 @@ class Segment:
             last_seg_entrypol = first_seg_exitpol = sym_ir = sym_pol = None
 
         return contort_pose_chains(
-            pose,
-            chains,
-            nseg,
-            ir_en,
-            ir_ex,
-            pl_en,
-            pl_ex,
-            chain_start,
-            chain_end,
+            pose=pose,
+            chains=chains,
+            nseg=nseg,
+            ir_en=ir_en,
+            ir_ex=ir_ex,
+            pl_en=pl_en,
+            pl_ex=pl_ex,
+            chain_start=chain_start,
+            chain_end=chain_end,
             position=position,
             pad=pad,
             iseg=iseg,

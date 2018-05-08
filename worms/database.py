@@ -6,7 +6,7 @@ import _pickle as pickle
 from concurrent.futures import *
 import itertools as it
 import logging
-from logging import info, error
+from logging import info, warning, error
 from random import shuffle
 
 import numpy as np
@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 from worms import util
 from worms import BBlock
-from worms.BBlock import _BBlock
+from worms.bblock import _BBlock
 
 logging.basicConfig(level=logging.INFO)
 
@@ -62,6 +62,7 @@ class BBlockDB:
             nprocs=1,
             lazy=True,
             read_new_pdbs=False,
+            progressbar=True,
     ):
         """TODO: Summary
 
@@ -86,6 +87,7 @@ class BBlockDB:
         self.nprocs = nprocs
         self.lazy = lazy
         self.read_new_pdbs = read_new_pdbs
+        self.progressbar = progressbar
         self.alldb = []
         for dbfile in bakerdb_files:
             with open(dbfile) as f:
@@ -98,11 +100,11 @@ class BBlockDB:
                 os.path.relpath(os.path.dirname(__file__) + '/data'))
         self.dictdb = {e['file']: e for e in self.alldb}
         if len(self.alldb) != len(self.dictdb):
-            print('!' * 100)
-            print('!' * 23,
-                  'DIRE WARNING: %6i duplicate pdb files in database' %
-                  (len(self.alldb) - len(self.dictdb)), '!' * 23)
-            print('!' * 100)
+            warning('!' * 100)
+            warning('!' * 23,
+                    'DIRE WARNING: %6i duplicate pdb files in database' %
+                    (len(self.alldb) - len(self.dictdb)), '!' * 23)
+            warning('!' * 100)
         info('loading %i db entries' % len(self.alldb))
         self.n_new_entries = 0
         self.n_missing_entries = len(self.alldb)
@@ -240,8 +242,7 @@ class BBlockDB:
                     self.poses[pdbfile] = pickle.load(f)
                     return True
                 except EOFError:
-                    print('WARNING corrupt pickled pose will be replaced',
-                          posefile)
+                    warning('corrupt pickled pose will be replaced', posefile)
                     os.remove(posefile)
                     return False
         except FileNotFoundError:
@@ -312,7 +313,6 @@ class BBlockDB:
         # return exe.map(self.build_pdb_data, self.alldb)
         shuffle(self.alldb)
         r = []
-        print('load_from_pdbs', len(self.alldb))
         kwargs = {
             'total': len(self.alldb),
             'unit': 'pdbs',
@@ -320,7 +320,9 @@ class BBlockDB:
             'leave': True
         }
         futures = [exe.submit(self.build_pdb_data, e) for e in self.alldb]
-        for f in tqdm(as_completed(futures), **kwargs):
+        work = as_completed(futures)
+        if self.progressbar: work = tqdm(work, **kwargs)
+        for f in work:
             r.append(f.result())
         return r
 
@@ -361,7 +363,7 @@ class BBlockDB:
                 self.poses[pdbfile] = pose
             return pdbfile, None  # new, missing
         else:
-            print('no cached data for', pdbfile)
+            warning('no cached data for', pdbfile)
             return None, pdbfile  # new, missing
 
 

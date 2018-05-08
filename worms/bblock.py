@@ -203,3 +203,47 @@ def _get_connection_residues(entry, chain_bounds):
     e = int(e) if e else nres
     if e < 0: e += nres
     return np.array(range(*chain_bounds[c - 1])[b:e], dtype='i4')
+
+
+def bblock_components(bblock):
+    """TODO: Summary
+
+    Args:
+        bblock (TYPE): Description
+
+    Returns:
+        TYPE: Description
+    """
+    return eval(bytes(bblock.components))
+
+
+def bblock_str(bblock):
+    """TODO: Summary
+
+    Args:
+        bblock (TYPE): Description
+
+    Returns:
+        TYPE: Description
+    """
+    return '\n'.join([
+        'jitclass BBlock(',
+        '    file=' + str(bytes(bblock.file)),
+        '    components=' + str(pdbdat_components(bblock)),
+        '    protocol=' + str(bytes(bblock.protocol)),
+        '    name=' + str(bytes(bblock.name)),
+        '    classes=' + str(bytes(bblock.classes)),
+        '    validated=' + str(bblock.validated),
+        '    _type=' + str(bytes(bblock._type)),
+        '    base=' + str(bytes(bblock.base)),
+        '    ncac=array(shape=' + str(bblock.ncac.shape) + ', dtype=' +
+        str(bblock.ncac.dtype) + ')',
+        '    chains=' + str(bblock.chains),
+        '    ss=array(shape=' + str(bblock.ss.shape) + ', dtype=' +
+        str(bblock.ss.dtype) + ')',
+        '    stubs=array(shape=' + str(bblock.stubs.shape) + ', dtype=' + str(
+            bblock.connecions.dtype) + ')',
+        '    stubs=array(shape=' + str(bblock.connections.shape) + ', dtype=' +
+        str(bblock.connections.dtype) + ')',
+        ')',
+    ])
