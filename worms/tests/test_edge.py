@@ -7,7 +7,7 @@ import pytest
 from worms import vis
 
 
-@pytest.mark.xfail
+# @pytest.mark.xfail
 def test_Edge(bbdb):
     bbs = bbdb.query('all')
     v = Vertex(bbs, np.arange(len(bbs)), 'NC')

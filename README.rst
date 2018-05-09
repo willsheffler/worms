@@ -25,6 +25,10 @@ Protein assembly design without protein interface design.
 * Documentation: https://worms.readthedocs.io.
 
 
+.. image:: img/worms_triangle_600.png
+.. image:: docs/img/worms_triangle_600.png
+
+
 Features
 --------
 

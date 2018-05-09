@@ -71,7 +71,7 @@ class _Vertex:
         return len(self.ires)
 
 
-@nb.njit
+@nb.njit(nogil=True)
 def chain_of_ires(bb, ires):
     """Summary
 

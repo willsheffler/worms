@@ -2,7 +2,7 @@ import numba as nb
 from worms import KHashi8i8
 
 
-@nb.njit
+@nb.njit(nogil=True)
 def use_khash_jitclass(h, i):
     return h.get(i) + 10
 
