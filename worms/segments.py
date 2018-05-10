@@ -808,7 +808,9 @@ class Worms:
         seg_pos = self.positions[which]
         indices = self.indices[which]
         position = self.criteria.alignment(seg_pos)
-
+        cryst_info = None
+        if self.criteria.crystinfo:
+            cryst_info = self.criteria.crystinfo(segpos=self.positions[which])
         if end is None and cyclic_permute is None:
             cyclic_permute, end = is_cyclic, True
         if end is None:
@@ -851,6 +853,7 @@ class Worms:
             position=position,
             is_cyclic=is_cyclic,
             align=align,
+            cryst_info=cryst_info,
             end=end,
             iend=iend,
             only_connected=only_connected,
@@ -894,9 +897,10 @@ class Worms:
             score=False,
             provenance=False,
             fullatom=False,
+            asym_score_thresh=50,
+            min_cell_spacing=100,
             *,
-            parallel=False,
-            asym_score_thresh=50
+            parallel=False
     ):  # yapf: disable
         """TODO: Summary
 
@@ -920,25 +924,35 @@ class Worms:
                 raise IndexError('invalid worm index')
             if parallel:
                 with ThreadPoolExecutor() as pool:
-                    result = pool.map(self.sympose, which, it.repeat(score),
-                                      it.repeat(provenance),
-                                      it.repeat(fullatom))
+                    result = pool.map(
+                        self.sympose,
+                        which,
+                        it.repeat(score),
+                        it.repeat(provenance),
+                        it.repeat(fullatom),
+                        it.repeat(asym_score_thresh),
+                        it.repeat(min_cell_spacing),
+                    )
                     return list(result)
             else:
                 return list(
-                    map(self.sympose, which, it.repeat(score),
-                        it.repeat(provenance)))
+                    map(
+                        self.sympose,
+                        which,
+                        it.repeat(score),
+                        it.repeat(provenance),
+                        it.repeat(fullatom),
+                        it.repeat(asym_score_thresh),
+                        it.repeat(min_cell_spacing),
+                    ))
         if not 0 <= which < len(self):
             raise IndexError('invalid worm index')
         p, prov = self.pose(which, provenance=True)
         if fullatom: pfull = p.clone()
         pcen = p
-        # todo: why is asym scoring broken?!?
-        # try: score0asym = self.score0(p)
-        # except: score0asym = 9e9
-        # if score0asym > asym_score_thresh:
-        # return None, None if score else None
         ros.core.util.switch_to_residue_type_set(pcen, 'centroid')
+        if self.score0(pcen) > asym_score_thresh:
+            return None
         if self.criteria.symfile_modifiers:
             symdata = util.get_symdata_modified(
                 self.criteria.symname,
@@ -950,10 +964,23 @@ class Worms:
         if symdata is None:
             sfxn = self.score0
         else:
-            ros.core.pose.symmetry.make_symmetric_pose(pcen, symdata)
+            if pcen.pdb_info() and pcen.pdb_info().crystinfo().A() > 0:
+                if pcen.pdb_info().crystinfo().A() > min_cell_spacing:
+                    pyrosetta.rosetta.protocols.cryst.MakeLatticeMover().apply(
+                        pcen)
+                    if self.score0sym(pcen) > 100:
+                        return None
+                else:
+                    return None
+            else:
+                ros.core.pose.symmetry.make_symmetric_pose(pcen, symdata)
         if fullatom:
             if symdata is not None:
-                ros.core.pose.symmetry.make_symmetric_pose(pfull, symdata)
+                if pfull.pdb_info() and pfull.pdb_info().crystinfo().A() > 0:
+                    pyrosetta.rosetta.protocols.cryst.MakeLatticeMover().apply(
+                        pfull)
+                else:
+                    ros.core.pose.symmetry.make_symmetric_pose(pfull, symdata)
             p = pfull
         else:
             p = pcen
