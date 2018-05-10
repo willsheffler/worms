@@ -790,8 +790,8 @@ class Worms:
             cyclictrim=None,
             provenance=False,
             make_chain_list=False,
-            **kw,
-    ):
+            **kw
+    ):  # yapf: disable
         """makes a pose for the ith worm"""
         if isinstance(which, Iterable):
             return (self.pose(
@@ -896,8 +896,8 @@ class Worms:
             fullatom=False,
             *,
             parallel=False,
-            asym_score_thresh=50,
-    ):
+            asym_score_thresh=50
+    ):  # yapf: disable
         """TODO: Summary
 
         Args:

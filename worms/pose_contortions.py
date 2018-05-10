@@ -327,8 +327,8 @@ def make_contorted_pose(
         cyclic_permute,
         cyclictrim,
         provenance,
-        make_chain_list,
-):
+        make_chain_list
+):  # yapf: disable
     """there be dragons here"""
     nseg = len(entryexits)
     entryexits, rest = zip(*entryexits)
