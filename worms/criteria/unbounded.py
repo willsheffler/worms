@@ -1,24 +1,10 @@
-"""TODO: Summary
-"""
-from worms.criteria.base import WormCriteria, Ux, Uz
+from . import WormCriteria, Ux, Uz
 import numpy as np
 import homog as hm  ## python library that Will wrote to do geometry things
+import pyrosetta
 
 
 class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
-    """TODO: Summary
-
-    Attributes:
-        from_seg (TYPE): Description
-        lever (TYPE): Description
-        symname (TYPE): Description
-        target_angle (TYPE): Description
-        tgtaxis1 (TYPE): Description
-        tgtaxis2 (TYPE): Description
-        to_seg (TYPE): Description
-        tol (TYPE): Description
-    """
-
     def __init__(self,
                  symname,
                  tgtaxis1,
@@ -27,8 +13,9 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
                  *,
                  tol=1.0,
                  lever=50,
-                 to_seg=-1):
-        """Worms criteria for non-intersecting axes re: unbounded things
+                 to_seg=-1,
+                 space_group_str=None):
+        """ Worms criteria for non-intersecting axes re: unbounded things
 
         Args:
             symname (str): Symmetry identifier, to label stuff and look up the symdef file.
@@ -38,6 +25,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
             tol (float): A geometry/alignment error threshold. Vaguely Angstroms.
             lever (float): Tradeoff with distances and angles for a lever-like object. To convert an angle error to a distance error for an oblong shape.
             to_seg (int): The segment # to end at.
+            space_group_str: The target space group.
 
         """
 
@@ -57,6 +45,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
         self.tol = tol
         self.lever = lever
         self.to_seg = to_seg
+        self.space_group_str = space_group_str
         ## if you want to store arguments, you have to write these self.argument lines
 
         self.target_angle = np.arccos(
@@ -65,14 +54,11 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
         print(self.target_angle * (180 / np.pi))
 
     def score(self, segpos, **kw):
-        """Score
+        """ Score
 
         Args:
             segpos (lst): List of segment positions / coordinates.
-            kw: I'll accept any "non-positional" argument as name = value, and store in a dictionary
-
-        Returns:
-            TYPE: Description
+            **kw I'll accept any "non-positional" argument as name = value, and store in a dictionary
 
         """
         ## numpy arrays of how many things you are scoring, and a 4x4 translation/rotation matrix
@@ -89,15 +75,11 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
         ) / self.tol * self.lever  ## as tolerance goes up, you care about the angle error less. as lever goes up, you care about the angle error more.
 
     def alignment(self, segpos, out_cell_spacing=False, **kw):
-        """Alignment to move stuff to be in line with symdef file
+        """ Alignment to move stuff to be in line with symdef file
 
         Args:
             segpos (lst): List of segment positions / coordinates.
-            out_cell_spacing (bool, optional): Description
-            kw: I'll accept any "non-positional" argument as name = value, and store in a dictionary
-
-        Returns:
-            TYPE: Description
+            **kw I'll accept any "non-positional" argument as name = value, and store in a dictionary
 
         """
         cen1 = segpos[self.from_seg][..., :,
@@ -133,8 +115,9 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
             ) @ cen2_0[:
                        3]  #transform of A1 offest, cell distance (offset along other axis), and A2 offset (<-- we are ignoring this)
             Xalign[..., :, 3] = Xalign[..., :, 3] - (A1offset * self.tgtaxis1)
-
+            #Xalign[..., :, 3] = Xalign[..., :, 3] + [0,cell_dist,0,0]
         if out_cell_spacing:
+            #print(2*cell_dist)
             return Xalign, cell_dist
         else:
             return Xalign
@@ -165,31 +148,20 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
             # print("aligned ax2: ",Xalign@ax2)
 
     def symfile_modifiers(self, segpos):
-        """TODO: Summary
-
-        Args:
-            segpos (TYPE): Description
-
-        Returns:
-            TYPE: Description
-        """
         x, cell_dist = self.alignment(segpos, out_cell_spacing=True)
         return dict(scale_positions=cell_dist)
 
+    def crystinfo(self, segpos):
+        #CRYST1   85.001   85.001   85.001  90.00  90.00  90.00 P 21 3
+        if self.space_group_str is None:
+            return None
+        #print("hi")
+        x, cell_dist = self.alignment(segpos, out_cell_spacing=True)
+        cell_dist = abs(2 * cell_dist)
+        return cell_dist, cell_dist, cell_dist, 90, 90, 90, self.space_group_str
+
 
 def Sheet_P321(c3=None, c2=None, **kw):
-    """TODO: Summary
-
-    Args:
-        c3 (None, optional): Description
-        c2 (None, optional): Description
-        kw: passthru args
-    Returns:
-        TYPE: Description
-
-    Raises:
-        ValueError: Description
-    """
     if c3 is None or c2 is None:
         raise ValueError('must specify ...?')  #one or two of c3, c2
     return AxesAngle(
@@ -199,18 +171,6 @@ def Sheet_P321(c3=None, c2=None, **kw):
 
 def Sheet_P4212(c4=None, c2=None,
                 **kw):  ##should there be options for multiple C2's?
-    """TODO: Summary
-
-    Args:
-        c4 (None, optional): Description
-        c2 (None, optional): Description
-        kw: passthru args
-    Returns:
-        TYPE: Description
-
-    Raises:
-        ValueError: Description
-    """
     if c4 is None or c2 is None:
         raise ValueError('must specify ...?')  #one or two of c4, c2
     return AxesAngle(
@@ -219,41 +179,88 @@ def Sheet_P4212(c4=None, c2=None,
 
 def Sheet_P6(c6=None, c2=None,
              **kw):  ##should there be options for multiple C2's?
-    """TODO: Summary
-
-    Args:
-        c6 (None, optional): Description
-        c2 (None, optional): Description
-        kw: passthru args
-    Returns:
-        TYPE: Description
-
-    Raises:
-        ValueError: Description
-    """
     if c6 is None or c2 is None:
         raise ValueError('must specify ...?')  #one or two of c6, c2
     return AxesAngle(
         'Sheet_P6_C6_C2_depth3_1comp', Uz, Uz, from_seg=c6, to_seg=c2, **kw)
 
 
-def Crystal_P213(c3a=None, c3b=None, **kw):
-    """TODO: Summary
-
-    Args:
-        c3a (None, optional): Description
-        c3b (None, optional): Description
-        kw: passthru args
-    Returns:
-        TYPE: Description
-
-    Raises:
-        ValueError: Description
-    """
+#### WORKING ####
+def Crystal_P213_C3_C3(c3a=None, c3b=None, **kw):
     if c3a is None or c3b is None:
         raise ValueError('must specify ...?')  #one or two of c6, c2
+    #return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
     return AxesAngle(
-        'Crystal_P213_C3_C3_depth3_1comp', [-1, 1, 1, 0], [1, -1, 1, 0],
+        'Crystal_P213_C3_C3_depth3_1comp', [1, 1, 1, 0], [-1, -1, 1, 0],
         from_seg=c3a,
         to_seg=c3b,
+        space_group_str="P 21 3",
         **kw)
+    #dihedral angle = 70.5288
+
+
+#### IN PROGRESS ####
+# I just normalized all the angles, but I don't think you can do this...might need to check the angle between them. Print and check that it is correct.
+def Crystal_P4132_C2_C3(c2a=None, c3b=None, **kw):
+    if c3a is None or c3b is None:
+        raise ValueError('must specify ...?')  #one or two of c6, c2
+    #return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
+    return AxesAngle(
+        'Crystal_P4132_C2_C3_depth3_1comp', [0, -1, 1, 0], [-1, -1, 0, 0],
+        from_seg=c2a,
+        to_seg=c3b,
+        space_group_str="P 41 3 2",
+        **kw)
+    #dihedral angle = 35.2644
+
+
+def Crystal_I213_C2_C3(c2a=None, c3b=None, **kw):
+    if c3a is None or c3b is None:
+        raise ValueError('must specify ...?')  #one or two of c6, c2
+    #return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
+    return AxesAngle(
+        'Crystal_I213_C2_C3_depth3_1comp', [0, 0, 1, 0], [-1, 1, 1, 0],
+        from_seg=c2a,
+        to_seg=c3b,
+        space_group_str="I 21 3",
+        **kw)
+    #dihedral angle = 54.7356
+
+
+def Crystal_I432_C2_C4(c2a=None, c4b=None, **kw):
+    if c3a is None or c3b is None:
+        raise ValueError('must specify ...?')  #one or two of c6, c2
+    #return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
+    return AxesAngle(
+        'Crystal_I432_C2_C4_depth3_1comp', [-1, 0, 1, 0], [0, 0, 1, 0],
+        from_seg=c2a,
+        to_seg=c4b,
+        space_group_str="I 4 3 2",
+        **kw)
+    #dihedral angle = 45
+
+
+def Crystal_F432_C3_C4(c3a=None, c4b=None, **kw):
+    if c3a is None or c3b is None:
+        raise ValueError('must specify ...?')  #one or two of c6, c2
+    #return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
+    return AxesAngle(
+        'Crystal_F432_C3_C4_depth3_1comp', [-1, 1, 1, 0], [0, 1, 0, 0],
+        from_seg=c3a,
+        to_seg=c4b,
+        space_group_str="F 4 3 2",
+        **kw)
+    #dihedral angle = 54.7356
+
+
+def Crystal_P432_C4_C4(c4a=None, c4b=None, **kw):
+    if c3a is None or c3b is None:
+        raise ValueError('must specify ...?')  #one or two of c6, c2
+    #return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
+    return AxesAngle(
+        'Crystal_P432_C4_C4_depth3_1comp', [0, 0, 1, 0], [0, 1, 0, 0],
+        from_seg=c4a,
+        to_seg=c4b,
+        space_group_str="P 4 3 2",
+        **kw)
+    #dihedral angle = 90

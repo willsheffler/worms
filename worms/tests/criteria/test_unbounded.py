@@ -112,7 +112,7 @@ def test_crystal_P213(c3pose, c3_splay_pose, c1pose):
         Segment([helix], 'NC'),
         Segment([trimer2], 'N_')
     ]
-    w = grow(segments, Crystal_P213(c3a=0, c3b=-1), thresh=1)
+    w = grow(segments, Crystal_P213_C3_C3(c3a=0, c3b=-1), thresh=1)
     print(len(w))
 
     # print(w.scores)
