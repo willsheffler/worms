@@ -316,16 +316,19 @@ def test_numba_chain_funcs_args_per():
 
     @nb.njit
     def jit_with_chain_funcs():
+        x = np.array([3., 4.])
         print('addmul')
-        a = addmul(3, argstack=(2, 1))
+        a = addmul(x, argstack=(1.1, 1))
         print('addmuladd')
-        b = addmuladd(3, argstack=(3, 2, 1))
+        b = addmuladd(x, argstack=(3, 1.2, 1))
         print('done')
         return (a, b)
 
     tup = jit_with_chain_funcs()
-    assert tup[0] == 7
-    assert tup[1] == 13
+    assert np.allclose(tup[0][0], (3 * 1.1) + 1)
+    assert np.allclose(tup[1][0], ((3 + 3) * 1.2) + 1)
+    assert np.allclose(tup[0][1], (4 * 1.1) + 1)
+    assert np.allclose(tup[1][1], ((4 + 3) * 1.2) + 1)
 
 
 def test_numba_cannot_chain_jitclass():

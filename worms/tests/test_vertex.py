@@ -122,7 +122,7 @@ def test_Vertex__N(bbdb):
         assert np.all(vals == i)
 
 
-def test_Vertex_N_(bbdb):
+def test_Vertex_C_(bbdb):
     bbs = bbdb.query('all')
     v = Vertex(bbs, np.arange(len(bbs)), 'N_')
     assert v.len == 18

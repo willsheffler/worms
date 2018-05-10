@@ -43,7 +43,7 @@ class BBlockDB:
     """TODO: Summary
 
     Attributes:
-        alldb (list): Description
+        _alldb (list): Description
         cachedir (TYPE): Description
         dictdb (TYPE): Description
         load_poses (TYPE): Description
@@ -83,31 +83,31 @@ class BBlockDB:
         self.load_poses = load_poses
         os.makedirs(self.cachedir + '/poses', exist_ok=True)
         os.makedirs(self.cachedir + '/bblock', exist_ok=True)
-        self.bblock_cache, self.poses = dict(), dict()
+        self._bblock_cache, self._poses_cache = dict(), dict()
         self.nprocs = nprocs
         self.lazy = lazy
         self.read_new_pdbs = read_new_pdbs
         self.progressbar = progressbar
-        self.alldb = []
+        self._alldb = []
         for dbfile in bakerdb_files:
             with open(dbfile) as f:
-                self.alldb.extend(json.load(f))
-        for entry in self.alldb:
+                self._alldb.extend(json.load(f))
+        for entry in self._alldb:
             if 'name' not in entry:
                 entry['name'] = ''
             entry['file'] = entry['file'].replace(
                 '__DATADIR__',
                 os.path.relpath(os.path.dirname(__file__) + '/data'))
-        self.dictdb = {e['file']: e for e in self.alldb}
-        if len(self.alldb) != len(self.dictdb):
+        self.dictdb = {e['file']: e for e in self._alldb}
+        if len(self._alldb) != len(self.dictdb):
             warning('!' * 100)
             warning('!' * 23,
                     'DIRE WARNING: %6i duplicate pdb files in database' %
-                    (len(self.alldb) - len(self.dictdb)), '!' * 23)
+                    (len(self._alldb) - len(self.dictdb)), '!' * 23)
             warning('!' * 100)
-        info('loading %i db entries' % len(self.alldb))
+        info('loading %i db entries' % len(self._alldb))
         self.n_new_entries = 0
-        self.n_missing_entries = len(self.alldb)
+        self.n_missing_entries = len(self._alldb)
         if not self.lazy:
             if self.read_new_pdbs: self.lock_cachedir()
             self.n_new_entries, self.n_missing_entries = self.load_from_pdbs()
@@ -117,7 +117,7 @@ class BBlockDB:
                 self.nprocs = 1
                 self.load_from_pdbs()
         for i, k in enumerate(sorted(self.dictdb)):
-            self.alldb[i] = self.dictdb[k]
+            self._alldb[i] = self.dictdb[k]
 
     def lock_cachedir(self):
         assert not os.path.exists(self.cachedir + '/lock'), (
@@ -131,9 +131,9 @@ class BBlockDB:
 
     def __getitem__(self, i):
         if isinstance(i, str):
-            return self.bblock_cache[i]
+            return self._bblock_cache[i]
         else:
-            return self.bblock_cache.values()[i]
+            return self._bblock_cache.values()[i]
 
     def __len__(self):
         """TODO: Summary
@@ -141,10 +141,10 @@ class BBlockDB:
         Returns:
             TYPE: Description
         """
-        return len(self.bblock_cache)
+        return len(self._bblock_cache)
 
     def pose(self, pdbfile):
-        """load pose from bblock_cache, read from file if not in memory
+        """load pose from _bblock_cache, read from file if not in memory
 
         Args:
             pdbfile (TYPE): Description
@@ -152,10 +152,10 @@ class BBlockDB:
         Returns:
             TYPE: Description
         """
-        if not pdbfile in self.poses:
+        if not pdbfile in self._poses_cache:
             if not self.load_cached_pose_into_memory(pdbfile):
-                self.poses[pdbfile] = pose_from_file(pdbfile)
-        return self.poses[pdbfile]
+                self._poses_cache[pdbfile] = pose_from_file(pdbfile)
+        return self._poses_cache[pdbfile]
 
     def bblock(self, pdbfile):
         """TODO: Summary
@@ -167,10 +167,10 @@ class BBlockDB:
             TYPE: Description
         """
         if isinstance(pdbfile, str):
-            if not pdbfile in self.bblock_cache:
+            if not pdbfile in self._bblock_cache:
                 if not self.load_cached_bblock_into_memory(pdbfile):
                     raise valueError('no bblock data for ', pdbfile)
-            return self.bblock_cache[pdbfile]
+            return self._bblock_cache[pdbfile]
         elif isinstance(pdbfile, list):
             return [self.bblock(f) for f in pdbfile]
         else:
@@ -196,12 +196,12 @@ class BBlockDB:
             TYPE: Description
         """
         if query.lower() == "all":
-            return [db['file'] for db in self.alldb]
+            return [db['file'] for db in self._alldb]
         query, subq = query.split(':') if query.count(':') else (query, None)
         if subq is None:
-            c_hits = [db['file'] for db in self.alldb if query in db['class']]
-            n_hits = [db['file'] for db in self.alldb if query == db['name']]
-            t_hits = [db['file'] for db in self.alldb if query == db['type']]
+            c_hits = [db['file'] for db in self._alldb if query in db['class']]
+            n_hits = [db['file'] for db in self._alldb if query == db['name']]
+            t_hits = [db['file'] for db in self._alldb if query == db['type']]
             if not c_hits and not n_hits: return t_hits
             if not c_hits and not t_hits: return n_hits
             if not t_hits and not n_hits: return c_hits
@@ -213,7 +213,7 @@ class BBlockDB:
             if subq.endswith('Y'): excon = False
             hits = list()
             assert query == 'Het'
-            for db in self.alldb:
+            for db in self._alldb:
                 if not query in db['class']: continue
                 nc = [_ for _ in db['connections'] if _['direction'] == 'C']
                 nn = [_ for _ in db['connections'] if _['direction'] == 'N']
@@ -239,7 +239,7 @@ class BBlockDB:
         try:
             with open(posefile, 'rb') as f:
                 try:
-                    self.poses[pdbfile] = pickle.load(f)
+                    self._poses_cache[pdbfile] = pickle.load(f)
                     return True
                 except EOFError:
                     warning('corrupt pickled pose will be replaced', posefile)
@@ -272,7 +272,7 @@ class BBlockDB:
                 bbstate = list(pickle.load(f))
                 if isinstance(bbstate[10], list):
                     bbstate[10] = np.array(bbstate[10], dtype='i4')
-                self.bblock_cache[pdbfile] = _BBlock(*bbstate)
+                self._bblock_cache[pdbfile] = _BBlock(*bbstate)
                 return True
         except FileNotFound:
             return False
@@ -287,7 +287,7 @@ class BBlockDB:
        Returns:
            TYPE: Description
        """
-        shuffle(self.alldb)
+        shuffle(self._alldb)
         if self.nprocs is 1:
             with util.InProcessExecutor() as exe:
                 result = self.load_from_pdbs_inner(exe)
@@ -297,7 +297,7 @@ class BBlockDB:
         new = [_[0] for _ in result if _[0]]
         missing = [_[1] for _ in result if _[1]]
         for miss in missing:
-            self.alldb.remove(self.dictdb[miss])
+            self._alldb.remove(self.dictdb[miss])
             del self.dictdb[miss]
         return len(new), len(missing)
 
@@ -310,16 +310,16 @@ class BBlockDB:
        Returns:
            TYPE: Description
        """
-        # return exe.map(self.build_pdb_data, self.alldb)
-        shuffle(self.alldb)
+        # return exe.map(self.build_pdb_data, self._alldb)
+        shuffle(self._alldb)
         r = []
         kwargs = {
-            'total': len(self.alldb),
+            'total': len(self._alldb),
             'unit': 'pdbs',
             # 'unit_scale': True,
             'leave': True
         }
-        futures = [exe.submit(self.build_pdb_data, e) for e in self.alldb]
+        futures = [exe.submit(self.build_pdb_data, e) for e in self._alldb]
         work = as_completed(futures)
         if self.progressbar: work = tqdm(work, **kwargs)
         for f in work:
@@ -350,17 +350,17 @@ class BBlockDB:
             pose = self.pose(pdbfile)
             ss = Dssp(pose).get_dssp_secstruct()
             bblock = BBlock(entry, pdbfile, pose, ss)
-            self.bblock_cache[pdbfile] = bblock
+            self._bblock_cache[pdbfile] = bblock
 
             with open(cachefile, 'wb') as f:
                 pickle.dump(bblock._state, f)
             if not os.path.exists(posefile):
                 with open(posefile, 'wb') as f:
                     pickle.dump(pose, f)
-                    info('dumped bblock_cache files for %s' % pdbfile)
+                    info('dumped _bblock_cache files for %s' % pdbfile)
 
             if self.load_poses:
-                self.poses[pdbfile] = pose
+                self._poses_cache[pdbfile] = pose
             return pdbfile, None  # new, missing
         else:
             warning('no cached data for', pdbfile)
@@ -390,7 +390,7 @@ if __name__ == '__main__':
         )
         print('new entries', pp.n_new_entries)
         print('missing entries', pp.n_missing_entries)
-        print('total entries', len(pp.bblock_cache))
+        print('total entries', len(pp._bblock_cache))
     except AssertionError as e:
         print(e)
     except:

@@ -13,6 +13,7 @@ import multiprocessing
 import threading
 from homog import hrot
 import pandas as pd
+import numba as nb
 try:
     # god, I'm so tired of this crap....
     from pyrosetta import rosetta as ros
@@ -663,3 +664,19 @@ def unique_key(a, b=None):
         raise NotImplementedError
     mi = pd.MultiIndex.from_arrays([a, b]).drop_duplicates()
     return mi.get_indexer([a, b])
+
+
+@nb.njit('int32[:](int32[:])', nogil=True)
+def contig_idx_breaks(idx):
+    breaks = np.empty(idx[-1] + 2, dtype=np.int32)
+    breaks[0] = 0
+    for i in range(1, len(idx)):
+        if idx[i - 1] != idx[i]:
+            assert idx[i - 1] + 1 == idx[i]
+            breaks[idx[i]] = i
+    breaks[-1] = len(idx)
+    if __debug__:
+        for i in range(breaks.size - 1):
+            vals = idx[breaks[i]:breaks[i + 1]]
+            assert np.all(vals == i)
+    return breaks

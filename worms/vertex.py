@@ -6,7 +6,7 @@ import numba as nb
 import numba.types as nt
 from homog import is_homog_xform
 from worms import util
-
+from logging import warning
 
 
 @nb.jitclass((
@@ -116,6 +116,11 @@ def vertex_single(bb, bbid, din, dout, min_seg_len):
         if bb.conn_dirn(i) == dout:
             ires1.append(ires)
             isite1.append(np.repeat(i, len(ires)))
+    if (din < 2 and not ires0 or dout < 2 and not ires1):
+        dirn = 'NC_' [din] + 'NC_' [dout]
+        warning('invalid vertex ' + dirn + ' ' + bytes(bb.file).decode())
+        return None
+
     dummy = [np.array([-1], dtype='i4')]
     ires0 = np.concatenate(ires0 or dummy)
     ires1 = np.concatenate(ires1 or dummy)
@@ -164,22 +169,6 @@ def vertex_single(bb, bbid, din, dout, min_seg_len):
     )
 
 
-@nb.njit('int32[:](int32[:])', nogil=True)
-def contig_idx_breaks(idx):
-    breaks = np.empty(idx[-1] + 2, dtype=np.int32)
-    breaks[0] = 0
-    for i in range(1, len(idx)):
-        if idx[i - 1] != idx[i]:
-            assert idx[i - 1] + 1 == idx[i]
-            breaks[idx[i]] = i
-    breaks[-1] = len(idx)
-    if __debug__:
-        for i in range(breaks.size - 1):
-            vals = idx[breaks[i]:breaks[i + 1]]
-            assert np.all(vals == i)
-    return breaks
-
-
 def Vertex(bbs, bbids, dirn, min_seg_len=1):
     """Summary
 
@@ -196,11 +185,12 @@ def Vertex(bbs, bbids, dirn, min_seg_len=1):
     din = dirn_map[dirn[0]]
     dout = dirn_map[dirn[1]]
 
-    tup = tuple(
-        np.concatenate(_) for _ in zip(*[
-            vertex_single(bb, bid, din, dout, min_seg_len)
-            for bb, bid in zip(bbs, bbids)
-        ]))
+    verts = (vertex_single(bb, bid, din, dout, min_seg_len)
+             for bb, bid in zip(bbs, bbids))
+    verts = [v for v in verts if v is not None]
+    if not verts:
+        raise ValueError('no way to make vertex' + dirn)
+    tup = tuple(np.concatenate(_) for _ in zip(*verts))
     assert len({x.shape[0] for x in tup}) == 1
     ibb, ires = tup[5], tup[2]
 
@@ -209,7 +199,7 @@ def Vertex(bbs, bbids, dirn, min_seg_len=1):
          util.unique_key(ibb, ires[:, 1])],
         axis=-1).astype('i4')
 
-    inbreaks = contig_idx_breaks(inout[:, 0])
+    inbreaks = util.contig_idx_breaks(inout[:, 0])
     assert inbreaks.dtype == np.int32
 
     return _Vertex(*tup, inout, inbreaks, np.array([din, dout], dtype='i4'))

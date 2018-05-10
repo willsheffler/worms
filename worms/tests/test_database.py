@@ -65,7 +65,7 @@ def test_construct_database_from_pdbs(tmpdir, datadir):
     assert [len(pp.pose(k)) for k in pp.query_names('all')] == [
         13, 24, 27, 27, 27, 40, 35, 36, 13, 8, 7, 9
     ]
-    keys = sorted(pp.bblock_cache.keys())
+    keys = sorted(pp._bblock_cache.keys())
     assert np.all(pp.bblock(keys[0]).conn_resids(0) == [0])
     assert np.all(pp.bblock(keys[0]).conn_resids(1) == [12])
     assert np.all(pp.bblock(keys[1]).conn_resids(0) == [0])

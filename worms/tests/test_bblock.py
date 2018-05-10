@@ -22,3 +22,6 @@ def test_make_connections_array1():
         [1, 5, 24, 25, 26, -1, -1, -1, -1],
     ])
     assert np.all(a == b)
+
+
+# def test_bblock(bbdb_fullsize_prots):

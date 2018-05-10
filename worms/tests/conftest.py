@@ -27,6 +27,16 @@ def bbdb(datadir):
 
 
 @pytest.fixture(scope='session')
+def bbdb_fullsize_prots(datadir):
+    return BBlockDB(
+        cachedir=str('.worms_pytest_cache'),
+        bakerdb_files=[os.path.join(datadir, 'test_fullsize_prots.json')],
+        lazy=False,
+        read_new_pdbs=HAVE_PYROSETTA,
+        progressbar=False)
+
+
+@pytest.fixture(scope='session')
 def pdbdir():
     root = join(dirname(__file__), '..')
     d = join(root, 'data')
