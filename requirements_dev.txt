@@ -12,8 +12,9 @@ PyYAML
 pytest
 pytest-runner
 numpy
-numba
+numba >= 0.38
 pandas
+xarray
 homog >= 0.1.10
 xbin >= 0.1.5
 toolz
