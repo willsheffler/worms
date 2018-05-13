@@ -5,10 +5,11 @@ import numba.types as nt
 import numpy as np
 import pytest
 from worms import vis
+import xarray as xr
 
 
-# @pytest.mark.xfail
-def test_Edge(bbdb):
+@pytest.mark.skip
+def test_splice_metrics(bbdb):
     bbs = bbdb.query('all')
     for pre in '_NC':
         for post in '_NC':
@@ -17,16 +18,19 @@ def test_Edge(bbdb):
                 print(dirn[:2], dirn[2:])
                 u = Vertex(bbs, np.arange(len(bbs)), dirn[:2])
                 v = Vertex(bbs, np.arange(len(bbs)), dirn[2:])
-                e = Edge(u, bbs, v, bbs)
+                e = splice_metrics(u, bbs, v, bbs)
 
 
-def test_Edge_fullsize_prots(bbdb_fullsize_prots):
+@pytest.mark.xfail
+def test_splice_metrics_fullsize_prots(bbdb_fullsize_prots):
     bbs = bbdb_fullsize_prots.query('all')
 
     u = Vertex(bbs, np.arange(len(bbs)), '_C')
     v = Vertex(bbs, np.arange(len(bbs)), 'N_')
-    e = Edge(u, bbs, v, bbs)
+    scm = splice_metrics(u, bbs, v, bbs)
+    print(scm.nclash)
+    assert isinstance(scm, xr.DataSet)
 
     u = Vertex(bbs, np.arange(len(bbs)), '_N')
     v = Vertex(bbs, np.arange(len(bbs)), 'C_')
-    e = Edge(u, bbs, v, bbs)
+    e = splice_metrics(u, bbs, v, bbs)

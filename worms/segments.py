@@ -811,6 +811,8 @@ class Worms:
         cryst_info = None
         if self.criteria.crystinfo:
             cryst_info = self.criteria.crystinfo(segpos=self.positions[which])
+            # if cryst_info[0] < 100.0:
+            # return None
         if end is None and cyclic_permute is None:
             cyclic_permute, end = is_cyclic, True
         if end is None:
@@ -898,7 +900,7 @@ class Worms:
             provenance=False,
             fullatom=False,
             asym_score_thresh=50,
-            min_cell_spacing=100,
+            min_cell_spacing=130,
             *,
             parallel=False
     ):  # yapf: disable
@@ -922,32 +924,26 @@ class Worms:
             which = list(which)
             if not all(0 <= i < len(self) for i in which):
                 raise IndexError('invalid worm index')
+            args = (
+                self.sympose,
+                which,
+                it.repeat(score),
+                it.repeat(provenance),
+                it.repeat(fullatom),
+                it.repeat(asym_score_thresh),
+                it.repeat(min_cell_spacing),
+            )
             if parallel:
                 with ThreadPoolExecutor() as pool:
-                    result = pool.map(
-                        self.sympose,
-                        which,
-                        it.repeat(score),
-                        it.repeat(provenance),
-                        it.repeat(fullatom),
-                        it.repeat(asym_score_thresh),
-                        it.repeat(min_cell_spacing),
-                    )
+                    result = pool.map(*args)
                     return list(result)
             else:
-                return list(
-                    map(
-                        self.sympose,
-                        which,
-                        it.repeat(score),
-                        it.repeat(provenance),
-                        it.repeat(fullatom),
-                        it.repeat(asym_score_thresh),
-                        it.repeat(min_cell_spacing),
-                    ))
+                return list(map(*args))
         if not 0 <= which < len(self):
             raise IndexError('invalid worm index')
-        p, prov = self.pose(which, provenance=True)
+        posecall = self.pose(which, provenance=True)
+        if not posecall: return None
+        p, prov = posecall
         if fullatom: pfull = p.clone()
         pcen = p
         ros.core.util.switch_to_residue_type_set(pcen, 'centroid')
@@ -961,26 +957,22 @@ class Worms:
         else:
             symdata = util.get_symdata(self.criteria.symname)
         sfxn = self.score0sym
-        if symdata is None:
-            sfxn = self.score0
-        else:
-            if pcen.pdb_info() and pcen.pdb_info().crystinfo().A() > 0:
-                if pcen.pdb_info().crystinfo().A() > min_cell_spacing:
-                    pyrosetta.rosetta.protocols.cryst.MakeLatticeMover().apply(
-                        pcen)
-                    if self.score0sym(pcen) > 100:
-                        return None
-                else:
+
+        if 0:  # pcen.pdb_info() and pcen.pdb_info().crystinfo().A() > 0:
+            if pcen.pdb_info().crystinfo().A() > min_cell_spacing:
+                ros.protocols.cryst.MakeLatticeMover().apply(pcen)
+                if self.score0sym(pcen) > 500:
                     return None
             else:
-                ros.core.pose.symmetry.make_symmetric_pose(pcen, symdata)
+                return None
+
+        elif symdata is None:
+            sfxn = self.score0
+        else:
+            ros.core.pose.symmetry.make_symmetric_pose(pcen, symdata)
         if fullatom:
-            if symdata is not None:
-                if pfull.pdb_info() and pfull.pdb_info().crystinfo().A() > 0:
-                    pyrosetta.rosetta.protocols.cryst.MakeLatticeMover().apply(
-                        pfull)
-                else:
-                    ros.core.pose.symmetry.make_symmetric_pose(pfull, symdata)
+            pfull = pcen.clone()
+            ros.core.util.switch_to_residue_type_set(pfull, 'fa_standard')
             p = pfull
         else:
             p = pcen

@@ -12,6 +12,46 @@ from worms.khash.khash_cffi import _khash_init, _khash_set, _khash_get, _khash_d
 T = namedtuple('T', 'a b c d'.split())
 
 
+def test_numba_iterate():
+    @nb.njit(nogil=True)
+    def numba_sum(l):
+        tot = 0
+        for i in l:
+            tot += i
+        return tot
+
+    assert numba_sum([1, 2, 3]) == 6
+    assert numba_sum((1, 2, 3)) == 6
+    assert numba_sum(np.arange(1, 4)) == 6
+
+    @nb.njit(nogil=True)
+    def numba_sum2(k, l):
+        tot = 0
+        for i in k:
+            for j in l:
+                tot += i * j
+        return tot
+
+    for u in ([1, 2, 3], (1, 2, 3), np.arange(1, 4)):
+        for v in ([0, 1, 2], (0, 1, 2), np.arange(0, 3)):
+            assert numba_sum2(u, v) == 18
+    assert len(numba_sum2.nopython_signatures) == 9
+
+
+def test_numba_reshape():
+    @nb.njit(nogil=True)
+    def numba_reshape(m44, a):
+        tmp = a.reshape(-1, 4, 1)
+        for i in range(len(tmp)):
+            tmp[i] = m44 @ tmp[i]
+        return tmp.reshape(-1, 3, 4)
+
+    m44 = np.eye(4, dtype='f4')
+    ncac = np.arange(120, dtype='f4').reshape(-1, 3, 4)
+    ncac[..., 3] = 1
+    assert numba_reshape(m44, ncac).shape == (10, 3, 4)
+
+
 @nb.njit(nogil=True)
 def numba_named_tuple(t):
     s = T(0, 1, 2, 3)
@@ -81,13 +121,12 @@ def disabled_test_khash():
     assert np.allclose(s1, s3)
 
 
-@nb.njit(nogil=True)
-def add(u):
-    return u[0] + u[1] + u[2] + u[3] + u[4] + u[5] + u[6] + u[7]
-
-
 @pytest.mark.skip
 def test_many_specs():
+    @nb.njit(nogil=True)
+    def add(u):
+        return u[0] + u[1] + u[2] + u[3] + u[4] + u[5] + u[6] + u[7]
+
     import itertools as it
     n = 8
     binary = np.right_shift(np.arange(2**n)[:, None], np.arange(n)[None]) % 2

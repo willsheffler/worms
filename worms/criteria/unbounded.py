@@ -1,7 +1,6 @@
 from . import WormCriteria, Ux, Uz
 import numpy as np
 import homog as hm  ## python library that Will wrote to do geometry things
-import pyrosetta
 
 
 class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)

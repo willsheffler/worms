@@ -6,12 +6,13 @@ import numba as nb
 import numba.types as nt
 from homog import is_homog_xform
 from worms import util
+from worms.bblock import chain_of_ires
 from logging import warning
 
 
 @nb.jitclass((
-    ('x2exit', nt.float32[:, :, :]),
-    ('x2orig', nt.float32[:, :, :]),
+    ('x2exit', nt.float64[:, :, :]),
+    ('x2orig', nt.float64[:, :, :]),
     ('inout' , nt.int32[:, :]),
     ('inbreaks' , nt.int32[:]),
     ('ires'  , nt.int32[:, :]),
@@ -69,28 +70,6 @@ class _Vertex:
             TYPE: Description
         """
         return len(self.ires)
-
-
-@nb.njit(nogil=True)
-def chain_of_ires(bb, ires):
-    """Summary
-
-    Args:
-        bb (TYPE): Description
-        ires (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
-    chain = np.empty_like(ires)
-    for i, ir in enumerate(ires):
-        if ir < 0:
-            chain[i] = -1
-        else:
-            for c in range(len(bb.chains)):
-                if bb.chains[c, 0] <= ir < bb.chains[c, 1]:
-                    chain[i] = c
-    return chain
 
 
 def vertex_single(bb, bbid, din, dout, min_seg_len):

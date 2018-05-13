@@ -526,7 +526,7 @@ def grow(segments,
         if max_samples is not None:
             max_samples = np.clip(chunksize * max_workers, max_samples, ntot)
         every_other = max(1, int(ntot / max_samples)) if max_samples else 1
-        njob = int(np.sqrt(nchunks / every_other) / 32) * nworker
+        njob = int(np.sqrt(nchunks / every_other) / 128) * nworker
         njob = np.clip(nworker, njob, nchunks)
 
         actual_ntot = int(ntot / every_other)

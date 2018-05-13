@@ -1,4 +1,5 @@
 import numpy as np
+from worms.bblock import *
 from worms.bblock import _make_connections_array
 
 
@@ -24,4 +25,6 @@ def test_make_connections_array1():
     assert np.all(a == b)
 
 
-# def test_bblock(bbdb_fullsize_prots):
+def test_bblock(bbdb):
+    for bb in bbdb.query('all'):
+        assert bblock_str(bb).startswith('jitclass')

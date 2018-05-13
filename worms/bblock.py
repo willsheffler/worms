@@ -15,6 +15,16 @@ def BBlock(entry, pdbfile, pose, ss):
     if len(conn) is 0:
         print('bad conn info!', pdbfile)
         return None, pdbfile  # new, missing
+    if ncac.shape[-1] is 4:
+        ncac = ncac.astype(np.float64)
+    elif ncac.shape[-1] is 3:
+        tmp = np.ones((ncac.shape[0], 3, 4), dtype=np.float64)
+        tmp[..., :3] = ncac
+        ncac = tmp
+    else:
+        assert 0, 'bad ncac'
+
+    # print(ncac.shape, ncac.strides)
     bblock = _BBlock(
         connections=conn,
         file=np.frombuffer(entry['file'].encode(), dtype='i1'),
@@ -26,10 +36,10 @@ def BBlock(entry, pdbfile, pose, ss):
         validated=entry['validated'],
         _type=np.frombuffer(entry['type'].encode(), dtype='i1'),
         base=np.frombuffer(entry['base'].encode(), dtype='i1'),
-        ncac=ncac.astype('f4'),
+        ncac=np.ascontiguousarray(ncac),
         chains=np.array(chains, dtype='i4'),
         ss=ss,
-        stubs=stubs.astype('f4'),
+        stubs=np.ascontiguousarray(stubs.astype('f8')),
     )
 
     return bblock
@@ -45,10 +55,10 @@ def BBlock(entry, pdbfile, pose, ss):
     ('validated'  , nt.boolean),
     ('_type'      , nt.int8[:]),
     ('base'       , nt.int8[:]),
-    ('ncac'       , nt.float32[:, :, :]),
+    ('ncac'       , nt.float64[:, :, :]),
     ('chains'     , nt.int32[:,:]),
     ('ss'         , nt.int8[:]),
-    ('stubs'      , nt.float32[:, :, :]),
+    ('stubs'      , nt.float64[:, :, :]),
 ))  # yapf: disable
 class _BBlock:
     """
@@ -145,6 +155,36 @@ class _BBlock:
                 self.ncac, self.chains, self.ss, self.stubs)
 
 
+@nb.njit(nogil=True)
+def chain_of_ires(bb, ires):
+    """Summary
+
+    Args:
+        bb (TYPE): Description
+        ires (TYPE): Description
+
+    Returns:
+        TYPE: Description
+    """
+    chain = np.empty_like(ires)
+    for i, ir in enumerate(ires):
+        if ir < 0:
+            chain[i] = -1
+        else:
+            for c in range(len(bb.chains)):
+                if bb.chains[c, 0] <= ir < bb.chains[c, 1]:
+                    chain[i] = c
+    return chain
+
+
+@nb.njit(nogil=True)
+def chainbounds_of_ires(bb, ires):
+    for c in range(len(bb.chains)):
+        if bb.chains[c, 0] <= ires < bb.chains[c, 1]:
+            return bb.chains[c, 0], bb.chains[c, 1]
+    return (None, None)
+
+
 def _make_connections_array(entries, chain_bounds):
     """TODO: Summary
 
@@ -229,7 +269,7 @@ def bblock_str(bblock):
     return '\n'.join([
         'jitclass BBlock(',
         '    file=' + str(bytes(bblock.file)),
-        '    components=' + str(pdbdat_components(bblock)),
+        '    components=' + str(bblock_components(bblock)),
         '    protocol=' + str(bytes(bblock.protocol)),
         '    name=' + str(bytes(bblock.name)),
         '    classes=' + str(bytes(bblock.classes)),
@@ -242,7 +282,7 @@ def bblock_str(bblock):
         '    ss=array(shape=' + str(bblock.ss.shape) + ', dtype=' +
         str(bblock.ss.dtype) + ')',
         '    stubs=array(shape=' + str(bblock.stubs.shape) + ', dtype=' + str(
-            bblock.connecions.dtype) + ')',
+            bblock.connections.dtype) + ')',
         '    stubs=array(shape=' + str(bblock.connections.shape) + ', dtype=' +
         str(bblock.connections.dtype) + ')',
         ')',

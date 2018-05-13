@@ -14,11 +14,37 @@ from collections import defaultdict
 import homog
 from worms import util
 from logging import info
+from functools import singledispatch
 try:
     from pymol import cmd
     from pymol import cgo
-except:
+except ImportError:
     info('pymol not available!')
+
+try:
+    from pyrosetta.rosetta.core.pose import Pose
+except ImportError:
+    from unittest.mock import MagicMock
+    Pose = MagicMock()
+
+_atom_record_format = (
+    "ATOM  {atomi:5d} {atomn:^4}{idx:^1}{resn:3s} {chain:1}{resi:4d}{insert:1s}   "
+    "{x:8.3f}{y:8.3f}{z:8.3f}{occ:6.2f}{b:6.2f}\n")
+
+
+def format_atom(atomi=0,
+                atomn='ATOM',
+                idx=' ',
+                resn='RES',
+                chain='A',
+                resi=0,
+                insert=' ',
+                x=0,
+                y=0,
+                z=0,
+                occ=0,
+                b=0):
+    return _atom_record_format.format(**locals())
 
 
 def is_rosetta_pose(to_show):
@@ -30,11 +56,7 @@ def is_rosetta_pose(to_show):
     Returns:
         TYPE: Description
     """
-    try:
-        from pyrosetta import rosetta
-        return isinstance(to_show, rosetta.core.pose.Pose)
-    except ImportError:
-        return False
+    return isinstance(to_show, Pose)
 
 
 def pymol_load_pose(pose, name):
@@ -63,40 +85,99 @@ def pymol_xform(name, xform):
     cmd.transform_object(name, xform.flatten())
 
 
+@singledispatch
 def pymol_load(to_show, state=None, name=None, **kw):
-    """TODO: Summary
+    raise NotImplementedError(
+        "pymol_load: don't know how to show " + str(type(to_show)))
 
-    Args:
-        to_show (TYPE): Description
-        state (None, optional): Description
-        name (None, optional): Description
-        kw: passthru args
-    Returns:
-        TYPE: Description
 
-    Raises:
-        NotImplementedError: Description
-    """
-    if isinstance(to_show, list):
-        for t in to_show:
-            state = pymol_load(t, state)
-    elif isinstance(to_show, dict):
-        assert 'pose' in to_show
-        state = pymol_load(to_show['pose'], state)
-        pymol_xform(to_show['position'], state['last_obj'])
-    elif is_rosetta_pose(to_show):
-        name = name or 'rif_thing'
-        state['seenit'][name] += 1
-        name += '_%i' % state['seenit'][name]
-        pymol_load_pose(to_show, name)
-        state['last_obj'] = name
-    elif isinstance(to_show, np.ndarray):
-        showsegment(to_show, [0, 0, 0], **kw)
-    else:
-        raise NotImplementedError(
-            "don't know how to show " + str(type(to_show)))
+@pymol_load.register(Pose)
+def _(to_show, state=None, name=None, **kw):
+    name = name or 'rif_thing'
+    state['seenit'][name] += 1
+    name += '_%i' % state['seenit'][name]
+    pymol_load_pose(to_show, name)
+    state['last_obj'] = name
     return state
 
+
+@pymol_load.register(dict)
+def _(to_show, state=None, name=None, **kw):
+    assert 'pose' in to_show
+    state = pymol_load(to_show['pose'], state)
+    pymol_xform(to_show['position'], state['last_obj'])
+    return state
+
+
+@pymol_load.register(list)
+def _(to_show, state=None, name=None, **kw):
+    for t in to_show:
+        state = pymol_load(t, state)
+    return state
+
+
+@pymol_load.register(np.ndarray)
+def _(to_show, state=None, name=None, **kw):
+    name = name or 'worms_thing'
+    state['seenit'][name] += 1
+    name += '_%i' % state['seenit'][name]
+    from pymol import cmd
+    tmpdir = tempfile.mkdtemp()
+    fname = tmpdir + '/' + name + '.pdb'
+    assert to_show.shape[-2:] == (3, 4)
+    with open(fname, 'w') as out:
+        for i, a1 in enumerate(to_show.reshape(-1, 3, 4)):
+            for j, a in enumerate(a1):
+                line = format_atom(
+                    atomi=3 * i + j,
+                    resn='GLY',
+                    resi=i,
+                    atomn=(' N  ', ' CA ', ' C  ')[j],
+                    x=a[0],
+                    y=a[1],
+                    z=a[2],
+                )
+                out.write(line)
+    cmd.load(fname)
+    return state
+
+
+# def pymol_load_OLD(to_show, state=None, name=None, **kw):
+#     """TODO: Summary
+
+#     Args:
+#         to_show (TYPE): Description
+#         state (None, optional): Description
+#         name (None, optional): Description
+#         kw: passthru args
+#     Returns:
+#         TYPE: Description
+
+#     Raises:
+#         NotImplementedError: Description
+#     """
+#     if isinstance(to_show, list):
+#         for t in to_show:
+#             state = pymol_load(t, state)
+#     elif isinstance(to_show, dict):
+#         assert 'pose' in to_show
+#         state = pymol_load(to_show['pose'], state)
+#         pymol_xform(to_show['position'], state['last_obj'])
+#     elif is_rosetta_pose(to_show):
+#         name = name or 'rif_thing'
+#         state['seenit'][name] += 1
+#         name += '_%i' % state['seenit'][name]
+#         pymol_load_pose(to_show, name)
+#         state['last_obj'] = name
+#     elif isinstance(to_show, np.ndarray):
+
+#         raise NotImplementedError
+
+#         showsegment(to_show, [0, 0, 0], **kw)
+#     else:
+#         raise NotImplementedError(
+#             "don't know how to show " + str(type(to_show)))
+#     return state
 
 showme_state = dict(launched=0, seenit=defaultdict(lambda: -1))
 
