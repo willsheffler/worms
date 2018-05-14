@@ -20,9 +20,11 @@ static inline int khash_int2int_set(void *, khint64_t, khint64_t);
 """)
 
 _dir = os.path.dirname(__file__)
-# if not os.path.exists(_dir + '/_khash_ffi.o'):
-# print('worms.khash first run, building...')
-_ffi.compile(tmpdir=_dir)
+try:
+    from worms.khash import _khash_ffi
+except ImportError:
+    print('worms.khash first run, building...')
+    _ffi.compile(tmpdir=_dir)
 
 if not 'READTHEDOCS' in os.environ:
     from worms.khash import _khash_ffi

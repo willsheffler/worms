@@ -16,8 +16,8 @@ except ImportError:
 only_if_pyrosetta = pytest.mark.skipif('not HAVE_PYROSETTA_AND_DBSTUFF')
 
 
-# @pytest.mark.skip
-@only_if_pyrosetta
+@pytest.mark.skip
+# @only_if_pyrosetta
 def test_BakerFilter(db_asu_pose, hetC2A_pose, hetC2B_pose):
     FW = BakerFilter(
         score0_cutoff=1.0,

@@ -22,20 +22,35 @@ class _Edge:
     """contains junction scores
     """
 
-    def __init__(self, splices):
+    def __init__(self, scmatrix):
         """TODO: Summary
 
         Args:
             splices (TYPE): Description
         """
-        pass
+        assert scmatrix.ndim is 2
+        nout = scmatrix.shape[0]
+        max_Nin = 0
+        for i in range(scmatrix.shape[0]):
+            max_Nin = max(max_Nin, np.sum(scmatrix[i]))
+
+        self.splices = np.zeros((nout, max_Nin + 1), dtype=np.int32)
+        self.splices -= 1
+        for i in range(nout):
+            non0 = scmatrix[i].nonzero()[0].astype(np.int32)
+            self.splices[i, 0] = len(non0) + 1
+            self.splices[i, 1:len(non0) + 1] = non0
+
+    @property
+    def len(self):
+        return len(self.splices)
 
     def allowed_splices(self, i):
-        return self.splices[i, 2:self.splices[i, 1]]
+        return self.splices[i, 1:self.splices[i, 0]]
 
 
 _SCM_Scores = namedtuple('_SCM_Scores',
-                         'aln0 aln1 n1b n2b nclash ncontact rms'.split())
+                         'aln0 aln1 nclash ncontact rms'.split())
 
 
 def scm_concat(lst, axis=0):
@@ -54,67 +69,81 @@ def _jit_splice_metrics(bb0,
                         bb1,
                         aln1s,
                         clashd2=3.0**2,
+                        contactd2=10.0**2,
                         rms_range=9,
-                        clash_contact_range=9):
+                        clash_contact_range=9,
+                        rms_cut=1.1,
+                        skip_on_fail=True):
     scm = np.ones((len(aln0s), len(aln1s)), dtype=np.float32)
     df = _SCM_Scores(
         aln0=np.array(aln0s, dtype=np.int32),
         aln1=np.array(aln1s, dtype=np.int32),
-        n1b=np.zeros((len(aln0s), len(aln1s)), dtype=np.int32),
-        n2b=np.zeros((len(aln0s), len(aln1s)), dtype=np.int32),
+        # n1b=np.zeros((len(aln0s), len(aln1s)), dtype=np.int32),
+        # n2b=np.zeros((len(aln0s), len(aln1s)), dtype=np.int32),
         nclash=np.zeros((len(aln0s), len(aln1s)), dtype=np.int32),
         ncontact=np.zeros((len(aln0s), len(aln1s)), dtype=np.int32),
-        rms=np.zeros((len(aln0s), len(aln1s)), dtype=np.float32),
+        rms=np.ones((len(aln0s), len(aln1s)), dtype=np.float32) * 9e9,
     )
     for ialn0, aln0 in enumerate(aln0s):
         chainb0 = chainbounds_of_ires(bb0, aln0)
+        if np.abs(chainb0[0] - aln0) < rms_range: continue
+        if np.abs(chainb0[1] - aln0) < rms_range: continue
+        # print('chnb0', 10000 + ialn0, 10000 + aln0, 10000 + int(chainb0[0]),
+        # 10000 + int(chainb0[1]))
         stub0 = bb0.stubs[aln0]
         for ialn1, aln1 in enumerate(aln1s):
             chainb1 = chainbounds_of_ires(bb1, aln1)
+            if np.abs(chainb1[0] - aln1) < rms_range: continue
+            if np.abs(chainb1[1] - aln1) < rms_range: continue
+            # print('chnb1', 10000 + ialn1, 10000 + aln1,
+            # 10000 + int(chainb1[0]), 10000 + int(chainb1[1]))
             stub1 = bb1.stubs[aln1]
             xaln = stub0 @ np.linalg.inv(stub1)
+
+            rms, n1b = 0.0, 0
+            for i in range(-1, -rms_range - 1, -1):
+                if (aln0 + i < chainb0[0]) or (aln1 + i < chainb1[0]):
+                    break
+                n1b += 1
+                for ia in range(3):
+                    a = bb0.ncac[aln0 + i, ia]
+                    b = xaln @ bb1.ncac[aln1 + i, ia]
+                    rms += np.sum((a - b)**2)
+
+            for j in range(0, rms_range + 1):
+                if (aln0 + j >= chainb0[1]) or (aln1 + j >= chainb1[1]):
+                    break
+                n1b += 1
+                for ja in range(3):
+                    a = bb0.ncac[aln0 + j, ja]
+                    b = xaln @ bb1.ncac[aln1 + j, ja]
+                    rms += np.sum((a - b)**2)
+
+            rms = np.sqrt(rms / (3 * n1b))
+            df.rms[ialn0, ialn1] = rms
+
+            if skip_on_fail and rms > rms_cut:
+                continue
 
             for i in range(-1, -clash_contact_range - 1, -1):
                 if (aln0 + i < chainb0[0]): break
                 for j in range(1, clash_contact_range + 1):
-                    if ((aln0 + j >= len(bb0.ncac))
-                            or (aln1 + j >= len(bb1.ncac))):
-                        break
+                    if aln1 + j >= chainb1[1]: break
+                    # df.n2b[ialn0, ialn1] += 1
                     for ia in range(3):
                         for ja in range(3):
                             a = bb0.ncac[aln0 + i, ia]
                             b = xaln @ bb1.ncac[aln1 + j, ja]
                             d2 = np.sum((a - b)**2)
-                            df.n2b[ialn0, ialn1] += 1
                             if d2 < clashd2:
                                 df.nclash[ialn0, ialn1] += 1
-                            elif ia == 1 and ja == 1 and d2 < 64:
+                            elif ia == 1 and ja == 1 and d2 < contactd2:
                                 df.ncontact[ialn0, ialn1] += 1
-
-            for i in range(-1, -rms_range - 1, -1):
-                if (aln0 + i < chainb0[0]) or (aln1 + i < chainb1[0]):
-                    break
-                for ia in range(3):
-                    a = bb0.ncac[aln0 + i, ia]
-                    b = xaln @ bb1.ncac[aln1 + i, ia]
-                    df.rms[ialn0, ialn1] += np.sum((a - b)**2)
-                    df.n1b[ialn0, ialn1] += 1
-            for j in range(0, rms_range + 1):
-                if (aln0 + j >= chainb0[1]) or (aln1 + j >= chainb1[1]):
-                    break
-                for ja in range(3):
-                    a = bb0.ncac[aln0 + j, ja]
-                    b = xaln @ bb1.ncac[aln1 + j, ja]
-                    df.rms[ialn0, ialn1] += np.sum((a - b)**2)
-                    df.n1b[ialn0, ialn1] += 1
-
-            df.rms[ialn0, ialn1] = np.sqrt(
-                df.rms[ialn0, ialn1] / df.n1b[ialn0, ialn1])
 
     return df
 
 
-def splice_metrics(u, ubbs, v, vbbs):
+def splice_metrics(u, ubbs, v, vbbs, **kw):
     assert (u.dirn[1] + v.dirn[0]) == 1
     outidx = [
         np.where(u.inout[:, 1] == i)[0][0]
@@ -125,7 +154,7 @@ def splice_metrics(u, ubbs, v, vbbs):
     outres = u.ires[outidx, 1]
     inbb = v.ibb[v.inbreaks[:-1]]
     inres = v.ires[v.inbreaks[:-1], 0]
-    outbb_breaks = contig_idx_breaks(outbb)
+    # outbb_breaks = contig_idx_breaks(outbb)
     inbb_breaks = contig_idx_breaks(inbb)
 
     outbb_res = defaultdict(list)
@@ -142,21 +171,28 @@ def splice_metrics(u, ubbs, v, vbbs):
         cols = list()
         for ibb1, ires1 in inbb_res.items():
             bb1 = vbbs[ibb1]
-            if u.dirn[1] == 1:  # 'CN'
-                part = _jit_splice_metrics(bb0, ires0, bb1, ires1)
+            if u.dirn[1] == 1:  # '*C'->'N*'
+                assert v.dirn[0] == 0
+                part = _jit_splice_metrics(bb0, ires0, bb1, ires1, **kw)
             else:
-                part = _jit_splice_metrics(bb1, ires1, bb0, ires0)
+                assert v.dirn[0] == 1
+                part = _jit_splice_metrics(bb1, ires1, bb0, ires0, **kw)
                 part = _SCM_Scores(*(p.T for p in part))
             cols.append(part)
         scm.append(scm_concat(cols, axis=1))
     scm = scm_concat(scm, axis=0)
 
-    print(scm[0].shape, np.sum(scm[0]))
     right_shape = (len(outidx), len(v.inbreaks) - 1)
     assert all(x.shape == right_shape for x in scm if x.ndim == 2)
 
     return scm
 
 
-def Edge(u, ubbs, v, vbbs):
-    return _Edge()
+def Edge(u, ubbs, v, vbbs, rms_cut=1.1, ncontact_cut=10, **kw):
+
+    m = splice_metrics(u, ubbs, v, vbbs, rms_cut=rms_cut, **kw)
+
+    # * is logical 'and'
+    good_edges = ((m.nclash == 0) * (m.rms <= rms_cut) *
+                  (m.ncontact >= ncontact_cut))
+    return _Edge(good_edges)

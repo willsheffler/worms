@@ -20,6 +20,7 @@ requirements = [
     'toolz',
     'cffi',
     'xbin >= 0.1.5',
+    'scipy',
 ]
 
 setup_requirements = []
@@ -43,6 +44,7 @@ test_requirements = [
     'cffi',
     # https://storage.googleapis.com/protein-design-ipd-public/wheelhouse/pyrosetta-2017.48.post0.dev0%2B93.fordas.dev.f126926bdc8-cp35-cp35m-linux_x86_64.whl
     'pytest',
+    'scipy',
 ]
 
 setup(

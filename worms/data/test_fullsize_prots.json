@@ -3,8 +3,8 @@
  "base": "Sh13_3",
  "class": ["Het"],
  "components": ["DHR08", "DHR10"],
- "connections": [{"chain": 3, "direction": "N", "residues": [":2"]},
-                 {"chain": 1, "direction": "N", "residues": [":3"]}],
+ "connections": [{"chain": 3, "direction": "N", "residues": ["10:30"]},
+                 {"chain": 1, "direction": "N", "residues": ["12:33"]}],
  "file": "__DATADIR__/fullsize1.pdb",
  "name": "HFuse_Sh13_3_3c_2a_0001",
  "protocol": "Hfuse_asym",
@@ -19,7 +19,7 @@
     "components": ["DHR18", "DHR71"],
     "validated": false,
     "protocol": "Hfuse_asym",
-    "connections": [{"chain": 3, "direction": "C", "residues": ["-4:"]},
-                    {"chain": 1, "direction": "N", "residues": [":5"]}]
+    "connections": [{"chain": 3, "direction": "C", "residues": ["-37:-13"]},
+                    {"chain": 1, "direction": "N", "residues": ["15:35"]}]
 }
 ]

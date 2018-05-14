@@ -23,7 +23,7 @@ def dispatch(file, pytest_args='--duration=5'):
     path, bname = os.path.split(file)
     print('dispatch', file)
     if (not file.endswith('.py') or not file.startswith('worms/')):
-        return 'pytest {pytest_args}'.format(**vars())
+        return 'python ' + file
     if not os.path.basename(file).startswith("test_"):
         if bname in dispatch:
             return ('pytest {pytest_args} '.format(**vars()) + ' '.join(

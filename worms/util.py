@@ -273,6 +273,37 @@ def get_bb_stubs(pose, which_resi=None):
     return np.stack(npstubs).astype('f8'), np.stack(n_ca_c).astype('f8')
 
 
+def get_bb_coords(pose, which_resi=None):
+    """extract rif style stubs from rosetta pose
+
+    Args:
+        pose (TYPE): Description
+        which_resi (None, optional): Description
+
+    Returns:
+        TYPE: Description
+
+    Raises:
+        ValueError: Description
+    """
+    if which_resi is None:
+        which_resi = list(range(1, pose.size() + 1))
+    n_ca_c = []
+    for ir in which_resi:
+        r = pose.residue(ir)
+        if not r.is_protein():
+            raise ValueError('non-protein residue %s at position %i' %
+                             (r.name(), ir))
+        n, ca, c = r.xyz('N'), r.xyz('CA'), r.xyz('C')
+        n_ca_c.append(
+            np.array([
+                [n.x, n.y, n.z, 1],
+                [ca.x, ca.y, ca.z, 1],
+                [c.x, c.y, c.z, 1],
+            ]))
+    return np.stack(n_ca_c).astype('f8')
+
+
 def get_chain_bounds(pose):
     """TODO: Summary
 
@@ -670,13 +701,17 @@ def unique_key(a, b=None):
 def contig_idx_breaks(idx):
     breaks = np.empty(idx[-1] + 2, dtype=np.int32)
     breaks[0] = 0
+    n = 1
     for i in range(1, len(idx)):
         if idx[i - 1] != idx[i]:
-            assert idx[i - 1] + 1 == idx[i]
-            breaks[idx[i]] = i
-    breaks[-1] = len(idx)
+            assert idx[i - 1] < idx[i]
+            breaks[n] = i
+            n += 1
+    breaks[n] = len(idx)
+    breaks = np.ascontiguousarray(breaks[:n + 1])
     if __debug__:
         for i in range(breaks.size - 1):
             vals = idx[breaks[i]:breaks[i + 1]]
-            assert np.all(vals == i)
+            assert len(vals)
+            assert np.all(vals == vals[0])
     return breaks

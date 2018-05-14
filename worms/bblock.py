@@ -2,12 +2,65 @@ import numpy as np
 import numba as nb
 from worms import util
 import numba.types as nt
+import homog
+
+
+def ncac_to_stubs(ncac):
+    """
+        Vector const & center,
+        Vector const & a,
+        Vector const & b,
+        Vector const & c
+    )
+    {
+        Vector e1( a - b);
+        e1.normalize();
+
+        Vector e3( cross( e1, c - b ) );
+        e3.normalize();
+
+        Vector e2( cross( e3,e1) );
+        M.col_x( e1 ).col_y( e2 ).col_z( e3 );
+        v = center;
+    """
+    assert ncac.shape[1:] == (3, 4)
+    stubs = np.zeros((len(ncac), 4, 4), dtype=np.float64)
+    ca2n = (ncac[:, 0] - ncac[:, 1])[..., :3]
+    ca2c = (ncac[:, 2] - ncac[:, 1])[..., :3]
+    # tgt1 = ca2n + ca2c  # thought this might make
+    # tgt2 = ca2n - ca2c  # n/c coords match better
+    tgt1 = ca2n  # rosetta style
+    tgt2 = ca2c  # seems better
+    a = tgt1
+    a /= np.linalg.norm(a, axis=-1)[:, None]
+    c = np.cross(a, tgt2)
+    c /= np.linalg.norm(c, axis=-1)[:, None]
+    b = np.cross(c, a)
+    assert np.allclose(np.sum(a * b, axis=-1), 0)
+    assert np.allclose(np.sum(b * c, axis=-1), 0)
+    assert np.allclose(np.sum(c * a, axis=-1), 0)
+    assert np.allclose(np.linalg.norm(a, axis=-1), 1)
+    assert np.allclose(np.linalg.norm(b, axis=-1), 1)
+    assert np.allclose(np.linalg.norm(c, axis=-1), 1)
+    stubs[:, :3, 0] = a
+    stubs[:, :3, 1] = b
+    stubs[:, :3, 2] = c
+    stubs[:, :3, 3] = ncac[:, 1, :3]
+    stubs[:, 3, 3] = 1
+    print(stubs[0])
+    assert homog.is_homog_xform(stubs)
+    return stubs
 
 
 def BBlock(entry, pdbfile, pose, ss):
     chains = util.get_chain_bounds(pose)
     ss = np.frombuffer(ss.encode(), dtype='i1')
-    stubs, ncac = util.get_bb_stubs(pose)
+
+    # stubs, ncac = util.get_bb_stubs(pose)
+
+    ncac = util.get_bb_coords(pose)
+    stubs = ncac_to_stubs(ncac)
+
     assert len(pose) == len(ncac)
     assert len(pose) == len(stubs)
     assert len(pose) == len(ss)
@@ -283,7 +336,7 @@ def bblock_str(bblock):
         str(bblock.ss.dtype) + ')',
         '    stubs=array(shape=' + str(bblock.stubs.shape) + ', dtype=' + str(
             bblock.connections.dtype) + ')',
-        '    stubs=array(shape=' + str(bblock.connections.shape) + ', dtype=' +
-        str(bblock.connections.dtype) + ')',
+        '    connectionsZ=array(shape=' + str(bblock.connections.shape) +
+        ', dtype=' + str(bblock.connections.dtype) + ')',
         ')',
     ])

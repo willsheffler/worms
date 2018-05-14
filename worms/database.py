@@ -89,6 +89,7 @@ class BBlockDB:
         self.read_new_pdbs = read_new_pdbs
         self.progressbar = progressbar
         self._alldb = []
+        self._holding_lock = False
         for dbfile in bakerdb_files:
             with open(dbfile) as f:
                 self._alldb.extend(json.load(f))
@@ -109,9 +110,8 @@ class BBlockDB:
         self.n_new_entries = 0
         self.n_missing_entries = len(self._alldb)
         if not self.lazy:
-            if self.read_new_pdbs: self.lock_cachedir()
             self.n_new_entries, self.n_missing_entries = self.load_from_pdbs()
-            if self.read_new_pdbs: self.unlock_cachedir()
+            if self._holding_lock: self.unlock_cachedir()
             if nprocs != 1:
                 # reload because processpool cache entries not serialized back
                 self.nprocs = 1
@@ -125,9 +125,18 @@ class BBlockDB:
             + self.cachedir + "/lock")
         open(self.cachedir + '/lock', 'w').close()
         assert os.path.exists(self.cachedir + '/lock')
+        self._holding_lock = True
 
     def unlock_cachedir(self):
         os.remove(self.cachedir + '/lock')
+        self._holding_lock = False
+
+    def islocked_cachedir(self):
+        return os.path.exists(self.cachedir + '/lock')
+
+    def check_lock_cachedir(self):
+        if not self._holding_lock:
+            self.lock_cachedir()
 
     def __getitem__(self, i):
         if isinstance(i, str):
@@ -345,6 +354,7 @@ class BBlockDB:
                 assert self.load_cached_pose_into_memory(pdbfile)
             return None, None  # new, missing
         elif self.read_new_pdbs:
+            self.check_lock_cachedir()
             read_pdb = False
             info('BBlockDB.build_pdb_data reading %s' % pdbfile)
             pose = self.pose(pdbfile)

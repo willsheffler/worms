@@ -2,6 +2,7 @@ from worms import util
 import json
 import itertools as it
 import pytest
+import numpy as np
 try:
     import pyrosetta
     HAVE_PYROSETTA = True
@@ -33,3 +34,8 @@ def test_remove_dicts():
     assert isinstance(ji, list)
     assert isinstance(ji[0], tuple)
     assert len(ji[0]) is 2
+
+
+def test_contig_idx_breaks():
+    tst = np.array([1, 1, 1, 1, 3, 3, 3, 3], dtype='i4')
+    assert np.all(util.contig_idx_breaks(tst) == [0, 4, 8])

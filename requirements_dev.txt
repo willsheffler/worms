@@ -12,6 +12,7 @@ PyYAML
 pytest
 pytest-runner
 numpy
+scipy
 numba >= 0.38
 pandas
 xarray
