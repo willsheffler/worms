@@ -17,7 +17,9 @@ def main():
         cachedir=str('.worms_pytest_cache'),
         bakerdb_files=[os.path.join('worms/data/test_fullsize_prots.json')],
         lazy=False,
-        read_new_pdbs=True)
+        read_new_pdbs=True,
+        nprocs=1,
+    )
 
     bbs0 = bbdb_fullsize_prots.query('all')
 
@@ -31,7 +33,7 @@ def main():
     v = Vertex(bbs, np.arange(len(bbs)), 'N_')
     splice_metrics(u, bbs, v, bbs)
 
-    for i in range(1, 8):
+    for i in range(20, 21):
         bbs = bbs0 * i
 
         # t = clock()

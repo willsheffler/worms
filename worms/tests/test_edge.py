@@ -32,9 +32,10 @@ def test_splice_metrics_fullsize_prots(bbdb_fullsize_prots):
     nclash = np.sum(m.nclash == 0)
     ncontact = np.sum(m.ncontact >= ncontact_cut)
     nrms = np.sum(m.rms <= rms_cut)
+    print(nrms, ncontact, nclash)
+    assert nrms == 36
     assert nclash == 1213
     assert ncontact == 1419
-    assert nrms == 36
 
     u = Vertex(bbs, np.arange(len(bbs)), '_N')
     v = Vertex(bbs, np.arange(len(bbs)), 'C_')
