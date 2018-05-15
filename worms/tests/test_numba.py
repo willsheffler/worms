@@ -418,3 +418,13 @@ def test_numba_cannot_chain_jitclass():
 
     with pytest.raises(nb.TypingError):
         assert jit_with_chain_funcs(addmul, addmuladd) == (7.2, 9.6)
+
+
+def test_numba_outargs():
+    @nb.njit
+    def foo(a):
+        a[0] = 7
+
+    a = np.arange(4)
+    foo(a)
+    assert a[0] == 7

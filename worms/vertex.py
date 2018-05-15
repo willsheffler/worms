@@ -168,7 +168,7 @@ def Vertex(bbs, bbids, dirn, min_seg_len=1):
              for bb, bid in zip(bbs, bbids))
     verts = [v for v in verts if v is not None]
     if not verts:
-        raise ValueError('no way to make vertex' + dirn)
+        raise ValueError('no way to make vertex: \'' + dirn + '\'')
     tup = tuple(np.concatenate(_) for _ in zip(*verts))
     assert len({x.shape[0] for x in tup}) == 1
     ibb, ires = tup[5], tup[2]

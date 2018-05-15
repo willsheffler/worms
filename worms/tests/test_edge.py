@@ -49,7 +49,6 @@ def test_splice_metrics_fullsize_prots(bbdb_fullsize_prots):
     assert nrms == 36
 
 
-# @pytest.mark.skip
 def test_edge_fullsize_prots(bbdb_fullsize_prots):
     bbs = bbdb_fullsize_prots.query('all')
     u = Vertex(bbs, np.arange(len(bbs)), '_C')

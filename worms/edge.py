@@ -3,7 +3,6 @@ import numba as nb
 import numba.types as nt
 from collections import defaultdict, namedtuple
 from worms.util import contig_idx_breaks
-from worms.bblock import chainbounds_of_ires
 
 try:
     # this is such bullshit...
@@ -62,9 +61,22 @@ def scm_concat(lst, axis=0):
     return _SCM_Scores(*result)
 
 
-@nb.njit(nogil=1)
-def _jit_splice_metrics(bb0,
-                        bb1,
+@nb.njit(nogil=True)
+def _chainbounds_of_ires(chains, ires):
+    for c in range(len(chains)):
+        if chains[c, 0] <= ires < chains[c, 1]:
+            return chains[c, 0], chains[c, 1]
+    return (-1, -1)
+
+
+@nb.njit(nogil=1, cache=True)
+def _jit_splice_metrics(out_offset0,
+                        out_offset1,
+                        out_rms,
+                        out_nclash,
+                        out_ncontact,
+                        chains0,
+                        chains1,
                         ncac0,
                         ncac1,
                         stubs0,
@@ -77,31 +89,26 @@ def _jit_splice_metrics(bb0,
                         clash_contact_range=9,
                         rms_cut=1.1,
                         skip_on_fail=True):
-    scm = np.ones((len(aln0s), len(aln1s)), dtype=np.float32)
-    df = _SCM_Scores(
-        # aln0=np.array(aln0s, dtype=np.int32),
-        # aln1=np.array(aln1s, dtype=np.int32),
-        # n1b=np.zeros((len(aln0s), len(aln1s)), dtype=np.int32),
-        # n2b=np.zeros((len(aln0s), len(aln1s)), dtype=np.int32),
-        nclash=np.zeros((len(aln0s), len(aln1s)), dtype=np.int32),
-        ncontact=np.zeros((len(aln0s), len(aln1s)), dtype=np.int32),
-        rms=np.ones((len(aln0s), len(aln1s)), dtype=np.float32) * 9e9,
-    )
-    for ialn0, aln0 in enumerate(aln0s):
-        chainb0 = chainbounds_of_ires(bb0, aln0)
-        if np.abs(chainb0[0] - aln0) < rms_range: continue
-        if np.abs(chainb0[1] - aln0) < rms_range: continue
-        # print('chnb0', 10000 + ialn0, 10000 + aln0, 10000 + int(chainb0[0]),
-        # 10000 + int(chainb0[1]))
-        stub0 = stubs0[aln0]
-        for ialn1, aln1 in enumerate(aln1s):
-            chainb1 = chainbounds_of_ires(bb1, aln1)
-            if np.abs(chainb1[0] - aln1) < rms_range: continue
-            if np.abs(chainb1[1] - aln1) < rms_range: continue
-            # print('chnb1', 10000 + ialn1, 10000 + aln1,
-            # 10000 + int(chainb1[0]), 10000 + int(chainb1[1]))
-            stub1 = stubs1[aln1]
-            xaln = stub0 @ np.linalg.inv(stub1)
+
+    assert out_nclash.shape == out_rms.shape
+    assert out_nclash.shape == out_ncontact.shape
+    assert out_ncontact.shape == out_rms.shape
+    assert out_offset0 + len(aln0s) <= out_rms.shape[0]
+    assert out_offset1 + len(aln1s) <= out_rms.shape[1]
+
+    for ialn1, aln1 in enumerate(aln1s):
+        chainb1 = _chainbounds_of_ires(chains1, aln1)
+        if np.abs(chainb1[0] - aln1) < rms_range: continue
+        if np.abs(chainb1[1] - aln1) < rms_range: continue
+        iout1 = out_offset1 + ialn1
+        stub1_inv = np.linalg.inv(stubs1[aln1])
+
+        for ialn0, aln0 in enumerate(aln0s):
+            chainb0 = _chainbounds_of_ires(chains0, aln0)
+            if np.abs(chainb0[0] - aln0) < rms_range: continue
+            if np.abs(chainb0[1] - aln0) < rms_range: continue
+            iout0 = out_offset0 + ialn0
+            xaln = stubs0[aln0] @ stub1_inv
 
             rms, n1b = 0.0, 0
             for i in range(-3 * rms_range, 3 * rms_range + 3):
@@ -109,7 +116,7 @@ def _jit_splice_metrics(bb0,
                 b = xaln @ ncac1[3 * aln1 + i]
                 rms += np.sum((a - b)**2)
             rms = np.sqrt(rms / (rms_range * 6 + 3))
-            df.rms[ialn0, ialn1] = rms
+            out_rms[iout0, iout1] = rms
 
             if skip_on_fail and rms > rms_cut:
                 continue
@@ -124,9 +131,8 @@ def _jit_splice_metrics(bb0,
                         nclash += 1
                     elif i % 3 == 1 and j % 3 == 1 and d2 < contactd2:
                         ncontact += 1
-            df.nclash[ialn0, ialn1] = nclash
-            df.ncontact[ialn0, ialn1] = ncontact
-    return df
+            out_nclash[iout0, iout1] = nclash
+            out_ncontact[iout0, iout1] = ncontact
 
 
 def splice_metrics(u, ubbs, v, vbbs, **kw):
@@ -151,31 +157,40 @@ def splice_metrics(u, ubbs, v, vbbs, **kw):
     for ibb, ires in zip(inbb, inres):
         inbb_res[ibb].append(ires)
 
-    scm = list()
+    for ibb in inbb_res.keys():
+        inbb_res[ibb] = np.array(inbb_res[ibb], 'i4')
+    for ibb in outbb_res.keys():
+        outbb_res[ibb] = np.array(outbb_res[ibb], 'i4')
+
+    if u.dirn[1] == 0:  # swap!
+        u, ubbs, v, vbbs = v, vbbs, u, ubbs
+        outbb_res, inbb_res = inbb_res, outbb_res
+        outbb, inbb = inbb, outbb
+
+    metrics = _SCM_Scores(
+        nclash=np.zeros((len(outbb), len(inbb)), dtype=np.int32) - 1,
+        ncontact=np.zeros((len(outbb), len(inbb)), dtype=np.int32) - 1,
+        rms=np.zeros((len(outbb), len(inbb)), dtype=np.float32) - 1)
+
+    offset0 = 0
     for ibb0, ires0 in outbb_res.items():
         bb0 = ubbs[ibb0]
-        cols = list()
+        offset1 = 0
         for ibb1, ires1 in inbb_res.items():
             bb1 = vbbs[ibb1]
-            if u.dirn[1] == 1:  # '*C'->'N*'
-                assert v.dirn[0] == 0
-                part = _jit_splice_metrics(bb0, bb1, bb0.ncac.reshape(-1, 4),
-                                           bb1.ncac.reshape(-1, 4), bb0.stubs,
-                                           bb1.stubs, ires0, ires1, **kw)
-            else:
-                assert v.dirn[0] == 1
-                part = _jit_splice_metrics(bb1, bb0, bb1.ncac.reshape(-1, 4),
-                                           bb0.ncac.reshape(-1, 4), bb1.stubs,
-                                           bb0.stubs, ires1, ires0, **kw)
-                part = _SCM_Scores(*(p.T for p in part))
-            cols.append(part)
-        scm.append(scm_concat(cols, axis=1))
-    scm = scm_concat(scm, axis=0)
+            _jit_splice_metrics(offset0, offset1, metrics.rms, metrics.nclash,
+                                metrics.ncontact, bb0.chains, bb1.chains,
+                                bb0.ncac.reshape(-1, 4), bb1.ncac.reshape(
+                                    -1, 4), bb0.stubs, bb1.stubs, ires0, ires1,
+                                **kw)
+            offset1 += len(ires1)
+        offset0 += len(ires0)
 
-    right_shape = (len(outidx), len(v.inbreaks) - 1)
-    assert all(x.shape == right_shape for x in scm if x.ndim == 2)
+    if u.dirn[1] == 0:  # swap!
+        metrics = _SCM_Scores(metrics.nclash.T, metrics.ncontact.T,
+                              metrics.rms.T)
 
-    return scm
+    return metrics
 
 
 def Edge(u, ubbs, v, vbbs, rms_cut=1.1, ncontact_cut=10, **kw):

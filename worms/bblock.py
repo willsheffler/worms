@@ -230,14 +230,6 @@ def chain_of_ires(bb, ires):
     return chain
 
 
-@nb.njit(nogil=True)
-def chainbounds_of_ires(bb, ires):
-    for c in range(len(bb.chains)):
-        if bb.chains[c, 0] <= ires < bb.chains[c, 1]:
-            return bb.chains[c, 0], bb.chains[c, 1]
-    return (None, None)
-
-
 def _make_connections_array(entries, chain_bounds):
     """TODO: Summary
 

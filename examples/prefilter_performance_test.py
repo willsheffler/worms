@@ -33,17 +33,22 @@ def main():
     v = Vertex(bbs, np.arange(len(bbs)), 'N_')
     splice_metrics(u, bbs, v, bbs)
 
-    for i in range(20, 21):
+    for i in range(1, 21):
         bbs = bbs0 * i
 
-        # t = clock()
+        t = clock()
         u = Vertex(bbs, np.arange(len(bbs)), '_C')
         v = Vertex(bbs, np.arange(len(bbs)), 'N_')
-        # print('timing vertex creation', i, u.len + v.len, clock() - t)
+        tv = clock() - t
 
         t = clock()
         m = splice_metrics(u, bbs, v, bbs)
-        print('timing splice_metrics', i, np.prod(m.rms.shape), clock() - t)
+        tm = clock() - t
+        n = np.prod(m.rms.shape)
+        nt = n / (tm)
+        print(
+            f'timing splice_metrics {i:4}, {n:10,} {tm:7.3f} {nt:10.1f} {tv:7.3f}'
+        )
 
 
 if __name__ == '__main__':
