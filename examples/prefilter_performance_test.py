@@ -33,7 +33,7 @@ def main():
     v = Vertex(bbs, np.arange(len(bbs)), 'N_')
     splice_metrics(u, bbs, v, bbs)
 
-    for i in range(1, 21):
+    for i in range(1, 12):
         bbs = bbs0 * i
 
         t = clock()

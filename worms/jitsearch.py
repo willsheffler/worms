@@ -1,3 +1,0 @@
-"""\
-the new hotness
-"""

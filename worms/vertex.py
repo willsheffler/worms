@@ -63,6 +63,17 @@ class _Vertex:
         self.dirn = dirn
 
     @property
+    def entry_index(self):
+        return self.inout[:, 0]
+
+    @property
+    def exit_index(self):
+        return self.inout[:, 1]
+
+    def entry_range(self, ienter):
+        return self.inbreaks[ienter], self.inbreaks[ienter + 1]
+
+    @property
     def len(self):
         """Summary
 
@@ -113,9 +124,9 @@ def vertex_single(bb, bbid, din, dout, min_seg_len):
     if ires1[0] == -1: assert len(ires1) is 1
     else: assert np.all(ires1 >= 0)
 
-    if ires0[0] is -1: stub0inv = np.eye(4)
+    if ires0[0] == -1: stub0inv = np.eye(4).reshape(1, 4, 4)
     else: stub0inv = np.linalg.inv(bb.stubs[ires0])
-    if ires1[0] is -1: stub1 = np.eye(4)
+    if ires1[0] == -1: stub1 = np.eye(4).reshape(1, 4, 4)
     else: stub1 = bb.stubs[ires1]
 
     stub0inv, stub1 = np.broadcast_arrays(stub0inv[:, None], stub1)
@@ -123,7 +134,7 @@ def vertex_single(bb, bbid, din, dout, min_seg_len):
     isite = np.stack(np.broadcast_arrays(isite0[:, None], isite1), axis=-1)
     chain = np.stack(np.broadcast_arrays(chain0[:, None], chain1), axis=-1)
 
-    x2exit = (stub0inv @ stub1)
+    x2exit = stub0inv @ stub1
     x2orig = stub0inv
     assert is_homog_xform(x2exit)  # this could be slowish
     assert is_homog_xform(x2orig)

@@ -1,4 +1,5 @@
 from worms import Vertex
+from worms.tests import only_if_jit
 from worms.edge import *
 import numba as nb
 import numba.types as nt
@@ -19,6 +20,7 @@ def test_splice_metrics_run(bbdb):
                 m = splice_metrics(u, bbs, v, bbs)
 
 
+@only_if_jit
 def test_splice_metrics_fullsize_prots(bbdb_fullsize_prots):
     bbs = bbdb_fullsize_prots.query('all')
 
@@ -49,6 +51,7 @@ def test_splice_metrics_fullsize_prots(bbdb_fullsize_prots):
     assert nrms == 36
 
 
+@only_if_jit
 def test_edge_fullsize_prots(bbdb_fullsize_prots):
     bbs = bbdb_fullsize_prots.query('all')
     u = Vertex(bbs, np.arange(len(bbs)), '_C')
@@ -59,28 +62,28 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots):
     # print(e.splices.shape)
     # print(e.splices)
     # for i in range(e.len):
-    # print(i, e.allowed_splices(i))
-    assert np.all(e.allowed_splices(0) == [22])
-    assert np.all(e.allowed_splices(1) == [])
-    assert np.all(e.allowed_splices(2) == [])
-    assert np.all(e.allowed_splices(3) == [])
-    assert np.all(e.allowed_splices(4) == [])
-    assert np.all(e.allowed_splices(5) == [])
-    assert np.all(e.allowed_splices(6) == [])
-    assert np.all(e.allowed_splices(7) == [])
-    assert np.all(e.allowed_splices(8) == [])
-    assert np.all(e.allowed_splices(9) == [])
-    assert np.all(e.allowed_splices(10) == [])
-    assert np.all(e.allowed_splices(11) == [])
-    assert np.all(e.allowed_splices(12) == [])
-    assert np.all(e.allowed_splices(13) == [])
-    assert np.all(e.allowed_splices(14) == [])
-    assert np.all(e.allowed_splices(15) == [])
-    assert np.all(e.allowed_splices(16) == [])
-    assert np.all(e.allowed_splices(17) == [])
-    assert np.all(e.allowed_splices(18) == [40])
-    assert np.all(e.allowed_splices(19) == [21, 60])
-    assert np.all(e.allowed_splices(20) == [])
-    assert np.all(e.allowed_splices(21) == [0, 58])
-    assert np.all(e.allowed_splices(22) == [1, 57, 59, 60])
-    assert np.all(e.allowed_splices(23) == [20, 58, 59, 60])
+    # print(i, e.allowed_entries(i))
+    assert np.all(e.allowed_entries(0) == [22])
+    assert np.all(e.allowed_entries(1) == [])
+    assert np.all(e.allowed_entries(2) == [])
+    assert np.all(e.allowed_entries(3) == [])
+    assert np.all(e.allowed_entries(4) == [])
+    assert np.all(e.allowed_entries(5) == [])
+    assert np.all(e.allowed_entries(6) == [])
+    assert np.all(e.allowed_entries(7) == [])
+    assert np.all(e.allowed_entries(8) == [])
+    assert np.all(e.allowed_entries(9) == [])
+    assert np.all(e.allowed_entries(10) == [])
+    assert np.all(e.allowed_entries(11) == [])
+    assert np.all(e.allowed_entries(12) == [])
+    assert np.all(e.allowed_entries(13) == [])
+    assert np.all(e.allowed_entries(14) == [])
+    assert np.all(e.allowed_entries(15) == [])
+    assert np.all(e.allowed_entries(16) == [])
+    assert np.all(e.allowed_entries(17) == [])
+    assert np.all(e.allowed_entries(18) == [40])
+    assert np.all(e.allowed_entries(19) == [21, 60])
+    assert np.all(e.allowed_entries(20) == [])
+    assert np.all(e.allowed_entries(21) == [0, 58])
+    assert np.all(e.allowed_entries(22) == [1, 57, 59, 60])
+    assert np.all(e.allowed_entries(23) == [20, 58, 59, 60])

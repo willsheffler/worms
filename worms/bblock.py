@@ -1,6 +1,7 @@
 import numpy as np
 import numba as nb
 from worms import util
+from worms.util import jit
 import numba.types as nt
 import homog
 
@@ -47,8 +48,6 @@ def ncac_to_stubs(ncac):
     stubs[:, :3, 2] = c
     stubs[:, :3, 3] = ncac[:, 1, :3]
     stubs[:, 3, 3] = 1
-    print(stubs[0])
-    assert homog.is_homog_xform(stubs)
     return stubs
 
 
@@ -208,7 +207,7 @@ class _BBlock:
                 self.ncac, self.chains, self.ss, self.stubs)
 
 
-@nb.njit(nogil=True)
+@jit
 def chain_of_ires(bb, ires):
     """Summary
 

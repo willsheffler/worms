@@ -279,8 +279,6 @@ class BBlockDB:
         try:
             with open(bblockfile, 'rb') as f:
                 bbstate = list(pickle.load(f))
-                if isinstance(bbstate[10], list):
-                    bbstate[10] = np.array(bbstate[10], dtype='i4')
                 self._bblock_cache[pdbfile] = _BBlock(*bbstate)
                 return True
         except FileNotFound:
@@ -301,7 +299,7 @@ class BBlockDB:
             with util.InProcessExecutor() as exe:
                 result = self.load_from_pdbs_inner(exe)
         else:
-            with ProcessPoolExecutor(max_workers=self.nprocs) as exe:
+            with ThreadPoolExecutor(max_workers=self.nprocs) as exe:
                 result = self.load_from_pdbs_inner(exe)
         new = [_[0] for _ in result if _[0]]
         missing = [_[1] for _ in result if _[1]]
@@ -356,7 +354,7 @@ class BBlockDB:
         elif self.read_new_pdbs:
             self.check_lock_cachedir()
             read_pdb = False
-            info('BBlockDB.build_pdb_data reading %s' % pdbfile)
+            # info('BBlockDB.build_pdb_data reading %s' % pdbfile)
             pose = self.pose(pdbfile)
             ss = Dssp(pose).get_dssp_secstruct()
             bblock = BBlock(entry, pdbfile, pose, ss)
@@ -373,7 +371,7 @@ class BBlockDB:
                 self._poses_cache[pdbfile] = pose
             return pdbfile, None  # new, missing
         else:
-            warning('no cached data for', pdbfile)
+            warning('no cached data for: ' + pdbfile)
             return None, pdbfile  # new, missing
 
 

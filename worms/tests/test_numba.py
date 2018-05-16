@@ -8,12 +8,15 @@ import toolz
 from collections import namedtuple
 from worms.khash import *
 from worms.khash.khash_cffi import _khash_init, _khash_set, _khash_get, _khash_destroy
+from worms.util import jit
+from worms.tests import only_if_jit
 
 T = namedtuple('T', 'a b c d'.split())
 
 
+@only_if_jit
 def test_numba_iterate():
-    @nb.njit(nogil=True)
+    @jit
     def numba_sum(l):
         tot = 0
         for i in l:
@@ -24,7 +27,7 @@ def test_numba_iterate():
     assert numba_sum((1, 2, 3)) == 6
     assert numba_sum(np.arange(1, 4)) == 6
 
-    @nb.njit(nogil=True)
+    @jit
     def numba_sum2(k, l):
         tot = 0
         for i in k:
@@ -38,8 +41,9 @@ def test_numba_iterate():
     assert len(numba_sum2.nopython_signatures) == 9
 
 
+@only_if_jit
 def test_numba_reshape():
-    @nb.njit(nogil=True)
+    @jit
     def numba_reshape(m44, a):
         tmp = a.reshape(-1, 4, 1)
         for i in range(len(tmp)):
@@ -52,20 +56,20 @@ def test_numba_reshape():
     assert numba_reshape(m44, ncac).shape == (10, 3, 4)
 
 
-@nb.njit(nogil=True)
+@jit
 def numba_named_tuple(t):
     s = T(0, 1, 2, 3)
     return (t.a * s.a +
             t.b * s.b +
             t.c * s.c +
             t.d * s.d )  # yapf: disable
-
+@only_if_jit
 def test_numba_named_tuple():
     t = T(1, 2, 3, 4)
     assert numba_named_tuple(t) is 20
 
 
-@nb.njit(nogil=True)
+@jit
 def without_khash(fid, values, fetch_ids):
     # Build map of fid's (non-continuous) to fix (continuous compact)
     fid2fix = np.zeros(np.max(fid) + 1, dtype=np.int64)
@@ -97,7 +101,7 @@ def with_khash(fid, values, fetch_ids):
     return s
 
 
-with_khash_numba = nb.njit(nogil=True)(with_khash)
+with_khash_numba = nb.njit(nogil=1, fastmath=1)(with_khash)
 
 
 def disabled_test_khash():
@@ -123,7 +127,7 @@ def disabled_test_khash():
 
 @pytest.mark.skip
 def test_many_specs():
-    @nb.njit(nogil=True)
+    @jit
     def add(u):
         return u[0] + u[1] + u[2] + u[3] + u[4] + u[5] + u[6] + u[7]
 
@@ -139,6 +143,7 @@ def test_many_specs():
     assert 0
 
 
+@only_if_jit
 def test_jitclass_print():
     @nb.jitclass((('add', nt.int32), ))
     class DummyFilter:
@@ -160,40 +165,9 @@ def test_jitclass_print():
         assert df.jitclass_members_still_cant_print() == 13
 
 
-@nb.njit(nogil=True)
-def expand_array_if_needed(ary, i):
-    if len(ary) > i:
-        return ary
-    new = np.zeros(
-        shape=(ary.shape[0] * 2, ) + ary.shape[1:], dtype=ary.dtype) - 1
-    new[:len(ary)] = ary
-    return new
-
-
-def test_numba_expand_array_if_needed_1d():
-    ary0 = ary = np.arange(7)
-    for i in range(7):
-        ary = expand_array_if_needed(ary, i)
-    assert ary0 is ary
-    for i in range(7, 100):
-        ary = expand_array_if_needed(ary, i)
-    assert np.all(ary[:len(ary0)] == ary0)
-    assert np.all(ary[len(ary0):] == -1)
-
-
-def test_numba_expand_array_if_needed_1d():
-    ary0 = ary = np.stack([np.arange(7), 7 - np.arange(7)], axis=1)
-    for i in range(7):
-        ary = expand_array_if_needed(ary, i)
-    assert ary0 is ary
-    for i in range(7, 100):
-        ary = expand_array_if_needed(ary, i)
-    assert np.all(ary[:len(ary0)] == ary0)
-    assert np.all(ary[len(ary0):] == -1)
-
-
+@only_if_jit
 def test_numba_tuple_of_arrays():
-    @nb.njit(nogil=True)
+    @jit
     def expand_tuples_of_arrays(tup):
         new = tup + (tup[0][:], )
         return new
@@ -226,7 +200,7 @@ def test_numba_tuple_of_arrays():
 #         return np.zeros(len(arg))
 #
 #
-# @nb.njit(nogil=True)
+# @jit
 # def run_funcs(callers, arg):
 #     print(len(callers))
 #
@@ -247,6 +221,7 @@ def test_numba_tuple_of_arrays():
 #     assert 0
 
 
+@only_if_jit
 def test_numba_chain_funcs():
     @nb.njit
     def ident(x):
@@ -280,6 +255,7 @@ def test_numba_chain_funcs():
     assert jit_with_chain_funcs() == (7.2, 9.6)
 
 
+@only_if_jit
 def test_numba_chain_funcs_common_arg():
     @nb.njit
     def ident(x, arg):
@@ -315,6 +291,7 @@ def test_numba_chain_funcs_common_arg():
     assert jit_with_chain_funcs() == (7, 9)
 
 
+@only_if_jit
 def test_numba_chain_funcs_args_per():
     @nb.njit
     def ident(x, _):
@@ -370,6 +347,7 @@ def test_numba_chain_funcs_args_per():
     assert np.allclose(tup[1][1], ((4 + 3) * 1.2) + 1)
 
 
+@only_if_jit
 def test_numba_cannot_chain_jitclass():
     @nb.jitclass((('member', nt.int32), ))
     class Ident:
@@ -420,6 +398,7 @@ def test_numba_cannot_chain_jitclass():
         assert jit_with_chain_funcs(addmul, addmuladd) == (7.2, 9.6)
 
 
+@only_if_jit
 def test_numba_outargs():
     @nb.njit
     def foo(a):
@@ -428,3 +407,13 @@ def test_numba_outargs():
     a = np.arange(4)
     foo(a)
     assert a[0] == 7
+
+
+@only_if_jit
+def test_reshape():
+    @nb.njit
+    def numba_reshape(x):
+        return x.reshape(-1, 4, 4)
+
+    assert numba_reshape(np.arange(128)).shape == (8, 4, 4)
+    assert numba_reshape(np.arange(128).reshape(4, 4, 4, 2)).shape == (8, 4, 4)

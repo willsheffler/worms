@@ -21,6 +21,18 @@ try:
 except ImportError:
     HAVE_PYROSETTA = False
 
+jit = nb.njit(nogil=True, fastmath=True)
+
+
+@jit
+def expand_array_if_needed(ary, i):
+    if len(ary) > i:
+        return ary
+    newshape = (ary.shape[0] * 2, ) + ary.shape[1:]
+    new = np.zeros(newshape, dtype=ary.dtype) - ary.dtype.type(1)
+    new[:len(ary)] = ary
+    return new
+
 
 class InProcessExecutor:
     """TODO: Summary
@@ -697,7 +709,7 @@ def unique_key(a, b=None):
     return mi.get_indexer([a, b])
 
 
-@nb.njit('int32[:](int32[:])', nogil=True)
+@nb.njit('int32[:](int32[:])', nogil=1, fastmath=1)
 def contig_idx_breaks(idx):
     breaks = np.empty(idx[-1] + 2, dtype=np.int32)
     breaks[0] = 0

@@ -2,7 +2,7 @@ import numpy as np
 import numba as nb
 import numba.types as nt
 from collections import defaultdict, namedtuple
-from worms.util import contig_idx_breaks
+from worms.util import contig_idx_breaks, jit
 
 try:
     # this is such bullshit...
@@ -44,7 +44,7 @@ class _Edge:
     def len(self):
         return len(self.splices)
 
-    def allowed_splices(self, i):
+    def allowed_entries(self, i):
         return self.splices[i, 1:self.splices[i, 0]]
 
 
@@ -61,7 +61,7 @@ def scm_concat(lst, axis=0):
     return _SCM_Scores(*result)
 
 
-@nb.njit(nogil=True)
+@jit
 def _chainbounds_of_ires(chains, ires):
     for c in range(len(chains)):
         if chains[c, 0] <= ires < chains[c, 1]:
@@ -69,7 +69,7 @@ def _chainbounds_of_ires(chains, ires):
     return (-1, -1)
 
 
-@nb.njit(nogil=1, cache=True)
+@jit
 def _jit_splice_metrics(out_offset0,
                         out_offset1,
                         out_rms,
@@ -77,8 +77,8 @@ def _jit_splice_metrics(out_offset0,
                         out_ncontact,
                         chains0,
                         chains1,
-                        ncac0,
-                        ncac1,
+                        ncac0_3d,
+                        ncac1_3d,
                         stubs0,
                         stubs1,
                         aln0s,
@@ -96,26 +96,31 @@ def _jit_splice_metrics(out_offset0,
     assert out_offset0 + len(aln0s) <= out_rms.shape[0]
     assert out_offset1 + len(aln1s) <= out_rms.shape[1]
 
+    ncac0 = ncac0_3d.reshape(-1, 4)
+    ncac1 = ncac1_3d.reshape(-1, 4)
+
+    b = np.empty((4, ), dtype=np.float64)
+
     for ialn1, aln1 in enumerate(aln1s):
-        chainb1 = _chainbounds_of_ires(chains1, aln1)
-        if np.abs(chainb1[0] - aln1) < rms_range: continue
-        if np.abs(chainb1[1] - aln1) < rms_range: continue
+        chainb10, chainb11 = _chainbounds_of_ires(chains1, aln1)
+        if np.abs(chainb10 - aln1) < rms_range: continue
+        if np.abs(chainb11 - aln1) < rms_range: continue
         iout1 = out_offset1 + ialn1
         stub1_inv = np.linalg.inv(stubs1[aln1])
 
         for ialn0, aln0 in enumerate(aln0s):
-            chainb0 = _chainbounds_of_ires(chains0, aln0)
-            if np.abs(chainb0[0] - aln0) < rms_range: continue
-            if np.abs(chainb0[1] - aln0) < rms_range: continue
+            chainb00, chainb01 = _chainbounds_of_ires(chains0, aln0)
+            if np.abs(chainb00 - aln0) < rms_range: continue
+            if np.abs(chainb01 - aln0) < rms_range: continue
             iout0 = out_offset0 + ialn0
             xaln = stubs0[aln0] @ stub1_inv
 
-            rms, n1b = 0.0, 0
+            sum_d2, n1b = 0.0, 0
             for i in range(-3 * rms_range, 3 * rms_range + 3):
                 a = ncac0[3 * aln0 + i]
-                b = xaln @ ncac1[3 * aln1 + i]
-                rms += np.sum((a - b)**2)
-            rms = np.sqrt(rms / (rms_range * 6 + 3))
+                b[:] = xaln @ ncac1[3 * aln1 + i]
+                sum_d2 += np.sum((a - b)**2)
+            rms = np.sqrt(sum_d2 / (rms_range * 6 + 3))
             out_rms[iout0, iout1] = rms
 
             if skip_on_fail and rms > rms_cut:
@@ -123,7 +128,7 @@ def _jit_splice_metrics(out_offset0,
 
             nclash, ncontact = 0, 0
             for j in range(3, 3 * clash_contact_range + 3):
-                b = xaln @ ncac1[3 * aln1 + j]
+                b[:] = xaln @ ncac1[3 * aln1 + j]
                 for i in range(-1, -3 * clash_contact_range - 1, -1):
                     a = ncac0[3 * aln0 + i]
                     d2 = np.sum((a - b)**2)
@@ -178,11 +183,22 @@ def splice_metrics(u, ubbs, v, vbbs, **kw):
         offset1 = 0
         for ibb1, ires1 in inbb_res.items():
             bb1 = vbbs[ibb1]
-            _jit_splice_metrics(offset0, offset1, metrics.rms, metrics.nclash,
-                                metrics.ncontact, bb0.chains, bb1.chains,
-                                bb0.ncac.reshape(-1, 4), bb1.ncac.reshape(
-                                    -1, 4), bb0.stubs, bb1.stubs, ires0, ires1,
-                                **kw)
+            _jit_splice_metrics(
+                offset0,
+                offset1,
+                metrics.rms,
+                metrics.nclash,
+                metrics.ncontact,
+                bb0.chains,
+                bb1.chains,
+                bb0.ncac,
+                bb1.ncac,
+                bb0.stubs,
+                bb1.stubs,
+                ires0,
+                ires1,
+                **kw,
+            )
             offset1 += len(ires1)
         offset0 += len(ires0)
 

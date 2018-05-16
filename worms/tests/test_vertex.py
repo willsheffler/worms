@@ -53,6 +53,7 @@ def test_Vertex__C(bbdb):
     assert v.len == 25
     assert v.x2exit.shape == (25, 4, 4)
     assert v.x2orig.shape == (25, 4, 4)
+    assert np.all(v.x2orig == np.eye(4))
     assert v.inout.shape == (25, 2)
     assert v.ires.shape == (25, 2)
     assert v.isite.shape == (25, 2)
