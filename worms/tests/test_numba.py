@@ -417,3 +417,17 @@ def test_reshape():
 
     assert numba_reshape(np.arange(128)).shape == (8, 4, 4)
     assert numba_reshape(np.arange(128).reshape(4, 4, 4, 2)).shape == (8, 4, 4)
+
+
+@pytest.mark.skip
+@only_if_jit
+def test_gil_release():
+    @nb.njit(nogil=True)
+    def sqrt_i_n(a, i, n):
+        for i in range(i, len(a), n):
+            a[i] = np.sqrt(a[i])
+
+    x = np.arange(1000000)
+    print(dir(sqrt_i_n))
+
+    assert 0

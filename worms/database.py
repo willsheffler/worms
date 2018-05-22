@@ -2,6 +2,7 @@
 """
 import os
 import json
+import random
 import _pickle as pickle
 from concurrent.futures import *
 import itertools as it
@@ -185,10 +186,13 @@ class BBlockDB:
         else:
             raise ValueError('bad pdbfile' + str(type(pdbfile)))
 
-    def query(self, query, *, useclass=True):
-        return [
-            self.bblock(n) for n in self.query_names(query, useclass=useclass)
-        ]
+    def query(self, query, *, useclass=True, max_bblocks=150, shuffle=True):
+        names = self.query_names(query, useclass=useclass)
+        if len(names) > max_bblocks:
+            if shuffle:
+                random.shuffle(names)
+            names = names[:max_bblocks]
+        return [self.bblock(n) for n in names]
 
     def query_names(self, query, *, useclass=True):
         """

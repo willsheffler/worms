@@ -23,7 +23,7 @@ def dispatch(file, pytest_args='--duration=5'):
     path, bname = os.path.split(file)
     print('dispatch', file)
     if (not file.endswith('.py') or not file.startswith('worms/')):
-        return 'python ' + file
+        return 'PYTHONPATH=. python ' + file
     if not os.path.basename(file).startswith("test_"):
         if bname in dispatch:
             return ('pytest {pytest_args} '.format(**vars()) + ' '.join(
@@ -34,7 +34,7 @@ def dispatch(file, pytest_args='--duration=5'):
             if os.path.exists(testfile):
                 return 'pytest {pytest_args} {testfile}'.format(**vars())
             else:
-                return 'python ' + testfile
+                return 'PYTHONPATH=. python ' + testfile
     return 'pytest {pytest_args} {file}'.format(**vars())
 
 
@@ -55,7 +55,8 @@ print('cwd:', os.getcwd())
 print('cmd:', cmd)
 print('=' * 20, 'util/runtests.py running cmd in cwd', '=' * 23)
 sys.stdout.flush()
+# if cmd.startswith('pytest '):
 # os.putenv('NUMBA_OPT', '1')
-os.putenv('NUMBA_DISABLE_JIT', '1')
+# os.putenv('NUMBA_DISABLE_JIT', '1')
 os.system(cmd)
 print('=' * 20, 'util/runtests.py done', '=' * 37)

@@ -55,8 +55,6 @@ def BBlock(entry, pdbfile, pose, ss):
     chains = util.get_chain_bounds(pose)
     ss = np.frombuffer(ss.encode(), dtype='i1')
 
-    # stubs, ncac = util.get_bb_stubs(pose)
-
     ncac = util.get_bb_coords(pose)
     stubs = ncac_to_stubs(ncac)
 
@@ -163,6 +161,10 @@ class _BBlock:
         self.chains = chains
         self.ss = ss
         self.stubs = stubs
+        assert np.isnan(np.sum(self.ncac)) == False
+        assert np.isnan(np.sum(self.stubs)) == False
+        assert np.isnan(np.sum(self.ss)) == False
+        assert np.isnan(np.sum(self.chains)) == False
 
     @property
     def n_connections(self):

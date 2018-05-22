@@ -15,8 +15,8 @@ def test_splice_metrics_run(bbdb):
         for post in '_NC':
             for d in ('CN', 'NC'):
                 dirn = pre + d + post
-                u = Vertex(bbs, np.arange(len(bbs)), dirn[:2])
-                v = Vertex(bbs, np.arange(len(bbs)), dirn[2:])
+                u = Vertex(bbs, dirn[:2])
+                v = Vertex(bbs, dirn[2:])
                 m = splice_metrics(u, bbs, v, bbs)
 
 
@@ -27,8 +27,8 @@ def test_splice_metrics_fullsize_prots(bbdb_fullsize_prots):
     ncontact_cut = 10
     rms_cut = 1.5
 
-    u = Vertex(bbs, np.arange(len(bbs)), '_C')
-    v = Vertex(bbs, np.arange(len(bbs)), 'N_')
+    u = Vertex(bbs, '_C')
+    v = Vertex(bbs, 'N_')
     m = splice_metrics(u, bbs, v, bbs, skip_on_fail=False)
 
     nclash = np.sum(m.nclash == 0)
@@ -39,8 +39,8 @@ def test_splice_metrics_fullsize_prots(bbdb_fullsize_prots):
     assert nclash == 1213
     assert ncontact == 1419
 
-    u = Vertex(bbs, np.arange(len(bbs)), '_N')
-    v = Vertex(bbs, np.arange(len(bbs)), 'C_')
+    u = Vertex(bbs, '_N')
+    v = Vertex(bbs, 'C_')
     m = splice_metrics(u, bbs, v, bbs, skip_on_fail=False)
 
     nclash = np.sum(m.nclash == 0)
@@ -54,8 +54,8 @@ def test_splice_metrics_fullsize_prots(bbdb_fullsize_prots):
 @only_if_jit
 def test_edge_fullsize_prots(bbdb_fullsize_prots):
     bbs = bbdb_fullsize_prots.query('all')
-    u = Vertex(bbs, np.arange(len(bbs)), '_C')
-    v = Vertex(bbs, np.arange(len(bbs)), 'N_')
+    u = Vertex(bbs, '_C')
+    v = Vertex(bbs, 'N_')
     e = Edge(u, bbs, v, bbs)
 
     # print('allowed splices table')

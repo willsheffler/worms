@@ -6,19 +6,20 @@ import numba as nb
 import numba.types as nt
 from homog import is_homog_xform
 from worms import util
-from worms.bblock import chain_of_ires
+from worms.bblock import chain_of_ires, _BBlock
 from logging import warning
-
+import concurrent.futures as cf
+from worms.util import InProcessExecutor
 
 @nb.jitclass((
-    ('x2exit', nt.float64[:, :, :]),
-    ('x2orig', nt.float64[:, :, :]),
-    ('inout' , nt.int32[:, :]),
+    ('x2exit' , nt.float64[:, :, :]),
+    ('x2orig' , nt.float64[:, :, :]),
+    ('inout'  , nt.int32[:, :]),
     ('inbreaks' , nt.int32[:]),
-    ('ires'  , nt.int32[:, :]),
-    ('isite' , nt.int32[:, :]),
+    ('ires'   , nt.int32[:, :]),
+    ('isite'  , nt.int32[:, :]),
     ('ichain' , nt.int32[:, :]),
-    ('ibb' , nt.int32[:]),
+    ('ibblock'    , nt.int32[:]),
     ('dirn'   , nt.int32[:]),
 ))  # yapf: disable
 class _Vertex:
@@ -26,7 +27,7 @@ class _Vertex:
 
     Attributes:
         dirn (TYPE): Description
-        ibb (TYPE): Description
+        ibblock (TYPE): Description
         ichain (TYPE): Description
         inout (TYPE): Description
         ires (TYPE): Description
@@ -35,7 +36,7 @@ class _Vertex:
         x2orig (TYPE): Description
     """
 
-    def __init__(self, x2exit, x2orig, ires, isite, ichain, ibb, inout,
+    def __init__(self, x2exit, x2orig, ires, isite, ichain, ibblock, inout,
                  inbreaks, dirn):
         """TODO: Summary
 
@@ -45,7 +46,7 @@ class _Vertex:
             ires (TYPE): Description
             isite (TYPE): Description
             ichain (TYPE): Description
-            ibb (TYPE): Description
+            ibblock (TYPE): Description
             inout (TYPE): Description
             dirn (TYPE): Description
 
@@ -57,7 +58,7 @@ class _Vertex:
         self.ires = ires
         self.isite = isite
         self.ichain = ichain
-        self.ibb = ibb
+        self.ibblock = ibblock
         self.inout = inout
         self.inbreaks = inbreaks
         self.dirn = dirn
@@ -82,8 +83,13 @@ class _Vertex:
         """
         return len(self.ires)
 
+    @property
+    def _state(self):
+        return (self.x2exit, self.x2orig, self.ires, self.isite, self.ichain,
+                self.ibblock, self.inout, self.inbreaks, self.dirn)
 
-def vertex_single(bb, bbid, din, dout, min_seg_len):
+
+def vertex_single(bbstate, bbid, din, dout, min_seg_len):
     """Summary
 
     Args:
@@ -96,6 +102,7 @@ def vertex_single(bb, bbid, din, dout, min_seg_len):
     Returns:
         TYPE: Description
     """
+    bb = _BBlock(*bbstate)
     ires0, ires1 = [], []
     isite0, isite1 = [], []
     for i in range(bb.n_connections):
@@ -149,6 +156,8 @@ def vertex_single(bb, bbid, din, dout, min_seg_len):
     valid *= (not_same_chain + (seqsep >= min_seg_len))
     valid = valid.reshape(-1)
 
+    if sum(valid) == 0: return None
+
     return (
         x2exit.reshape(-1, 4, 4)[valid],
         x2orig.reshape(-1, 4, 4)[valid],
@@ -159,7 +168,7 @@ def vertex_single(bb, bbid, din, dout, min_seg_len):
     )
 
 
-def Vertex(bbs, bbids, dirn, min_seg_len=1):
+def Vertex(bbs, dirn, bbids=None, min_seg_len=1, parallel=0):
     """Summary
 
     Args:
@@ -174,19 +183,29 @@ def Vertex(bbs, bbids, dirn, min_seg_len=1):
     dirn_map = {'N': 0, 'C': 1, '_': 2}
     din = dirn_map[dirn[0]]
     dout = dirn_map[dirn[1]]
+    if bbids is None:
+        bbids = np.arange(len(bbs))
 
-    verts = (vertex_single(bb, bid, din, dout, min_seg_len)
-             for bb, bid in zip(bbs, bbids))
+    exe = cf.ProcessPoolExecutor if parallel else InProcessExecutor
+    with exe() as pool:
+        futures = list()
+        for bb, bid in zip(bbs, bbids):
+            futures.append(
+                pool.submit(vertex_single, bb._state, bid, din, dout,
+                            min_seg_len))
+        verts = [f.result() for f in futures]
     verts = [v for v in verts if v is not None]
     if not verts:
         raise ValueError('no way to make vertex: \'' + dirn + '\'')
     tup = tuple(np.concatenate(_) for _ in zip(*verts))
     assert len({x.shape[0] for x in tup}) == 1
-    ibb, ires = tup[5], tup[2]
+    ibblock, ires = tup[5], tup[2]
 
     inout = np.stack(
-        [util.unique_key(ibb, ires[:, 0]),
-         util.unique_key(ibb, ires[:, 1])],
+        [
+            util.unique_key(ibblock, ires[:, 0]),
+            util.unique_key(ibblock, ires[:, 1])
+        ],
         axis=-1).astype('i4')
 
     inbreaks = util.contig_idx_breaks(inout[:, 0])
