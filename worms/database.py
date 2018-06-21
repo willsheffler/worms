@@ -99,13 +99,15 @@ class BBlockDB:
                 entry['name'] = ''
             entry['file'] = entry['file'].replace(
                 '__DATADIR__',
-                os.path.relpath(os.path.dirname(__file__) + '/data'))
+                os.path.relpath(os.path.dirname(__file__) + '/data')
+            )
         self.dictdb = {e['file']: e for e in self._alldb}
         if len(self._alldb) != len(self.dictdb):
             warning('!' * 100)
-            warning('!' * 23,
-                    'DIRE WARNING: %6i duplicate pdb files in database' %
-                    (len(self._alldb) - len(self.dictdb)), '!' * 23)
+            warning(
+                '!' * 23, 'DIRE WARNING: %6i duplicate pdb files in database' %
+                (len(self._alldb) - len(self.dictdb)), '!' * 23
+            )
             warning('!' * 100)
         info('loading %i db entries' % len(self._alldb))
         self.n_new_entries = 0
@@ -123,7 +125,8 @@ class BBlockDB:
     def lock_cachedir(self):
         assert not os.path.exists(self.cachedir + '/lock'), (
             "database is locked! if you're sure no other jobs are editing it, remove "
-            + self.cachedir + "/lock")
+            + self.cachedir + "/lock"
+        )
         open(self.cachedir + '/lock', 'w').close()
         assert os.path.exists(self.cachedir + '/lock')
         self._holding_lock = True
@@ -162,6 +165,8 @@ class BBlockDB:
         Returns:
             TYPE: Description
         """
+        if isinstance(pdbfile, bytes):
+            pdbfile = str(pdbfile, 'utf-8')
         if not pdbfile in self._poses_cache:
             if not self.load_cached_pose_into_memory(pdbfile):
                 self._poses_cache[pdbfile] = pose_from_file(pdbfile)
@@ -347,8 +352,9 @@ class BBlockDB:
             TYPE: Description
         """
         pdbfile = entry['file']
-        cachefile = os.path.join(self.cachedir, 'bblock',
-                                 flatten_path(pdbfile))
+        cachefile = os.path.join(
+            self.cachedir, 'bblock', flatten_path(pdbfile)
+        )
         posefile = self.posefile(pdbfile)
         if os.path.exists(cachefile):
             assert self.load_cached_bblock_into_memory(pdbfile)
@@ -386,10 +392,12 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--dbfiles', type=str, nargs='+', dest='database_files')
+        '--dbfiles', type=str, nargs='+', dest='database_files'
+    )
     parser.add_argument('--nprocs', type=int, dest='nprocs', default=1)
     parser.add_argument(
-        '--read_new_pdbs', type=bool, dest='read_new_pdbs', default=False)
+        '--read_new_pdbs', type=bool, dest='read_new_pdbs', default=False
+    )
     args = parser.parse_args()
     pyrosetta.init('-mute all -ignore_unrecognized_res')
 

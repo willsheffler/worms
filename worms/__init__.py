@@ -17,3 +17,4 @@ from .bblock import *
 from .vertex import *
 from .edge import *
 from .database import *
+from .graph import *

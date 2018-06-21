@@ -6,8 +6,8 @@
 			"shell_cmd": "cd $folder; python util/runtests.py $file &> log/sublime_build.log"
 		},
 		{
-			"name": "worms_peace_sign",
-			"shell_cmd": "cd $folder; echo pwd: `pwd` > log/sublime_build.log; echo python: `which python` >> log/sublime_build.log; PYTHONPATH=. python examples/worms_peace_sign.py &>> log/sublime_build.log"
+			"name": "worms_prefilter_test",
+			"shell_cmd": "cd $folder; echo pwd: `pwd` > log/sublime_build.log; echo python: `which python` >> log/sublime_build.log; NUMBA_OPT=1 PYTHONPATH=. python examples/prefilter_test.py &>> log/sublime_build.log"
 		},
 		{
 			"name": "pytest util",

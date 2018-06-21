@@ -3,7 +3,7 @@
 
 import os
 import itertools as it
-from collections import defaultdict, OrderedDict
+from collections import defaultdict, OrderedDict, namedtuple
 
 import numpy as np
 
@@ -82,6 +82,9 @@ class AnnoPose:
             TYPE: Description
         """
         return self.srcpose.sequence()[self.src_lb - 1:self.src_ub]
+
+
+CyclicTrim = namedtuple('CyclicTrim', 'sym_seg_from sym_seg_to'.split())
 
 
 def contort_pose_chains(
@@ -171,8 +174,10 @@ def contort_pose_chains(
         assert rest[chains[i]].seq() == rest[chains[i]].srcseq()
     if cyclictrim and iseg == cyclictrim[0]:
         if cyclictrim_in_rest != did_cyclictrim_in_rest:
-            print('cyclictrim_in_rest', cyclictrim_in_rest,
-                  'did_cyclictrim_in_rest', did_cyclictrim_in_rest)
+            print(
+                'cyclictrim_in_rest', cyclictrim_in_rest,
+                'did_cyclictrim_in_rest', did_cyclictrim_in_rest
+            )
             print('iseg', iseg, 'len(chains)', len(chains))
             assert cyclictrim_in_rest == did_cyclictrim_in_rest
     if ch_en: del rest[chains[ch_en]]
@@ -208,8 +213,10 @@ def contort_pose_chains(
         s1 = str(ap.pose.sequence())
         s2 = str(ap.srcpose.sequence()[ap.src_lb - 1:ap.src_ub])
         if s1 != s2:
-            print('WARNING: sequence mismatch in "rest", maybe OK, but '
-                  'proceed with caution and tell will to fix!')
+            print(
+                'WARNING: sequence mismatch in "rest", maybe OK, but '
+                'proceed with caution and tell will to fix!'
+            )
             # print(s1)
             # print(s2)
         assert s1 == s2
@@ -252,8 +259,10 @@ def reorder_spliced_as_N_to_C(body_chains, polarities):
         raise ValueError('must be one more body_chains than polarities')
     chains, pol = [[]], {}
     if not all(0 < len(dg) for dg in body_chains):
-        raise ValueError('body_chains values must be [enterexit], '
-                         '[enter,exit], or [enter, ..., exit')
+        raise ValueError(
+            'body_chains values must be [enterexit], '
+            '[enter,exit], or [enter, ..., exit'
+        )
     for i in range(1, len(polarities)):
         if len(body_chains[i]) == 1:
             if polarities[i - 1] != polarities[i]:

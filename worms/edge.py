@@ -23,7 +23,8 @@ def scm_concat(lst, axis=0):
         ndim = getattr(lst[0], fieldn).ndim
         tmpaxis = -1 if ndim is 1 else axis
         result.append(
-            np.concatenate([getattr(x, fieldn) for x in lst], axis=tmpaxis))
+            np.concatenate([getattr(x, fieldn) for x in lst], axis=tmpaxis)
+        )
     return _SCM_Scores(*result)
 
 
@@ -98,18 +99,20 @@ def _jit_splice_metrics(chains0, chains1,
     return out_rms, out_nclash, out_ncontact
 
 
-def splice_metrics(u,
-                   ublks,
-                   v,
-                   vblks,
-                   clashd2=3.0**2,
-                   contactd2=10.0**2,
-                   rms_range=9,
-                   clash_contact_range=9,
-                   rms_cut=1.1,
-                   skip_on_fail=True,
-                   parallel=False,
-                   progressbar=False):
+def splice_metrics(
+        u,
+        ublks,
+        v,
+        vblks,
+        clashd2=3.0**2,
+        contactd2=10.0**2,
+        rms_range=9,
+        clash_contact_range=9,
+        rms_cut=1.1,
+        skip_on_fail=True,
+        parallel=False,
+        progressbar=False
+):
 
     assert (u.dirn[1] + v.dirn[0]) == 1
     outidx = [
@@ -145,7 +148,8 @@ def splice_metrics(u,
     metrics = _SCM_Scores(
         nclash=np.zeros((len(outblk), len(inblk)), dtype=np.int32) - 1,
         ncontact=np.zeros((len(outblk), len(inblk)), dtype=np.int32) - 1,
-        rms=np.zeros((len(outblk), len(inblk)), dtype=np.float32) - 1)
+        rms=np.zeros((len(outblk), len(inblk)), dtype=np.float32) - 1
+    )
 
     exe = cf.ProcessPoolExecutor if parallel else InProcessExecutor
     with exe() as pool:
@@ -160,9 +164,11 @@ def splice_metrics(u,
                     _jit_splice_metrics, blk0.chains, blk1.chains, blk0.ncac,
                     blk1.ncac, blk0.stubs, blk1.stubs, ires0, ires1, clashd2,
                     contactd2, rms_range, clash_contact_range, rms_cut,
-                    skip_on_fail)
-                future.stash = (iblk0, iblk1, offset0, offset1, len(ires0),
-                                len(ires1))
+                    skip_on_fail
+                )
+                future.stash = (
+                    iblk0, iblk1, offset0, offset1, len(ires0), len(ires1)
+                )
                 futures.append(future)
                 offset1 += len(ires1)
             offset0 += len(ires0)
@@ -173,24 +179,32 @@ def splice_metrics(u,
         for i, future in enumerate(iter):
             iblk0, iblk1, offset0, offset1, nres0, nres1 = future.stash
             rms, nclash, ncontact = future.result()
-            myslice = (slice(offset0, offset0 + nres0),
-                       slice(offset1, offset1 + nres1))
+            myslice = (
+                slice(offset0, offset0 + nres0),
+                slice(offset1, offset1 + nres1)
+            )
             metrics.rms[myslice] = rms
             metrics.nclash[myslice] = nclash
             metrics.ncontact[myslice] = ncontact
 
     if u.dirn[1] == 0:  # swap!
-        metrics = _SCM_Scores(metrics.nclash.T, metrics.ncontact.T,
-                              metrics.rms.T)
+        metrics = _SCM_Scores(
+            metrics.nclash.T, metrics.ncontact.T, metrics.rms.T
+        )
 
     return metrics
 
 
-def Edge(u, ublks, v, vblks, rms_cut=1.1, ncontact_cut=10, **kw):
+def Edge(u, ublks, v, vblks, rms_cut=1.1, ncontact_cut=10, verbosity=0, **kw):
     m = splice_metrics(u, ublks, v, vblks, rms_cut=rms_cut, **kw)
     # * is logical 'and'
     good_edges = ((m.nclash == 0) * (m.rms <= rms_cut) *
                   (m.ncontact >= ncontact_cut))
+    if verbosity > 0:
+        print(
+            'fraction good edges:', good_edges.sum(), good_edges.size,
+            good_edges.sum() / good_edges.size
+        )
     return _Edge(scmatrix_to_splices(good_edges))
 
 
@@ -226,6 +240,9 @@ class _Edge:
 
     def allowed_entries(self, i):
         return self.splices[i, 1:self.splices[i, 0]]
+
+    def total_allowed_splices(self):
+        return np.sum(self.splices[:, 0]) - len(self.splices)
 
     @property
     def _state(self):
