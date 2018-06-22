@@ -101,7 +101,7 @@ def with_khash(fid, values, fetch_ids):
     return s
 
 
-with_khash_numba = nb.njit(nogil=1, fastmath=1)(with_khash)
+with_khash_numba = nb.njit(nogil=1)(with_khash)
 
 
 def disabled_test_khash():

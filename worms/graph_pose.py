@@ -67,6 +67,7 @@ def make_pose(
         is_cyclic=False,
         position=np.eye(4),
         only_connected='auto',
+        provenance=False
 ):
 
     cyclic_info = (None, ) * 5
@@ -92,13 +93,13 @@ def make_pose(
             )
         )
 
-    for i, e in enumerate(entry_exit_chains):
-        for j, f in enumerate(e):
-            for k, p in enumerate(f):
-                print('dump_pdb test_%i_%i_%i.pdb' % (i, j, k))
-                p.pose.dump_pdb('test_%i_%i_%i.pdb' % (i, j, k))
+    # for i, e in enumerate(entry_exit_chains):
+    #     for j, f in enumerate(e):
+    #         for k, p in enumerate(f):
+    #             print('dump_pdb test_%i_%i_%i.pdb' % (i, j, k))
+    #             p.pose.dump_pdb('test_%i_%i_%i.pdb' % (i, j, k))
 
-    pose, prov = make_contorted_pose(
+    result = make_contorted_pose(
         entryexits=entry_exit_chains,
         entrypol=_dirn_to_polarity(v.dirn[0] for v in graph.verts),
         exitpol=_dirn_to_polarity(v.dirn[1] for v in graph.verts),
@@ -117,8 +118,10 @@ def make_pose(
         join=True,
         cyclic_permute=is_cyclic,
         cyclictrim=cyclic_info[0],
-        provenance=True,
+        provenance=provenance,
         make_chain_list=False
     )
 
-    return pose, prov
+    if not provenance:
+        return result[0]
+    return result

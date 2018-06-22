@@ -2,14 +2,12 @@ name: worms
 channels:
  - schrodinger
  - conda-forge
- - numba
  - asford
 dependencies:
  - pyrosetta
  - python >= 3.6
  - numpy
  - numba
- - icc_rt
  - pandas
  - xarray
  - pytest

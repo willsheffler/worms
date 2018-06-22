@@ -73,19 +73,19 @@ def perf_grow_2(bbdb, maxbb=10, shuf=0):
     ubbs = bbs['C3_N']
     vbbs = bbs['C3_C']
     bbs = (ubbs, vbbs)
-    u = Vertex(ubbs, '_N', min_seg_len=15, parallel=0)
-    v = Vertex(vbbs, 'C_', min_seg_len=15, parallel=0)
+    u = Vertex(ubbs, '_N', min_seg_len=15, parallel=1)
+    v = Vertex(vbbs, 'C_', min_seg_len=15, parallel=1)
     V = (u, v)
     tvertex = time() - tvertex
 
     tedge = time()
-    E = [Edge(u, ubbs, v, vbbs, parallel=0)]
+    E = [Edge(u, ubbs, v, vbbs, parallel=1)]
     print('e.total_allowed_splices()', e.total_allowed_splices())
     tedge = time() - tedge
     # print(f'edge creation time {tedge:7.3f} {e.len} {f.len}')
 
     tgrow = time()
-    worms = grow_linear(V, E, loss_function=lossfunc_rand_1_in(1), parallel=0)
+    worms = grow_linear(V, E, loss_function=lossfunc_rand_1_in(1), parallel=1)
     tgrow = time() - tgrow
     Nres = len(worms.losses)
     Ntot = u.len * v.len
@@ -114,22 +114,22 @@ def perf_grow_3(bbdb, maxbb=10, shuf=0):
         bbmap['C3_N'],
     )
     V = (
-        Vertex(bbs[0], '_N', min_seg_len=15, parallel=0),
-        Vertex(bbs[1], 'CC', min_seg_len=15, parallel=0),
-        Vertex(bbs[2], 'N_', min_seg_len=15, parallel=0),
+        Vertex(bbs[0], '_N', min_seg_len=15, parallel=1),
+        Vertex(bbs[1], 'CC', min_seg_len=15, parallel=1),
+        Vertex(bbs[2], 'N_', min_seg_len=15, parallel=1),
     )
     tvertex = time() - tvertex
 
     tedge = time()
     E = [
-        Edge(V[i], bbs[i], V[i + 1], bbs[i + 1], parallel=0, verbosity=1)
+        Edge(V[i], bbs[i], V[i + 1], bbs[i + 1], parallel=1, verbosity=1)
         for i in range(len(V) - 1)
     ]
     tedge = time() - tedge
     # print(f'edge creation time {tedge:7.3f} {e.len} {f.len}')
 
     tgrow = time()
-    w = grow_linear(V, E, loss_function=lossfunc_rand_1_in(1), parallel=0)
+    w = grow_linear(V, E, loss_function=lossfunc_rand_1_in(1), parallel=1)
     tgrow = time() - tgrow
     Nres = len(w.losses)
     Ntot = np.prod([v.len for v in V])
@@ -144,12 +144,16 @@ def perf_grow_3(bbdb, maxbb=10, shuf=0):
     graph = Graph(bbs, V, E)
 
     print('before pruned clashes', len(w.indices))
-    w = prune_clashing_results(graph, w)
+    w = prune_clashing_results(graph, w, parallel=0)
     print('pruned clashes', len(w.indices))
 
+    # return
     if len(w.indices) > 0:
-        pose, prov = make_pose(bbdb, graph, w.indices[0], w.positions[0])
-        pose.dump_pdb('test_%i.pdb' % i)
+        for i in range(len(w.indices)):
+            pose = make_pose(
+                bbdb, graph, w.indices[i], w.positions[i], only_connected=0
+            )
+            pose.dump_pdb('test_%i.pdb' % i)
 
 
 if __name__ == '__main__':
@@ -161,7 +165,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         sizes = sys.argv[1:]
     else:
-        sizes = [1]
+        sizes = [2]
     for i in sizes:
         i = int(i)
         # for i in (16, 32, 48, 64):
