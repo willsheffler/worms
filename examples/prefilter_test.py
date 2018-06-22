@@ -3,7 +3,7 @@ import os
 import logging
 from time import clock, time
 import sys
-
+import concurrent.futures as cf
 import numba as nb
 import numba.types as nt
 import numpy as np
@@ -97,7 +97,12 @@ def perf_grow_2(bbdb, maxbb=10, shuf=0):
     )
 
 
-def perf_grow_3(bbdb, maxbb=10, shuf=0):
+def _dump_pdb(bbdb, graph, i, indices, positions):
+    pose = make_pose(bbdb, graph, indices, positions, only_connected=0)
+    pose.dump_pdb('test_%i.pdb' % i)
+
+
+def perf_grow_3(bbdb, maxbb=10, shuf=0, parallel=1):
     ttot = time()
 
     tdb = time()
@@ -114,22 +119,25 @@ def perf_grow_3(bbdb, maxbb=10, shuf=0):
         bbmap['C3_N'],
     )
     V = (
-        Vertex(bbs[0], '_N', min_seg_len=15, parallel=1),
-        Vertex(bbs[1], 'CC', min_seg_len=15, parallel=1),
-        Vertex(bbs[2], 'N_', min_seg_len=15, parallel=1),
+        Vertex(bbs[0], '_N', min_seg_len=15, parallel=parallel),
+        Vertex(bbs[1], 'CC', min_seg_len=15, parallel=parallel),
+        Vertex(bbs[2], 'N_', min_seg_len=15, parallel=parallel),
     )
     tvertex = time() - tvertex
 
     tedge = time()
     E = [
-        Edge(V[i], bbs[i], V[i + 1], bbs[i + 1], parallel=1, verbosity=1)
-        for i in range(len(V) - 1)
+        Edge(
+            V[i], bbs[i], V[i + 1], bbs[i + 1], parallel=parallel, verbosity=1
+        ) for i in range(len(V) - 1)
     ]
     tedge = time() - tedge
-    # print(f'edge creation time {tedge:7.3f} {e.len} {f.len}')
+    # print(f'edge creation time {tedgne:7.3f} {e.len} {f.len}')
 
     tgrow = time()
-    w = grow_linear(V, E, loss_function=lossfunc_rand_1_in(1), parallel=1)
+    w = grow_linear(
+        V, E, loss_function=lossfunc_rand_1_in(1), parallel=parallel
+    )
     tgrow = time() - tgrow
     Nres = len(w.losses)
     Ntot = np.prod([v.len for v in V])
@@ -143,17 +151,27 @@ def perf_grow_3(bbdb, maxbb=10, shuf=0):
 
     graph = Graph(bbs, V, E)
 
-    print('before pruned clashes', len(w.indices))
-    w = prune_clashing_results(graph, w, parallel=0)
-    print('pruned clashes', len(w.indices))
+    tclash = time()
+    norig = len(w.indices)
+    w = prune_clashing_results(graph, w, parallel=parallel)
+    print(
+        'pruned clashes, %i of %i remain,' % (len(w.indices), norig), 'took',
+        time() - tclash, 'seconds'
+    )
 
-    # return
     if len(w.indices) > 0:
-        for i in range(len(w.indices)):
-            pose = make_pose(
-                bbdb, graph, w.indices[i], w.positions[i], only_connected=0
-            )
-            pose.dump_pdb('test_%i.pdb' % i)
+        tpdb = time()
+        exe = cf.ThreadPoolExecutor if parallel else InProcessExecutor
+        with exe(max_workers=3) as pool:
+            futures = list()
+            for i in range(len(w.indices)):
+                futures.append(
+                    pool.submit(
+                        _dump_pdb, bbdb, graph, i, w.indices[i], w.positions[i]
+                    )
+                )
+            [f.result() for f in futures]
+        print('dumped %i structures' % len(w.indices), 'time', time() - tpdb)
 
 
 if __name__ == '__main__':
