@@ -5,6 +5,7 @@ import types
 from worms.util import jit, InProcessExecutor
 from worms.vertex import _Vertex
 from worms.edge import _Edge
+from worms.math import numba_axis_angle_single
 from random import random
 import concurrent.futures as cf
 from worms.search.result import SearchResult, expand_results
@@ -23,10 +24,30 @@ def lossfunc_rand_1_in(n):
     return func
 
 
+def lossfunc_cyclic_rot(from_seg, to_seg, tgt_ang, lever=50):
+    tgt_ang = tgt_ang * 180.0 / np.pi
+
+    @jit
+    def func(pos):
+        x_from = pos[from_seg]
+        x_to = pos[to_seg]
+        xhat = x_to @ np.linalg.inv(x_from)
+        axis, angle = numba_axis_angle_single(xhat)
+        rot_err_sq = (angle - tgt_ang)**2 * lever * lever
+        cart_err_sq = (np.sum(xhat[:, 3] * axis))**2
+        return np.sqrt(rot_err_sq + cart_err_sq)
+
+    return func
+
+
 def grow_linear(
-        verts, edges, loss_function=null_lossfunc, loss_threshold=1.0,
-        parallel=0
+        graph,
+        loss_function=null_lossfunc,
+        loss_threshold=1.0,
+        parallel=0,
 ):
+    verts = graph.verts
+    edges = graph.edges
     assert len(verts) > 1
     assert len(verts) == len(edges) + 1
     assert verts[0].dirn[0] == 2
@@ -116,7 +137,7 @@ def _grow_linear_recurse(
         if isplice == len(edges):
             loss = loss_function(result.positions[nresults])
             result.losses[nresults] = loss
-            if loss <= loss_threshold:
+            if True:  #loss <= loss_threshold:
                 nresults += 1
                 result = expand_results(result, nresults)
         else:

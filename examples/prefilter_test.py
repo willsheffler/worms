@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 
 from worms import Vertex, Graph
-from worms.search import grow_linear, lossfunc_rand_1_in
+from worms.search import grow_linear, lossfunc_rand_1_in, lossfunc_cyclic_rot
 from worms.edge import *
 from worms.database import BBlockDB
 from worms import vis
@@ -38,63 +38,55 @@ logging.getLogger().setLevel(99)
 # --database_files %s" '%(base,nrun,base,base,nrun,config_file,base,nrun,DATABASES)
 
 
-def linear_NC_gragh(n, uwv, efg):
-    u = Vertex(bbs, '_C')
-    v = Vertex(bbs, 'NC')
-    w = Vertex(bbs, 'N_')
-    V = (u, ) + ((v, ) * (n - 2)) + (w, )
-    assert len(V) == n
-
-    e = Edge(u, bbs, v, bbs)
-    f = Edge(v, bbs, v, bbs)
-    g = Edge(v, bbs, w, bbs)
-    E = (e, ) + ((f, ) * (n - 3)) + (g, )
-    if n == 2:
-        E = (Edge(u, bbs, w, bbs), )
-
-    print('foo')
-    print(E)
-    assert len(E) == n - 1
-
-    return V, E
-
-
-def perf_grow_2(bbdb, maxbb=10, shuf=0):
-    ttot = time()
-
+def linear_gragh(
+        spec,
+        maxbb=100,
+        shuf=False,
+        min_seg_len=15,
+        parallel=False,
+        verbosity=0,
+        timing=0
+):
+    queries, directions = zip(*spec)
+    if verbosity > 0:
+        print('bblock queries', queries)
+        print('directions', directions)
     tdb = time()
-    bbs = dict(
-        C3_N=bbdb.query('C3_N', max_bblocks=maxbb, shuffle=shuf),
-        C3_C=bbdb.query('C3_C', max_bblocks=maxbb, shuffle=shuf)
-    )
+    bbmap = {
+        q: bbdb.query(q, max_bblocks=maxbb, shuffle=shuf)
+        for q in set(queries)
+    }
+    bbs = [bbmap[q] for q in queries]
     tdb = time() - tdb
+    if verbosity > 0:
+        print(
+            f'bblock creation time {tdb:7.3f}', 'num bbs:',
+            [len(x) for x in bbs]
+        )
 
     tvertex = time()
-    ubbs = bbs['C3_N']
-    vbbs = bbs['C3_C']
-    bbs = (ubbs, vbbs)
-    u = Vertex(ubbs, '_N', min_seg_len=15, parallel=1)
-    v = Vertex(vbbs, 'C_', min_seg_len=15, parallel=1)
-    V = (u, v)
+    verts = [
+        Vertex(bb, dirn, min_seg_len=15, parallel=parallel)
+        for bb, dirn in zip(bbs, directions)
+    ]
     tvertex = time() - tvertex
 
     tedge = time()
-    E = [Edge(u, ubbs, v, vbbs, parallel=1)]
-    print('e.total_allowed_splices()', e.total_allowed_splices())
+    edges = [
+        Edge(verts[i], bbs[i], verts[i + 1], bbs[i + 1],
+                  parallel=parallel, verbosity=1)
+        for i in range(len(verts) - 1)
+    ] # yapf: disable
     tedge = time() - tedge
-    # print(f'edge creation time {tedge:7.3f} {e.len} {f.len}')
-
-    tgrow = time()
-    worms = grow_linear(V, E, loss_function=lossfunc_rand_1_in(1), parallel=1)
-    tgrow = time() - tgrow
-    Nres = len(worms.losses)
-    Ntot = u.len * v.len
-    ttot = time() - ttot
-    factor = np.log10(Ntot / (Nres + 1)) - 3  # every 1000th
-    print(
-        f' perf_grow_2 {maxbb:4} {ttot:7.1f}s {Nres:12,} {Ntot:20,} tv'
-        f' {tvertex:7.1f}s te {tedge:7.1f}s tg {tgrow:7.1f}s {factor:10.3f}'
-    )
+    if verbosity > 0:
+        print(
+            f'edge creation time {tedgne:7.3f}', 'num edges',
+            [e.len for e in edges]
+        )
+    toret = Graph(bbs, verts, edges)
+    if timing:
+        toret = toret, tdb, tvertex, tedge
+    return toret
 
 
 def _dump_pdb(bbdb, graph, i, indices, positions):
@@ -105,42 +97,29 @@ def _dump_pdb(bbdb, graph, i, indices, positions):
 def perf_grow_3(bbdb, maxbb=10, shuf=0, parallel=1):
     ttot = time()
 
-    tdb = time()
-    bbmap = dict(
-        C3_N=bbdb.query('C3_N', max_bblocks=maxbb, shuffle=shuf),
-        Het_CCX=bbdb.query('Het:CCX', max_bblocks=maxbb, shuffle=shuf),
-    )
-    tdb = time() - tdb
+    graph, tdb, tvertex, tedge = linear_gragh(
+        [
+            ('C3_N'   , '_N'),
+            ('Het:CCX', 'CC'),
+            ('C3_N'   , 'N_'),
+        ],
+        maxbb=maxbb, timing=True) # yapf: disable
 
-    tvertex = time()
-    bbs = (
-        bbmap['C3_N'],
-        bbmap['Het_CCX'],
-        bbmap['C3_N'],
-    )
-    V = (
-        Vertex(bbs[0], '_N', min_seg_len=15, parallel=parallel),
-        Vertex(bbs[1], 'CC', min_seg_len=15, parallel=parallel),
-        Vertex(bbs[2], 'N_', min_seg_len=15, parallel=parallel),
-    )
-    tvertex = time() - tvertex
-
-    tedge = time()
-    E = [
-        Edge(
-            V[i], bbs[i], V[i + 1], bbs[i + 1], parallel=parallel, verbosity=1
-        ) for i in range(len(V) - 1)
-    ]
-    tedge = time() - tedge
-    # print(f'edge creation time {tedgne:7.3f} {e.len} {f.len}')
+    loss = lossfunc_cyclic_rot(0, 2, 120)
 
     tgrow = time()
     w = grow_linear(
-        V, E, loss_function=lossfunc_rand_1_in(1), parallel=parallel
+        graph, loss_function=loss, parallel=0, loss_threshold=10000
     )
+
+    print(len(w.losses))
+    print(np.percentile(w.losses, (0, 25, 50, 75, 100)))
+
+    return
+
     tgrow = time() - tgrow
     Nres = len(w.losses)
-    Ntot = np.prod([v.len for v in V])
+    Ntot = np.prod([v.len for v in graph.verts])
     ttot = time() - ttot
     factor = np.log10(Ntot / (Nres + 1)) - 3  # every 1000th
     print(
@@ -149,11 +128,9 @@ def perf_grow_3(bbdb, maxbb=10, shuf=0, parallel=1):
     )
     sys.stdout.flush()
 
-    graph = Graph(bbs, V, E)
-
     tclash = time()
     norig = len(w.indices)
-    w = prune_clashing_results(graph, w, parallel=parallel)
+    w = prune_clashing_results(graph, w, 4.0, parallel=parallel)
     print(
         'pruned clashes, %i of %i remain,' % (len(w.indices), norig), 'took',
         time() - tclash, 'seconds'
@@ -165,11 +142,8 @@ def perf_grow_3(bbdb, maxbb=10, shuf=0, parallel=1):
         with exe(max_workers=3) as pool:
             futures = list()
             for i in range(len(w.indices)):
-                futures.append(
-                    pool.submit(
-                        _dump_pdb, bbdb, graph, i, w.indices[i], w.positions[i]
-                    )
-                )
+                args = _dump_pdb, bbdb, graph, i, w.indices[i], w.positions[i]
+                futures.append(pool.submit(*args))
             [f.result() for f in futures]
         print('dumped %i structures' % len(w.indices), 'time', time() - tpdb)
 

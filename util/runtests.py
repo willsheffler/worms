@@ -27,8 +27,9 @@ def dispatch(file, pytest_args='--duration=5'):
     if not os.path.basename(file).startswith("test_"):
         if bname in dispatch:
             return (
-                'pytest {pytest_args} '.format(**vars()) +
-                ' '.join((os.path.join(path, n) for n in dispatch[bname]))
+                'pytest {pytest_args} '.format(**vars()) + ' '.join(
+                    (os.path.join(path, n) for n in dispatch[bname])
+                )
             )
         else:
             testfile = re.sub('^worms', 'worms/tests', path) + '/test_' + bname
@@ -58,7 +59,7 @@ print('cmd:', cmd)
 print('=' * 20, 'util/runtests.py running cmd in cwd', '=' * 23)
 sys.stdout.flush()
 # if 1cmd.startswith('pytest '):
-os.putenv('NUMBA_OPT', '1')
+os.putenv('NUMBA_OPT', '3')
 # os.putenv('NUMBA_DISABLE_JIT', '1')
 os.system(cmd)
 print('=' * 20, 'util/runtests.py done', '=' * 37)

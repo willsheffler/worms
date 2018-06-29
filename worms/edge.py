@@ -203,7 +203,7 @@ def Edge(u, ublks, v, vblks, rms_cut=1.1, ncontact_cut=10, verbosity=0, **kw):
     if verbosity > 0:
         print(
             'fraction good edges:', good_edges.sum(), good_edges.size,
-            good_edges.sum() / good_edges.size
+            np.round(good_edges.sum() / good_edges.size, 4)
         )
     return _Edge(scmatrix_to_splices(good_edges))
 
