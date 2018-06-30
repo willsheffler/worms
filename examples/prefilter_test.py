@@ -10,7 +10,8 @@ import numpy as np
 import pytest
 
 from worms import Vertex, Graph
-from worms.search import grow_linear, lossfunc_rand_1_in, lossfunc_cyclic_rot
+from worms.criteria import Cyclic
+from worms.search import grow_linear, lossfunc_rand_1_in
 from worms.edge import *
 from worms.database import BBlockDB
 from worms import vis
@@ -70,6 +71,11 @@ def linear_gragh(
         for bb, dirn in zip(bbs, directions)
     ]
     tvertex = time() - tvertex
+    if verbosity > 0:
+        print(
+            f'vertex creation time {tvertex:7.3f}', 'num verts',
+            [v.len for v in verts]
+        )
 
     tedge = time()
     edges = [
@@ -80,7 +86,8 @@ def linear_gragh(
     tedge = time() - tedge
     if verbosity > 0:
         print(
-            f'edge creation time {tedgne:7.3f}', 'num edges',
+            f'edge creation time {tedge:7.3f}', 'num splices',
+            [e.total_allowed_splices() for e in edges], 'num exits',
             [e.len for e in edges]
         )
     toret = Graph(bbs, verts, edges)
@@ -89,63 +96,70 @@ def linear_gragh(
     return toret
 
 
-def _dump_pdb(bbdb, graph, i, indices, positions):
-    pose = make_pose(bbdb, graph, indices, positions, only_connected=0)
+def _dump_pdb(bbdb, graph, spec, i, idx, pos):
+    pose = make_pose(bbdb, graph, spec, idx, pos)
     pose.dump_pdb('test_%i.pdb' % i)
 
 
-def perf_grow_3(bbdb, maxbb=10, shuf=0, parallel=1):
+def perf_grow_3(bbdb, maxbb=10, shuf=0, parallel=1, verbosity=1):
     ttot = time()
 
     graph, tdb, tvertex, tedge = linear_gragh(
         [
-            ('C3_N'   , '_N'),
+            ('Het:NNX', '_N'),
             ('Het:CCX', 'CC'),
-            ('C3_N'   , 'N_'),
+            ('Het:NNX', 'N_'),
         ],
-        maxbb=maxbb, timing=True) # yapf: disable
+        maxbb=maxbb, timing=True, verbosity=verbosity, parallel=parallel) # yapf: disable
 
-    loss = lossfunc_cyclic_rot(0, 2, 120)
+    # loss = lossfunc_cyclic_rot(0, 2, 120)
+    # loss = lossfunc_rand_1_in(1000)
+
+    spec = Cyclic(3)
 
     tgrow = time()
-    w = grow_linear(
-        graph, loss_function=loss, parallel=0, loss_threshold=10000
+    wrm = grow_linear(
+        graph,
+        loss_function=spec.jit_lossfunc(),
+        parallel=parallel,
+        loss_threshold=0.5,
+        last_bb_same_as=0
     )
-
-    print(len(w.losses))
-    print(np.percentile(w.losses, (0, 25, 50, 75, 100)))
-
-    return
-
     tgrow = time() - tgrow
-    Nres = len(w.losses)
+
+    Nres = len(wrm.err)
     Ntot = np.prod([v.len for v in graph.verts])
+    Nsparse = wrm.stats.total_samples[0]
+    Nsparse_rate = Nsparse / tgrow
     ttot = time() - ttot
-    factor = np.log10(Ntot / (Nres + 1)) - 3  # every 1000th
     print(
         f' perf_grow_3 {maxbb:4} {ttot:7.1f}s {Nres:12,} {Ntot:20,} tv'
-        f' {tvertex:7.1f}s te {tedge:7.1f}s tg {tgrow:7.1f}s {factor:10.3f}'
+        f' {tvertex:7.1f}s te {tedge:7.1f}s tg {tgrow:7.1f}s {Nsparse:10.0f} {Nsparse_rate:7.0f}/s'
     )
+    if len(wrm.err):
+        print(
+            'err 0 25 50 75 100', np.percentile(wrm.err, (0, 25, 50, 75, 100))
+        )
     sys.stdout.flush()
 
     tclash = time()
-    norig = len(w.indices)
-    w = prune_clashing_results(graph, w, 4.0, parallel=parallel)
+    norig = len(wrm.idx)
+    wrm = prune_clashing_results(graph, spec, wrm, 4.0, parallel=parallel)
     print(
-        'pruned clashes, %i of %i remain,' % (len(w.indices), norig), 'took',
+        'pruned clashes, %i of %i remain,' % (len(wrm.idx), norig), 'took',
         time() - tclash, 'seconds'
     )
 
-    if len(w.indices) > 0:
+    if len(wrm.idx) > 0:
         tpdb = time()
         exe = cf.ThreadPoolExecutor if parallel else InProcessExecutor
         with exe(max_workers=3) as pool:
             futures = list()
-            for i in range(len(w.indices)):
-                args = _dump_pdb, bbdb, graph, i, w.indices[i], w.positions[i]
+            for i in range(len(wrm.idx)):
+                args = _dump_pdb, bbdb, graph, spec, i, wrm.idx[i], wrm.pos[i]
                 futures.append(pool.submit(*args))
             [f.result() for f in futures]
-        print('dumped %i structures' % len(w.indices), 'time', time() - tpdb)
+        print('dumped %i structures' % len(wrm.idx), 'time', time() - tpdb)
 
 
 if __name__ == '__main__':

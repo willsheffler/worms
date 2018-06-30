@@ -1,4 +1,6 @@
 from .base import *
+from worms.util import jit
+from worms.math import numba_axis_angle_single
 
 
 class Cyclic(WormCriteria):
@@ -20,14 +22,16 @@ class Cyclic(WormCriteria):
         tol (TYPE): Description
     """
 
-    def __init__(self,
-                 symmetry=1,
-                 from_seg=0,
-                 *,
-                 tol=1.0,
-                 origin_seg=None,
-                 lever=50.0,
-                 to_seg=-1):
+    def __init__(
+            self,
+            symmetry=1,
+            from_seg=0,
+            *,
+            tol=1.0,
+            origin_seg=None,
+            lever=50.0,
+            to_seg=-1
+    ):
         """TODO: Summary
 
         Args:
@@ -141,3 +145,21 @@ class Cyclic(WormCriteria):
         align = hm.hrot((axis + tgtaxis) / 2, np.pi, cen)
         align[..., :3, 3] -= cen[..., :3]
         return align
+
+    def jit_lossfunc(self):
+        tgt_ang = self.symangle
+        from_seg = self.from_seg
+        to_seg = self.to_seg
+        lever = self.lever
+
+        @jit
+        def func(pos):
+            x_from = pos[from_seg]
+            x_to = pos[to_seg]
+            xhat = x_to @ np.linalg.inv(x_from)
+            axis, angle = numba_axis_angle_single(xhat)
+            rot_err_sq = lever**2 * (angle - tgt_ang)**2
+            cart_err_sq = (np.sum(xhat[:, 3] * axis))**2
+            return np.sqrt(rot_err_sq + cart_err_sq)
+
+        return func

@@ -1,8 +1,15 @@
 from collections import namedtuple
-
+import numpy as np
 from worms.util import jit, expand_array_if_needed
 
-SearchResult = namedtuple('SearchResult', 'positions indices losses'.split())
+SearchStats = namedtuple('SearchStats', ['total_samples'])
+
+
+def zero_search_stats():
+    return SearchStats(np.zeros(1))
+
+
+SearchResult = namedtuple('SearchResult', ['pos', 'idx', 'err', 'stats'])
 
 
 @jit
@@ -11,8 +18,10 @@ def expand_results(result, nresults):
         result = SearchResult(
             expand_array_if_needed(result[0], nresults),
             expand_array_if_needed(result[1], nresults),
-            expand_array_if_needed(result[2], nresults)
+            expand_array_if_needed(result[2], nresults),
+            result.stats,
         )
-    result.indices[nresults] = result.indices[nresults - 1]
-    result.positions[nresults] = result.positions[nresults - 1]
+    result.idx[nresults] = result.idx[nresults - 1]
+    result.pos[nresults] = result.pos[nresults - 1]
+    result.err[nresults] = result.err[nresults - 1]
     return result

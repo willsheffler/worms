@@ -60,23 +60,23 @@ def _make_pose_single(pose, vert, idx, positions, nverts, ivert, cyclic_info):
 def make_pose(
         bbdb,
         graph,
+        spec,
         indices,
         positions,
-        from_seg=0,
-        to_seg=-1,
-        is_cyclic=False,
-        position=np.eye(4),
         only_connected='auto',
         provenance=False
 ):
-
-    cyclic_info = (None, ) * 5
+    from_seg = spec.from_seg
+    to_seg = spec.to_seg
+    is_cyclic = spec.is_cyclic
+    position = spec.alignment(positions)
+    cyclic_info = [None] * 5
     if is_cyclic:
         cyclic_info[0] = from_seg, to_seg
-        cyclic_info[1] = _dirn_to_polarity(gragh.verts[-1].dirn[0])
-        cyclic_info[2] = _dirn_to_polarity(gragh.verts[0].dirn[1])
+        cyclic_info[1] = _dirn_to_polarity(graph.verts[-1].dirn[0])
+        cyclic_info[2] = _dirn_to_polarity(graph.verts[0].dirn[1])
         cyclic_info[3] = graph.verts[to_seg].ires[indices[to_seg], 0]
-        cyclic_info[4] = _dirn_to_polarity(graph.verts[to_seg].dirn)
+        cyclic_info[4] = _dirn_to_polarity(graph.verts[to_seg].dirn[0])
 
     poses = _get_bb_poses(bbdb, graph, indices)
     entry_exit_chains = list()
@@ -113,7 +113,7 @@ def make_pose(
         align=True,
         cryst_info=None,
         end=(not is_cyclic),
-        iend=(-1 if is_cyclic else None),
+        iend=None,  #(-1 if is_cyclic else None),
         only_connected=only_connected,
         join=True,
         cyclic_permute=is_cyclic,

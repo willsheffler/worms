@@ -10,6 +10,7 @@ from worms.bblock import chain_of_ires, _BBlock
 from logging import warning
 import concurrent.futures as cf
 from worms.util import InProcessExecutor
+from worms.criteria import cyclic
 
 @nb.jitclass((
     ('x2exit' , nt.float64[:, :, :]),
@@ -36,8 +37,10 @@ class _Vertex:
         x2orig (TYPE): Description
     """
 
-    def __init__(self, x2exit, x2orig, ires, isite, ichain, ibblock, inout,
-                 inbreaks, dirn):
+    def __init__(
+            self, x2exit, x2orig, ires, isite, ichain, ibblock, inout,
+            inbreaks, dirn
+    ):
         """TODO: Summary
 
         Args:
@@ -72,6 +75,8 @@ class _Vertex:
         return self.inout[:, 1]
 
     def entry_range(self, ienter):
+        assert ienter >= 0, 'vertex.py bad ienter, < 0'
+        assert ienter <= len(self.inbreaks), 'vertex.py bad ienter'
         return self.inbreaks[ienter], self.inbreaks[ienter + 1]
 
     @property
@@ -85,8 +90,10 @@ class _Vertex:
 
     @property
     def _state(self):
-        return (self.x2exit, self.x2orig, self.ires, self.isite, self.ichain,
-                self.ibblock, self.inout, self.inbreaks, self.dirn)
+        return (
+            self.x2exit, self.x2orig, self.ires, self.isite, self.ichain,
+            self.ibblock, self.inout, self.inbreaks, self.dirn
+        )
 
 
 def vertex_single(bbstate, bbid, din, dout, min_seg_len):
@@ -191,8 +198,9 @@ def Vertex(bbs, dirn, bbids=None, min_seg_len=1, parallel=0):
         futures = list()
         for bb, bid in zip(bbs, bbids):
             futures.append(
-                pool.submit(vertex_single, bb._state, bid, din, dout,
-                            min_seg_len))
+                pool.
+                submit(vertex_single, bb._state, bid, din, dout, min_seg_len)
+            )
         verts = [f.result() for f in futures]
     verts = [v for v in verts if v is not None]
     if not verts:
@@ -201,14 +209,14 @@ def Vertex(bbs, dirn, bbids=None, min_seg_len=1, parallel=0):
     assert len({x.shape[0] for x in tup}) == 1
     ibblock, ires = tup[5], tup[2]
 
-    inout = np.stack(
-        [
-            util.unique_key(ibblock, ires[:, 0]),
-            util.unique_key(ibblock, ires[:, 1])
-        ],
-        axis=-1).astype('i4')
+    inout = np.stack([
+        util.unique_key(ibblock, ires[:, 0]),
+        util.unique_key(ibblock, ires[:, 1])
+    ],
+                     axis=-1).astype('i4')
 
     inbreaks = util.contig_idx_breaks(inout[:, 0])
     assert inbreaks.dtype == np.int32
+    assert np.all(inbreaks <= len(inout))
 
     return _Vertex(*tup, inout, inbreaks, np.array([din, dout], dtype='i4'))

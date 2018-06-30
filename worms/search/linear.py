@@ -5,10 +5,9 @@ import types
 from worms.util import jit, InProcessExecutor
 from worms.vertex import _Vertex
 from worms.edge import _Edge
-from worms.math import numba_axis_angle_single
 from random import random
 import concurrent.futures as cf
-from worms.search.result import SearchResult, expand_results
+from worms.search.result import SearchResult, zero_search_stats, expand_results
 
 
 @jit
@@ -24,26 +23,11 @@ def lossfunc_rand_1_in(n):
     return func
 
 
-def lossfunc_cyclic_rot(from_seg, to_seg, tgt_ang, lever=50):
-    tgt_ang = tgt_ang * 180.0 / np.pi
-
-    @jit
-    def func(pos):
-        x_from = pos[from_seg]
-        x_to = pos[to_seg]
-        xhat = x_to @ np.linalg.inv(x_from)
-        axis, angle = numba_axis_angle_single(xhat)
-        rot_err_sq = (angle - tgt_ang)**2 * lever * lever
-        cart_err_sq = (np.sum(xhat[:, 3] * axis))**2
-        return np.sqrt(rot_err_sq + cart_err_sq)
-
-    return func
-
-
 def grow_linear(
         graph,
         loss_function=null_lossfunc,
-        loss_threshold=1.0,
+        loss_threshold=2.0,
+        last_bb_same_as=None,
         parallel=0,
 ):
     verts = graph.verts
@@ -74,6 +58,7 @@ def grow_linear(
                     edges_pickleable=edges_pickleable,
                     loss_function=loss_function,
                     loss_threshold=loss_threshold,
+                    last_bb_same_as=last_bb_same_as,
                     nresults=0,
                     isplice=0,
                     ivertex_range=(ivert, min(vert0_size, ivert + batch_size)),
@@ -83,10 +68,14 @@ def grow_linear(
             )
         results = [f.result() for f in futures]
 
+    tot_stats = zero_search_stats()
+    for i in range(len(tot_stats)):
+        tot_stats[i][0] += sum([r.stats[i][0] for r in results])
     result = SearchResult(
-        positions=np.concatenate([r.positions for r in results]),
-        indices=np.concatenate([r.indices for r in results]),
-        losses=np.concatenate([r.losses for r in results]),
+        pos=np.concatenate([r.pos for r in results]),
+        idx=np.concatenate([r.idx for r in results]),
+        err=np.concatenate([r.err for r in results]),
+        stats=tot_stats
     )
 
     return result
@@ -95,24 +84,46 @@ def grow_linear(
 def _grow_linear_start(verts_pickleable, edges_pickleable, **kwargs):
     verts = tuple([_Vertex(*vp) for vp in verts_pickleable])
     edges = tuple([_Edge(*ep) for ep in edges_pickleable])
-    positions = np.empty(shape=(1024, len(verts), 4, 4), dtype=np.float64)
-    indices = np.empty(shape=(1024, len(verts)), dtype=np.int32)
-    losses = np.empty(shape=(1024, ), dtype=np.float32)
-    result = SearchResult(positions=positions, indices=indices, losses=losses)
+    pos = np.empty(shape=(1024, len(verts), 4, 4), dtype=np.float64)
+    idx = np.empty(shape=(1024, len(verts)), dtype=np.int32)
+    err = np.empty(shape=(1024, ), dtype=np.float32)
+    stats = zero_search_stats()
+    result = SearchResult(pos=pos, idx=idx, err=err, stats=stats)
     nresult, result = _grow_linear_recurse(result, verts, edges, **kwargs)
-    result = SearchResult(*(a[:nresult] for a in result))
+    result = SearchResult(
+        result.pos[:nresult], result.idx[:nresult], result.err[:nresult],
+        result.stats
+    )
     return result
 
 
 @jit
+def _bb_invalid(result, verts, ivertex, nresults, last_bb_same_as):
+    # if no 'cyclic' constraint, no checks required
+    if last_bb_same_as is None:
+        return False
+    i_last_same = result.idx[nresults, last_bb_same_as]
+    ibblock_last_same = verts[last_bb_same_as].ibblock[i_last_same]
+    # last bblock must be same as 'last_bb_same_as'
+    if verts[-1].ibblock[ivertex] != ibblock_last_same:
+        return True
+    isite_last_same_in = verts[last_bb_same_as].isite[i_last_same, 0]
+    isite_last_same_out = verts[last_bb_same_as].isite[i_last_same, 1]
+    # can't reuse same site
+    if verts[-1].isite[ivertex, 0] == isite_last_same_in: return True
+    if verts[-1].isite[ivertex, 0] == isite_last_same_out: return True
+    return False
+
+
+@jit
 def _grow_linear_recurse(
-        result, verts, edges, loss_function, loss_threshold, nresults, isplice,
-        ivertex_range, splice_position, showprogress
+        result, verts, edges, loss_function, loss_threshold, last_bb_same_as,
+        nresults, isplice, ivertex_range, splice_position, showprogress
 ):
     """Takes a partially built 'worm' of length isplice and extends them by one based on ivertex_range
 
     Args:
-        result (SearchResult): accumulated positions, indices, and scores
+        result (SearchResult): accumulated pos, idx, and err
         verts (tuple(_Vertex)*N): Vertices in the linear 'graph', store entry/exit geometry
         edges (tuple(_Edge)*(N-1)): Edges in the linear 'graph', store allowed splices
         loss_function (jit function): Arbitrary loss function, must be numba-jitable
@@ -124,20 +135,23 @@ def _grow_linear_recurse(
         showprogress (boolean): print progress messages
 
     Returns:
-        (int, SearchResult): accumulated positions, indices, and scores
+        (int, SearchResult): accumulated pos, idx, and err
     """
     current_vertex = verts[isplice]
     for ivertex in range(*ivertex_range):
         if showprogress and isplice == 0:
             if (ivertex + 1) % (ivertex_range[1] / showprogress) == 0:
                 print(int(ivertex * showprogress / ivertex_range[1]))
-        result.indices[nresults, isplice] = ivertex
+        result.idx[nresults, isplice] = ivertex
         vertex_position = splice_position @ current_vertex.x2orig[ivertex]
-        result.positions[nresults, isplice] = vertex_position
+        result.pos[nresults, isplice] = vertex_position
         if isplice == len(edges):
-            loss = loss_function(result.positions[nresults])
-            result.losses[nresults] = loss
-            if True:  #loss <= loss_threshold:
+            result.stats.total_samples[0] += 1
+            if _bb_invalid(result, verts, ivertex, nresults, last_bb_same_as):
+                continue
+            loss = loss_function(result.pos[nresults])
+            result.err[nresults] = loss
+            if loss <= loss_threshold:
                 nresults += 1
                 result = expand_results(result, nresults)
         else:
@@ -147,12 +161,17 @@ def _grow_linear_recurse(
             allowed_entries = edges[isplice].allowed_entries(iexit)
             for ienter in allowed_entries:
                 next_ivertex_range = next_vertex.entry_range(ienter)
+                assert next_ivertex_range[0] >= 0, 'ivrt rng err'
+                assert next_ivertex_range[1] >= 0, 'ivrt rng err'
+                assert next_ivertex_range[0] <= next_vertex.len, 'ivrt rng err'
+                assert next_ivertex_range[1] <= next_vertex.len, 'ivrt rng err'
                 nresults, result = _grow_linear_recurse(
                     result=result,
                     verts=verts,
                     edges=edges,
                     loss_function=loss_function,
                     loss_threshold=loss_threshold,
+                    last_bb_same_as=last_bb_same_as,
                     nresults=nresults,
                     isplice=isplice + 1,
                     ivertex_range=next_ivertex_range,

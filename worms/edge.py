@@ -140,7 +140,9 @@ def splice_metrics(
     for iblk in outblk_res.keys():
         outblk_res[iblk] = np.array(outblk_res[iblk], 'i4')
 
+    swapped = False
     if u.dirn[1] == 0:  # swap!
+        swapped = True
         u, ublks, v, vblks = v, vblks, u, ublks
         outblk_res, inblk_res = inblk_res, outblk_res
         outblk, inblk = inblk, outblk
@@ -187,7 +189,7 @@ def splice_metrics(
             metrics.nclash[myslice] = nclash
             metrics.ncontact[myslice] = ncontact
 
-    if u.dirn[1] == 0:  # swap!
+    if swapped:  # unswap!
         metrics = _SCM_Scores(
             metrics.nclash.T, metrics.ncontact.T, metrics.rms.T
         )
@@ -205,7 +207,12 @@ def Edge(u, ublks, v, vblks, rms_cut=1.1, ncontact_cut=10, verbosity=0, **kw):
             'fraction good edges:', good_edges.sum(), good_edges.size,
             np.round(good_edges.sum() / good_edges.size, 4)
         )
-    return _Edge(scmatrix_to_splices(good_edges))
+    splices = scmatrix_to_splices(good_edges)
+
+    assert np.max(splices[:, 1:]) < len(v.inbreaks), 'egde.py bad splices'
+    assert len(splices) == 1 + np.max(u.inout[:, 1]), 'edge.py, bad splices'
+
+    return _Edge(splices)
 
 
 @jit
@@ -221,6 +228,7 @@ def scmatrix_to_splices(scmatrix):
         non0 = scmatrix[i].nonzero()[0].astype(np.int32)
         splices[i, 0] = len(non0) + 1
         splices[i, 1:len(non0) + 1] = non0
+    assert splices.shape[0] == scmatrix.shape[0]
     return splices
 
 
@@ -239,6 +247,11 @@ class _Edge:
         return len(self.splices)
 
     def allowed_entries(self, i):
+        assert i >= 0, 'edge.py allowed_entries bad i'
+        assert self.splices.shape[0] > i, 'edge.py allowed_entries bad i'
+        assert self.splices.shape[1] >= self.splices[i, 0], \
+            'edge.py allowed_entries bad i'
+
         return self.splices[i, 1:self.splices[i, 0]]
 
     def total_allowed_splices(self):

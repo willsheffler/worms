@@ -77,30 +77,28 @@ def _check_all_chain_clashes(dirns, iress, idx, pos, chn, ncacs, thresh):
     return True
 
 
-def prune_clashing_results(graph, worms, thresh=4.0, parallel=False):
+def prune_clashing_results(graph, spec, wrm, thresh=4.0, parallel=False):
+    print('todo: clash check should handle symmetry')
     verts = tuple(graph.verts)
-
     exe = cf.ProcessPoolExecutor if parallel else InProcessExecutor
     with exe() as pool:
         futures = list()
-        for i in range(len(worms.indices)):
+        for i in range(len(wrm.idx)):
             dirns = tuple([v.dirn for v in verts])
             iress = tuple([v.ires for v in verts])
             chains = tuple([
-                graph.bbs[k][verts[k].ibblock[worms.indices[i, k]]].chains
+                graph.bbs[k][verts[k].ibblock[wrm.idx[i, k]]].chains
                 for k in range(len(graph.verts))
             ])
             ncacs = tuple([
-                graph.bbs[k][verts[k].ibblock[worms.indices[i, k]]].ncac
+                graph.bbs[k][verts[k].ibblock[wrm.idx[i, k]]].ncac
                 for k in range(len(graph.verts))
             ])
             futures.append(
                 pool.submit(
-                    _check_all_chain_clashes, dirns, iress, worms.indices[i],
-                    worms.positions[i], chains, ncacs, thresh * thresh
+                    _check_all_chain_clashes, dirns, iress, wrm.idx[i],
+                    wrm.pos[i], chains, ncacs, thresh * thresh
                 )
             )
         ok = np.array([f.result() for f in futures], dtype='?')
-    return SearchResult(
-        worms.positions[ok], worms.indices[ok], worms.losses[ok]
-    )
+    return SearchResult(wrm.pos[ok], wrm.idx[ok], wrm.err[ok], wrm.stats)
