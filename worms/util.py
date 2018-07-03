@@ -62,30 +62,30 @@ class InProcessExecutor:
         """
         pass
 
-    def submit(self, function, *args, **kw):
+    def submit(self, fn, *args, **kw):
         """TODO: Summary
 
         Args:
-            function (TYPE): Description
+            fn (TYPE): Description
             args: Description
             kw: passthru args
         Returns:
             TYPE: Description
         """
-        return NonFuture(function(*args, **kw))
+        return NonFuture(fn(*args, **kw))
 
-    def map(self, function, *iterables):
+    def map(self, func, *iterables):
         """TODO: Summary
 
         Args:
-            function (TYPE): Description
+            func (TYPE): Description
             iterables: Description
 
         Returns:
             TYPE: Description
         """
-        return map(function, *iterables)
-        # return (NonFuture(function(*args) for args in zip(iterables)))
+        return map(func, *iterables)
+        # return (NonFuture(func(*args) for args in zip(iterables)))
 
 
 class NonFuture:

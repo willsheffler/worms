@@ -126,10 +126,11 @@ def perf_grow_3(bbdb, maxbb=10, shuf=0, parallel=1, verbosity=1):
         graph,
         loss_function=spec.jit_lossfunc(),
         # loss_function=lossfunc_rand_1_in(1000),
-        parallel=parallel,
-        loss_threshold=0.5,
+        parallel=True,
+        loss_threshold=1.0,
         last_bb_same_as=last_bb_same_as,
-        showprogress=0
+        showprogress=0,
+        monte_carlo=0
     )
     tgrow = time() - tgrow
 
@@ -152,6 +153,8 @@ def perf_grow_3(bbdb, maxbb=10, shuf=0, parallel=1, verbosity=1):
             'err 0 25 50 75 100', np.percentile(wrm.err, (0, 25, 50, 75, 100))
         )
     sys.stdout.flush()
+
+    return
 
     tclash = time()
     norig = len(wrm.idx)

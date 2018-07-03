@@ -39,13 +39,15 @@ def test_linear_search_two(bbdb_fullsize_prots):
 
     graph = Graph((bbs, ) * 2, verts, edges)
     result = grow_linear(graph)
-    assert np.allclose(result.positions[:, 0], np.eye(4))
-    assert np.all(
-        result.indices == [[0, 22], [18, 40], [19, 21], [19, 60], [21, 0],
-                           [21, 58], [22, 1], [22, 57], [22, 59], [22, 60],
-                           [23, 20], [23, 58], [23, 59], [23, 60]])  # yapf: disable
+    assert np.allclose(result.pos[:, 0], np.eye(4))
 
-@pytest.mark.skip
+    isort = np.lexsort((result.idx[:, 1], result.idx[:, 0]))
+    sortidx = result.idx[isort, :]
+    assert np.all(
+        sortidx == [[0, 22], [18, 40], [19, 21], [19, 60], [21, 0],
+                    [21, 58], [22, 1], [22, 57], [22, 59], [22, 60],
+                    [23, 20], [23, 58], [23, 59], [23, 60]])  # yapf: disable
+
 @only_if_jit
 def test_linear_search_three(bbdb_fullsize_prots):
     bbs = bbdb_fullsize_prots.query('all')
@@ -73,10 +75,11 @@ def test_linear_search_three(bbdb_fullsize_prots):
     # print('time 10', clock() - t)
     # assert 0
 
-    idx = _expand_inout_indices(verts, result.indices)
+    assert np.allclose(result.pos[:, 0], np.eye(4))
 
-    assert np.allclose(result.positions[:, 0], np.eye(4))
-
+    idx = _expand_inout_indices(verts, result.idx)
+    isort = np.lexsort((idx[:, 3], idx[:, 2], idx[:, 1], idx[:, 0]))
+    idx = idx[isort, :]
     assert len(idx) == _num_splices(e) * _num_splices(f)
 
     assert np.all(idx == [

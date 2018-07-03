@@ -25,3 +25,11 @@ def expand_results(result, nresults):
     result.pos[nresults] = result.pos[nresults - 1]
     result.err[nresults] = result.err[nresults - 1]
     return result
+
+
+def remove_duplicate_results(results):
+    h = np.array([hash(row.data.tobytes()) for row in results.idx])
+    _, isel = np.unique(h, return_index=True)
+    return SearchResult(
+        results.pos[isel], results.idx[isel], results.err[isel], results.stats
+    )

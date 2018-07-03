@@ -59,7 +59,7 @@ print('cmd:', cmd)
 print('=' * 20, 'util/runtests.py running cmd in cwd', '=' * 23)
 sys.stdout.flush()
 # if 1cmd.startswith('pytest '):
-os.putenv('NUMBA_OPT', '3')
+os.putenv('NUMBA_OPT', '1')
 # os.putenv('NUMBA_DISABLE_JIT', '1')
 os.system(cmd)
 print('=' * 20, 'util/runtests.py done', '=' * 37)
