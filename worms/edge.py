@@ -197,11 +197,13 @@ def splice_metrics(
     return metrics
 
 
-def Edge(u, ublks, v, vblks, rms_cut=1.1, ncontact_cut=10, verbosity=0, **kw):
+def Edge(u, ublks, v, vblks, rms_cut=0.7, ncontact_cut=10, verbosity=0, **kw):
     m = splice_metrics(u, ublks, v, vblks, rms_cut=rms_cut, **kw)
     # * is logical 'and'
     good_edges = ((m.nclash == 0) * (m.rms <= rms_cut) *
                   (m.ncontact >= ncontact_cut))
+    if np.sum(good_edges) == 0:
+        raise ValueError('all splices invalid ')
     if verbosity > 0:
         print(
             'fraction good edges:', good_edges.sum(), good_edges.size,

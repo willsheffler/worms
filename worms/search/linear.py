@@ -8,6 +8,8 @@ from worms.edge import _Edge
 from random import random
 import concurrent.futures as cf
 from worms.search.result import SearchResult, zero_search_stats, expand_results
+from multiprocessing import cpu_count
+from tqdm import tqdm
 
 
 @jit
@@ -29,6 +31,7 @@ def grow_linear(
         loss_threshold=2.0,
         last_bb_same_as=None,
         parallel=0,
+        showprogress=0,
 ):
     verts = graph.verts
     edges = graph.edges
@@ -47,10 +50,10 @@ def grow_linear(
     # exe = cf.ProcessPoolExecutor if parallel else InProcessExecutor
     with exe() as pool:
         futures = list()
-        batch_size, vert0_size = 10, verts[0].len
+        nbatch = max(1, int(verts[0].len / 16 / cpu_count()))
         verts_pickleable = [v._state for v in verts]
         edges_pickleable = [e._state for e in edges]
-        for ivert in range(0, verts[0].len, batch_size):
+        for ivert in range(0, verts[0].len, nbatch):
             futures.append(
                 pool.submit(
                     _grow_linear_start,
@@ -61,12 +64,14 @@ def grow_linear(
                     last_bb_same_as=last_bb_same_as,
                     nresults=0,
                     isplice=0,
-                    ivertex_range=(ivert, min(vert0_size, ivert + batch_size)),
+                    ivertex_range=(ivert, min(verts[0].len, ivert + nbatch)),
                     splice_position=np.eye(4),
-                    showprogress=0
+                    showprogress=showprogress
                 )
             )
-        results = [f.result() for f in futures]
+        results = list()
+        for f in tqdm(cf.as_completed(futures), total=len(futures)):
+            results.append(f.result())
 
     tot_stats = zero_search_stats()
     for i in range(len(tot_stats)):
@@ -141,7 +146,7 @@ def _grow_linear_recurse(
     for ivertex in range(*ivertex_range):
         if showprogress and isplice == 0:
             if (ivertex + 1) % (ivertex_range[1] / showprogress) == 0:
-                print(int(ivertex * showprogress / ivertex_range[1]))
+                print('_grow_linear_recurse', ivertex, nresults)
         result.idx[nresults, isplice] = ivertex
         vertex_position = splice_position @ current_vertex.x2orig[ivertex]
         result.pos[nresults, isplice] = vertex_position
@@ -149,10 +154,12 @@ def _grow_linear_recurse(
             result.stats.total_samples[0] += 1
             if _bb_invalid(result, verts, ivertex, nresults, last_bb_same_as):
                 continue
+            result.stats.n_last_bb_same_as[0] += 1
             loss = loss_function(result.pos[nresults])
             result.err[nresults] = loss
             if loss <= loss_threshold:
                 nresults += 1
+
                 result = expand_results(result, nresults)
         else:
             next_vertex = verts[isplice + 1]

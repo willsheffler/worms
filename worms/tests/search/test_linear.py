@@ -1,5 +1,5 @@
 from worms.search.linear import grow_linear
-from worms import Vertex, Edge, BBlockDB
+from worms import Vertex, Edge, BBlockDB, Graph
 import pytest
 import numpy as np
 import os
@@ -31,18 +31,21 @@ def test_linear_search_two(bbdb_fullsize_prots):
     bbs = bbdb_fullsize_prots.query('all')
     u = Vertex(bbs, '_C')
     v = Vertex(bbs, 'N_')
-    e = Edge(u, bbs, v, bbs)
+    verts = (u, v)
+    edges = (Edge(u, bbs, v, bbs, rms_cut=1.1), )
 
     assert np.all(u.inout[:, 1] == np.arange(u.len))
     assert np.all(v.inout[:, 0] == np.arange(v.len))
 
-    result = grow_linear((u, v), (e, ))
+    graph = Graph((bbs, ) * 2, verts, edges)
+    result = grow_linear(graph)
     assert np.allclose(result.positions[:, 0], np.eye(4))
     assert np.all(
         result.indices == [[0, 22], [18, 40], [19, 21], [19, 60], [21, 0],
                            [21, 58], [22, 1], [22, 57], [22, 59], [22, 60],
                            [23, 20], [23, 58], [23, 59], [23, 60]])  # yapf: disable
 
+@pytest.mark.skip
 @only_if_jit
 def test_linear_search_three(bbdb_fullsize_prots):
     bbs = bbdb_fullsize_prots.query('all')
@@ -50,8 +53,8 @@ def test_linear_search_three(bbdb_fullsize_prots):
     v = Vertex(bbs, 'NC')
     w = Vertex(bbs, 'N_')
     verts = (u, v, w)
-    e = Edge(u, bbs, v, bbs)
-    f = Edge(v, bbs, w, bbs)
+    e = Edge(u, bbs, v, bbs, rms_cut=1.1)
+    f = Edge(v, bbs, w, bbs, rms_cut=1.1)
     edges = (e, f)
 
     # print('------------- e ---------------')
@@ -60,7 +63,8 @@ def test_linear_search_three(bbdb_fullsize_prots):
     # _print_splices(f)
     # print('------------- result ---------------')
 
-    result = grow_linear(verts, edges)
+    graph = Graph((bbs, ) * 3, verts, edges)
+    result = grow_linear(graph)
 
     # from time import clock
     # t = clock()

@@ -56,7 +56,7 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots):
     bbs = bbdb_fullsize_prots.query('all')
     u = Vertex(bbs, '_C')
     v = Vertex(bbs, 'N_')
-    e = Edge(u, bbs, v, bbs)
+    e = Edge(u, bbs, v, bbs, rms_cut=1.1, ncontact_cut=10)
 
     # print('allowed splices table')
     # print(e.splices.shape)

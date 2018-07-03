@@ -11,6 +11,9 @@ def _validate_bbs_verts(bbs, verts):
 class Graph:
     def __init__(self, bbs, verts, edges):
         _validate_bbs_verts(bbs, verts)
+        print(type(bbs[0][0]))
+        print(type(verts[0]))
+        print(type(edges[0]))
         self.bbs = bbs
         self.verts = verts
         self.edges = edges

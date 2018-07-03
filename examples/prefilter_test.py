@@ -106,8 +106,10 @@ def perf_grow_3(bbdb, maxbb=10, shuf=0, parallel=1, verbosity=1):
 
     graph, tdb, tvertex, tedge = linear_gragh(
         [
+            # ('C3_N'   , '_N'),
+            # ('Het:CC' , 'CC'),
             ('Het:NNX', '_N'),
-            ('Het:CCX', 'CC'),
+            ('Het:CC' , 'CC'),
             ('Het:NNX', 'N_'),
         ],
         maxbb=maxbb, timing=True, verbosity=verbosity, parallel=parallel) # yapf: disable
@@ -115,26 +117,35 @@ def perf_grow_3(bbdb, maxbb=10, shuf=0, parallel=1, verbosity=1):
     # loss = lossfunc_cyclic_rot(0, 2, 120)
     # loss = lossfunc_rand_1_in(1000)
 
+    # spec = Cyclic(3, from_seg=2, origin_seg=0)
     spec = Cyclic(3)
+    last_bb_same_as = spec.from_seg
 
     tgrow = time()
     wrm = grow_linear(
         graph,
         loss_function=spec.jit_lossfunc(),
+        # loss_function=lossfunc_rand_1_in(1000),
         parallel=parallel,
         loss_threshold=0.5,
-        last_bb_same_as=0
+        last_bb_same_as=last_bb_same_as,
+        showprogress=0
     )
     tgrow = time() - tgrow
 
     Nres = len(wrm.err)
     Ntot = np.prod([v.len for v in graph.verts])
-    Nsparse = wrm.stats.total_samples[0]
-    Nsparse_rate = Nsparse / tgrow
+    logtot = np.log10(Ntot)
+    print(
+        'frac last_bb_same_as',
+        wrm.stats.n_last_bb_same_as[0] / wrm.stats.total_samples[0]
+    )
+    Nsparse = int(wrm.stats.total_samples[0])
+    Nsparse_rate = int(Nsparse / tgrow)
     ttot = time() - ttot
     print(
-        f' perf_grow_3 {maxbb:4} {ttot:7.1f}s {Nres:12,} {Ntot:20,} tv'
-        f' {tvertex:7.1f}s te {tedge:7.1f}s tg {tgrow:7.1f}s {Nsparse:10.0f} {Nsparse_rate:7.0f}/s'
+        f' perf_grow_3 {maxbb:4} {ttot:7.1f}s {Nres:9,} logtot{logtot:4.1f} tv'
+        f' {tvertex:7.1f}s te {tedge:7.1f}s tg {tgrow:7.1f}s {Nsparse:10,} {Nsparse_rate:7,}/s'
     )
     if len(wrm.err):
         print(

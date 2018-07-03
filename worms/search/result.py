@@ -2,11 +2,11 @@ from collections import namedtuple
 import numpy as np
 from worms.util import jit, expand_array_if_needed
 
-SearchStats = namedtuple('SearchStats', ['total_samples'])
+SearchStats = namedtuple('SearchStats', ['total_samples', 'n_last_bb_same_as'])
 
 
 def zero_search_stats():
-    return SearchStats(np.zeros(1))
+    return SearchStats(np.zeros(1), np.zeros(1))
 
 
 SearchResult = namedtuple('SearchResult', ['pos', 'idx', 'err', 'stats'])
