@@ -10,7 +10,7 @@ import concurrent.futures as cf
 from worms.search.result import SearchResult, zero_search_stats, expand_results
 from multiprocessing import cpu_count
 from tqdm import tqdm
-from time import time
+from time import time, clock
 from worms.search.result import remove_duplicate_results
 
 
@@ -33,7 +33,6 @@ def grow_linear(
         loss_threshold=2.0,
         last_bb_same_as=-1,
         parallel=0,
-        showprogress=0,
         monte_carlo=0,
 ):
     verts = graph.verts
@@ -63,7 +62,6 @@ def grow_linear(
             nresults=0,
             isplice=0,
             splice_position=np.eye(4),
-            showprogress=showprogress
         )
         futures = list()
         if monte_carlo:
@@ -72,18 +70,22 @@ def grow_linear(
             kwargs['ivertex_range'] = (0, verts[0].len)
             njob = cpu_count() if parallel else 1
             for ivert in range(njob):
+                kwargs['threadno'] = ivert
                 futures.append(pool.submit(**kwargs))
         else:
             kwargs['fn'] = _grow_linear_start
-            nbatch = max(1, int(verts[0].len / 16 / cpu_count()))
+            nbatch = max(1, int(verts[0].len / 64 / cpu_count()))
             for ivert in range(0, verts[0].len, nbatch):
                 ivert_end = min(verts[0].len, ivert + nbatch)
                 kwargs['ivertex_range'] = ivert, ivert_end
                 futures.append(pool.submit(**kwargs))
         results = list()
-        for f in tqdm(cf.as_completed(futures), total=len(futures)):
-            results.append(f.result())
-
+        if monte_carlo:
+            for f in cf.as_completed(futures):
+                results.append(f.result())
+        else:
+            for f in tqdm(cf.as_completed(futures), total=len(futures)):
+                results.append(f.result())
     tot_stats = zero_search_stats()
     for i in range(len(tot_stats)):
         tot_stats[i][0] += sum([r.stats[i][0] for r in results])
@@ -143,7 +145,7 @@ def _last_bb_mismatch(result, verts, ivertex, nresults, last_bb_same_as):
 @jit
 def _grow_linear_recurse(
         result, verts, edges, loss_function, loss_threshold, last_bb_same_as,
-        nresults, isplice, ivertex_range, splice_position, showprogress
+        nresults, isplice, ivertex_range, splice_position
 ):
     """Takes a partially built 'worm' of length isplice and extends them by one based on ivertex_range
 
@@ -157,7 +159,6 @@ def _grow_linear_recurse(
         isplice (int): index of current out-vertex / edge / splice
         ivertex_range (tuple(int, int)): range of ivertex with allowed entry ienter
         splice_position (float64[:4,:4]): rigid body position of splice
-        showprogress (boolean): print progress messages
 
     Returns:
         (int, SearchResult): accumulated pos, idx, and err
@@ -165,9 +166,6 @@ def _grow_linear_recurse(
 
     current_vertex = verts[isplice]
     for ivertex in range(*ivertex_range):
-        if showprogress and isplice == 0:
-            if (ivertex + 1) % (ivertex_range[1] / showprogress) == 0:
-                print('_grow_linear_recurse', ivertex, nresults)
         result.idx[nresults, isplice] = ivertex
         vertex_position = splice_position @ current_vertex.x2orig[ivertex]
         result.pos[nresults, isplice] = vertex_position
@@ -208,15 +206,14 @@ def _grow_linear_recurse(
                     isplice=isplice + 1,
                     ivertex_range=next_ivertex_range,
                     splice_position=next_splicepos,
-                    showprogress=showprogress
                 )
     return nresults, result
 
 
 def _grow_linear_mc_start(
-        seconds, verts_pickleable, edges_pickleable, **kwargs
+        seconds, verts_pickleable, edges_pickleable, threadno, **kwargs
 ):
-    tend = time() + seconds
+    tstart = time()
     verts = tuple([_Vertex(*vp) for vp in verts_pickleable])
     edges = tuple([_Edge(*ep) for ep in edges_pickleable])
     pos = np.empty(shape=(1024, len(verts), 4, 4), dtype=np.float64)
@@ -226,11 +223,18 @@ def _grow_linear_mc_start(
     result = SearchResult(pos=pos, idx=idx, err=err, stats=stats)
     del kwargs['nresults']
     nresults = 0
-
-    while time() < tend:
+    if threadno == 0:
+        pbar = tqdm(total=seconds)
+        last = tstart
+    while time() < tstart + seconds:
+        if threadno == 0:
+            pbar.update(time() - last)
+            last = time()
         nresults, result = _grow_linear_mc(
             10000, result, verts, edges, nresults=nresults, **kwargs
         )
+    if threadno == 0:
+        pbar.close()
 
     result = SearchResult(
         result.pos[:nresults], result.idx[:nresults], result.err[:nresults],
@@ -242,14 +246,12 @@ def _grow_linear_mc_start(
 @jit
 def _grow_linear_mc(
         niter, result, verts, edges, loss_function, loss_threshold,
-        last_bb_same_as, nresults, isplice, ivertex_range, splice_position,
-        showprogress
+        last_bb_same_as, nresults, isplice, ivertex_range, splice_position
 ):
     for i in range(niter):
         nresults, result = _grow_linear_mc_recurse(
             result, verts, edges, loss_function, loss_threshold,
-            last_bb_same_as, nresults, isplice, ivertex_range, splice_position,
-            showprogress
+            last_bb_same_as, nresults, isplice, ivertex_range, splice_position
         )
     return nresults, result
 
@@ -257,7 +259,7 @@ def _grow_linear_mc(
 @jit
 def _grow_linear_mc_recurse(
         result, verts, edges, loss_function, loss_threshold, last_bb_same_as,
-        nresults, isplice, ivertex_range, splice_position, showprogress
+        nresults, isplice, ivertex_range, splice_position
 ):
     """Takes a partially built 'worm' of length isplice and extends them by one based on ivertex_range
 
@@ -320,6 +322,5 @@ def _grow_linear_mc_recurse(
                 isplice=isplice + 1,
                 ivertex_range=next_ivertex_range,
                 splice_position=next_splicepos,
-                showprogress=showprogress
             )
     return nresults, result

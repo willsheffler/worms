@@ -9,7 +9,7 @@ from worms import vis
 import xarray as xr
 
 
-def test_splice_metrics_run(bbdb):
+def test_get_allowed_splices_run(bbdb):
     bbs = bbdb.query('all')
     for pre in '_NC':
         for post in '_NC':
@@ -17,38 +17,40 @@ def test_splice_metrics_run(bbdb):
                 dirn = pre + d + post
                 u = Vertex(bbs, dirn[:2])
                 v = Vertex(bbs, dirn[2:])
-                m = splice_metrics(u, bbs, v, bbs)
+                m = get_allowed_splices(
+                    u, bbs, v, bbs, rms_cut=0.7, ncontact_cut=10
+                )
 
 
-@only_if_jit
-def test_splice_metrics_fullsize_prots(bbdb_fullsize_prots):
-    bbs = bbdb_fullsize_prots.query('all')
+# @only_if_jit
+# def test_get_allowed_splices_fullsize_prots(bbdb_fullsize_prots):
+#     bbs = bbdb_fullsize_prots.query('all')
 
-    ncontact_cut = 10
-    rms_cut = 1.5
+#     ncontact_cut = 10
+#     rms_cut = 1.5
 
-    u = Vertex(bbs, '_C')
-    v = Vertex(bbs, 'N_')
-    m = splice_metrics(u, bbs, v, bbs, skip_on_fail=False)
+#     u = Vertex(bbs, '_C')
+#     v = Vertex(bbs, 'N_')
+#     m = get_allowed_splices(u, bbs, v, bbs, skip_on_fail=False)
 
-    nclash = np.sum(m.nclash == 0)
-    ncontact = np.sum(m.ncontact >= ncontact_cut)
-    nrms = np.sum(m.rms <= rms_cut)
-    print(nrms, ncontact, nclash)
-    assert nrms == 36
-    assert nclash == 1213
-    assert ncontact == 1419
+#     nclash = np.sum(m.nclash == 0)
+#     ncontact = np.sum(m.ncontact >= ncontact_cut)
+#     nrms = np.sum(m.rms <= rms_cut)
+#     print(nrms, ncontact, nclash)
+#     assert nrms == 36
+#     assert nclash == 1213
+#     assert ncontact == 1419
 
-    u = Vertex(bbs, '_N')
-    v = Vertex(bbs, 'C_')
-    m = splice_metrics(u, bbs, v, bbs, skip_on_fail=False)
+#     u = Vertex(bbs, '_N')
+#     v = Vertex(bbs, 'C_')
+#     m = get_allowed_splices(u, bbs, v, bbs, skip_on_fail=False)
 
-    nclash = np.sum(m.nclash == 0)
-    ncontact = np.sum(m.ncontact >= ncontact_cut)
-    nrms = np.sum(m.rms <= rms_cut)
-    assert nclash == 1213
-    assert ncontact == 1419
-    assert nrms == 36
+#     nclash = np.sum(m.nclash == 0)
+#     ncontact = np.sum(m.ncontact >= ncontact_cut)
+#     nrms = np.sum(m.rms <= rms_cut)
+#     assert nclash == 1213
+#     assert ncontact == 1419
+#     assert nrms == 36
 
 
 @only_if_jit

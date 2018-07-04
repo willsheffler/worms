@@ -13,7 +13,7 @@ from worms import Vertex, Graph
 from worms.criteria import Cyclic
 from worms.search import grow_linear, lossfunc_rand_1_in
 from worms.edge import *
-from worms.database import BBlockDB
+from worms.database import BBlockDB, SpliceDB
 from worms import vis
 from worms.graph_pose import make_pose
 from worms.filters.clash import prune_clashing_results
@@ -39,8 +39,48 @@ logging.getLogger().setLevel(99)
 # --database_files %s" '%(base,nrun,base,base,nrun,config_file,base,nrun,DATABASES)
 
 
+def hacktest_edge_creation(bbdb, spdb, parallel=0):
+    bbsN = bbdb.query('Het:NNX', max_bblocks=2, shuffle=0)
+    bbsC = bbdb.query('Het:CCX', max_bblocks=2, shuffle=0)
+    verts = (
+        Vertex(bbsN, '_N', min_seg_len=15, parallel=1),
+        Vertex(bbsC, 'CC', min_seg_len=15, parallel=1),
+        Vertex(bbsN, 'N_', min_seg_len=15, parallel=1)
+    )
+    t = time()
+    e = Edge(verts[0], bbsN, verts[1], bbsC, splicedb=spdb, parallel=1)
+    ttot = time() - t
+    assert e.total_allowed_splices() == 1518
+    assert np.all(
+        e.allowed_entries(37) == [
+            31, 33, 34, 74, 76, 77, 117, 119, 331, 333, 334, 374, 376, 377,
+            417, 419, 461, 462, 486, 490, 512, 540, 562, 586
+        ]
+    )
+    verts = (
+        Vertex(bbsC, '_C', min_seg_len=15, parallel=1),
+        Vertex(bbsN, 'NN', min_seg_len=15, parallel=1),
+        Vertex(bbsC, 'C_', min_seg_len=15, parallel=1)
+    )
+    t = time()
+    e = Edge(verts[0], bbsC, verts[1], bbsN, parallel=1)
+    ttot += time() - t
+    print('edge time', ttot)
+    assert e.total_allowed_splices() == 1518
+    assert np.all(
+        e.allowed_entries(461) == [
+            33, 35, 36, 37, 85, 86, 87, 88, 109, 151, 152, 195, 233, 253, 333,
+            335, 336, 337, 385, 386, 387, 388, 409, 451, 452, 495, 509, 551,
+            552, 595
+        ]
+    )
+    print(len(spdb.cache))
+
+
 def linear_gragh(
         spec,
+        bbdb,
+        spdb,
         maxbb=100,
         shuf=False,
         min_seg_len=15,
@@ -80,16 +120,20 @@ def linear_gragh(
     tedge = time()
     edges = [
         Edge(verts[i], bbs[i], verts[i + 1], bbs[i + 1],
-                  parallel=parallel, verbosity=1)
+                  parallel=parallel, verbosity=1, splicedb=spdb)
         for i in range(len(verts) - 1)
     ] # yapf: disable
     tedge = time() - tedge
+
     if verbosity > 0:
         print(
             f'edge creation time {tedge:7.3f}', 'num splices',
             [e.total_allowed_splices() for e in edges], 'num exits',
             [e.len for e in edges]
         )
+
+    spdb.sync_to_disk()
+
     toret = Graph(bbs, verts, edges)
     if timing:
         toret = toret, tdb, tvertex, tedge
@@ -101,7 +145,8 @@ def _dump_pdb(bbdb, graph, spec, i, idx, pos):
     pose.dump_pdb('test_%i.pdb' % i)
 
 
-def perf_grow_3(bbdb, maxbb=10, shuf=0, parallel=1, verbosity=1):
+def perf_grow_3(bbdb, spdb, maxbb=10, shuf=0, parallel=1, verbosity=1):
+
     ttot = time()
 
     graph, tdb, tvertex, tedge = linear_gragh(
@@ -109,10 +154,16 @@ def perf_grow_3(bbdb, maxbb=10, shuf=0, parallel=1, verbosity=1):
             # ('C3_N'   , '_N'),
             # ('Het:CC' , 'CC'),
             ('Het:NNX', '_N'),
-            ('Het:CC' , 'CC'),
+            ('Het:CC', 'CC'),
             ('Het:NNX', 'N_'),
         ],
-        maxbb=maxbb, timing=True, verbosity=verbosity, parallel=parallel) # yapf: disable
+        bbdb,
+        spdb,
+        maxbb=maxbb,
+        timing=True,
+        verbosity=verbosity,
+        parallel=parallel
+    )
 
     # loss = lossfunc_cyclic_rot(0, 2, 120)
     # loss = lossfunc_rand_1_in(1000)
@@ -129,7 +180,6 @@ def perf_grow_3(bbdb, maxbb=10, shuf=0, parallel=1, verbosity=1):
         parallel=True,
         loss_threshold=1.0,
         last_bb_same_as=last_bb_same_as,
-        showprogress=0,
         monte_carlo=0
     )
     tgrow = time() - tgrow
@@ -154,8 +204,6 @@ def perf_grow_3(bbdb, maxbb=10, shuf=0, parallel=1, verbosity=1):
         )
     sys.stdout.flush()
 
-    return
-
     tclash = time()
     norig = len(wrm.idx)
     wrm = prune_clashing_results(graph, spec, wrm, 4.0, parallel=parallel)
@@ -176,10 +224,20 @@ def perf_grow_3(bbdb, maxbb=10, shuf=0, parallel=1, verbosity=1):
         print('dumped %i structures' % len(wrm.idx), 'time', time() - tpdb)
 
 
-if __name__ == '__main__':
+def main():
     import pyrosetta
     pyrosetta.init('-mute all -beta')
     bbdb = BBlockDB(bakerdb_files=glob.glob('worms/data/*.json'))
+    spdb = SpliceDB()
+
+    if sys.argv[1] == 'test':
+        print('running hacktest_edge_creation')
+        tstart = time()
+        hacktest_edge_creation(bbdb, spdb)
+        spdb.sync_to_disk()
+        print('PASS', time() - tstart)
+        return
+
     # for i in (16, 32, 64, 96, 128, 160, 192, 224, 256, 320, 384, 448, 512):
     # for i in (1, 2, 3, 4, 6, 8, 12, 16):  #, 24, 32, 48, 64):
     if len(sys.argv) > 1:
@@ -189,8 +247,14 @@ if __name__ == '__main__':
     for i in sizes:
         i = int(i)
         # for i in (16, 32, 48, 64):
-        perf_grow_3(bbdb, maxbb=i)
+        perf_grow_3(bbdb, spdb, maxbb=i)
         sys.stdout.flush()
+
+    spdb.sync_to_disk()
+
+
+if __name__ == '__main__':
+    main()
 
 # perf_grow_3  16    32.9s      3,240     179,712,000,000 tv  11.540 te   15.326 tg    5.058 4.744
 # perf_grow_3  32    91.4s     30,987   1,603,584,000,000 tv  23.563 te   48.451 tg   19.312 4.714

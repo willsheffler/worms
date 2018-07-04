@@ -14,8 +14,7 @@ import numpy as np
 from tqdm import tqdm
 
 from worms import util
-from worms import BBlock
-from worms.bblock import _BBlock
+from worms.bblock import BBlock, _BBlock
 
 logging.basicConfig(level=logging.INFO)
 
@@ -37,7 +36,59 @@ def flatten_path(pdbfile):
     Returns:
         TYPE: Description
     """
+    if isinstance(pdbfile, bytes):
+        pdbfile = str(pdbfile, 'utf-8')
     return pdbfile.replace(os.sep, '__') + '.pickle'
+
+
+class SpliceDB:
+    """"""
+
+    def __init__(self, cachedir=None):
+        if cachedir is None:
+            if 'HOME' in os.environ:
+                cachedir = os.environ['HOME'] + os.sep + '.worms/cache'
+            else:
+                cachedir = '.worms/cache'
+        self.cachedir = os.path.join(cachedir, 'splices')
+        self.cache = dict()
+        self.dirty = set()
+
+    def c_side_cache(self, params, pdbfile):
+        if isinstance(pdbfile, str):
+            pdbfile = pdbfile.encode()
+        if (params, pdbfile) not in self.cache:
+            cachefile = os.path.join(
+                self.cachedir, str(hash(params)), flatten_path(pdbfile)
+            )
+            if os.path.exists(cachefile):
+                with open(cachefile, 'rb') as f:
+                    self.cache[params, pdbfile] = pickle.load(f)
+            else:
+                self.cache[params, pdbfile] = dict()
+        return self.cache[params, pdbfile]
+
+    def add_to_c_side_cache(self, params, pdb1, pdb2, val):
+        self.dirty.add((params, pdb1))
+        self.cache[(params, pdb1)][pdb2] = val
+
+    def sync_to_disk(self):
+        for i in range(10):
+            for params, pdbfile in list(self.dirty):
+                cachefile = os.path.join(
+                    self.cachedir, str(hash(params)), flatten_path(pdbfile)
+                )
+                if os.path.exists(cachefile + '.lock'): continue
+                if not os.path.exists(os.path.dirname(cachefile)):
+                    os.makedirs(os.path.dirname(cachefile))
+                with open(cachefile + '.lock', 'w'):
+                    with open(cachefile, 'wb') as out:
+                        data = self.cache[params, pdbfile]
+                        pickle.dump(data, out)
+                os.remove(cachefile + '.lock')
+                self.dirty.remove((params, pdbfile))
+        if len(self.dirty):
+            print('warning: some caches unsaved', len(self.dirty))
 
 
 class BBlockDB:
