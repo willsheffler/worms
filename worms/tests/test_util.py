@@ -10,6 +10,12 @@ except ImportError:
     HAVE_PYROSETTA = False
 
 
+def test_unique_key_int32s():
+    a = np.array([1, 4, 7], dtype=np.int32)
+    k = util._unique_key_int32s(a)
+    assert list(k) == [0, 1, 2]
+
+
 @pytest.mark.skip()
 def test_infer_symmetry(c1pose, c2pose, c3pose, c3hetpose, c6pose):
     print(c3pose)

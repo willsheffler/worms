@@ -224,14 +224,16 @@ def _grow_linear_mc_start(
     del kwargs['nresults']
     nresults = 0
     if threadno == 0:
-        pbar = tqdm(total=seconds)
+        pbar = tqdm(desc='searching worms', total=seconds)
         last = tstart
+    nbatch = [1000, 330, 100, 33, 10, 3] + [1] * 99
+    nbatch = nbatch[len(edges)]
     while time() < tstart + seconds:
         if threadno == 0:
             pbar.update(time() - last)
             last = time()
         nresults, result = _grow_linear_mc(
-            10000, result, verts, edges, nresults=nresults, **kwargs
+            nbatch, result, verts, edges, nresults=nresults, **kwargs
         )
     if threadno == 0:
         pbar.close()

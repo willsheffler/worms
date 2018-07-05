@@ -78,8 +78,8 @@ def BBlock(entry, pdbfile, pose, ss):
     bblock = _BBlock(
         connections=conn,
         file=np.frombuffer(entry['file'].encode(), dtype='i1'),
-        components=np.frombuffer(
-            str(entry['components']).encode(), dtype='i1'),
+        components=np.
+        frombuffer(str(entry['components']).encode(), dtype='i1'),
         protocol=np.frombuffer(entry['protocol'].encode(), dtype='i1'),
         name=np.frombuffer(entry['name'].encode(), dtype='i1'),
         classes=np.frombuffer(','.join(entry['class']).encode(), 'i1'),
@@ -129,8 +129,10 @@ class _BBlock:
         validated (TYPE): Description
     """
 
-    def __init__(self, connections, file, components, protocol, name, classes,
-                 validated, _type, base, ncac, chains, ss, stubs):
+    def __init__(
+            self, connections, file, components, protocol, name, classes,
+            validated, _type, base, ncac, chains, ss, stubs
+    ):
         """TODO: Summary
 
         Args:
@@ -168,33 +170,12 @@ class _BBlock:
 
     @property
     def n_connections(self):
-        """Summary
-
-        Returns:
-            TYPE: Description
-        """
         return len(self.connections)
 
     def conn_dirn(self, i):
-        """Summary
-
-        Args:
-            i (TYPE): Description
-
-        Returns:
-            TYPE: Description
-        """
         return self.connections[i, 0]
 
     def conn_resids(self, i):
-        """Summary
-
-        Args:
-            i (TYPE): Description
-
-        Returns:
-            TYPE: Description
-        """
         return self.connections[i, 2:self.connections[i, 1]]
 
     @property
@@ -204,9 +185,11 @@ class _BBlock:
         Returns:
             TYPE: Description
         """
-        return (self.connections, self.file, self.components, self.protocol,
-                self.name, self.classes, self.validated, self._type, self.base,
-                self.ncac, self.chains, self.ss, self.stubs)
+        return (
+            self.connections, self.file, self.components, self.protocol,
+            self.name, self.classes, self.validated, self._type, self.base,
+            self.ncac, self.chains, self.ss, self.stubs
+        )
 
 
 @jit
@@ -244,9 +227,9 @@ def _make_connections_array(entries, chain_bounds):
     try:
         reslists = [_get_connection_residues(e, chain_bounds) for e in entries]
     except Exception as e:
-        print('WARNING: make_connections_array failed on', entries,
-              'error was:', e)
+        print('make_connections_array failed on', entries, 'error was:', e)
         return np.zeros((0, 0))
+    reslists = sorted(reslists, key=lambda x: x[0])
     mx = max(len(x) for x in reslists)
     conn = np.zeros((len(reslists), mx + 2), 'i4') - 1
     for i, ires_ary in enumerate(reslists):
@@ -327,8 +310,8 @@ def bblock_str(bblock):
         '    chains=' + str(bblock.chains),
         '    ss=array(shape=' + str(bblock.ss.shape) + ', dtype=' +
         str(bblock.ss.dtype) + ')',
-        '    stubs=array(shape=' + str(bblock.stubs.shape) + ', dtype=' + str(
-            bblock.connections.dtype) + ')',
+        '    stubs=array(shape=' + str(bblock.stubs.shape) + ', dtype=' +
+        str(bblock.connections.dtype) + ')',
         '    connectionsZ=array(shape=' + str(bblock.connections.shape) +
         ', dtype=' + str(bblock.connections.dtype) + ')',
         ')',

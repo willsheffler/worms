@@ -4,11 +4,13 @@ import sys
 from os.path import join, dirname, abspath, exists
 
 sys.path.insert(0, os.path.dirname(__file__) + '/../..')
-from worms.database import BBlockDB
+from worms.database import BBlockDB, SpliceDB
 
 try:
     import pyrosetta
-    pyrosetta.init('-corrections:beta_nov16 -mute all -preserve_crystinfo -symmetry::symmetry_definition dummy')
+    pyrosetta.init(
+        '-corrections:beta_nov16 -mute all -preserve_crystinfo -symmetry::symmetry_definition dummy'
+    )
     HAVE_PYROSETTA = True
     print("pyrosetta initialized successfully!")
 except ImportError:
@@ -23,7 +25,12 @@ def bbdb(datadir):
         bakerdb_files=[os.path.join(datadir, 'test_db_file.json')],
         lazy=False,
         read_new_pdbs=HAVE_PYROSETTA,
-        progressbar=False)
+    )
+
+
+@pytest.fixture(scope='session')
+def spdb(datadir):
+    return SpliceDB(cachedir=str('.worms_pytest_cache'))
 
 
 @pytest.fixture(scope='session')
@@ -33,7 +40,7 @@ def bbdb_fullsize_prots(datadir):
         bakerdb_files=[os.path.join(datadir, 'test_fullsize_prots.json')],
         lazy=False,
         read_new_pdbs=HAVE_PYROSETTA,
-        progressbar=False)
+    )
 
 
 @pytest.fixture(scope='session')

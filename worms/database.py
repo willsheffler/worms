@@ -3,8 +3,8 @@
 import os
 import json
 import random
-import _pickle as pickle
-from concurrent.futures import *
+import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import itertools as it
 import logging
 from logging import info, warning, error
@@ -17,6 +17,7 @@ from worms import util
 from worms.bblock import BBlock, _BBlock
 
 logging.basicConfig(level=logging.INFO)
+import _pickle as pickle
 
 try:
     # god, I'm so tired of this crap....
@@ -68,9 +69,9 @@ class SpliceDB:
                 self.cache[params, pdbfile] = dict()
         return self.cache[params, pdbfile]
 
-    def add_to_c_side_cache(self, params, pdb1, pdb2, val):
-        self.dirty.add((params, pdb1))
-        self.cache[(params, pdb1)][pdb2] = val
+    def add_to_c_side_cache(self, params, pdb0, pdb1, val):
+        self.dirty.add((params, pdb0))
+        self.cache[(params, pdb0)][pdb1] = val
 
     def sync_to_disk(self):
         for i in range(10):
@@ -89,6 +90,23 @@ class SpliceDB:
                 self.dirty.remove((params, pdbfile))
         if len(self.dirty):
             print('warning: some caches unsaved', len(self.dirty))
+
+
+def _convert_splicedb_to_dict():
+    """almost the same, dicts little slower, little bigger"""
+    import glob
+    import _pickle
+    for f in glob.glob('/home/sheffler/.worms/cache/splices/*/*.pickle'):
+        print(f)
+        with open(f, 'rb') as inp:
+            c = _pickle.load(inp)
+            for k, lst0 in c.items():
+                for i, lst in enumerate(lst0):
+                    if lst is not None:
+                        d = {j: v for j, v in enumerate(lst) if v is not None}
+                        c[k][i] = d
+        with open(f, 'wb') as out:
+            _pickle.dump(c, out)
 
 
 class BBlockDB:
@@ -114,7 +132,7 @@ class BBlockDB:
             nprocs=1,
             lazy=True,
             read_new_pdbs=False,
-            progressbar=True,
+            verbosity=0,
     ):
         """TODO: Summary
 
@@ -139,7 +157,7 @@ class BBlockDB:
         self.nprocs = nprocs
         self.lazy = lazy
         self.read_new_pdbs = read_new_pdbs
-        self.progressbar = progressbar
+        self.verbosity = verbosity
         self._alldb = []
         self._holding_lock = False
         for dbfile in bakerdb_files:
@@ -388,7 +406,8 @@ class BBlockDB:
         }
         futures = [exe.submit(self.build_pdb_data, e) for e in self._alldb]
         work = as_completed(futures)
-        if self.progressbar: work = tqdm(work, **kwargs)
+        if self.verbosity > 1:
+            work = tqdm(work, 'building pdb data', **kwargs)
         for f in work:
             r.append(f.result())
         return r
@@ -434,37 +453,3 @@ class BBlockDB:
         else:
             warning('no cached data for: ' + pdbfile)
             return None, pdbfile  # new, missing
-
-
-if __name__ == '__main__':
-    import argparse
-    import pyrosetta
-    info('sent to info')
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--dbfiles', type=str, nargs='+', dest='database_files'
-    )
-    parser.add_argument('--nprocs', type=int, dest='nprocs', default=1)
-    parser.add_argument(
-        '--read_new_pdbs', type=bool, dest='read_new_pdbs', default=False
-    )
-    args = parser.parse_args()
-    pyrosetta.init('-mute all -ignore_unrecognized_res')
-
-    try:
-        pp = BBlockDB(
-            bakerdb_files=args.database_files,
-            nprocs=args.nprocs,
-            read_new_pdbs=args.read_new_pdbs,
-            lazy=False,
-        )
-        print('new entries', pp.n_new_entries)
-        print('missing entries', pp.n_missing_entries)
-        print('total entries', len(pp._bblock_cache))
-    except AssertionError as e:
-        print(e)
-    except:
-        if args.read_new_pdbs:
-            os.remove(os.environ['HOME'] + '/.worms/cache/lock')
-        raise

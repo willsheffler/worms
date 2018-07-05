@@ -2,11 +2,14 @@ from collections import namedtuple
 import numpy as np
 from worms.util import jit, expand_array_if_needed
 
-SearchStats = namedtuple('SearchStats', ['total_samples', 'n_last_bb_same_as'])
+SearchStats = namedtuple(
+    'SearchStats',
+    ['total_samples', 'n_last_bb_same_as', 'n_redundant_results']
+)
 
 
 def zero_search_stats():
-    return SearchStats(np.zeros(1), np.zeros(1))
+    return SearchStats(np.zeros(1), np.zeros(1), np.zeros(1))
 
 
 SearchResult = namedtuple('SearchResult', ['pos', 'idx', 'err', 'stats'])
@@ -30,6 +33,7 @@ def expand_results(result, nresults):
 def remove_duplicate_results(results):
     h = np.array([hash(row.data.tobytes()) for row in results.idx])
     _, isel = np.unique(h, return_index=True)
+    results.stats.n_redundant_results[0] = len(h)
     return SearchResult(
         results.pos[isel], results.idx[isel], results.err[isel], results.stats
     )

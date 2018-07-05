@@ -704,19 +704,36 @@ def residue_sym_err(p, ang, ir, jr, n=1, axis=[0, 0, 1], verbose=0):
 
 
 def unique_key(a, b=None):
-    """Summary
-
-    Args:
-        a (TYPE): Description
-        b (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
     if b is None:
         raise NotImplementedError
     mi = pd.MultiIndex.from_arrays([a, b]).drop_duplicates()
     return mi.get_indexer([a, b])
+
+
+@jit
+def _unique_key_int32s(keys):
+    map = -np.ones(np.max(keys) + 1, dtype=np.int32)
+    count = 0
+    for k in keys:
+        if map[k] < 0:
+            map[k] = count
+            count += 1
+    out = np.empty(len(keys), dtype=np.int32)
+    for i in range(len(keys)):
+        out[i] = map[keys[i]]
+    return out
+
+
+def unique_key_int32s(a, b):
+    if b[0] == -1:
+        assert np.all(b == -1)
+        return a
+    a = a.astype('i8')
+    b = b.astype('i8')
+    m = np.max(a) + 1
+    k = b * m + a
+    assert np.all(k >= 0)
+    return _unique_key_int32s(k)
 
 
 @nb.njit('int32[:](int32[:])', nogil=1)
