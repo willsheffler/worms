@@ -2,6 +2,7 @@ from time import time
 import concurrent.futures as cf
 import numpy as np
 from worms import Vertex, Edge
+from pprint import pprint
 
 
 def _validate_bbs_verts(bbs, verts):
@@ -23,9 +24,8 @@ class Graph:
 
 
 def linear_gragh(
-        spec,
-        bbdb,
-        spdb,
+        bbty,
+        db,
         maxbb=100,
         shuf=False,
         min_seg_len=15,
@@ -34,7 +34,10 @@ def linear_gragh(
         timing=0,
         cache_sync=0.001,
 ):
-    queries, directions = zip(*spec)
+    bbdb, spdb = db
+    if verbosity > 1:
+        pprint(bbty)
+    queries, directions = zip(*bbty)
     if verbosity > 0:
         print('bblock queries', queries)
         print('directions', directions)

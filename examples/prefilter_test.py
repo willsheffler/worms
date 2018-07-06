@@ -1,21 +1,12 @@
-import glob
-import os
 import logging
-import random
-from time import clock, time
 import sys
+from time import clock, time
 
-import numba as nb
-import numba.types as nt
 import numpy as np
 import pytest
 
-from worms import Vertex, linear_gragh
-from worms.criteria import Cyclic
-from worms.search import grow_linear, lossfunc_rand_1_in
-from worms.edge import *
+from worms import linear_gragh, Cyclic, grow_linear
 from worms.database import BBlockDB, SpliceDB
-from worms import vis
 from worms.graph_pose import make_pose
 from worms.filters.clash import prune_clashing_results
 
@@ -70,8 +61,7 @@ def worm_grow_3(
             ('Het:CC', 'CC'),
             ('Het:NNX', 'N_'),
         ],
-        bbdb,
-        spdb,
+        (bbdb, spdb),
         maxbb=maxbb,
         timing=True,
         verbosity=verbosity,
@@ -82,14 +72,14 @@ def worm_grow_3(
     # loss = lossfunc_cyclic_rot(0, 2, 120)
     # loss = lossfunc_rand_1_in(1000)
 
-    # spec = Cyclic(3, from_seg=2, origin_seg=0)
-    spec = Cyclic(3)
-    last_bb_same_as = spec.from_seg
+    # crit = Cyclic(3, from_seg=2, origin_seg=0)
+    crit = Cyclic(3)
+    last_bb_same_as = crit.from_seg
 
     tgrow = time()
     rslt = grow_linear(
         graph,
-        loss_function=spec.jit_lossfunc(),
+        loss_function=crit.jit_lossfunc(),
         # loss_function=lossfunc_rand_1_in(1000),
         parallel=parallel,
         loss_threshold=1.0,
@@ -153,6 +143,10 @@ def worm_grow_3(
 def main():
 
     import argparse
+    import glob
+    import pyrosetta
+    pyrosetta.init('-mute all -beta')
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--verbosity', type=int, dest='verbosity', default=0)
     parser.add_argument('--parallel', type=int, dest='parallel', default=True)
@@ -168,9 +162,6 @@ def main():
         '--monte_carlo', type=int, dest='monte_carlo', default=0
     )
     args = parser.parse_args()
-
-    import pyrosetta
-    pyrosetta.init('-mute all -beta')
 
     bbdb = BBlockDB(
         bakerdb_files=glob.glob('worms/data/*.json'),
