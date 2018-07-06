@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from worms import linear_gragh, Cyclic, grow_linear
+from worms.util import InProcessExecutor
 from worms.database import BBlockDB, SpliceDB
 from worms.graph_pose import make_pose
 from worms.filters.clash import prune_clashing_results
@@ -31,8 +32,8 @@ logging.getLogger().setLevel(99)
 # --database_files %s" '%(base,nrun,base,base,nrun,config_file,base,nrun,DATABASES)
 
 
-def _dump_pdb(bbdb, graph, spec, i, idx, pos):
-    pose = make_pose(bbdb, graph, spec, idx, pos)
+def _dump_pdb(bbdb, graph, crit, i, idx, pos):
+    pose = make_pose(bbdb, graph, crit, idx, pos)
     pose.dump_pdb('test_%i.pdb' % i)
 
 
@@ -116,7 +117,7 @@ def worm_grow_3(
     tclash = time()
     norig = len(rslt.idx)
     rslt = prune_clashing_results(
-        graph, spec, rslt, at_most=clash_check, thresh=4.0, parallel=parallel
+        graph, crit, rslt, at_most=clash_check, thresh=4.0, parallel=parallel
     )
     print(
         'pruned clashes, %i of %i remain,' % (len(rslt.idx), norig), 'took',
@@ -130,7 +131,7 @@ def worm_grow_3(
             futures = list()
             for i in range(min(dump_pdb, len(rslt.idx))):
                 args = (
-                    _dump_pdb, bbdb, graph, spec, i, rslt.idx[i], rslt.pos[i]
+                    _dump_pdb, bbdb, graph, crit, i, rslt.idx[i], rslt.pos[i]
                 )
                 futures.append(pool.submit(*args))
             [f.result() for f in futures]
@@ -164,7 +165,35 @@ def main():
     args = parser.parse_args()
 
     bbdb = BBlockDB(
-        bakerdb_files=glob.glob('worms/data/*.json'),
+        bakerdb_files=[
+            'worms/data/c6_database.json',
+            'worms/data/HBRP_Cx_database.json',
+            'worms/data/HFuse_Cx_database.20180219.json',
+            'worms/data/HFuse_het_2chain_2arm_database.ZCON-103_2.20180406.json',
+            'worms/data/HFuse_het_2chain_2arm_database.ZCON-112_2.20180406.json',
+            'worms/data/HFuse_het_2chain_2arm_database.ZCON-127_2.20180406.json',
+            'worms/data/HFuse_het_2chain_2arm_database.ZCON-13_2.20180406.json',
+            'worms/data/HFuse_het_2chain_2arm_database.ZCON-15_2.20180406.json',
+            'worms/data/HFuse_het_2chain_2arm_database.ZCON-34_2.20180406.json',
+            'worms/data/HFuse_het_2chain_2arm_database.ZCON-37_2.20180406.json',
+            'worms/data/HFuse_het_2chain_2arm_database.ZCON-39_2.20180406.json',
+            'worms/data/HFuse_het_2chain_2arm_database.ZCON-9_2.20180406.json',
+            'worms/data/HFuse_het_3chain_2arm_database.Sh13_3.20180406.json',
+            'worms/data/HFuse_het_3chain_2arm_database.Sh13_3.20180416.json',
+            'worms/data/HFuse_het_3chain_2arm_database.Sh29_3.20180406.json',
+            'worms/data/HFuse_het_3chain_2arm_database.Sh29_3.20180416.json',
+            'worms/data/HFuse_het_3chain_2arm_database.Sh34_3.20180416.json',
+            'worms/data/HFuse_het_3chain_2arm_database.Sh3e_3.20180406.json',
+            'worms/data/HFuse_het_3chain_3arm_database.Sh13_3.20180406.json',
+            'worms/data/HFuse_het_3chain_3arm_database.Sh13_3.20180416.json',
+            'worms/data/HFuse_het_3chain_3arm_database.Sh29_3.20180406.json',
+            'worms/data/HFuse_het_3chain_3arm_database.Sh29_3.20180416.json',
+            'worms/data/HFuse_het_3chain_3arm_database.Sh34_3.20180416.json',
+            'worms/data/HFuse_het_3chain_3arm_database.Sh3e_3.20180406.json',
+            'worms/data/master_database_generation2.json',
+            'worms/data/test_db_file.json',
+            'worms/data/test_fullsize_prots.json',
+        ],
         read_new_pdbs=True,
         verbosity=args.verbosity
     )

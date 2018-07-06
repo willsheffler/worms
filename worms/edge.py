@@ -124,16 +124,16 @@ def get_allowed_splices(
         ofst0 = 0
         for iblk0, ires0 in outblk_res.items():
             blk0 = ublks[iblk0]
-            pdb0 = bytes(blk0.file)
+            key0 = blk0.filehash
             t = time()
-            cache = splicedb.c_side_cache(params, pdb0) if splicedb else None
+            cache = splicedb.partial(params, key0) if splicedb else None
             tcache += time() - t
             ofst1 = 0
             for iblk1, ires1 in inblk_res.items():
                 blk1 = vblks[iblk1]
-                pdb1 = bytes(blk1.file)
-                if cache and pdb1 in cache and cache[pdb1]:
-                    splices = cache[pdb1]
+                key1 = blk1.filehash
+                if cache and key1 in cache and cache[key1]:
+                    splices = cache[key1]
                     future = NonFuture(splices)
                 else:
                     future = pool.submit(
@@ -169,9 +169,9 @@ def get_allowed_splices(
                 result = _splice_respairs(ok, ublks[iblk0], vblks[iblk1])
 
                 if splicedb:
-                    pdb0 = bytes(ublks[iblk0].file)  # C-term side
-                    pdb1 = bytes(vblks[iblk1].file)  # N-term side
-                    splicedb.add_to_c_side_cache(params, pdb0, pdb1, result)
+                    key0 = ublks[iblk0].filehash  # C-term side
+                    key1 = vblks[iblk1].filehash  # N-term side
+                    splicedb.add(params, key0, key1, result)
                     if random.random() < sync_to_disk_every:
                         print('sync_to_disk')
                         splicedb.sync_to_disk()

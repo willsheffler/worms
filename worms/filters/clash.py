@@ -6,6 +6,45 @@ from worms.util import jit, InProcessExecutor
 from worms.search.result import SearchResult
 
 
+def prune_clashing_results(
+        graph,
+        crit,
+        rslt,
+        at_most=-1,
+        thresh=4.0,
+        parallel=False,
+):
+    print('todo: clash check should handle symmetry')
+    at_most = min(at_most, len(rslt.idx))
+    if at_most < 0: at_most = len(rslt.idx)
+    verts = tuple(graph.verts)
+    exe = cf.ProcessPoolExecutor if parallel else InProcessExecutor
+    with exe() as pool:
+        futures = list()
+        for i in range(at_most):
+            dirns = tuple([v.dirn for v in verts])
+            iress = tuple([v.ires for v in verts])
+            chains = tuple([
+                graph.bbs[k][verts[k].ibblock[rslt.idx[i, k]]].chains
+                for k in range(len(graph.verts))
+            ])
+            ncacs = tuple([
+                graph.bbs[k][verts[k].ibblock[rslt.idx[i, k]]].ncac
+                for k in range(len(graph.verts))
+            ])
+            futures.append(
+                pool.submit(
+                    _check_all_chain_clashes, dirns, iress, rslt.idx[i],
+                    rslt.pos[i], chains, ncacs, thresh * thresh
+                )
+            )
+        ok = np.array([f.result() for f in futures], dtype='?')
+    return SearchResult(
+        rslt.pos[:at_most][ok], rslt.idx[:at_most][ok], rslt.err[:at_most][ok],
+        rslt.stats
+    )
+
+
 @jit
 def _chain_bounds(dirn, ires, idx, chains, spliced_only=False, trim=8):
     "return bounds for only spliced chains, with spliced away sequence removed"
@@ -75,42 +114,3 @@ def _check_all_chain_clashes(dirns, iress, idx, pos, chn, ncacs, thresh):
                 return False
 
     return True
-
-
-def prune_clashing_results(
-        graph,
-        spec,
-        rslt,
-        at_most=-1,
-        thresh=4.0,
-        parallel=False,
-):
-    print('todo: clash check should handle symmetry')
-    at_most = min(at_most, len(rslt.idx))
-    if at_most < 0: at_most = len(rslt.idx)
-    verts = tuple(graph.verts)
-    exe = cf.ProcessPoolExecutor if parallel else InProcessExecutor
-    with exe() as pool:
-        futures = list()
-        for i in range(at_most):
-            dirns = tuple([v.dirn for v in verts])
-            iress = tuple([v.ires for v in verts])
-            chains = tuple([
-                graph.bbs[k][verts[k].ibblock[rslt.idx[i, k]]].chains
-                for k in range(len(graph.verts))
-            ])
-            ncacs = tuple([
-                graph.bbs[k][verts[k].ibblock[rslt.idx[i, k]]].ncac
-                for k in range(len(graph.verts))
-            ])
-            futures.append(
-                pool.submit(
-                    _check_all_chain_clashes, dirns, iress, rslt.idx[i],
-                    rslt.pos[i], chains, ncacs, thresh * thresh
-                )
-            )
-        ok = np.array([f.result() for f in futures], dtype='?')
-    return SearchResult(
-        rslt.pos[:at_most][ok], rslt.idx[:at_most][ok], rslt.err[:at_most][ok],
-        rslt.stats
-    )

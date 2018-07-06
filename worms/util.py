@@ -5,6 +5,7 @@ import re
 import functools as ft
 import itertools as it
 import operator
+from hashlib import sha1
 import numpy as np
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
@@ -754,3 +755,9 @@ def contig_idx_breaks(idx):
             assert len(vals)
             assert np.all(vals == vals[0])
     return breaks
+
+
+def hash_str_to_int(s):
+    if isinstance(s, str): s = s.encode()
+    buf = sha1(s).digest()[:8]
+    return int(abs(np.frombuffer(buf, dtype='i8')[0]))

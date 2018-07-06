@@ -9,7 +9,7 @@ import itertools as it
 import logging
 from logging import info, warning, error
 from random import shuffle
-
+from worms.util import hash_str_to_int as myhash
 import numpy as np
 from tqdm import tqdm
 
@@ -29,21 +29,13 @@ except ImportError:
 
 
 def flatten_path(pdbfile):
-    """TODO: Summary
-
-    Args:
-        pdbfile (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
     if isinstance(pdbfile, bytes):
         pdbfile = str(pdbfile, 'utf-8')
     return pdbfile.replace(os.sep, '__') + '.pickle'
 
 
 class SpliceDB:
-    """"""
+    """Stores valid NC splices for bblock pairs"""
 
     def __init__(self, cachedir=None):
         if cachedir is None:
@@ -52,77 +44,51 @@ class SpliceDB:
             else:
                 cachedir = '.worms/cache'
         self.cachedir = os.path.join(cachedir, 'splices')
-        self.cache = dict()
-        self.dirty = set()
+        self._cache = dict()
+        self._dirty = set()
 
-    def c_side_cache(self, params, pdbfile):
-        if isinstance(pdbfile, str):
-            pdbfile = pdbfile.encode()
-        if (params, pdbfile) not in self.cache:
-            cachefile = os.path.join(
-                self.cachedir, str(hash(params)), flatten_path(pdbfile)
-            )
+    def cachepath(self, params, pdbkey):
+        # stock hash ok for tuples of numbers (?)
+        prm = '%016x' % abs(hash(params))
+        key = '%016x.pickle' % pdbkey
+        return os.path.join(self.cachedir, prm, key)
+
+    def partial(self, params, pdbkey):
+        assert isinstance(pdbkey, int)
+        if (params, pdbkey) not in self._cache:
+            cachefile = self.cachepath(params, pdbkey)
             if os.path.exists(cachefile):
                 with open(cachefile, 'rb') as f:
-                    self.cache[params, pdbfile] = pickle.load(f)
+                    self._cache[params, pdbkey] = pickle.load(f)
             else:
-                self.cache[params, pdbfile] = dict()
-        return self.cache[params, pdbfile]
+                self._cache[params, pdbkey] = dict()
+        return self._cache[params, pdbkey]
 
-    def add_to_c_side_cache(self, params, pdb0, pdb1, val):
-        self.dirty.add((params, pdb0))
-        self.cache[(params, pdb0)][pdb1] = val
+    def add(self, params, pdbkey0, pdbkey1, val):
+        assert isinstance(pdbkey0, int)
+        assert isinstance(pdbkey1, int)
+        self._dirty.add((params, pdbkey0))
+        self._cache[(params, pdbkey0)][pdbkey1] = val
 
     def sync_to_disk(self):
         for i in range(10):
-            for params, pdbfile in list(self.dirty):
-                cachefile = os.path.join(
-                    self.cachedir, str(hash(params)), flatten_path(pdbfile)
-                )
+            for params, pdbkey in list(self._dirty):
+                cachefile = self.cachepath(params, pdbkey)
                 if os.path.exists(cachefile + '.lock'): continue
                 if not os.path.exists(os.path.dirname(cachefile)):
                     os.makedirs(os.path.dirname(cachefile))
                 with open(cachefile + '.lock', 'w'):
                     with open(cachefile, 'wb') as out:
-                        data = self.cache[params, pdbfile]
+                        data = self._cache[params, pdbkey]
                         pickle.dump(data, out)
                 os.remove(cachefile + '.lock')
-                self.dirty.remove((params, pdbfile))
-        if len(self.dirty):
-            print('warning: some caches unsaved', len(self.dirty))
-
-
-def _convert_splicedb_to_dict():
-    """almost the same, dicts little slower, little bigger"""
-    import glob
-    import _pickle
-    for f in glob.glob('/home/sheffler/.worms/cache/splices/*/*.pickle'):
-        print(f)
-        with open(f, 'rb') as inp:
-            c = _pickle.load(inp)
-            for k, lst0 in c.items():
-                for i, lst in enumerate(lst0):
-                    if lst is not None:
-                        d = {j: v for j, v in enumerate(lst) if v is not None}
-                        c[k][i] = d
-        with open(f, 'wb') as out:
-            _pickle.dump(c, out)
+                self._dirty.remove((params, pdbkey))
+        if len(self._dirty):
+            print('warning: some caches unsaved', len(self._dirty))
 
 
 class BBlockDB:
-    """TODO: Summary
-
-    Attributes:
-        _alldb (list): Description
-        cachedir (TYPE): Description
-        dictdb (TYPE): Description
-        load_poses (TYPE): Description
-        lazy (TYPE): Description
-        n_missing_entries (TYPE): Description
-        n_new_entries (int): Description
-        nprocs (int): Description
-        read_new_pdbs (TYPE): Description
-    """
+    """stores Poses and BBlocks in a disk cache"""
 
     def __init__(
             self,
@@ -171,6 +137,10 @@ class BBlockDB:
                 os.path.relpath(os.path.dirname(__file__) + '/data')
             )
         self.dictdb = {e['file']: e for e in self._alldb}
+        self.key_to_pdbfile = {
+            myhash(e['file']): e['file']
+            for e in self._alldb
+        }
         if len(self._alldb) != len(self.dictdb):
             warning('!' * 100)
             warning(
@@ -218,22 +188,10 @@ class BBlockDB:
             return self._bblock_cache.values()[i]
 
     def __len__(self):
-        """TODO: Summary
-
-        Returns:
-            TYPE: Description
-        """
         return len(self._bblock_cache)
 
     def pose(self, pdbfile):
-        """load pose from _bblock_cache, read from file if not in memory
-
-        Args:
-            pdbfile (TYPE): Description
-
-        Returns:
-            TYPE: Description
-        """
+        """load pose from _bblock_cache, read from file if not in memory"""
         if isinstance(pdbfile, bytes):
             pdbfile = str(pdbfile, 'utf-8')
         if not pdbfile in self._poses_cache:
@@ -241,34 +199,21 @@ class BBlockDB:
                 self._poses_cache[pdbfile] = pose_from_file(pdbfile)
         return self._poses_cache[pdbfile]
 
-    def bblock(self, pdbfile):
-        """TODO: Summary
-
-        Args:
-            pdbfile (TYPE): Description
-
-        Returns:
-            TYPE: Description
-        """
-        if isinstance(pdbfile, str):
-            if not pdbfile in self._bblock_cache:
-                if not self.load_cached_bblock_into_memory(pdbfile):
-                    raise valueError('no bblock data for ', pdbfile)
-            return self._bblock_cache[pdbfile]
-        elif isinstance(pdbfile, list):
-            return [self.bblock(f) for f in pdbfile]
+    def bblock(self, pdbkey):
+        if isinstance(pdbkey, (str, bytes)):
+            pdbkey = myhash(pdbkey)
+        if isinstance(pdbkey, int):
+            if not pdbkey in self._bblock_cache:
+                if not self.load_cached_bblock_into_memory(pdbkey):
+                    pdbfile = self.key_to_pdbfile[pdbkey]
+                    raise ValueError('no bblock data for key', pdbkey, pdbfile)
+            return self._bblock_cache[pdbkey]
+        elif isinstance(pdbkey, list):
+            return [self.bblock(f) for f in pdbkey]
         else:
-            raise ValueError('bad pdbfile' + str(type(pdbfile)))
+            raise ValueError('bad pdbkey' + str(type(pdbkey)))
 
     def query(self, query, *, useclass=True, max_bblocks=150, shuffle=True):
-        names = self.query_names(query, useclass=useclass)
-        if len(names) > max_bblocks:
-            if shuffle:
-                random.shuffle(names)
-            names = names[:max_bblocks]
-        return [self.bblock(n) for n in names]
-
-    def query_names(self, query, *, useclass=True):
         """
         match name, _type, _class
         if one match, use it
@@ -282,6 +227,15 @@ class BBlockDB:
         Returns:
             TYPE: Description
         """
+        names = self.query_names(query, useclass=useclass)
+        if len(names) > max_bblocks:
+            if shuffle:
+                random.shuffle(names)
+            names = names[:max_bblocks]
+        return [self.bblock(myhash(n)) for n in names]
+
+    def query_names(self, query, *, useclass=True):
+        """query for names only"""
         if query.lower() == "all":
             return [db['file'] for db in self._alldb]
         query, subq = query.split(':') if query.count(':') else (query, None)
@@ -314,14 +268,6 @@ class BBlockDB:
         return hits
 
     def load_cached_pose_into_memory(self, pdbfile):
-        """TODO: Summary
-
-        Args:
-            pdbfile (TYPE): Description
-
-        Returns:
-            TYPE: Description
-        """
         posefile = self.posefile(pdbfile)
         try:
             with open(posefile, 'rb') as f:
@@ -335,43 +281,30 @@ class BBlockDB:
         except FileNotFoundError:
             return False
 
-    def bblockfile(self, pdbfile):
-        """TODO: Summary"""
-        return os.path.join(self.cachedir, 'bblock', flatten_path(pdbfile))
+    def bblockfile(self, pdbkey):
+        assert not isinstance(pdbkey, str)
+        return os.path.join(self.cachedir, 'bblock', '%016x.pickle' % pdbkey)
 
-    def load_cached_bblock_into_memory(self, pdbfile):
-        """TODO: Summary
-
-        Args:
-            pdbfile (TYPE): Description
-
-        Returns:
-            TYPE: Description
-        """
-        if not isinstance(pdbfile, str):
+    def load_cached_bblock_into_memory(self, pdbkey):
+        assert not isinstance(pdbkey, (str, bytes))
+        if not isinstance(pdbkey, int):
             success = True
-            for f in pdbfile:
+            for f in pdbkey:
                 success &= self.load_cached_bblock_into_memory(f)
             return success
-        bblockfile = self.bblockfile(pdbfile)
+        bblockfile = self.bblockfile(pdbkey)
         try:
             with open(bblockfile, 'rb') as f:
                 bbstate = list(pickle.load(f))
-                self._bblock_cache[pdbfile] = _BBlock(*bbstate)
+                self._bblock_cache[pdbkey] = _BBlock(*bbstate)
                 return True
-        except FileNotFound:
+        except FileNotFoundError:
             return False
 
     def posefile(self, pdbfile):
-        """TODO: Summary"""
         return os.path.join(self.cachedir, 'poses', flatten_path(pdbfile))
 
     def load_from_pdbs(self):
-        """Summary
-
-       Returns:
-           TYPE: Description
-       """
         shuffle(self._alldb)
         if self.nprocs is 1:
             with util.InProcessExecutor() as exe:
@@ -387,14 +320,6 @@ class BBlockDB:
         return len(new), len(missing)
 
     def load_from_pdbs_inner(self, exe):
-        """Summary
-
-       Args:
-           exe (TYPE): Description
-
-       Returns:
-           TYPE: Description
-       """
         # return exe.map(self.build_pdb_data, self._alldb)
         shuffle(self._alldb)
         r = []
@@ -413,21 +338,13 @@ class BBlockDB:
         return r
 
     def build_pdb_data(self, entry):
-        """return Nnew, Nmissing
-
-        Args:
-            entry (TYPE): Description
-
-        Returns:
-            TYPE: Description
-        """
+        """return Nnew, Nmissing"""
         pdbfile = entry['file']
-        cachefile = os.path.join(
-            self.cachedir, 'bblock', flatten_path(pdbfile)
-        )
+        pdbkey = myhash(pdbfile)
+        cachefile = self.bblockfile(pdbkey)
         posefile = self.posefile(pdbfile)
         if os.path.exists(cachefile):
-            assert self.load_cached_bblock_into_memory(pdbfile)
+            assert self.load_cached_bblock_into_memory(pdbkey)
             if self.load_poses:
                 assert self.load_cached_pose_into_memory(pdbfile)
             return None, None  # new, missing
@@ -437,7 +354,7 @@ class BBlockDB:
             # info('BBlockDB.build_pdb_data reading %s' % pdbfile)
             pose = self.pose(pdbfile)
             ss = Dssp(pose).get_dssp_secstruct()
-            bblock = BBlock(entry, pdbfile, pose, ss)
+            bblock = BBlock(entry, pdbfile, pdbkey, pose, ss)
             self._bblock_cache[pdbfile] = bblock
 
             with open(cachefile, 'wb') as f:

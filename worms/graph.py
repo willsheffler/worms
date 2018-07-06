@@ -2,6 +2,7 @@ from time import time
 import concurrent.futures as cf
 import numpy as np
 from worms import Vertex, Edge
+from worms.util import InProcessExecutor
 from pprint import pprint
 
 

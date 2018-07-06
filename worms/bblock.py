@@ -6,6 +6,50 @@ import numba.types as nt
 import homog
 
 
+def BBlock(entry, pdbfile, filehash, pose, ss):
+
+    chains = util.get_chain_bounds(pose)
+    ss = np.frombuffer(ss.encode(), dtype='i1')
+    ncac = util.get_bb_coords(pose)
+    stubs = ncac_to_stubs(ncac)
+
+    assert len(pose) == len(ncac)
+    assert len(pose) == len(stubs)
+    assert len(pose) == len(ss)
+    conn = _make_connections_array(entry['connections'], chains)
+    if len(conn) is 0:
+        print('bad conn info!', pdbfile)
+        return None, pdbfile  # new, missing
+    if ncac.shape[-1] is 4:
+        ncac = ncac.astype(np.float64)
+    elif ncac.shape[-1] is 3:
+        tmp = np.ones((ncac.shape[0], 3, 4), dtype=np.float64)
+        tmp[..., :3] = ncac
+        ncac = tmp
+    else:
+        assert 0, 'bad ncac'
+
+    npfb = np.frombuffer
+    bblock = _BBlock(
+        connections=conn,
+        file=npfb(entry['file'].encode(), dtype='i1'),
+        filehash=filehash,
+        components=npfb(str(entry['components']).encode(), dtype='i1'),
+        protocol=npfb(entry['protocol'].encode(), dtype='i1'),
+        name=npfb(entry['name'].encode(), dtype='i1'),
+        classes=npfb(','.join(entry['class']).encode(), 'i1'),
+        validated=entry['validated'],
+        _type=npfb(entry['type'].encode(), dtype='i1'),
+        base=npfb(entry['base'].encode(), dtype='i1'),
+        ncac=np.ascontiguousarray(ncac),
+        chains=np.array(chains, dtype='i4'),
+        ss=ss,
+        stubs=np.ascontiguousarray(stubs.astype('f8')),
+    )
+
+    return bblock
+
+
 def ncac_to_stubs(ncac):
     """
         Vector const & center,
@@ -51,53 +95,10 @@ def ncac_to_stubs(ncac):
     return stubs
 
 
-def BBlock(entry, pdbfile, pose, ss):
-    chains = util.get_chain_bounds(pose)
-    ss = np.frombuffer(ss.encode(), dtype='i1')
-
-    ncac = util.get_bb_coords(pose)
-    stubs = ncac_to_stubs(ncac)
-
-    assert len(pose) == len(ncac)
-    assert len(pose) == len(stubs)
-    assert len(pose) == len(ss)
-    conn = _make_connections_array(entry['connections'], chains)
-    if len(conn) is 0:
-        print('bad conn info!', pdbfile)
-        return None, pdbfile  # new, missing
-    if ncac.shape[-1] is 4:
-        ncac = ncac.astype(np.float64)
-    elif ncac.shape[-1] is 3:
-        tmp = np.ones((ncac.shape[0], 3, 4), dtype=np.float64)
-        tmp[..., :3] = ncac
-        ncac = tmp
-    else:
-        assert 0, 'bad ncac'
-
-    # print(ncac.shape, ncac.strides)
-    bblock = _BBlock(
-        connections=conn,
-        file=np.frombuffer(entry['file'].encode(), dtype='i1'),
-        components=np.
-        frombuffer(str(entry['components']).encode(), dtype='i1'),
-        protocol=np.frombuffer(entry['protocol'].encode(), dtype='i1'),
-        name=np.frombuffer(entry['name'].encode(), dtype='i1'),
-        classes=np.frombuffer(','.join(entry['class']).encode(), 'i1'),
-        validated=entry['validated'],
-        _type=np.frombuffer(entry['type'].encode(), dtype='i1'),
-        base=np.frombuffer(entry['base'].encode(), dtype='i1'),
-        ncac=np.ascontiguousarray(ncac),
-        chains=np.array(chains, dtype='i4'),
-        ss=ss,
-        stubs=np.ascontiguousarray(stubs.astype('f8')),
-    )
-
-    return bblock
-
-
 @nb.jitclass((
     ('connections', nt.int32[:, :]),
     ('file'       , nt.int8[:]),
+    ('filehash'   , nt.int64),
     ('components' , nt.int8[:]),
     ('protocol'   , nt.int8[:]),
     ('name'       , nt.int8[:]),
@@ -111,47 +112,13 @@ def BBlock(entry, pdbfile, pose, ss):
     ('stubs'      , nt.float64[:, :, :]),
 ))  # yapf: disable
 class _BBlock:
-    """
-    contains data for a single structure building block
-
-    Attributes:
-        base (TYPE): Description
-        chains (TYPE): Description
-        classes (TYPE): Description
-        components (TYPE): Description
-        connections (TYPE): Description
-        file (TYPE): Description
-        name (TYPE): Description
-        ncac (TYPE): Description
-        protocol (TYPE): Description
-        ss (TYPE): Description
-        stubs (TYPE): Description
-        validated (TYPE): Description
-    """
-
     def __init__(
-            self, connections, file, components, protocol, name, classes,
-            validated, _type, base, ncac, chains, ss, stubs
+            self, connections, file, filehash, components, protocol, name,
+            classes, validated, _type, base, ncac, chains, ss, stubs
     ):
-        """TODO: Summary
-
-        Args:
-            connections (TYPE): Description
-            file (TYPE): Description
-            components (TYPE): Description
-            protocol (TYPE): Description
-            name (TYPE): Description
-            classes (TYPE): Description
-            validated (TYPE): Description
-            _type (TYPE): Description
-            base (TYPE): Description
-            ncac (TYPE): Description
-            chains (TYPE): Description
-            ss (TYPE): Description
-            stubs (TYPE): Description
-        """
         self.connections = connections
         self.file = file
+        self.filehash = filehash
         self.components = components
         self.protocol = protocol
         self.name = name
@@ -186,9 +153,9 @@ class _BBlock:
             TYPE: Description
         """
         return (
-            self.connections, self.file, self.components, self.protocol,
-            self.name, self.classes, self.validated, self._type, self.base,
-            self.ncac, self.chains, self.ss, self.stubs
+            self.connections, self.file, self.filehash, self.components,
+            self.protocol, self.name, self.classes, self.validated, self._type,
+            self.base, self.ncac, self.chains, self.ss, self.stubs
         )
 
 
