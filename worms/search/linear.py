@@ -15,13 +15,13 @@ from worms.search.result import remove_duplicate_results
 
 
 @jit
-def null_lossfunc(pos):
+def null_lossfunc(pos, idx, verts):
     return 0.0
 
 
 def lossfunc_rand_1_in(n):
     @jit
-    def func(pos):
+    def func(pos, idx, verts):
         return float(random() * float(n))
 
     return func
@@ -34,9 +34,12 @@ def grow_linear(
         last_bb_same_as=-1,
         parallel=0,
         monte_carlo=0,
+        verbosity=0,
+        **kw
 ):
     verts = graph.verts
     edges = graph.edges
+    if last_bb_same_as is None: last_bb_same_as = -1
     assert len(verts) > 1
     assert len(verts) == len(edges) + 1
     assert verts[0].dirn[0] == 2
@@ -175,7 +178,9 @@ def _grow_linear_recurse(
                              last_bb_same_as):
                 continue
             result.stats.n_last_bb_same_as[0] += 1
-            loss = loss_function(result.pos[nresults])
+            loss = loss_function(
+                result.pos[nresults], result.idx[nresults], verts
+            )
             result.err[nresults] = loss
             if loss <= loss_threshold:
                 nresults += 1
@@ -228,6 +233,7 @@ def _grow_linear_mc_start(
         last = tstart
     nbatch = [1000, 330, 100, 33, 10, 3] + [1] * 99
     nbatch = nbatch[len(edges)]
+    # nbatch = 10000
     while time() < tstart + seconds:
         if threadno == 0:
             pbar.update(time() - last)
@@ -290,7 +296,7 @@ def _grow_linear_mc_recurse(
         if _site_overlap(result, verts, ivertex, nresults, last_bb_same_as):
             return nresults, result
         result.stats.n_last_bb_same_as[0] += 1
-        loss = loss_function(result.pos[nresults])
+        loss = loss_function(result.pos[nresults], result.idx[nresults], verts)
         result.err[nresults] = loss
         if loss <= loss_threshold:
             nresults += 1
@@ -302,8 +308,10 @@ def _grow_linear_mc_recurse(
         allowed_entries = edges[isplice].allowed_entries(iexit)
         if len(allowed_entries) == 0:
             return nresults, result
-        # ienter = np.random.choice(allowed_entries)
-        for ienter in allowed_entries:
+        iskip = max(1, len(allowed_entries) / 100)
+        istart = np.random.randint(0, iskip)
+        for ienter in allowed_entries[istart:None:iskip]:
+            # for ienter in allowed_entries:
             next_ivertex_range = next_vertex.entry_range(ienter)
             if isplice + 1 == len(edges):
                 if _last_bb_mismatch(result, verts, next_ivertex_range[0],

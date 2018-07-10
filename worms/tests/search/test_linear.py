@@ -32,7 +32,7 @@ def test_linear_search_two(bbdb_fullsize_prots):
     u = Vertex(bbs, '_C')
     v = Vertex(bbs, 'N_')
     verts = (u, v)
-    edges = (Edge(u, bbs, v, bbs, rms_cut=1.1), )
+    edges = (Edge(u, bbs, v, bbs, max_splice_rms=1.1, rms_range=9), )
 
     assert np.all(u.inout[:, 1] == np.arange(u.len))
     assert np.all(v.inout[:, 0] == np.arange(v.len))
@@ -58,8 +58,8 @@ def test_linear_search_three(bbdb_fullsize_prots):
     v = Vertex(bbs, 'NC')
     w = Vertex(bbs, 'N_')
     verts = (u, v, w)
-    e = Edge(u, bbs, v, bbs, rms_cut=1.1)
-    f = Edge(v, bbs, w, bbs, rms_cut=1.1)
+    e = Edge(u, bbs, v, bbs, max_splice_rms=1.1, rms_range=9)
+    f = Edge(v, bbs, w, bbs, max_splice_rms=1.1, rms_range=9)
     edges = (e, f)
 
     # print('------------- e ---------------')

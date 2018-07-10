@@ -7,12 +7,7 @@ from worms.search.result import SearchResult
 
 
 def prune_clashing_results(
-        graph,
-        crit,
-        rslt,
-        at_most=-1,
-        thresh=4.0,
-        parallel=False,
+        graph, crit, rslt, at_most=-1, thresh=4.0, parallel=False, **kw
 ):
     print('todo: clash check should handle symmetry')
     at_most = min(at_most, len(rslt.idx))
@@ -46,19 +41,19 @@ def prune_clashing_results(
 
 
 @jit
-def _chain_bounds(dirn, ires, idx, chains, spliced_only=False, trim=8):
+def _chain_bounds(dirn, ires, chains, spliced_only=False, trim=8):
     "return bounds for only spliced chains, with spliced away sequence removed"
     chains = np.copy(chains)
     bounds = []
     if dirn[0] < 2:
-        ir = ires[idx, 0]
+        ir = ires[0]
         for i in range(len(chains)):
             lb, ub = chains[i]
             if lb <= ir < ub:
                 chains[i, dirn[0]] = ir + trim * (1, -1)[dirn[0]]
                 bounds.append((chains[i, 0], chains[i, 1]))
     if dirn[1] < 2:
-        ir = ires[idx, 1]
+        ir = ires[1]
         for i in range(len(chains)):
             lb, ub = chains[i]
             if lb <= ir < ub:
@@ -91,25 +86,25 @@ def _check_all_chain_clashes(dirns, iress, idx, pos, chn, ncacs, thresh):
 
     # only adjacent verts, only spliced chains
     for i in range(len(dirns) - 1):
-        ichntrm = _chain_bounds(dirns[i], iress[i], idx[i], chn[i], 1, 8)
+        ichntrm = _chain_bounds(dirns[i], iress[i][idx[i]], chn[i], 1, 8)
         for j in range(i + 1, i + 2):
-            jchntrm = _chain_bounds(dirns[j], iress[j], idx[j], chn[j], 1, 8)
+            jchntrm = _chain_bounds(dirns[j], iress[j][idx[j]], chn[j], 1, 8)
             if _has_ca_clash(pos, ncacs, i, ichntrm, j, jchntrm, thresh):
                 return False
 
     # only adjacent verts, all chains
     for i in range(len(dirns) - 1):
-        ichntrm = _chain_bounds(dirns[i], iress[i], idx[i], chn[i], 0, 8)
+        ichntrm = _chain_bounds(dirns[i], iress[i][idx[i]], chn[i], 0, 8)
         for j in range(i + 1, i + 2):
-            jchntrm = _chain_bounds(dirns[j], iress[j], idx[j], chn[j], 0, 8)
+            jchntrm = _chain_bounds(dirns[j], iress[j][idx[j]], chn[j], 0, 8)
             if _has_ca_clash(pos, ncacs, i, ichntrm, j, jchntrm, thresh):
                 return False
 
     # all verts, all chains
     for i in range(len(dirns) - 1):
-        ichntrm = _chain_bounds(dirns[i], iress[i], idx[i], chn[i], 0, 8)
+        ichntrm = _chain_bounds(dirns[i], iress[i][idx[i]], chn[i], 0, 8)
         for j in range(i + 1, len(dirns)):
-            jchntrm = _chain_bounds(dirns[j], iress[j], idx[j], chn[j], 0, 8)
+            jchntrm = _chain_bounds(dirns[j], iress[j][idx[j]], chn[j], 0, 8)
             if _has_ca_clash(pos, ncacs, i, ichntrm, j, jchntrm, thresh):
                 return False
 

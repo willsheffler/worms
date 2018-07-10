@@ -1,15 +1,18 @@
 import logging
 import sys
+import concurrent.futures as cf
 from time import clock, time
 
 import numpy as np
 import pytest
 
-from worms import linear_gragh, Cyclic, grow_linear
+from worms import linear_gragh, Cyclic, grow_linear, NullCriteria
 from worms.util import InProcessExecutor
 from worms.database import BBlockDB, SpliceDB
-from worms.graph_pose import make_pose
+from worms.graph_pose import make_pose_crit, make_pose
+from worms.graph import graph_dump_pdb
 from worms.filters.clash import prune_clashing_results
+from worms.search import lossfunc_rand_1_in
 
 logging.getLogger().setLevel(99)
 
@@ -32,15 +35,15 @@ logging.getLogger().setLevel(99)
 # --database_files %s" '%(base,nrun,base,base,nrun,config_file,base,nrun,DATABASES)
 
 
-def _dump_pdb(bbdb, graph, crit, i, idx, pos):
-    pose = make_pose(bbdb, graph, crit, idx, pos)
+def _dump_pdb(i, **kw):
+    pose = make_pose(**kw)
     pose.dump_pdb('test_%i.pdb' % i)
 
 
 def worm_grow_3(
         bbdb,
         spdb,
-        maxbb=10,
+        nbblocks=10,
         shuf=0,
         parallel=1,
         verbosity=1,
@@ -54,34 +57,33 @@ def worm_grow_3(
 
     graph, tdb, tvertex, tedge = linear_gragh(
         [
-            # ('C3_N'   , '_N'),
-            # ('Het:CC' , 'CC'),
-            ('Het:NNX', '_N'),
-            # ('Het:CC', 'CC'),
+            ('C3_N', '_N'),
+            ('Het:NCy', 'CN'),
+            ('Het:CCC', 'C_'),
             # ('Het:NN', 'NN'),
-            ('Het:CC', 'CC'),
-            ('Het:NNX', 'N_'),
+            # ('Het:CC', 'CC'),
+            # ('Het:NNX', 'N_'),
         ],
         (bbdb, spdb),
-        maxbb=maxbb,
+        nbblocks=nbblocks,
         timing=True,
         verbosity=verbosity,
         parallel=parallel,
         cache_sync=cache_sync
     )
 
-    # loss = lossfunc_cyclic_rot(0, 2, 120)
-    # loss = lossfunc_rand_1_in(1000)
-
     # crit = Cyclic(3, from_seg=2, origin_seg=0)
-    crit = Cyclic(3)
-    last_bb_same_as = crit.from_seg
+    # crit = Cyclic(3)
+    # last_bb_same_as = crit.from_seg
+    crit = NullCriteria()
+    lf = crit.jit_lossfunc()
+    last_bb_same_as = -1
 
     tgrow = time()
     rslt = grow_linear(
         graph,
-        loss_function=crit.jit_lossfunc(),
-        # loss_function=lossfunc_rand_1_in(1000),
+        # loss_function=lf,
+        loss_function=lossfunc_rand_1_in(1000),
         parallel=parallel,
         loss_threshold=1.0,
         last_bb_same_as=last_bb_same_as,
@@ -102,7 +104,7 @@ def worm_grow_3(
     if len(rslt.idx) == 0: frac_redundant = 0
     else: frac_redundant = rslt.stats.n_redundant_results[0] / len(rslt.idx)
     print(
-        f' worm_grow_3 {maxbb:4} {ttot:7.1f}s {Nres:9,} logtot{logtot:4.1f} tv'
+        f' worm_grow_3 {nbblocks:4} {ttot:7.1f}s {Nres:9,} logtot{logtot:4.1f} tv'
         f' {tvertex:7.1f}s te {tedge:7.1f}s tg {tgrow:7.1f}s {Nsparse:10,} {Nsparse_rate:7,}/s {frac_redundant:4.1f}'
     )
     if len(rslt.err):
@@ -120,9 +122,18 @@ def worm_grow_3(
         graph, crit, rslt, at_most=clash_check, thresh=4.0, parallel=parallel
     )
     print(
-        'pruned clashes, %i of %i remain,' % (len(rslt.idx), norig), 'took',
+        'pruned clashes, %i of %i remain,' %
+        (len(rslt.idx), min(clash_check, norig)), 'took',
         time() - tclash, 'seconds'
     )
+
+    for i, idx in enumerate(rslt.idx):
+        graph_dump_pdb(
+            'graph_%i_nojoin.pdb' % i, graph, idx, rslt.pos[i], join=0
+        )
+        graph_dump_pdb('graph_%i.pdb' % i, graph, idx, rslt.pos[i])
+
+    return
 
     if len(rslt.idx) > 0:
         tpdb = time()
@@ -130,10 +141,16 @@ def worm_grow_3(
         with exe(max_workers=3) as pool:
             futures = list()
             for i in range(min(dump_pdb, len(rslt.idx))):
-                args = (
-                    _dump_pdb, bbdb, graph, crit, i, rslt.idx[i], rslt.pos[i]
+                kw = dict(
+                    bbdb=bbdb,
+                    graph=graph,
+                    # crit=crit,
+                    i=i,
+                    indices=rslt.idx[i],
+                    positions=rslt.pos[i],
+                    only_connected=False,
                 )
-                futures.append(pool.submit(*args))
+                futures.append(pool.submit(_dump_pdb, **kw))
             [f.result() for f in futures]
         print(
             'dumped %i structures' % min(dump_pdb, len(rslt.idx)), 'time',
@@ -142,7 +159,6 @@ def worm_grow_3(
 
 
 def main():
-
     import argparse
     import glob
     import pyrosetta
@@ -197,12 +213,13 @@ def main():
         read_new_pdbs=True,
         verbosity=args.verbosity
     )
+
     spdb = SpliceDB()
 
     worm_grow_3(
         bbdb,
         spdb,
-        maxbb=args.nbblocks,
+        nbblocks=args.nbblocks,
         parallel=args.parallel,
         verbosity=args.verbosity,
         monte_carlo=args.monte_carlo,

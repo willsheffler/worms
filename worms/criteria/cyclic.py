@@ -4,24 +4,6 @@ from worms.math import numba_axis_angle_single
 
 
 class Cyclic(WormCriteria):
-    """TODO: Summary
-
-    Attributes:
-        from_seg (TYPE): Description
-        is_cyclic (bool): Description
-        last_body_same_as (TYPE): Description
-        lever (TYPE): Description
-        nfold (TYPE): Description
-        origin_seg (TYPE): Description
-        rot_tol (TYPE): Description
-        sym_axes (TYPE): Description
-        symangle (TYPE): Description
-        symmetry (TYPE): Description
-        symname (TYPE): Description
-        to_seg (TYPE): Description
-        tol (TYPE): Description
-    """
-
     def __init__(
             self,
             symmetry=1,
@@ -30,21 +12,9 @@ class Cyclic(WormCriteria):
             tol=1.0,
             origin_seg=None,
             lever=50.0,
-            to_seg=-1
+            to_seg=-1,
+            min_radius=0,
     ):
-        """TODO: Summary
-
-        Args:
-            symmetry (int, optional): Description
-            from_seg (int, optional): Description
-            tol (float, optional): Description
-            origin_seg (None, optional): Description
-            lever (float, optional): Description
-            to_seg (TYPE, optional): Description
-
-        Raises:
-            ValueError: Description
-        """
         if from_seg == to_seg:
             raise ValueError('from_seg should not be same as to_seg')
         if from_seg == origin_seg:
@@ -74,17 +44,17 @@ class Cyclic(WormCriteria):
         if self.nfold > 1:
             self.symname = 'C' + str(self.nfold)
         self.sym_axes = [(self.nfold, Uz, [0, 0, 0, 1])]
+        a = self.symangle
+
+        if self.nfold == 1:
+            self.min_sep2 = 0.0
+        elif self.nfold == 2:
+            self.min_sep2 = 2.0 * min_radius
+        else:
+            self.min_sep2 = min_radius * np.sin(a) / np.sin((np.pi - a) / 2)
+        self.min_sep2 = self.min_sep2**2
 
     def score(self, segpos, *, verbosity=False, **kw):
-        """TODO: Summary
-
-        Args:
-            segpos (TYPE): Description
-            verbosity (bool, optional): Description
-            kw: passthru args
-        Returns:
-            TYPE: Description
-        """
         x_from = segpos[self.from_seg]
         x_to = segpos[self.to_seg]
         xhat = x_to @ inv(x_from)
@@ -105,6 +75,8 @@ class Cyclic(WormCriteria):
                 carterrsq = roterrsq = 0
             carterrsq = carterrsq + hm.hdot(trans, axis)**2
             roterrsq = roterrsq + (angle - self.symangle)**2
+            carterrsq[np.sum(trans[..., :3]**2, axis=-1) < self.min_sep2] = 9e9
+
             # if self.relweight is not None:
             #     # penalize 'relative' error
             #     distsq = np.sum(trans[..., :3]**2, axis=-1)
@@ -121,15 +93,6 @@ class Cyclic(WormCriteria):
         return np.sqrt(carterrsq / self.tol**2 + roterrsq / self.rot_tol**2)
 
     def alignment(self, segpos, **kw):
-        """TODO: Summary
-
-        Args:
-            segpos (TYPE): Description
-            kw: passthru args
-
-        Returns:
-            TYPE: Description
-        """
         if self.origin_seg is not None:
             return inv(segpos[self.origin_seg])
         x_from = segpos[self.from_seg]
@@ -151,12 +114,15 @@ class Cyclic(WormCriteria):
         from_seg = self.from_seg
         to_seg = self.to_seg
         lever = self.lever
+        min_sep2 = self.min_sep2
 
         @jit
-        def func(pos):
+        def func(pos, idx, verts):
             x_from = pos[from_seg]
             x_to = pos[to_seg]
             xhat = x_to @ np.linalg.inv(x_from)
+            if np.sum(xhat[:3, 3]**2) < min_sep2:
+                return 9e9
             axis, angle = numba_axis_angle_single(xhat)
             rot_err_sq = lever**2 * (angle - tgt_ang)**2
             cart_err_sq = (np.sum(xhat[:, 3] * axis))**2

@@ -1,7 +1,10 @@
+import string
 import numpy as np
 import numba as nb
 from worms import util
 from worms.util import jit
+from worms.vis import format_atom
+from worms.filters.clash import _chain_bounds
 import numba.types as nt
 import homog
 
@@ -11,7 +14,7 @@ def BBlock(entry, pdbfile, filehash, pose, ss):
     chains = util.get_chain_bounds(pose)
     ss = np.frombuffer(ss.encode(), dtype='i1')
     ncac = util.get_bb_coords(pose)
-    stubs = ncac_to_stubs(ncac)
+    stubs = _ncac_to_stubs(ncac)
 
     assert len(pose) == len(ncac)
     assert len(pose) == len(stubs)
@@ -50,7 +53,59 @@ def BBlock(entry, pdbfile, filehash, pose, ss):
     return bblock
 
 
-def ncac_to_stubs(ncac):
+def bblock_dump_pdb(
+        out,
+        bblock,
+        dirn,
+        splice,
+        join=True,
+        pos=np.eye(4),
+        chain=0,
+        anum=1,
+        rnum=1
+):
+    chains0 = _chain_bounds(dirn, splice, bblock.chains, trim=0)
+    sponly = _chain_bounds(dirn, splice, bblock.chains, trim=0, spliced_only=1)
+    # chains will have insplice at first ops, outsplice at last pos
+    # either could be none
+    chains = list()
+    chains.append(sponly[0] if dirn[0] < 2 else None)
+    for c in chains0:
+        if np.all(sponly[0] == c) or np.all(sponly[-1] == c):
+            continue
+        chains.append(c)
+    chains.append(sponly[-1] if dirn[1] < 2 else None)
+
+    aname = [' N  ', ' CA ', ' C  ']
+    for ic, lbub in enumerate(chains):
+        if lbub is None: continue
+        for i in range(*lbub):
+            for j in (0, 1, 2):
+                xyz = pos @ bblock.ncac[i, j]
+                out.write(
+                    format_atom(
+                        atomi=anum,
+                        atomn=aname[j],
+                        resn='GLY',
+                        chain=string.ascii_uppercase[chain],
+                        resi=rnum,
+                        x=xyz[0],
+                        y=xyz[1],
+                        z=xyz[2],
+                        occ=1.0,
+                    )
+                )
+                anum += 1
+            rnum += 1
+        if join == 'bb': continue
+        if join == 'splice' and ic + 1 == len(chains) and dirn[1] < 2:
+            continue
+        chain += 1
+    if join == 'bb': chain += 1
+    return chain, anum, rnum
+
+
+def _ncac_to_stubs(ncac):
     """
         Vector const & center,
         Vector const & a,

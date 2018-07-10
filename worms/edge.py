@@ -21,7 +21,7 @@ except ImportError:
 
 def Edge(u, ublks, v, vblks, verbosity=0, **kw):
 
-    splices, ntot = get_allowed_splices(
+    splices, nout, nent = get_allowed_splices(
         u, ublks, v, vblks, verbosity=verbosity, **kw
     )
     maxentries = max(len(_) for _ in splices)
@@ -34,20 +34,14 @@ def Edge(u, ublks, v, vblks, verbosity=0, **kw):
             'egde.py bad splice_ary'
     assert len(splice_ary) == 1 + np.max(u.inout[:, 1]), \
             'edge.py, bad splice_ary'
-    if verbosity > 0:
-        nsplices = splice_ary[:, 0].sum()
-        print(
-            f'allowed splices {nsplices:,} unfilt. total {ntot:,}',
-            f'frac valid {np.round(nsplices / ntot,4):,}'
-        )
 
-    return _Edge(splice_ary)
+    return _Edge(splice_ary, nout, nent)
 
 
 def splice_metrics_pair(
         blk0,
         blk1,
-        rms_cut=0.7,
+        max_splice_rms=0.7,
         clashd2=3.0**2,
         contactd2=10.0**2,
         rms_range=9,
@@ -57,7 +51,7 @@ def splice_metrics_pair(
     return _jit_splice_metrics(
         blk0.chains, blk1.chains, blk0.ncac, blk1.ncac, blk0.stubs, blk1.stubs,
         blk0.connections, blk1.connections, clashd2, contactd2, rms_range,
-        clash_contact_range, rms_cut, skip_on_fail
+        clash_contact_range, max_splice_rms, skip_on_fail
     )
 
 
@@ -67,11 +61,11 @@ def get_allowed_splices(
         v,
         vblks,
         splicedb=None,
-        rms_cut=0.7,
+        max_splice_rms=0.7,
         ncontact_cut=10,
         clashd2=3.0**2,
         contactd2=10.0**2,
-        rms_range=9,
+        rms_range=5,
         clash_contact_range=9,
         skip_on_fail=True,
         parallel=False,
@@ -81,7 +75,7 @@ def get_allowed_splices(
     assert (u.dirn[1] + v.dirn[0]) == 1, 'get_allowed_splices dirn mismatch'
 
     params = (
-        rms_cut, ncontact_cut, clashd2, contactd2, rms_range,
+        max_splice_rms, ncontact_cut, clashd2, contactd2, rms_range,
         clash_contact_range, u.min_seg_len, v.min_seg_len
     )
 
@@ -117,6 +111,7 @@ def get_allowed_splices(
         outblk_res, inblk_res = inblk_res, outblk_res
         outblk, inblk = inblk, outblk
 
+    pairs_with_no_valid_splices = 0
     tcache = 0
     exe = cf.ProcessPoolExecutor if parallel else InProcessExecutor
     with exe() as pool:
@@ -140,7 +135,8 @@ def get_allowed_splices(
                         _jit_splice_metrics, blk0.chains, blk1.chains,
                         blk0.ncac, blk1.ncac, blk0.stubs, blk1.stubs,
                         blk0.connections, blk1.connections, clashd2, contactd2,
-                        rms_range, clash_contact_range, rms_cut, skip_on_fail
+                        rms_range, clash_contact_range, max_splice_rms,
+                        skip_on_fail
                     )
                 fs = (iblk0, iblk1, ofst0, ofst1, ires0, ires1)
                 future.stash = fs
@@ -164,7 +160,7 @@ def get_allowed_splices(
             result = future.result()
             if len(result) is 3 and isinstance(result[0], np.ndarray):
                 rms, nclash, ncontact = result
-                ok = ((nclash == 0) * (rms <= rms_cut) *
+                ok = ((nclash == 0) * (rms <= max_splice_rms) *
                       (ncontact >= ncontact_cut))
                 result = _splice_respairs(ok, ublks[iblk0], vblks[iblk1])
 
@@ -172,8 +168,8 @@ def get_allowed_splices(
                     key0 = ublks[iblk0].filehash  # C-term side
                     key1 = vblks[iblk1].filehash  # N-term side
                     splicedb.add(params, key0, key1, result)
-                    if random.random() < sync_to_disk_every:
-                        print('sync_to_disk')
+                    if np.random.random() < sync_to_disk_every:
+                        print('sync_to_disk splices data')
                         splicedb.sync_to_disk()
 
             if swapped:
@@ -181,6 +177,9 @@ def get_allowed_splices(
                 ires0, ires1 = ires1, ires0
                 ofst0, ofst1 = ofst1, ofst0
 
+            if len(result[0]) == 0:
+                pairs_with_no_valid_splices += 1
+                continue
             index_of_ires0 = _index_of_map(ires0, np.max(result[0]))
             index_of_ires1 = _index_of_map(ires1, np.max(result[1]))
             irs = index_of_ires0[result[0]] + ofst0
@@ -190,20 +189,31 @@ def get_allowed_splices(
 
     if sync_to_disk_every > 0 and splicedb:
         splicedb.sync_to_disk()
-    return valid_splices, nout * nent
+
+    if pairs_with_no_valid_splices:
+        print(
+            'pairs with no valid splices: ', pairs_with_no_valid_splices, 'of',
+            len(outblk_res) * len(inblk_res)
+        )
+
+    return valid_splices, nout, nent
 
 
 
 
 @nb.jitclass((
     ('splices', nt.int32[:, :]),
+    ('nout'   , nt.int32),
+    ('nent'   , nt.int32),
 ))  # yapf: disable
 class _Edge:
     """contains junction scores
     """
 
-    def __init__(self, splices):
+    def __init__(self, splices, nout, nent):
         self.splices = splices
+        self.nout = nout
+        self.nent = nent
 
     @property
     def len(self):
@@ -222,7 +232,7 @@ class _Edge:
 
     @property
     def _state(self):
-        return (self.splices, )
+        return (self.splices, self.nout, self.nent)
 
 
 @jit
@@ -267,7 +277,7 @@ def _jit_splice_metrics(chains0, chains1,
                         contactd2=10.0**2,
                         rms_range=9,
                         clash_contact_range=9,
-                        rms_cut=1.1,
+                        max_splice_rms=1.1,
                         skip_on_fail=True):  # yapf: disable
 
     aln0s = _ires_from_conn(conn0, 1)
@@ -303,7 +313,7 @@ def _jit_splice_metrics(chains0, chains1,
             assert 0 <= rms < 9e9, 'bad rms'
             out_rms[ialn0, ialn1] = rms
 
-            if skip_on_fail and rms > rms_cut:
+            if skip_on_fail and rms > max_splice_rms:
                 continue
 
             nclash, ncontact = 0, 0

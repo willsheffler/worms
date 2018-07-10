@@ -133,8 +133,8 @@ def contort_pose_chains(
             entry_chain, exit_chain = pose.chain(ir_en), pose.chain(ir_ex)
             if sym_ch not in (entry_chain, exit_chain):
                 cyclictrim_in_rest = True
-            assert sym_ch != entry_chain or sym_pol != entrypol
-            assert sym_ch != exit_chain or sym_pol != exitpol
+            assert sym_ch != entry_chain or sym_pol != pl_en
+            assert sym_ch != exit_chain or sym_pol != pl_ex
         # annotate enex entries with cyclictrim info
         cyclic_entry[pose.chain(sym_ir)] = (iseg, sym_ir, sym_pol)
     if cyclictrim and iseg == cyclictrim[1]:

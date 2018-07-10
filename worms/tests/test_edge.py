@@ -26,7 +26,9 @@ def test_get_allowed_splices_fullsize_prots(bbdb_fullsize_prots):
         341, 342, 343, 344, 345, 346, 347, 348
     ]
 
-    rms, nclash, ncontact = splice_metrics_pair(bbc, bbn, skip_on_fail=False)
+    rms, nclash, ncontact = splice_metrics_pair(
+        bbc, bbn, skip_on_fail=False, rms_range=9
+    )
     print(rms.shape)
 
     assert np.sum(rms < 1.5) == 30
@@ -46,7 +48,16 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots, spdb):
 
     u = Vertex(bbs, '_C')
     v = Vertex(bbs, 'N_')
-    e = Edge(u, bbs, v, bbs, splicedb=spdb, rms_cut=1.1, ncontact_cut=10)
+    e = Edge(
+        u,
+        bbs,
+        v,
+        bbs,
+        splicedb=spdb,
+        max_splice_rms=1.1,
+        rms_range=9,
+        ncontact_cut=10
+    )
     assert np.all(e.allowed_entries(3) == [28])
     assert np.all(e.allowed_entries(4) == [29])
     assert np.all(e.allowed_entries(12) == [37])
@@ -61,7 +72,16 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots, spdb):
 
     u = Vertex(bbs, 'NC')
     v = Vertex(bbs, 'NN')
-    e = Edge(u, bbs, v, bbs, splicedb=spdb, rms_cut=1.1, ncontact_cut=10)
+    e = Edge(
+        u,
+        bbs,
+        v,
+        bbs,
+        splicedb=spdb,
+        max_splice_rms=1.1,
+        rms_range=9,
+        ncontact_cut=10
+    )
     assert np.all(e.allowed_entries(3) == [28])
     assert np.all(e.allowed_entries(4) == [29])
     assert np.all(e.allowed_entries(12) == [37])
@@ -76,7 +96,16 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots, spdb):
 
     u = Vertex(bbs, 'NC')
     v = Vertex(bbs, 'NC')
-    e = Edge(u, bbs, v, bbs, splicedb=spdb, rms_cut=1.1, ncontact_cut=10)
+    e = Edge(
+        u,
+        bbs,
+        v,
+        bbs,
+        splicedb=spdb,
+        max_splice_rms=1.1,
+        rms_range=9,
+        ncontact_cut=10
+    )
     assert np.all(e.allowed_entries(16) == [22])
     assert np.all(e.allowed_entries(17) == [21, 23])
     assert np.all(e.allowed_entries(18) == [22, 23])
@@ -86,7 +115,16 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots, spdb):
 
     u = Vertex(bbs, '_N')
     v = Vertex(bbs, 'CN')
-    e = Edge(u, bbs, v, bbs, splicedb=spdb, rms_cut=1.1, ncontact_cut=10)
+    e = Edge(
+        u,
+        bbs,
+        v,
+        bbs,
+        splicedb=spdb,
+        max_splice_rms=1.1,
+        rms_range=9,
+        ncontact_cut=10
+    )
     assert np.all(e.allowed_entries(0) == [17, 18, 19])
     assert np.all(e.allowed_entries(1) == [17, 18, 19])
     assert np.all(e.allowed_entries(19) == [14])
@@ -109,7 +147,16 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots, spdb):
 
     u = Vertex(bbs, '_N')
     v = Vertex(bbs, 'C_')
-    e = Edge(u, bbs, v, bbs, splicedb=spdb, rms_cut=1.1, ncontact_cut=10)
+    e = Edge(
+        u,
+        bbs,
+        v,
+        bbs,
+        splicedb=spdb,
+        max_splice_rms=1.1,
+        rms_range=9,
+        ncontact_cut=10
+    )
     assert np.all(e.allowed_entries(0) == [17, 18, 19])
     assert np.all(e.allowed_entries(1) == [17, 18, 19])
     assert np.all(e.allowed_entries(19) == [14])
@@ -132,7 +179,16 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots, spdb):
 
     u = Vertex(bbs, 'NN')
     v = Vertex(bbs, 'C_')
-    e = Edge(u, bbs, v, bbs, splicedb=spdb, rms_cut=1.1, ncontact_cut=10)
+    e = Edge(
+        u,
+        bbs,
+        v,
+        bbs,
+        splicedb=spdb,
+        max_splice_rms=1.1,
+        rms_range=9,
+        ncontact_cut=10
+    )
     assert np.all(e.allowed_entries(0) == [17])
     assert np.all(e.allowed_entries(1) == [16, 18, 19])
     assert np.all(e.allowed_entries(7) == [3])
@@ -153,7 +209,7 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots, spdb):
     # #
     # u = Vertex(bbs, 'NN')
     # v = Vertex(bbs, 'C_')
-    # e = Edge(u, bbs, v, bbs, splicedb=spdb, rms_cut=1.1, ncontact_cut=10)
+    # e = Edge(u, bbs, v, bbs, splicedb=spdb, max_splice_rms=1.1, rms_range=9, ncontact_cut=10)
     # empty = []
     # for i in range(e.len):
     #     ent = list(e.allowed_entries(i))

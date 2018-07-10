@@ -9,6 +9,7 @@ import abc
 import numpy as np
 import homog as hm
 from numpy.linalg import inv
+from worms.util import jit
 
 Ux = np.array([1, 0, 0, 0])
 Uy = np.array([0, 1, 0, 0])
@@ -136,6 +137,8 @@ class NullCriteria(WormCriteria):
         """
         self.from_seg = from_seg
         self.to_seg = to_seg
+        self.origin_seg = None
+        self.is_cyclic = False
 
     def score(self, segpos, **kw):
         """TODO: Summary
@@ -160,3 +163,10 @@ class NullCriteria(WormCriteria):
         r = np.empty_like(segpos[-1])
         r[..., :, :] = np.eye(4)
         return r
+
+    def jit_lossfunc(self):
+        @jit
+        def null_lossfunc(pos, idx, verts):
+            return 0.0
+
+        return null_lossfunc

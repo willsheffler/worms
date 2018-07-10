@@ -29,43 +29,32 @@ except ImportError:
 
 _atom_record_format = (
     "ATOM  {atomi:5d} {atomn:^4}{idx:^1}{resn:3s} {chain:1}{resi:4d}{insert:1s}   "
-    "{x:8.3f}{y:8.3f}{z:8.3f}{occ:6.2f}{b:6.2f}\n")
+    "{x:8.3f}{y:8.3f}{z:8.3f}{occ:6.2f}{b:6.2f}\n"
+)
 
 
-def format_atom(atomi=0,
-                atomn='ATOM',
-                idx=' ',
-                resn='RES',
-                chain='A',
-                resi=0,
-                insert=' ',
-                x=0,
-                y=0,
-                z=0,
-                occ=0,
-                b=0):
+def format_atom(
+        atomi=0,
+        atomn='ATOM',
+        idx=' ',
+        resn='RES',
+        chain='A',
+        resi=0,
+        insert=' ',
+        x=0,
+        y=0,
+        z=0,
+        occ=0,
+        b=0
+):
     return _atom_record_format.format(**locals())
 
 
 def is_rosetta_pose(to_show):
-    """TODO: Summary
-
-    Args:
-        to_show (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
     return isinstance(to_show, Pose)
 
 
 def pymol_load_pose(pose, name):
-    """TODO: Summary
-
-    Args:
-        pose (TYPE): Description
-        name (TYPE): Description
-    """
     from pymol import cmd
     tmpdir = tempfile.mkdtemp()
     fname = tmpdir + '/' + name + '.pdb'
@@ -74,12 +63,6 @@ def pymol_load_pose(pose, name):
 
 
 def pymol_xform(name, xform):
-    """TODO: Summary
-
-    Args:
-        name (TYPE): Description
-        xform (TYPE): Description
-    """
     from pymol import cmd
     assert name in cmd.get_object_list()
     cmd.transform_object(name, xform.flatten())
@@ -88,7 +71,8 @@ def pymol_xform(name, xform):
 @singledispatch
 def pymol_load(to_show, state=None, name=None, **kw):
     raise NotImplementedError(
-        "pymol_load: don't know how to show " + str(type(to_show)))
+        "pymol_load: don't know how to show " + str(type(to_show))
+    )
 
 
 @pymol_load.register(Pose)

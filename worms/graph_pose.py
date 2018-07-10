@@ -4,6 +4,104 @@ from collections.abc import Iterable
 import numpy as np
 
 
+def make_pose_crit(
+        bbdb,
+        graph,
+        crit,
+        indices,
+        positions,
+        only_connected='auto',
+        provenance=False,
+        join=True,
+):
+    return make_pose(
+        bbdb=bbdb,
+        graph=graph,
+        indices=indices,
+        positions=positions,
+        only_connected=only_connected,
+        provenance=provenance,
+        join=join,
+        from_seg=crit.from_seg,
+        to_seg=crit.to_seg,
+        origin_seg=crit.origin_seg,
+        is_cyclic=crit.is_cyclic,
+        position=crit.alignment(positions),
+    )
+
+
+def make_pose(
+        bbdb,
+        graph,
+        indices,
+        positions,
+        only_connected='auto',
+        provenance=False,
+        join=True,
+        from_seg=0,
+        to_seg=-1,
+        origin_seg=None,
+        is_cyclic=False,
+        position=np.eye(4),
+):
+    cyclic_info = [None] * 5
+    if is_cyclic:
+        cyclic_info[0] = from_seg, to_seg
+        cyclic_info[1] = _dirn_to_polarity(graph.verts[-1].dirn[0])
+        cyclic_info[2] = _dirn_to_polarity(graph.verts[0].dirn[1])
+        cyclic_info[3] = graph.verts[to_seg].ires[indices[to_seg], 0] + 1
+        cyclic_info[4] = _dirn_to_polarity(graph.verts[to_seg].dirn[0])
+        assert cyclic_info[3] != 0
+
+    poses = _get_bb_poses(bbdb, graph, indices)
+    entry_exit_chains = list()
+    for ivert in range(len(indices)):
+        entry_exit_chains.append(
+            _make_pose_single(
+                poses[ivert],
+                graph.verts[ivert],
+                indices[ivert],
+                positions[ivert],
+                nverts=len(indices),
+                ivert=ivert,
+                cyclic_info=cyclic_info
+            )
+        )
+
+    # for i, e in enumerate(entry_exit_chains):
+    #     for j, f in enumerate(e):
+    #         for k, p in enumerate(f):
+    #             print('dump_pdb test_%i_%i_%i.pdb' % (i, j, k))
+    #             p.pose.dump_pdb('test_%i_%i_%i.pdb' % (i, j, k))
+
+    result = make_contorted_pose(
+        entryexits=entry_exit_chains,
+        entrypol=_dirn_to_polarity(v.dirn[0] for v in graph.verts),
+        exitpol=_dirn_to_polarity(v.dirn[1] for v in graph.verts),
+        indices=indices,
+        from_seg=from_seg,
+        to_seg=to_seg,
+        origin_seg=origin_seg,
+        seg_pos=positions,
+        position=position,
+        is_cyclic=is_cyclic,
+        align=True,
+        cryst_info=None,
+        end=(not is_cyclic),
+        iend=None,  #(-1 if is_cyclic else None),
+        only_connected=only_connected,
+        join=join,
+        cyclic_permute=is_cyclic,
+        cyclictrim=cyclic_info[0],
+        provenance=provenance,
+        make_chain_list=False
+    )
+
+    if not provenance:
+        return result[0]
+    return result
+
+
 def _get_bb_poses(bbdb, graph, indices):
     poses = list()
     for bbs, vert, idx in zip(graph.bbs, graph.verts, indices):
@@ -40,8 +138,8 @@ def _make_pose_single(pose, vert, idx, positions, nverts, ivert, cyclic_info):
         pose=pose,
         chains=chains,
         nseg=nverts,
-        ir_en=vert.ires[idx, 0],
-        ir_ex=vert.ires[idx, 1],
+        ir_en=(vert.ires[idx, 0] + 1) or -1,
+        ir_ex=(vert.ires[idx, 1] + 1) or -1,
         pl_en=_dirn_to_polarity(vert.dirn[0]),
         pl_ex=_dirn_to_polarity(vert.dirn[1]),
         chain_start=start_of_chain,
@@ -55,73 +153,3 @@ def _make_pose_single(pose, vert, idx, positions, nverts, ivert, cyclic_info):
         sym_ir=cyclic_info[3],
         sym_pol=cyclic_info[4],
     )
-
-
-def make_pose(
-        bbdb,
-        graph,
-        spec,
-        indices,
-        positions,
-        only_connected='auto',
-        provenance=False
-):
-    from_seg = spec.from_seg
-    to_seg = spec.to_seg
-    is_cyclic = spec.is_cyclic
-    position = spec.alignment(positions)
-    cyclic_info = [None] * 5
-    if is_cyclic:
-        cyclic_info[0] = from_seg, to_seg
-        cyclic_info[1] = _dirn_to_polarity(graph.verts[-1].dirn[0])
-        cyclic_info[2] = _dirn_to_polarity(graph.verts[0].dirn[1])
-        cyclic_info[3] = graph.verts[to_seg].ires[indices[to_seg], 0]
-        cyclic_info[4] = _dirn_to_polarity(graph.verts[to_seg].dirn[0])
-
-    poses = _get_bb_poses(bbdb, graph, indices)
-    entry_exit_chains = list()
-    for ivert in range(len(indices)):
-        entry_exit_chains.append(
-            _make_pose_single(
-                poses[ivert],
-                graph.verts[ivert],
-                indices[ivert],
-                positions[ivert],
-                nverts=len(indices),
-                ivert=ivert,
-                cyclic_info=cyclic_info
-            )
-        )
-
-    # for i, e in enumerate(entry_exit_chains):
-    #     for j, f in enumerate(e):
-    #         for k, p in enumerate(f):
-    #             print('dump_pdb test_%i_%i_%i.pdb' % (i, j, k))
-    #             p.pose.dump_pdb('test_%i_%i_%i.pdb' % (i, j, k))
-
-    result = make_contorted_pose(
-        entryexits=entry_exit_chains,
-        entrypol=_dirn_to_polarity(v.dirn[0] for v in graph.verts),
-        exitpol=_dirn_to_polarity(v.dirn[1] for v in graph.verts),
-        indices=indices,
-        from_seg=from_seg,
-        to_seg=to_seg,
-        origin_seg=None,
-        seg_pos=positions,
-        position=position,
-        is_cyclic=is_cyclic,
-        align=True,
-        cryst_info=None,
-        end=(not is_cyclic),
-        iend=None,  #(-1 if is_cyclic else None),
-        only_connected=only_connected,
-        join=True,
-        cyclic_permute=is_cyclic,
-        cyclictrim=cyclic_info[0],
-        provenance=provenance,
-        make_chain_list=False
-    )
-
-    if not provenance:
-        return result[0]
-    return result

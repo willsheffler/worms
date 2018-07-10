@@ -1,6 +1,6 @@
 import numpy as np
 from worms.bblock import *
-from worms.bblock import _make_connections_array
+from worms.bblock import _make_connections_array, _ncac_to_stubs
 
 
 def test_make_connections_array1():
@@ -32,5 +32,5 @@ def test_bblock(bbdb):
 
 def test_ncac_to_stubs():
     ncac = np.random.randn(10, 3, 4).reshape(10, 3, 4)
-    stubs = ncac_to_stubs(ncac)
+    stubs = _ncac_to_stubs(ncac)
     assert homog.is_homog_xform(stubs)

@@ -10,14 +10,16 @@ from numba import cffi_support
 _ffi = FFI()
 _ffi.set_source('_khash_ffi', '#include "khash_int2int.h"')
 
-_ffi.cdef("""\
+_ffi.cdef(
+    """\
 typedef int... khint64_t;
 
 static inline void *khash_int2int_init(void);
 static void khash_int2int_destroy(void *);
 static inline khint64_t khash_int2int_get(void *, khint64_t, khint64_t);
 static inline int khash_int2int_set(void *, khint64_t, khint64_t);
-""")
+"""
+)
 
 _dir = os.path.dirname(__file__)
 try:
@@ -49,6 +51,11 @@ class KHashi8i8:
     def update(self, iterable):
         for i in iterable:
             self.set(*i)
+
+    def update2(self, ary, ary2):
+        assert len(ary) == len(ary2)
+        for i in range(len(ary)):
+            self.set(ary[i], ary2[i])
 
     def get(self, i):
         return _khash_get(self.hash, i, -9223372036854775808)

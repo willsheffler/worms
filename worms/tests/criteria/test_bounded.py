@@ -7,9 +7,9 @@ from homog.sym import icosahedral_axes as IA
 
 def test_geom_check():
     SX = Cyclic
-    I = np.identity(4)
-    rotx1rad = hrot([1, 0, 0], 1)
-    transx10 = htrans([10, 0, 0])
+    I = np.identity(4).reshape(1, 4, 4)
+    rotx1rad = hrot([1, 0, 0], 1).reshape(1, 4, 4)
+    transx10 = htrans([10, 0, 0]).reshape(1, 4, 4)
     randaxes = np.random.randn(1, 3)
 
     assert 0 == SX('c1').score([I, I])

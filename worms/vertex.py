@@ -108,18 +108,7 @@ def _check_inorder(ires):
 
 
 def vertex_single(bbstate, bbid, din, dout, min_seg_len, verbosity=0):
-    """Summary
-
-    Args:
-        bb (TYPE): Description
-        bbid (TYPE): Description
-        din (TYPE): Description
-        dout (TYPE): Description
-        min_seg_len (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
+    """build on bblock's worth of vertex"""
     bb = _BBlock(*bbstate)
     ires0, ires1 = [], []
     isite0, isite1 = [], []
@@ -196,7 +185,7 @@ def _check_bbires_inorder(ibblock, ires):
     for i in range(len(ires)):
         if ires[i] >= 0:
             if ires[i] < prev[ibblock[i]]:
-                print('_check_bbires_inorder err', i)
+                # print('_check_bbires_inorder err', i)
                 return False
             prev[ibblock[i]] = ires[i]
     return True
