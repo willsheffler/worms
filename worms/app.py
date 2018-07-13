@@ -5,13 +5,18 @@ import _pickle
 from copy import deepcopy
 from time import time
 
+from xbin import gu_xbin_indexer, numba_xbin_indexer
+import homog as hg
+
 from worms.criteria import *
 from worms.database import BBlockDB, SpliceDB
 from worms.graph import linear_graph, graph_dump_pdb
-from worms.search import grow_linear, SearchResult
+from worms.search import grow_linear, SearchResult, subset_result
 from worms.graph_pose import make_pose_crit
 from worms.util import get_symdata
 from worms.filters.clash import prune_clashes
+from worms.khash import KHashi8i8
+from worms.khash.khash_cffi import _khash_get
 
 import pyrosetta
 from pyrosetta import rosetta as ros
@@ -25,23 +30,28 @@ def parse_args(argv):
         nbblocks=64,
         monte_carlo=0.0,
         parallel=1,
-        verbosity=2,
-        merge_bblock=0,
-        max_output=1000,
-        max_clash_check=10000,
-        ca_clash_dis=4.0,
         cachedir='',
+        run_cache='',
+        verbosity=2,
+        #
         cache_sync=0.003,
         hash_cart_resl=1.0,
         hash_ori_resl=5.0,
+        #
         max_splice_rms=0.7,
+        #
         min_radius=0.0,
         i_merge_bblock=0,
+        merged_err_cut=2.0,
+        #
+        max_clash_check=10000,
+        ca_clash_dis=4.0,
+        #
+        max_output=1000,
         output_pose=True,
         output_symmetric=False,
         output_prefix='./worms',
         output_centroid=False,
-        run_cache='',
         dbfiles=['']
     )
     crit = eval(''.join(args.geometry))
@@ -100,9 +110,13 @@ def search_one_stage(db, criteria, singlebb=[], lbl='', **kw):
         if os.path.exists(kw['run_cache'] + lbl + '.pickle'):
             with (open(kw['run_cache'] + lbl + '.pickle', 'rb')) as inp:
                 return _pickle.load(inp)
-    graph = linear_graph(bbspec=criteria.bbspec, db=db, **kw)
-    for isplice in singlebb:
-        graph.bbs[isplice] = (graph.bbs[isplice][kw['i_merge_bblock']], )
+    graph = linear_graph(
+        bbspec=criteria.bbspec,
+        db=db,
+        singlebb=singlebb,
+        which_single=kw['i_merge_bblock'],
+        **kw
+    )
     print('calling grow_linear')
     result = grow_linear(
         graph=graph,
@@ -138,6 +152,8 @@ def output_results(
                 ros.core.pose.symmetry.make_symmetric_pose(pose, symdata)
             pose.dump_pdb(fname)
         else:
+            if output_symmetric:
+                raise NotImplementedError('no symmetry w/o poses')
             graph_dump_pdb(
                 fname,
                 graph,
@@ -148,16 +164,29 @@ def output_results(
             )
 
 
-def search_two_stage(db, criteria, i_merge_bblock, **kw):
+def search_two_stage(db, criteria, **kw):
+
     critA = stage_one_criteria(criteria, **kw)
     graphA, rsltA = search_one_stage(
         db, critA, lbl='A', singlebb=[0, -1], **kw
     )
+
     critB = stage_two_criteria(criteria, graphA, rsltA, **kw)
     graphB, rsltB = search_one_stage(db, critB, lbl='B', singlebb=[-1], **kw)
-    result, imerge = merge_results(
-        criteria, graphA, rsltA, graph, graphB, rsltB, binner, hash_table, **kw
+
+    graph = linear_graph(
+        bbspec=criteria.bbspec,
+        db=db,
+        singlebb=[criteria.from_seg, -1],
+        which_single=kw['i_merge_bblock'],
+        **kw
     )
+
+    result, imerge = merge_results(
+        criteria, graph, graphA, rsltA, critB, graphB, rsltB, **kw
+    )
+
+    return graph, result
 
 
 def stage_one_criteria(criteria, min_radius=0, **kw):
@@ -176,7 +205,7 @@ def stage_two_criteria(
         criteria, graphA, rsltA, hash_cart_resl, hash_ori_resl, **kw
 ):
     assert criteria.origin_seg == 0
-    bbspec = deepcopy(criteria.bbspec[:critia.from_seg + 1])
+    bbspec = deepcopy(criteria.bbspec[:criteria.from_seg + 1])
     bbspec[-1][1] = bbspec[-1][1][0] + '_'
     gubinner = gu_xbin_indexer(hash_cart_resl, hash_ori_resl)
     numba_binner = numba_xbin_indexer(hash_cart_resl, hash_ori_resl)
@@ -238,8 +267,8 @@ def _make_hash_table(graph, rslt, gubinner):
 
 def _get_has_lossfunc_data(nfold):
     rots = np.stack((
-        hrot([0, 0, 1, 0], np.pi * 2. / nfold),
-        hrot([0, 0, 1, 0], -np.pi * 2. / nfold),
+        hg.hrot([0, 0, 1, 0], np.pi * 2. / nfold),
+        hg.hrot([0, 0, 1, 0], -np.pi * 2. / nfold),
     ))
     assert rots.shape == (2, 4, 4)
     irots = (0, 1) if nfold > 2 else (0, )
@@ -259,10 +288,11 @@ def _get_hash_val(gubinner, hash_table, pos, nfold):
 
 
 class HashCriteria:
-    def __init__(self, orig_criteria, binner, table):
+    def __init__(self, orig_criteria, binner, hash_table):
         self.orig_criteria = orig_criteria
         self.binner = binner
-        self.table = table
+        self.hash_table = hash_table
+        self.is_cyclic = False
 
     def jit_lossfunc(self):
         rots, irots = _get_has_lossfunc_data(self.orig_criteria.nfold)
@@ -302,16 +332,11 @@ class HashCriteria:
 
 
 def merge_results(
-        criteria,
-        graphA,
-        rsltA,
-        graph,
-        graphB,
-        rsltB,
-        binner,
-        hash_table,
-        err_cut=2.0
+        criteria, graph, graphA, rsltA, critB, graphB, rsltB, merged_err_cut,
+        **kw
 ):
+    binner = critB.binner
+    hash_table = critB.hash_table
     assert len(graphB.bbs[-1]) == len(graphA.bbs[0]) == len(
         graph.bbs[criteria.from_seg]
     ) == 1
@@ -385,8 +410,8 @@ def merge_results(
     # print(merged.err[:100])
     nbad = np.sum(1 - ok)
     if nbad: print('bad imerge', nbad, 'of', n)
-    print('bad score', np.sum(merged.err > 2.0), 'of', n)
-    ok[merged.err > 2.0] = False
+    print('bad score', np.sum(merged.err > merged_err_cut), 'of', n)
+    ok[merged.err > merged_err_cut] = False
     ok = np.where(ok)[0][np.argsort(merged.err[ok])]
     merged = subset_result(merged, ok)
     return merged, ok

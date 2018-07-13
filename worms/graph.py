@@ -60,6 +60,8 @@ def linear_graph(
         cache_sync=0.001,
         modbbs=None,
         make_edges=True,
+        singlebb=[],
+        which_single=0,
         **kw
 ):
 
@@ -76,6 +78,8 @@ def linear_graph(
         assert len(v) > 0, 'no bblocks for query: "' + k + '"'
     bbs = [bbmap[q] for q in queries]
     if modbbs: modbbs(bbs)
+    for i in singlebb:
+        bbs[i] = (bbs[i][which_single], )
 
     tdb = time() - tdb
     info(f'bblock creation time {tdb:7.3f}', 'num bbs:', [len(x) for x in bbs])
