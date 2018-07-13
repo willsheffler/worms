@@ -19,29 +19,37 @@ def _validate_bbs_verts(bbs, verts):
 
 
 class Graph:
-    def __init__(self, bbs, verts, edges):
+    def __init__(self, bbspec, bbs, verts, edges):
         _validate_bbs_verts(bbs, verts)
         assert isinstance(bbs[0][0], _BBlock)
         assert isinstance(verts[0], _Vertex)
-        assert isinstance(edges[0], _Edge)
+        assert len(edges) == 0 or isinstance(edges[0], _Edge)
+        assert len(bbspec) == len(bbs)
+        assert len(edges) == 0 or len(edges) + 1 == len(verts)
+        self.bbspec = bbspec
         self.bbs = tuple(bbs)
         self.verts = tuple(verts)
         self.edges = tuple(edges)
 
     def __getstate__(self):
-        return ([[x._state for x in bb] for bb in self.bbs],
-                [x._state for x in self.verts],
-                [x._state for x in self.edges])
+        return (
+            self.bbspec,
+            [[x._state for x in bb] for bb in self.bbs],
+            [x._state for x in self.verts],
+            [x._state for x in self.edges]
+        )
 
     def __setstate__(self, state):
-        self.bbs = tuple(tuple(_BBlock(*x) for x in bb) for bb in state[0])
-        self.verts = tuple(_Vertex(*x) for x in state[1])
-        self.edges = tuple(_Edge(*x) for x in state[2])
+        self.bbspec = state[0]
+        self.bbs = tuple(tuple(_BBlock(*x) for x in bb) for bb in state[1])
+        self.verts = tuple(_Vertex(*x) for x in state[2])
+        self.edges = tuple(_Edge(*x) for x in state[3])
+        _validate_bbs_verts(self.bbs, self.verts)
         assert len(self.bbs) == len(self.verts) == len(self.edges) + 1
 
 
-def linear_gragh(
-        bbty,
+def linear_graph(
+        bbspec,
         db,
         nbblocks=100,
         shuf=False,
@@ -56,7 +64,7 @@ def linear_gragh(
 ):
 
     bbdb, spdb = db
-    queries, directions = zip(*bbty)
+    queries, directions = zip(*bbspec)
     info('bblock queries', queries)
     info('directions', directions)
     tdb = time()
@@ -64,6 +72,8 @@ def linear_gragh(
         q: bbdb.query(q, max_bblocks=nbblocks, shuffle=shuf)
         for q in set(queries)
     }
+    for k, v in bbmap.items():
+        assert len(v) > 0, 'no bblocks for query: "' + k + '"'
     bbs = [bbmap[q] for q in queries]
     if modbbs: modbbs(bbs)
 
@@ -84,7 +94,7 @@ def linear_gragh(
         [v.len for v in verts]
     )
 
-    edges = None
+    edges = []
     if make_edges:
         tedge = time()
         edges = [
@@ -102,7 +112,7 @@ def linear_gragh(
         )
         spdb.sync_to_disk()
 
-    toret = Graph(bbs, verts, edges)
+    toret = Graph(bbspec, bbs, verts, edges)
     if timing:
         toret = toret, tdb, tvertex, tedge
     return toret
@@ -117,7 +127,7 @@ def print_edge_summary(edges):
     print()
 
 
-def graph_dump_pdb(out, graph, idx, pos, join=True):
+def graph_dump_pdb(out, graph, idx, pos, join='splice', trim=True):
     close = False
     if isinstance(out, str):
         out = open(out, 'w')
@@ -132,8 +142,8 @@ def graph_dump_pdb(out, graph, idx, pos, join=True):
         chain, anum, rnum = bblock_dump_pdb(
             out=out,
             bblock=bbs[vert.ibblock[ivert]],
-            dirn=vert.dirn,
-            splice=vert.ires[ivert],
+            dirn=vert.dirn if trim else (2, 2),
+            splice=vert.ires[ivert] if trim else (-1, -1),
             pos=x,
             chain=chain,
             anum=anum,

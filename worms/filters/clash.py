@@ -1,22 +1,31 @@
 import concurrent.futures as cf
 import numpy as np
 from multiprocessing import cpu_count
+from tqdm import tqdm
 
 from worms.util import jit, InProcessExecutor
 from worms.search.result import SearchResult
 
 
-def prune_clashing_results(
-        graph, crit, rslt, at_most=-1, thresh=4.0, parallel=False, **kw
+def prune_clashes(
+        graph,
+        crit,
+        rslt,
+        max_clash_check=-1,
+        ca_clash_dis=4.0,
+        parallel=False,
+        approx=0,
+        verbosity=0,
+        **kw
 ):
     print('todo: clash check should handle symmetry')
-    at_most = min(at_most, len(rslt.idx))
-    if at_most < 0: at_most = len(rslt.idx)
+    max_clash_check = min(max_clash_check, len(rslt.idx))
+    if max_clash_check < 0: max_clash_check = len(rslt.idx)
     verts = tuple(graph.verts)
     exe = cf.ProcessPoolExecutor if parallel else InProcessExecutor
     with exe() as pool:
         futures = list()
-        for i in range(at_most):
+        for i in range(max_clash_check):
             dirns = tuple([v.dirn for v in verts])
             iress = tuple([v.ires for v in verts])
             chains = tuple([
@@ -30,13 +39,27 @@ def prune_clashing_results(
             futures.append(
                 pool.submit(
                     _check_all_chain_clashes, dirns, iress, rslt.idx[i],
-                    rslt.pos[i], chains, ncacs, thresh * thresh
+                    rslt.pos[i], chains, ncacs, ca_clash_dis * ca_clash_dis,
+                    approx
                 )
             )
-        ok = np.array([f.result() for f in futures], dtype='?')
+            futures[-1].index = i
+
+        if verbosity > 1:
+            futures = tqdm(
+                cf.as_completed(futures),
+                'checking clashes',
+                total=len(futures),
+                smoothing=0.0  # does this do anything?
+            )
+
+        ok = np.empty(len(futures), dtype='?')
+        for f in futures:
+            ok[f.index] = f.result()
+
     return SearchResult(
-        rslt.pos[:at_most][ok], rslt.idx[:at_most][ok], rslt.err[:at_most][ok],
-        rslt.stats
+        rslt.pos[:max_clash_check][ok], rslt.idx[:max_clash_check][ok],
+        rslt.err[:max_clash_check][ok], rslt.stats
     )
 
 
@@ -66,14 +89,14 @@ def _chain_bounds(dirn, ires, chains, spliced_only=False, trim=8):
 
 
 @jit
-def _has_ca_clash(position, ncacs, i, ichntrm, j, jchntrm, thresh):
+def _has_ca_clash(position, ncacs, i, ichntrm, j, jchntrm, thresh, step=1):
     for ichain in range(len(ichntrm)):
         ilb, iub = ichntrm[ichain]
         for jchain in range(len(jchntrm)):
             jlb, jub = jchntrm[jchain]
-            for ir in range(ilb, iub):
+            for ir in range(ilb, iub, step):
                 ica = position[i] @ ncacs[i][ir, 1]
-                for jr in range(jlb, jub):
+                for jr in range(jlb, jub, step):
                     jca = position[j] @ ncacs[j][jr, 1]
                     d2 = np.sum((ica - jca)**2)
                     if d2 < thresh:
@@ -82,30 +105,36 @@ def _has_ca_clash(position, ncacs, i, ichntrm, j, jchntrm, thresh):
 
 
 @jit
-def _check_all_chain_clashes(dirns, iress, idx, pos, chn, ncacs, thresh):
+def _check_all_chain_clashes(
+        dirns, iress, idx, pos, chn, ncacs, thresh, approx
+):
 
-    # only adjacent verts, only spliced chains
-    for i in range(len(dirns) - 1):
-        ichntrm = _chain_bounds(dirns[i], iress[i][idx[i]], chn[i], 1, 8)
-        for j in range(i + 1, i + 2):
-            jchntrm = _chain_bounds(dirns[j], iress[j][idx[j]], chn[j], 1, 8)
-            if _has_ca_clash(pos, ncacs, i, ichntrm, j, jchntrm, thresh):
-                return False
+    for step in (3, 1):  # 20% speedup.... ug... need BVH...
 
-    # only adjacent verts, all chains
-    for i in range(len(dirns) - 1):
-        ichntrm = _chain_bounds(dirns[i], iress[i][idx[i]], chn[i], 0, 8)
-        for j in range(i + 1, i + 2):
-            jchntrm = _chain_bounds(dirns[j], iress[j][idx[j]], chn[j], 0, 8)
-            if _has_ca_clash(pos, ncacs, i, ichntrm, j, jchntrm, thresh):
-                return False
+        # only adjacent verts, only spliced chains
+        for i in range(len(dirns) - 1):
+            ichn = _chain_bounds(dirns[i], iress[i][idx[i]], chn[i], 1, 8)
+            for j in range(i + 1, i + 2):
+                jchn = _chain_bounds(dirns[j], iress[j][idx[j]], chn[j], 1, 8)
+                if _has_ca_clash(pos, ncacs, i, ichn, j, jchn, thresh, step):
+                    return False
+        if step == 1 and approx == 2: return True
 
-    # all verts, all chains
-    for i in range(len(dirns) - 1):
-        ichntrm = _chain_bounds(dirns[i], iress[i][idx[i]], chn[i], 0, 8)
-        for j in range(i + 1, len(dirns)):
-            jchntrm = _chain_bounds(dirns[j], iress[j][idx[j]], chn[j], 0, 8)
-            if _has_ca_clash(pos, ncacs, i, ichntrm, j, jchntrm, thresh):
-                return False
+        # only adjacent verts, all chains
+        for i in range(len(dirns) - 1):
+            ichn = _chain_bounds(dirns[i], iress[i][idx[i]], chn[i], 0, 8)
+            for j in range(i + 1, i + 2):
+                jchn = _chain_bounds(dirns[j], iress[j][idx[j]], chn[j], 0, 8)
+                if _has_ca_clash(pos, ncacs, i, ichn, j, jchn, thresh, step):
+                    return False
+        if step == 1 and approx == 1: return True
+
+        # all verts, all chains
+        for i in range(len(dirns) - 1):
+            ichn = _chain_bounds(dirns[i], iress[i][idx[i]], chn[i], 0, 8)
+            for j in range(i + 1, len(dirns)):
+                jchn = _chain_bounds(dirns[j], iress[j][idx[j]], chn[j], 0, 8)
+                if _has_ca_clash(pos, ncacs, i, ichn, j, jchn, thresh, step):
+                    return False
 
     return True

@@ -41,7 +41,7 @@ test_db_files = [dirname(__file__) + '/../data/' + f for f in test_db_files]
 
 @only_if_pyrosetta
 def test_database_simple(tmpdir, caplog):
-    pp = BBlockDB(bakerdb_files=test_db_files)
+    pp = BBlockDB(dbfiles=test_db_files)
     assert len(pp.query_names('C3_N')) == 213
     assert len(pp.query_names('Het_C3_C')) == 30
     assert len(pp.query_names('C2_N')) == 11
@@ -57,14 +57,14 @@ def test_database_simple(tmpdir, caplog):
 def test_construct_database_from_pdbs(tmpdir, datadir):
     pp = BBlockDB(
         cachedir=str(tmpdir),
-        bakerdb_files=[os.path.join(datadir, 'test_db_file.json')],
+        dbfiles=[os.path.join(datadir, 'test_db_file.json')],
         lazy=False,
-        read_new_pdbs=True)
+        read_new_pdbs=True
+    )
 
     # print([len(pp.pose(k)) for k in pp.query_names('all')])
-    assert [len(pp.pose(k)) for k in pp.query_names('all')] == [
-        13, 24, 27, 27, 27, 40, 35, 36, 13, 8, 7, 9
-    ]
+    assert [len(pp.pose(k)) for k in pp.query_names('all')
+            ] == [13, 24, 27, 27, 27, 40, 35, 36, 13, 8, 7, 9]
     keys = sorted(pp._bblock_cache.keys())
     assert np.all(pp.bblock(keys[0]).conn_resids(0) == [0])
     assert np.all(pp.bblock(keys[0]).conn_resids(1) == [12])
@@ -92,7 +92,8 @@ def test_construct_database_from_pdbs(tmpdir, datadir):
     assert np.all(pp.bblock(keys[7]).conn_resids(1) == [5])
     assert np.all(pp.bblock(keys[8]).conn_resids(0) == [0])
     assert np.all(
-        pp.bblock(keys[8]).conn_resids(1) == [6, 7, 8, 9, 10, 11, 12])
+        pp.bblock(keys[8]).conn_resids(1) == [6, 7, 8, 9, 10, 11, 12]
+    )
     assert np.all(pp.bblock(keys[9]).conn_resids(0) == [0])
     assert np.all(pp.bblock(keys[9]).conn_resids(1) == [7])
     assert np.all(pp.bblock(keys[10]).conn_resids(0) == [0])

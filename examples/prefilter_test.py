@@ -6,12 +6,12 @@ from time import clock, time
 import numpy as np
 import pytest
 
-from worms import linear_gragh, Cyclic, grow_linear, NullCriteria
+from worms import linear_graph, Cyclic, grow_linear, NullCriteria
 from worms.util import InProcessExecutor
 from worms.database import BBlockDB, SpliceDB
 from worms.graph_pose import make_pose_crit, make_pose
 from worms.graph import graph_dump_pdb
-from worms.filters.clash import prune_clashing_results
+from worms.filters.clash import prune_clashes
 from worms.search import lossfunc_rand_1_in
 
 logging.getLogger().setLevel(99)
@@ -55,11 +55,11 @@ def worm_grow_3(
     if clash_check < dump_pdb: clash_check = dump_pdb * 100
     ttot = time()
 
-    graph, tdb, tvertex, tedge = linear_gragh(
+    graph, tdb, tvertex, tedge = linear_graph(
         [
             ('C3_N', '_N'),
-            ('Het:NCy', 'CN'),
-            ('Het:CCC', 'C_'),
+            ('Het:NCy', 'C_'),
+            # ('Het:CCC', 'C_'),
             # ('Het:NN', 'NN'),
             # ('Het:CC', 'CC'),
             # ('Het:NNX', 'N_'),
@@ -118,20 +118,20 @@ def worm_grow_3(
 
     tclash = time()
     norig = len(rslt.idx)
-    rslt = prune_clashing_results(
-        graph, crit, rslt, at_most=clash_check, thresh=4.0, parallel=parallel
-    )
+    # rslt = prune_clashes(
+    # graph, crit, rslt, at_most=clash_check, thresh=4.0, parallel=parallel
+    # )
     print(
         'pruned clashes, %i of %i remain,' %
         (len(rslt.idx), min(clash_check, norig)), 'took',
         time() - tclash, 'seconds'
     )
 
-    for i, idx in enumerate(rslt.idx):
+    for i, idx in enumerate(rslt.idx[:10]):
         graph_dump_pdb(
             'graph_%i_nojoin.pdb' % i, graph, idx, rslt.pos[i], join=0
         )
-        graph_dump_pdb('graph_%i.pdb' % i, graph, idx, rslt.pos[i])
+        # graph_dump_pdb('graph_%i.pdb' % i, graph, idx, rslt.pos[i])
 
     return
 
@@ -181,7 +181,7 @@ def main():
     args = parser.parse_args()
 
     bbdb = BBlockDB(
-        bakerdb_files=[
+        dbfiles=[
             'worms/data/c6_database.json',
             'worms/data/HBRP_Cx_database.json',
             'worms/data/HFuse_Cx_database.20180219.json',

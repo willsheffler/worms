@@ -56,25 +56,35 @@ def BBlock(entry, pdbfile, filehash, pose, ss):
 def bblock_dump_pdb(
         out,
         bblock,
-        dirn,
-        splice,
-        join=True,
+        dirn=(2, 2),
+        splice=(-1, -1),
+        join='splice',
         pos=np.eye(4),
         chain=0,
         anum=1,
         rnum=1
 ):
+    close = False
+    if isinstance(out, str):
+        out = open(out, 'w')
+        close = True
+
     chains0 = _chain_bounds(dirn, splice, bblock.chains, trim=0)
-    sponly = _chain_bounds(dirn, splice, bblock.chains, trim=0, spliced_only=1)
-    # chains will have insplice at first ops, outsplice at last pos
-    # either could be none
-    chains = list()
-    chains.append(sponly[0] if dirn[0] < 2 else None)
-    for c in chains0:
-        if np.all(sponly[0] == c) or np.all(sponly[-1] == c):
-            continue
-        chains.append(c)
-    chains.append(sponly[-1] if dirn[1] < 2 else None)
+    if dirn[0] == 2 and dirn[1] == 2:
+        chains = chains0
+    else:
+        sponly = _chain_bounds(
+            dirn, splice, bblock.chains, trim=0, spliced_only=1
+        )
+        # chains will have insplice at first ops, outsplice at last pos
+        # either could be none
+        chains = list()
+        chains.append(sponly[0] if dirn[0] < 2 else None)
+        for c in chains0:
+            if np.all(sponly[0] == c) or np.all(sponly[-1] == c):
+                continue
+            chains.append(c)
+        chains.append(sponly[-1] if dirn[1] < 2 else None)
 
     aname = [' N  ', ' CA ', ' C  ']
     for ic, lbub in enumerate(chains):
@@ -102,6 +112,7 @@ def bblock_dump_pdb(
             continue
         chain += 1
     if join == 'bb': chain += 1
+    if close: out.close()
     return chain, anum, rnum
 
 

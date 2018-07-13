@@ -41,12 +41,12 @@ def Edge(u, ublks, v, vblks, verbosity=0, **kw):
 def splice_metrics_pair(
         blk0,
         blk1,
-        max_splice_rms=0.7,
-        clashd2=3.0**2,
-        contactd2=10.0**2,
-        rms_range=9,
-        clash_contact_range=9,
-        skip_on_fail=True,
+        max_splice_rms,
+        clashd2,
+        contactd2,
+        rms_range,
+        clash_contact_range,
+        skip_on_fail,
 ):
     return _jit_splice_metrics(
         blk0.chains, blk1.chains, blk0.ncac, blk1.ncac, blk0.stubs, blk1.stubs,
@@ -62,11 +62,11 @@ def get_allowed_splices(
         vblks,
         splicedb=None,
         max_splice_rms=0.7,
-        ncontact_cut=10,
-        clashd2=3.0**2,
-        contactd2=10.0**2,
-        rms_range=5,
-        clash_contact_range=9,
+        ncontact_cut=30,
+        clashd2=4.0**2, # ca only
+        contactd2=8.0**2,
+        rms_range=6,
+        clash_contact_range=60,
         skip_on_fail=True,
         parallel=False,
         verbosity=1,
@@ -273,11 +273,11 @@ def _jit_splice_metrics(chains0, chains1,
                         ncac0_3d, ncac1_3d,
                         stubs0, stubs1,
                         conn0, conn1,
-                        clashd2=3.0**2,
-                        contactd2=10.0**2,
-                        rms_range=9,
-                        clash_contact_range=9,
-                        max_splice_rms=1.1,
+                        clashd2,
+                        contactd2,
+                        rms_range,
+                        clash_contact_range,
+                        max_splice_rms,
                         skip_on_fail=True):  # yapf: disable
 
     aln0s = _ires_from_conn(conn0, 1)
@@ -317,9 +317,11 @@ def _jit_splice_metrics(chains0, chains1,
                 continue
 
             nclash, ncontact = 0, 0
-            for j in range(3, 3 * clash_contact_range + 3):
+            for j in range(4, 3 * clash_contact_range + 3, 3):
+                if 3 * aln1 + j >= len(ncac1): continue
                 b[:] = xaln @ ncac1[3 * aln1 + j]
-                for i in range(-1, -3 * clash_contact_range - 1, -1):
+                for i in range(-2, -3 * clash_contact_range - 1, -3):
+                    if 3 * aln0 + i < 0: continue
                     a = ncac0[3 * aln0 + i]
                     d2 = np.sum((a - b)**2)
                     if d2 < clashd2:

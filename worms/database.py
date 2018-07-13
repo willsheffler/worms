@@ -37,8 +37,8 @@ def flatten_path(pdbfile):
 class SpliceDB:
     """Stores valid NC splices for bblock pairs"""
 
-    def __init__(self, cachedir=None):
-        if cachedir is None:
+    def __init__(self, cachedir=None, **kw):
+        if not cachedir:
             if 'HOME' in os.environ:
                 cachedir = os.environ['HOME'] + os.sep + '.worms/cache'
             else:
@@ -93,24 +93,25 @@ class BBlockDB:
     def __init__(
             self,
             cachedir=None,
-            bakerdb_files=[],
+            dbfiles=[],
             load_poses=False,
             nprocs=1,
             lazy=True,
             read_new_pdbs=False,
             verbosity=0,
+            **kw
     ):
         """TODO: Summary
 
         Args:
             cachedir (None, optional): Description
-            bakerdb_files (list, optional): Description
+            dbfiles (list, optional): Description
             load_poses (bool, optional): Description
             nprocs (int, optional): Description
             lazy (bool, optional): Description
             read_new_pdbs (bool, optional): Description
         """
-        if cachedir is None:
+        if not cachedir:
             if 'HOME' in os.environ:
                 cachedir = os.environ['HOME'] + os.sep + '.worms/cache'
             else:
@@ -126,7 +127,7 @@ class BBlockDB:
         self.verbosity = verbosity
         self._alldb = []
         self._holding_lock = False
-        for dbfile in bakerdb_files:
+        for dbfile in dbfiles:
             with open(dbfile) as f:
                 self._alldb.extend(json.load(f))
         for entry in self._alldb:

@@ -6,7 +6,6 @@ __author__ = """Will Sheffler"""
 __email__ = 'willsheffler@gmail.com'
 __version__ = '0.1.26'
 
-from .segments import *
 from .search import *
 from .criteria import *
 from . import data
@@ -18,3 +17,4 @@ from .vertex import *
 from .edge import *
 from .database import *
 from .graph import *
+from .segments import *

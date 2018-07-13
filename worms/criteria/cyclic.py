@@ -1,6 +1,6 @@
 from .base import *
 from worms.util import jit
-from worms.math import numba_axis_angle_single
+from homog import numba_axis_angle
 
 
 class Cyclic(WormCriteria):
@@ -123,7 +123,7 @@ class Cyclic(WormCriteria):
             xhat = x_to @ np.linalg.inv(x_from)
             if np.sum(xhat[:3, 3]**2) < min_sep2:
                 return 9e9
-            axis, angle = numba_axis_angle_single(xhat)
+            axis, angle = numba_axis_angle(xhat)
             rot_err_sq = lever**2 * (angle - tgt_ang)**2
             cart_err_sq = (np.sum(xhat[:, 3] * axis))**2
             return np.sqrt(rot_err_sq + cart_err_sq)

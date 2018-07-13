@@ -26,8 +26,15 @@ def test_get_allowed_splices_fullsize_prots(bbdb_fullsize_prots):
         341, 342, 343, 344, 345, 346, 347, 348
     ]
 
-    rms, nclash, ncontact = splice_metrics_pair(
-        bbc, bbn, skip_on_fail=False, rms_range=9
+    rms, nclash, ncontact, nskip = splice_metrics_pair(
+        bbc,
+        bbn,
+        skip_on_fail=False,
+        rms_range=9,
+        max_splice_rms=0.7,
+        clashd2=3.0**2,
+        contactd2=10.0**2,
+        clash_contact_range=9,
     )
     print(rms.shape)
 
@@ -56,7 +63,8 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots, spdb):
         splicedb=spdb,
         max_splice_rms=1.1,
         rms_range=9,
-        ncontact_cut=10
+        ncontact_cut=10,
+        clash_contact_range=9
     )
     assert np.all(e.allowed_entries(3) == [28])
     assert np.all(e.allowed_entries(4) == [29])
@@ -80,7 +88,8 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots, spdb):
         splicedb=spdb,
         max_splice_rms=1.1,
         rms_range=9,
-        ncontact_cut=10
+        ncontact_cut=10,
+        clash_contact_range=9,
     )
     assert np.all(e.allowed_entries(3) == [28])
     assert np.all(e.allowed_entries(4) == [29])
@@ -104,7 +113,8 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots, spdb):
         splicedb=spdb,
         max_splice_rms=1.1,
         rms_range=9,
-        ncontact_cut=10
+        ncontact_cut=10,
+        clash_contact_range=9,
     )
     assert np.all(e.allowed_entries(16) == [22])
     assert np.all(e.allowed_entries(17) == [21, 23])
@@ -123,7 +133,8 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots, spdb):
         splicedb=spdb,
         max_splice_rms=1.1,
         rms_range=9,
-        ncontact_cut=10
+        ncontact_cut=10,
+        clash_contact_range=9,
     )
     assert np.all(e.allowed_entries(0) == [17, 18, 19])
     assert np.all(e.allowed_entries(1) == [17, 18, 19])
@@ -155,7 +166,8 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots, spdb):
         splicedb=spdb,
         max_splice_rms=1.1,
         rms_range=9,
-        ncontact_cut=10
+        ncontact_cut=10,
+        clash_contact_range=9,
     )
     assert np.all(e.allowed_entries(0) == [17, 18, 19])
     assert np.all(e.allowed_entries(1) == [17, 18, 19])
@@ -187,7 +199,8 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots, spdb):
         splicedb=spdb,
         max_splice_rms=1.1,
         rms_range=9,
-        ncontact_cut=10
+        ncontact_cut=10,
+        clash_contact_range=9,
     )
     assert np.all(e.allowed_entries(0) == [17])
     assert np.all(e.allowed_entries(1) == [16, 18, 19])
@@ -209,7 +222,7 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots, spdb):
     # #
     # u = Vertex(bbs, 'NN')
     # v = Vertex(bbs, 'C_')
-    # e = Edge(u, bbs, v, bbs, splicedb=spdb, max_splice_rms=1.1, rms_range=9, ncontact_cut=10)
+    # e = Edge(u, bbs, v, bbs, splicedb=spdb, max_splice_rms=1.1, rms_range=9, ncontact_cut=10, clash_contact_range=9,)
     # empty = []
     # for i in range(e.len):
     #     ent = list(e.allowed_entries(i))

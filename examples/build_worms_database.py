@@ -9,9 +9,7 @@ if __name__ == '__main__':
     info('sent to info')
 
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--dbfiles', type=str, nargs='+', dest='database_files'
-    )
+    parser.add_argument('--dbfiles', type=str, nargs='+', dest='dbfiles')
     parser.add_argument('--nprocs', type=int, dest='nprocs', default=1)
     parser.add_argument(
         '--read_new_pdbs', type=bool, dest='read_new_pdbs', default=False
@@ -21,7 +19,7 @@ if __name__ == '__main__':
 
     try:
         pp = BBlockDB(
-            bakerdb_files=args.database_files,
+            dbfiles=args.dbfiles,
             nprocs=args.nprocs,
             read_new_pdbs=args.read_new_pdbs,
             lazy=False,

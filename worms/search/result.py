@@ -37,3 +37,12 @@ def remove_duplicate_results(results):
     return SearchResult(
         results.pos[isel], results.idx[isel], results.err[isel], results.stats
     )
+
+
+def subset_result(results, ok):
+    return SearchResult(
+        idx=results.idx[ok],
+        pos=results.pos[ok],
+        err=results.err[ok],
+        stats=results.stats
+    )

@@ -240,8 +240,7 @@ def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0):
     inout = np.stack([
         util.unique_key_int32s(ibblock, ires[:, 0]),
         util.unique_key_int32s(ibblock, ires[:, 1])
-    ],
-                     axis=-1).astype('i4')
+    ], axis=-1).astype('i4') # yapf: disable
 
     # inout2 = np.stack([
     #     util.unique_key(ibblock, ires[:, 0]),

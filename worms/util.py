@@ -5,13 +5,14 @@ import re
 import functools as ft
 import itertools as it
 import operator
+import multiprocessing
+import threading
+
 from hashlib import sha1
 import numpy as np
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from concurrent.futures import as_completed as cf_as_completed
-import multiprocessing
-import threading
 from homog import hrot
 import pandas as pd
 import numba as nb
@@ -36,89 +37,35 @@ def expand_array_if_needed(ary, i):
 
 
 class InProcessExecutor:
-    """TODO: Summary
-    """
-
     def __init__(self, *args, **kw):
-        """TODO: Summary
-
-        Args:
-            *args: Description
-            kw: passthru args        """
         pass
 
     def __enter__(self):
-        """TODO: Summary
-
-        Returns:
-            TYPE: Description
-        """
         return self
 
     def __exit__(self, *args):
-        """TODO: Summary
-
-        Args:
-            *args: Description
-        """
         pass
 
     def submit(self, fn, *args, **kw):
-        """TODO: Summary
-
-        Args:
-            fn (TYPE): Description
-            args: Description
-            kw: passthru args
-        Returns:
-            TYPE: Description
-        """
         return NonFuture(fn(*args, **kw))
 
     def map(self, func, *iterables):
-        """TODO: Summary
-
-        Args:
-            func (TYPE): Description
-            iterables: Description
-
-        Returns:
-            TYPE: Description
-        """
         return map(func, *iterables)
         # return (NonFuture(func(*args) for args in zip(iterables)))
 
 
 class NonFuture:
-    """TODO: Summary
-    """
-
     def __init__(self, result):
-        """TODO: Summary
-
-        Args:
-            result (TYPE): Description
-        """
         self._result = result
         self._condition = threading.Condition()
         self._state = 'FINISHED'
         self._waiters = []
 
     def result(self):
-        """TODO: Summary
-
-        Returns:
-            TYPE: Description
-        """
         return self._result
 
 
 def cpu_count():
-    """TODO: Summary
-
-    Returns:
-        TYPE: Description
-    """
     try:
         return int(os.environ['SLURM_CPUS_ON_NODE'])
     except:
@@ -128,18 +75,6 @@ def cpu_count():
 def parallel_batch_map(
         pool, function, accumulator, batch_size, map_func_args, **kw
 ):
-    """TODO: Summary
-
-    Args:
-        pool (TYPE): Description
-        function (TYPE): Description
-        accumulator (TYPE): Description
-        batch_size (TYPE): Description
-        map_func_args (TYPE): Description
-        kw: passthru args
-    Yields:
-        TYPE: Description
-    """
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ['MKL_NUM_THREADS'] = '1'
     os.environ['NUMEXPR_NUM_THREADS'] = '1'
@@ -165,18 +100,6 @@ def parallel_batch_map(
 def parallel_nobatch_map(
         pool, function, accumulator, batch_size, map_func_args, **kw
 ):
-    """TODO: Summary
-
-    Args:
-        pool (TYPE): Description
-        function (TYPE): Description
-        accumulator (TYPE): Description
-        batch_size (TYPE): Description
-        map_func_args (TYPE): Description
-        kw: passthru args
-    Yields:
-        TYPE: Description
-    """
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ['MKL_NUM_THREADS'] = '1'
     os.environ['NUMEXPR_NUM_THREADS'] = '1'
@@ -195,15 +118,6 @@ def parallel_nobatch_map(
 def tqdm_parallel_map(
         pool, function, accumulator, map_func_args, batch_size, **kw
 ):
-    """TODO: Summary
-
-    Args:
-        pool (TYPE): Description
-        function (TYPE): Description
-        accumulator (TYPE): Description
-        map_func_args (TYPE): Description
-        batch_size (TYPE): Description
-        kw: passthru args    """
     for _ in tqdm(parallel_batch_map(pool, function, accumulator, batch_size,
                                      map_func_args=map_func_args, **kw),
                   total=len(map_func_args[0]), **kw):
@@ -229,14 +143,6 @@ def numpy_stub_from_rosetta_stub(rosstub):
 
 
 def rosetta_stub_from_numpy_stub(npstub):
-    """TODO: Summary
-
-    Args:
-        npstub (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
     rosstub = ros.core.kinematics.Stub()
     rosstub.M.xx = npstub[0, 0]
     rosstub.M.xy = npstub[0, 1]
@@ -254,18 +160,6 @@ def rosetta_stub_from_numpy_stub(npstub):
 
 
 def get_bb_stubs(pose, which_resi=None):
-    """extract rif style stubs from rosetta pose
-
-    Args:
-        pose (TYPE): Description
-        which_resi (None, optional): Description
-
-    Returns:
-        TYPE: Description
-
-    Raises:
-        ValueError: Description
-    """
     if which_resi is None:
         which_resi = list(range(1, pose.size() + 1))
     npstubs, n_ca_c = [], []
@@ -287,18 +181,6 @@ def get_bb_stubs(pose, which_resi=None):
 
 
 def get_bb_coords(pose, which_resi=None):
-    """extract rif style stubs from rosetta pose
-
-    Args:
-        pose (TYPE): Description
-        which_resi (None, optional): Description
-
-    Returns:
-        TYPE: Description
-
-    Raises:
-        ValueError: Description
-    """
     if which_resi is None:
         which_resi = list(range(1, pose.size() + 1))
     n_ca_c = []
@@ -320,14 +202,6 @@ def get_bb_coords(pose, which_resi=None):
 
 
 def get_chain_bounds(pose):
-    """TODO: Summary
-
-    Args:
-        pose (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
     ch = np.array([pose.chain(i + 1) for i in range(len(pose))])
     chains = list()
     for i in range(ch[-1]):
@@ -338,19 +212,6 @@ def get_chain_bounds(pose):
 
 
 def pose_bounds(pose, lb, ub):
-    """TODO: Summary
-
-    Args:
-        pose (TYPE): Description
-        lb (TYPE): Description
-        ub (TYPE): Description
-
-    Returns:
-        TYPE: Description
-
-    Raises:
-        ValueError: Description
-    """
     if ub < 0: ub = len(pose) + 1 + ub
     if lb < 1 or ub > len(pose):
         raise ValueError(
@@ -361,16 +222,6 @@ def pose_bounds(pose, lb, ub):
 
 
 def subpose(pose, lb, ub=-1):
-    """TODO: Summary
-
-    Args:
-        pose (TYPE): Description
-        lb (TYPE): Description
-        ub (TYPE, optional): Description
-
-    Returns:
-        TYPE: Description
-    """
     lb, ub = pose_bounds(pose, lb, ub)
     p = ros.core.pose.Pose()
     ros.core.pose.append_subpose_to_pose(p, pose, lb, ub)
@@ -378,28 +229,12 @@ def subpose(pose, lb, ub=-1):
 
 
 def xform_pose(xform, pose, lb=1, ub=-1):
-    """TODO: Summary
-
-    Args:
-        xform (TYPE): Description
-        pose (TYPE): Description
-        lb (int, optional): Description
-        ub (TYPE, optional): Description
-    """
     lb, ub = pose_bounds(pose, lb, ub)
     xform = rosetta_stub_from_numpy_stub(xform.reshape(4, 4))
     ros.protocols.sic_dock.xform_pose(pose, xform, lb, ub)
 
 
 def worst_CN_connect(p):
-    """TODO: Summary
-
-    Args:
-        p (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
     for ir in range(1, len(p)):
         worst = 0
         if (p.residue(ir).is_protein() and p.residue(ir + 1).is_protein()
@@ -411,14 +246,6 @@ def worst_CN_connect(p):
 
 
 def no_overlapping_adjacent_residues(p):
-    """TODO: Summary
-
-    Args:
-        p (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
     for ir in range(1, len(p)):
         if (p.residue(ir).is_protein() and p.residue(ir + 1).is_protein()):
             dist = p.residue(ir).xyz('CA').distance(
@@ -429,14 +256,6 @@ def no_overlapping_adjacent_residues(p):
 
 
 def no_overlapping_residues(p):
-    """TODO: Summary
-
-    Args:
-        p (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
     for ir in range(1, len(p) + 1):
         if not p.residue(ir).is_protein():
             continue
@@ -478,42 +297,18 @@ def trim_pose(pose, resid, direction, pad=0):
 
 
 def symfile_path(name):
-    """TODO: Summary
-
-    Args:
-        name (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
     path, _ = os.path.split(__file__)
     return os.path.join(path, 'rosetta_symdef', name + '.sym')
 
 
 @ft.lru_cache()
 def get_symfile_contents(name):
-    """TODO: Summary
-
-    Args:
-        name (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
     with open(symfile_path(name)) as f:
         return f.read()
 
 
 @ft.lru_cache()
 def get_symdata(name):
-    """TODO: Summary
-
-    Args:
-        name (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
     if name is None: return None
     ss = ros.std.stringstream(get_symfile_contents(name))
     d = ros.core.conformation.symmetry.SymmData()
@@ -524,16 +319,6 @@ def get_symdata(name):
 def get_symdata_modified(
         name, string_substitutions=None, scale_positions=None
 ):
-    """TODO: Summary
-
-    Args:
-        name (TYPE): Description
-        string_substitutions (None, optional): Description
-        scale_positions (None, optional): Description
-
-    Returns:
-        TYPE: Description
-    """
     if name is None: return None
     symfilestr = get_symfile_contents(name)
     if scale_positions is not None:
@@ -554,38 +339,14 @@ def get_symdata_modified(
 
 
 def infer_cyclic_symmetry(pose):
-    """TODO: Summary
-
-    Args:
-        pose (TYPE): Description
-
-    Raises:
-        NotImplementedError: Description
-    """
     raise NotImplementedError
 
 
 def bigprod(iterable):
-    """TODO: Summary
-
-    Args:
-        iterable (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
     return ft.reduce(operator.mul, iterable, 1)
 
 
 class MultiRange:
-    """TODO: Summary
-
-    Attributes:
-        len (TYPE): Description
-        nside (TYPE): Description
-        psum (TYPE): Description
-    """
-
     def __init__(self, nside):
         """TODO: Summary
 
@@ -601,16 +362,7 @@ class MultiRange:
         self.len = bigprod(self.nside)
 
     def __getitem__(self, idx):
-        """TODO: Summary
-
-        Args:
-            idx (TYPE): Description
-
-        Returns:
-            TYPE: Description
-
-        Raises:
-            StopIteration: Description
+        """
         """
         if isinstance(idx, slice):
             return (self[i] for i in range(self.len)[idx])
@@ -619,23 +371,12 @@ class MultiRange:
         return tuple((idx // self.psum) % self.nside)
 
     def __len__(self):
-        """TODO: Summary
-
-        Returns:
-            TYPE: Description
+        """
         """
         return self.len
 
 
 def first_duplicate(segs):
-    """TODO: Summary
-
-    Args:
-        segs (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
     for i in range(len(segs) - 1, 0, -1):
         for j in range(i):
             if segs[i].spliceables == segs[j].spliceables:
@@ -644,14 +385,6 @@ def first_duplicate(segs):
 
 
 def dicts_to_items(inp):
-    """TODO: Summary
-
-    Args:
-        inp (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
     if isinstance(inp, list):
         return [dicts_to_items(x) for x in inp]
     elif isinstance(inp, dict):

@@ -22,7 +22,7 @@ except ImportError:
 def bbdb(datadir):
     return BBlockDB(
         cachedir=str('.worms_pytest_cache'),
-        bakerdb_files=[os.path.join(datadir, 'test_db_file.json')],
+        dbfiles=[os.path.join(datadir, 'test_db_file.json')],
         lazy=False,
         read_new_pdbs=HAVE_PYROSETTA,
     )
@@ -37,7 +37,7 @@ def spdb(datadir):
 def bbdb_fullsize_prots(datadir):
     return BBlockDB(
         cachedir=str('.worms_pytest_cache'),
-        bakerdb_files=[os.path.join(datadir, 'test_fullsize_prots.json')],
+        dbfiles=[os.path.join(datadir, 'test_fullsize_prots.json')],
         lazy=False,
         read_new_pdbs=HAVE_PYROSETTA,
     )
