@@ -288,7 +288,7 @@ class BBlockDB:
 
     def load_cached_bblock_into_memory(self, pdbkey):
         assert not isinstance(pdbkey, (str, bytes))
-        if not isinstance(pdbkey, int):
+        if not isinstance(pdbkey, (int, str)):
             success = True
             for f in pdbkey:
                 success &= self.load_cached_bblock_into_memory(f)
@@ -357,7 +357,7 @@ class BBlockDB:
             ss = Dssp(pose).get_dssp_secstruct()
             bblock = BBlock(entry, pdbfile, pdbkey, pose, ss)
             self._bblock_cache[pdbfile] = bblock
-
+            # print(cachefile)
             with open(cachefile, 'wb') as f:
                 pickle.dump(bblock._state, f)
             if not os.path.exists(posefile):

@@ -43,7 +43,7 @@ def main():
         monte_carlo=0.0,
         cart_resl=1.0,
         ori_resl=5.0,
-        max_splice_rms=0.7,
+        splice_max_rms=0.7,
         min_radius=0.0,
         i_merge_bblock=0,
         dbfiles=['must_specify_dbfile.json'],

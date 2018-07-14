@@ -1,6 +1,8 @@
 from .base import *
 from worms.util import jit
+from worms.criteria import make_hash_table
 from homog import numba_axis_angle
+from copy import deepcopy
 
 
 class Cyclic(WormCriteria):
@@ -129,3 +131,26 @@ class Cyclic(WormCriteria):
             return np.sqrt(rot_err_sq + cart_err_sq)
 
         return func
+
+    def stages(self, hash_cart_resl, hash_ori_resl, **kw):
+        if criteria.origin_seg is None:
+            return [self]
+
+        assert self.origin_seg == 0
+        bbspec = deepcopy(self.bbspec[self.from_seg:])
+        bbspec[0][1] = '_' + bbspec[0][1][1]
+        critA = Cyclic(self.nfold, min_radius=min_radius)
+        critA.bbspec = bbspec
+
+        def stage2(prev_results):
+            graphA, rsltA = prev_results[-1]
+            bbspec = deepcopy(self.bbspec[:self.from_seg + 1])
+            bbspec[-1][1] = bbspec[-1][1][0] + '_'
+            gubinner = gu_xbin_indexer(hash_cart_resl, hash_ori_resl)
+            numba_binner = numba_xbin_indexer(hash_cart_resl, hash_ori_resl)
+            keys, hash_table = make_hash_table(graphA, rsltA, gubinner)
+            critB = HashCriteria(self, numba_binner, hash_table)
+            critB.bbspec = bbspec
+            return critB
+
+        return [critA, stage2]

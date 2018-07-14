@@ -19,10 +19,13 @@ def prune_clashes(
         **kw
 ):
     print('todo: clash check should handle symmetry')
+    if max_clash_check == 0:
+        return rslt
     max_clash_check = min(max_clash_check, len(rslt.idx))
     if max_clash_check < 0: max_clash_check = len(rslt.idx)
     verts = tuple(graph.verts)
-    exe = cf.ProcessPoolExecutor if parallel else InProcessExecutor
+    # exe = cf.ProcessPoolExecutor if parallel else InProcessExecutor
+    exe = InProcessExecutor
     with exe() as pool:
         futures = list()
         for i in range(max_clash_check):
@@ -38,9 +41,15 @@ def prune_clashes(
             ])
             futures.append(
                 pool.submit(
-                    _check_all_chain_clashes, dirns, iress, rslt.idx[i],
-                    rslt.pos[i], chains, ncacs, ca_clash_dis * ca_clash_dis,
-                    approx
+                    _check_all_chain_clashes,
+                    dirns=dirns,
+                    iress=iress,
+                    idx=rslt.idx[i],
+                    pos=rslt.pos[i],
+                    chn=chains,
+                    ncacs=ncacs,
+                    thresh=ca_clash_dis * ca_clash_dis,
+                    approx=approx
                 )
             )
             futures[-1].index = i

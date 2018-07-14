@@ -47,22 +47,27 @@ class InProcessExecutor:
         pass
 
     def submit(self, fn, *args, **kw):
-        return NonFuture(fn(*args, **kw))
+        return NonFuture(fn, *args, **kw)
 
-    def map(self, func, *iterables):
-        return map(func, *iterables)
-        # return (NonFuture(func(*args) for args in zip(iterables)))
+    # def map(self, func, *iterables):
+    # return map(func, *iterables)
+    # return (NonFuture(func(*args) for args in zip(iterables)))
 
 
 class NonFuture:
-    def __init__(self, result):
-        self._result = result
+    def __init__(self, fn, *args, dummy=None, **kw):
+        self.fn = fn
+        self.dummy = not callable(fn) if dummy is None else dummy
+        self.args = args
+        self.kw = kw
         self._condition = threading.Condition()
         self._state = 'FINISHED'
         self._waiters = []
 
     def result(self):
-        return self._result
+        if self.dummy:
+            return self.fn
+        return self.fn(*self.args, **self.kw)
 
 
 def cpu_count():

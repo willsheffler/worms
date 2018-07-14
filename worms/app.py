@@ -30,19 +30,31 @@ def parse_args(argv):
         nbblocks=64,
         monte_carlo=0.0,
         parallel=1,
-        cachedir='',
-        run_cache='',
         verbosity=2,
+        #
+        cachedir='',
+        dbfiles=[''],
+        load_poses=False,
+        read_new_pdbs=False,
+        run_cache='',
+
         #
         cache_sync=0.003,
         hash_cart_resl=1.0,
         hash_ori_resl=5.0,
         #
-        max_splice_rms=0.7,
+        # splice stuff
+        splice_max_rms=0.7,
+        splice_ncontact_cut=30,
+        splice_clash_d2=4.0**2,  # ca only
+        splice_contact_d2=8.0**2,
+        splice_rms_range=6,
+        splice_clash_contact_range=60,
         #
         min_radius=0.0,
-        i_merge_bblock=0,
+        merge_bblock=0,
         merged_err_cut=2.0,
+        max_merge=10000,
         #
         max_clash_check=10000,
         ca_clash_dis=4.0,
@@ -52,7 +64,7 @@ def parse_args(argv):
         output_symmetric=False,
         output_prefix='./worms',
         output_centroid=False,
-        dbfiles=['']
+
     )
     crit = eval(''.join(args.geometry))
     bb = args.bbconn[1::2]
@@ -114,16 +126,16 @@ def search_one_stage(db, criteria, singlebb=[], lbl='', **kw):
         bbspec=criteria.bbspec,
         db=db,
         singlebb=singlebb,
-        which_single=kw['i_merge_bblock'],
+        which_single=kw['merge_bblock'],
         **kw
     )
-    print('calling grow_linear')
     result = grow_linear(
         graph=graph,
         loss_function=criteria.jit_lossfunc(),
         last_bb_same_as=criteria.from_seg if criteria.is_cyclic else -1,
         **kw
     )
+    print('grow_linear done, nresluts', len(result.idx))
     if kw['run_cache']:
         with (open(kw['run_cache'] + lbl + '.pickle', 'wb')) as out:
             _pickle.dump((graph, result), out)
@@ -131,11 +143,32 @@ def search_one_stage(db, criteria, singlebb=[], lbl='', **kw):
 
 
 def output_results(
-        db, criteria, graph, result, output_pose, output_symmetric,
-        output_centroid, output_prefix, max_output, **kw
+        db, criteria, graph, result, output_pose, merge_bblock,
+        output_symmetric, output_centroid, output_prefix, max_output, **kw
 ):
     for i in range(min(max_output, len(result.idx))):
-        fname = output_prefix + '_%03i.pdb' % i
+
+        #
+
+        tmp, seenit = list(), set()
+        for j in range(len(graph.verts)):
+            v = graph.verts[j]
+            ibb = v.ibblock[result.idx[i, j]]
+            bb = graph.bbs[j][ibb]
+            fname = str(bytes(bb.file), 'utf-8')
+            if fname not in seenit:
+                for e in db[0]._alldb:
+                    if e['file'] == fname:
+                        tmp.append(e)
+            seenit.add(fname)
+        import json
+        with open('tmp_%i.json' % i, 'w') as out:
+            json.dump(tmp, out)
+
+        #
+
+        if merge_bblock is not None: mbb = f'_mbb{merge_bblock:03d}'
+        fname = output_prefix + mbb + '_%03i.pdb' % i
         if output_pose:
             pose = make_pose_crit(
                 db[0],
@@ -150,6 +183,7 @@ def output_results(
             if output_symmetric:
                 symdata = get_symdata(criteria.symname)
                 ros.core.pose.symmetry.make_symmetric_pose(pose, symdata)
+            print('output pdb', fname)
             pose.dump_pdb(fname)
         else:
             if output_symmetric:
@@ -178,7 +212,7 @@ def search_two_stage(db, criteria, **kw):
         bbspec=criteria.bbspec,
         db=db,
         singlebb=[criteria.from_seg, -1],
-        which_single=kw['i_merge_bblock'],
+        which_single=kw['merge_bblock'],
         **kw
     )
 
@@ -284,7 +318,8 @@ def _get_hash_val(gubinner, hash_table, pos, nfold):
         val = hash_table.get(key)
         if val != -9223372036854775808:
             return val
-    assert 0, 'pos not found in table!'
+    # assert 0, 'pos not found in table!'
+    return -1
 
 
 class HashCriteria:
@@ -297,7 +332,7 @@ class HashCriteria:
     def jit_lossfunc(self):
         rots, irots = _get_has_lossfunc_data(self.orig_criteria.nfold)
         binner = self.binner
-        hash_vp = self.table.hash
+        hash_vp = self.hash_table.hash
 
         @jit
         def func(pos, idx, verts):
@@ -333,8 +368,13 @@ class HashCriteria:
 
 def merge_results(
         criteria, graph, graphA, rsltA, critB, graphB, rsltB, merged_err_cut,
-        **kw
+        max_merge, **kw
 ):
+    rsltB = subset_result(rsltB, slice(max_merge))
+    print(
+        'merge_results num rsltA:', len(rsltA.idx), 'num rsltB:',
+        len(rsltB.idx)
+    )
     binner = critB.binner
     hash_table = critB.hash_table
     assert len(graphB.bbs[-1]) == len(graphA.bbs[0]) == len(
@@ -344,18 +384,18 @@ def merge_results(
     assert graphB.bbs[-1][0].filehash == graph.bbs[criteria.from_seg
                                                    ][0].filehash
     for i in range(criteria.from_seg):
-        [bb.filehash
-         for bb in graph.bbs[i]] == [bb.filehash for bb in graphB.bbs[i]]
+        f = [bb.filehash for bb in graph.bbs[i]]
+        assert f == [bb.filehash for bb in graphB.bbs[i]]
     for i in range(len(graph.verts) - criteria.from_seg):
-        [bb.filehash for bb in graph.bbs[criteria.from_seg + i]
-         ] == [bb.filehash for bb in graphA.bbs[i]]
+        f = [bb.filehash for bb in graph.bbs[criteria.from_seg + i]]
+        assert f == [bb.filehash for bb in graphA.bbs[i]]
 
     n = len(rsltB.idx)
     nv = len(graph.verts)
     merged = SearchResult(
         pos=np.empty((n, nv, 4, 4), dtype='f8'),
         idx=np.empty((n, nv), dtype='i4'),
-        err=np.empty((n, ), dtype='f8'),
+        err=9e9 * np.ones((n, ), dtype='f8'),
         stats=np.empty(n, dtype='i4')
     )
     ok = np.ones(n, dtype=np.bool)
@@ -363,8 +403,22 @@ def merge_results(
         val = _get_hash_val(
             binner, hash_table, rsltB.pos[i_in_rslt, -1], criteria.nfold
         )
+        if val < 0:
+            ok[i_in_rslt] = False
+            continue
         i_ot_rslt = np.right_shift(val, 32)
         assert i_ot_rslt < len(rsltA.idx)
+
+        # check score asap
+        pos = np.concatenate((
+            rsltB.pos[i_in_rslt, :-1],
+            rsltB.pos[i_in_rslt, -1] @ rsltA.pos[i_ot_rslt, :]
+        ))
+        assert np.allclose(pos[criteria.from_seg], rsltB.pos[i_in_rslt, -1])
+        err = criteria.score(pos.reshape(-1, 1, 4, 4))
+        merged.err[i_in_rslt] = err
+        if err > merged_err_cut: continue
+
         i_outer = rsltA.idx[i_ot_rslt, 0]
         i_outer2 = rsltA.idx[i_ot_rslt, -1]
         i_inner = rsltB.idx[i_in_rslt, -1]
@@ -380,32 +434,33 @@ def merge_results(
         mrgv = graph.verts[criteria.from_seg]
         assert max(mrgv.ibblock) == 0
         assert max(graphA.verts[-1].ibblock) == 0
+
         x = ((mrgv.ires[:, 0] == ires_in) * (mrgv.ires[:, 1] == ires_out))
-        imerge = np.where(x)[0]
+        imerge_old = np.where(x)[0]
+        imerge = _binary_search_pair(mrgv.ires, (ires_in, ires_out))
+        # print(imerge, imerge_old)
+        if imerge_old:
+            assert imerge_old[0] == imerge
+        else:
+            assert imerge == -1
         # print(
         # ' ', i_in_rslt, ibb, ires_in, ires_out, isite_in, isite_out,
         # isite_out2, imerge
         # )
-        if not len(imerge) == 1:
+        if not len(imerge_old) == 1:
+            # if imerge < 0:
             ok[i_in_rslt] = False
             continue
         idx = np.concatenate(
-            (rsltB.idx[i_in_rslt, :-1], imerge, rsltA.idx[i_ot_rslt, 1:])
+            (rsltB.idx[i_in_rslt, :-1],
+             [imerge], rsltA.idx[i_ot_rslt, 1:])
         )
         assert len(idx) == len(graph.verts)
         for ii, v in zip(idx, graph.verts):
             assert ii < v.len
-        pos = np.concatenate((
-            rsltB.pos[i_in_rslt, :-1],
-            rsltB.pos[i_in_rslt, -1] @ rsltA.pos[i_ot_rslt, :]
-        ))
-        assert np.allclose(pos[criteria.from_seg], rsltB.pos[i_in_rslt, -1])
         assert len(pos) == len(idx) == nv
-        err = criteria.score(pos.reshape(-1, 1, 4, 4))
-
         merged.pos[i_in_rslt] = pos
         merged.idx[i_in_rslt] = idx
-        merged.err[i_in_rslt] = err
         merged.stats[i_in_rslt] = i_ot_rslt
     # print(merged.err[:100])
     nbad = np.sum(1 - ok)
@@ -414,4 +469,20 @@ def merge_results(
     ok[merged.err > merged_err_cut] = False
     ok = np.where(ok)[0][np.argsort(merged.err[ok])]
     merged = subset_result(merged, ok)
+    print('merge_results done', len(ok))
     return merged, ok
+
+
+@jit
+def _binary_search_pair(ires, tgt, ret=0):
+    n = len(ires)
+    if n == 1:
+        if ires[0, 0] == tgt[0] and ires[0, 1] == tgt[1]:
+            return ret
+        else:
+            return -1
+    mid = n // 2
+    if (ires[mid, 0], ires[mid, 1]) > tgt:
+        return _binary_search_pair(ires[:mid], tgt, ret)
+    else:
+        return _binary_search_pair(ires[mid:], tgt, ret + mid)

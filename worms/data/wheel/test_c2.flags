@@ -1,0 +1,13 @@
+--bbconn
+    _N    C2_N
+    CN    Het:NCy
+    CC    Het:CCC
+    NN    Het:NNy
+    C_    Het:CCC
+--geometry Cyclic(2, origin_seg=0, from_seg=2)
+--parallel 1
+--verbosity 2
+--dbfiles worms/data/wheel/wheel_c2.json
+--output_prefix test_c2
+--cachedir .worms_pytest_cache
+

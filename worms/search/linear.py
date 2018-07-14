@@ -87,7 +87,7 @@ def grow_linear(
             for f in cf.as_completed(futures):
                 results.append(f.result())
         else:
-            for f in tqdm(cf.as_completed(futures), 'linear search',
+            for f in tqdm(cf.as_completed(futures), 'linear searching',
                           total=len(futures)):
                 results.append(f.result())
     tot_stats = zero_search_stats()

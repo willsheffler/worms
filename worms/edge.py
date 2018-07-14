@@ -41,17 +41,18 @@ def Edge(u, ublks, v, vblks, verbosity=0, **kw):
 def splice_metrics_pair(
         blk0,
         blk1,
-        max_splice_rms,
-        clashd2,
-        contactd2,
-        rms_range,
-        clash_contact_range,
+        splice_max_rms,
+        splice_clash_d2,
+        splice_contact_d2,
+        splice_rms_range,
+        splice_clash_contact_range,
         skip_on_fail,
 ):
     return _jit_splice_metrics(
         blk0.chains, blk1.chains, blk0.ncac, blk1.ncac, blk0.stubs, blk1.stubs,
-        blk0.connections, blk1.connections, clashd2, contactd2, rms_range,
-        clash_contact_range, max_splice_rms, skip_on_fail
+        blk0.connections, blk1.connections, splice_clash_d2, splice_contact_d2,
+        splice_rms_range, splice_clash_contact_range, splice_max_rms,
+        skip_on_fail
     )
 
 
@@ -61,22 +62,24 @@ def get_allowed_splices(
         v,
         vblks,
         splicedb=None,
-        max_splice_rms=0.7,
-        ncontact_cut=30,
-        clashd2=4.0**2, # ca only
-        contactd2=8.0**2,
-        rms_range=6,
-        clash_contact_range=60,
+        splice_max_rms=0.7,
+        splice_ncontact_cut=30,
+        splice_clash_d2=4.0**2,  # ca only
+        splice_contact_d2=8.0**2,
+        splice_rms_range=6,
+        splice_clash_contact_range=60,
         skip_on_fail=True,
         parallel=False,
         verbosity=1,
         sync_to_disk_every=0.001,
+        **kw
 ):
     assert (u.dirn[1] + v.dirn[0]) == 1, 'get_allowed_splices dirn mismatch'
 
     params = (
-        max_splice_rms, ncontact_cut, clashd2, contactd2, rms_range,
-        clash_contact_range, u.min_seg_len, v.min_seg_len
+        splice_max_rms, splice_ncontact_cut, splice_clash_d2,
+        splice_contact_d2, splice_rms_range, splice_clash_contact_range,
+        u.min_seg_len, v.min_seg_len
     )
 
     outidx = _get_outidx(u.inout[:, 1])
@@ -129,13 +132,14 @@ def get_allowed_splices(
                 key1 = blk1.filehash
                 if cache and key1 in cache and cache[key1]:
                     splices = cache[key1]
-                    future = NonFuture(splices)
+                    future = NonFuture(splices, dummy=True)
                 else:
                     future = pool.submit(
                         _jit_splice_metrics, blk0.chains, blk1.chains,
                         blk0.ncac, blk1.ncac, blk0.stubs, blk1.stubs,
-                        blk0.connections, blk1.connections, clashd2, contactd2,
-                        rms_range, clash_contact_range, max_splice_rms,
+                        blk0.connections, blk1.connections, splice_clash_d2,
+                        splice_contact_d2, splice_rms_range,
+                        splice_clash_contact_range, splice_max_rms,
                         skip_on_fail
                     )
                 fs = (iblk0, iblk1, ofst0, ofst1, ires0, ires1)
@@ -160,9 +164,16 @@ def get_allowed_splices(
             result = future.result()
             if len(result) is 3 and isinstance(result[0], np.ndarray):
                 rms, nclash, ncontact = result
-                ok = ((nclash == 0) * (rms <= max_splice_rms) *
-                      (ncontact >= ncontact_cut))
+                ok = ((nclash == 0) * (rms <= splice_max_rms) *
+                      (ncontact >= splice_ncontact_cut))
                 result = _splice_respairs(ok, ublks[iblk0], vblks[iblk1])
+                if np.sum(ok) == 0:
+                    # print(nclash)
+                    print('N no clash', np.sum(nclash == 0))
+                    # print(rms)
+                    print('N rms', np.sum(rms <= splice_max_rms))
+                    # print(ncontact)
+                    print('N contact', np.sum(ncontact >= splice_ncontact_cut))
 
                 if splicedb:
                     key0 = ublks[iblk0].filehash  # C-term side
@@ -273,11 +284,11 @@ def _jit_splice_metrics(chains0, chains1,
                         ncac0_3d, ncac1_3d,
                         stubs0, stubs1,
                         conn0, conn1,
-                        clashd2,
-                        contactd2,
-                        rms_range,
-                        clash_contact_range,
-                        max_splice_rms,
+                        splice_clash_d2,
+                        splice_contact_d2,
+                        splice_rms_range,
+                        splice_clash_contact_range,
+                        splice_max_rms,
                         skip_on_fail=True):  # yapf: disable
 
     aln0s = _ires_from_conn(conn0, 1)
@@ -290,43 +301,41 @@ def _jit_splice_metrics(chains0, chains1,
     ncac0 = ncac0_3d.reshape(-1, 4)
     ncac1 = ncac1_3d.reshape(-1, 4)
 
-    b = np.empty((4, ), dtype=np.float64)
-
     for ialn1, aln1 in enumerate(aln1s):
         chainb10, chainb11 = _chainbounds_of_ires(chains1, aln1)
-        if np.abs(chainb10 - aln1) < rms_range: continue
-        if np.abs(chainb11 - aln1) <= rms_range: continue
+        if np.abs(chainb10 - aln1) < splice_rms_range: continue
+        if np.abs(chainb11 - aln1) <= splice_rms_range: continue
         stub1_inv = np.linalg.inv(stubs1[aln1])
 
         for ialn0, aln0 in enumerate(aln0s):
             chainb00, chainb01 = _chainbounds_of_ires(chains0, aln0)
-            if np.abs(chainb00 - aln0) < rms_range: continue
-            if np.abs(chainb01 - aln0) <= rms_range: continue
+            if np.abs(chainb00 - aln0) < splice_rms_range: continue
+            if np.abs(chainb01 - aln0) <= splice_rms_range: continue
             xaln = stubs0[aln0] @ stub1_inv
 
             sum_d2, n1b = 0.0, 0
-            for i in range(-3 * rms_range, 3 * rms_range + 3):
+            for i in range(-3 * splice_rms_range, 3 * splice_rms_range + 3):
                 a = ncac0[3 * aln0 + i]
-                b[:] = xaln @ ncac1[3 * aln1 + i]
+                b = xaln @ ncac1[3 * aln1 + i]
                 sum_d2 += np.sum((a - b)**2)
-            rms = np.sqrt(sum_d2 / (rms_range * 6 + 3))
+            rms = np.sqrt(sum_d2 / (splice_rms_range * 6 + 3))
             assert 0 <= rms < 9e9, 'bad rms'
             out_rms[ialn0, ialn1] = rms
 
-            if skip_on_fail and rms > max_splice_rms:
+            if skip_on_fail and rms > splice_max_rms:
                 continue
 
             nclash, ncontact = 0, 0
-            for j in range(4, 3 * clash_contact_range + 3, 3):
+            for j in range(4, 3 * splice_clash_contact_range + 3, 3):
                 if 3 * aln1 + j >= len(ncac1): continue
-                b[:] = xaln @ ncac1[3 * aln1 + j]
-                for i in range(-2, -3 * clash_contact_range - 1, -3):
+                b = xaln @ ncac1[3 * aln1 + j]
+                for i in range(-2, -3 * splice_clash_contact_range - 1, -3):
                     if 3 * aln0 + i < 0: continue
                     a = ncac0[3 * aln0 + i]
                     d2 = np.sum((a - b)**2)
-                    if d2 < clashd2:
+                    if d2 < splice_clash_d2:
                         nclash += 1
-                    elif i % 3 == 1 and j % 3 == 1 and d2 < contactd2:
+                    elif i % 3 == 1 and j % 3 == 1 and d2 < splice_contact_d2:
                         ncontact += 1
             assert 0 <= np.isnan(nclash) < 99999, 'bad nclash'
             assert 0 <= np.isnan(ncontact) < 99999, 'bad ncontact'
