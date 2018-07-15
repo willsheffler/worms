@@ -6,7 +6,7 @@ import numpy as np
 
 def make_pose_crit(
         bbdb,
-        graph,
+        ssdag,
         crit,
         indices,
         positions,
@@ -16,7 +16,7 @@ def make_pose_crit(
 ):
     return make_pose(
         bbdb=bbdb,
-        graph=graph,
+        ssdag=ssdag,
         indices=indices,
         positions=positions,
         only_connected=only_connected,
@@ -32,7 +32,7 @@ def make_pose_crit(
 
 def make_pose(
         bbdb,
-        graph,
+        ssdag,
         indices,
         positions,
         only_connected='auto',
@@ -47,19 +47,19 @@ def make_pose(
     cyclic_info = [None] * 5
     if is_cyclic:
         cyclic_info[0] = from_seg, to_seg
-        cyclic_info[1] = _dirn_to_polarity(graph.verts[-1].dirn[0])
-        cyclic_info[2] = _dirn_to_polarity(graph.verts[0].dirn[1])
-        cyclic_info[3] = graph.verts[to_seg].ires[indices[to_seg], 0] + 1
-        cyclic_info[4] = _dirn_to_polarity(graph.verts[to_seg].dirn[0])
+        cyclic_info[1] = _dirn_to_polarity(ssdag.verts[-1].dirn[0])
+        cyclic_info[2] = _dirn_to_polarity(ssdag.verts[0].dirn[1])
+        cyclic_info[3] = ssdag.verts[to_seg].ires[indices[to_seg], 0] + 1
+        cyclic_info[4] = _dirn_to_polarity(ssdag.verts[to_seg].dirn[0])
         assert cyclic_info[3] != 0
 
-    poses = _get_bb_poses(bbdb, graph, indices)
+    poses = _get_bb_poses(bbdb, ssdag, indices)
     entry_exit_chains = list()
     for ivert in range(len(indices)):
         entry_exit_chains.append(
             _make_pose_single(
                 poses[ivert],
-                graph.verts[ivert],
+                ssdag.verts[ivert],
                 indices[ivert],
                 positions[ivert],
                 nverts=len(indices),
@@ -76,8 +76,8 @@ def make_pose(
 
     result = make_contorted_pose(
         entryexits=entry_exit_chains,
-        entrypol=_dirn_to_polarity(v.dirn[0] for v in graph.verts),
-        exitpol=_dirn_to_polarity(v.dirn[1] for v in graph.verts),
+        entrypol=_dirn_to_polarity(v.dirn[0] for v in ssdag.verts),
+        exitpol=_dirn_to_polarity(v.dirn[1] for v in ssdag.verts),
         indices=indices,
         from_seg=from_seg,
         to_seg=to_seg,
@@ -102,9 +102,9 @@ def make_pose(
     return result
 
 
-def _get_bb_poses(bbdb, graph, indices):
+def _get_bb_poses(bbdb, ssdag, indices):
     poses = list()
-    for bbs, vert, idx in zip(graph.bbs, graph.verts, indices):
+    for bbs, vert, idx in zip(ssdag.bbs, ssdag.verts, indices):
         bb = bbs[vert.ibblock[idx]]
         pdbfile = bytes(bb.file)
         poses.append(bbdb.pose(pdbfile))

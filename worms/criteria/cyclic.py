@@ -154,3 +154,6 @@ class Cyclic(WormCriteria):
             return critB
 
         return [critA, stage2]
+
+    def which_mergebb(self):
+        return self.from_seg, self.to_seg

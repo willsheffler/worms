@@ -14,10 +14,10 @@ import pytest
 from xbin import gu_xbin_indexer, numba_xbin_indexer
 from homog import hrot, axis_angle_of
 
-from worms import linear_graph, Cyclic, grow_linear, util
+from worms import simple_search_dag, Cyclic, grow_linear, util
 from worms.database import BBlockDB, SpliceDB
 from worms.graph_pose import make_pose, make_pose_crit
-from worms.graph import graph_dump_pdb
+from worms.ssdag import graph_dump_pdb
 from worms.filters.clash import prune_clashes
 from worms.util import jit
 from worms.app import get_cli_args
@@ -102,7 +102,7 @@ def make_peace(spec, cart_resl, ori_resl, clash_check, dump_pdb, **kw):
 
     ################ merged ###############
 
-    graph = linear_graph(
+    ssdag = simple_search_dag(
         bbspec,
         modbbs=modsinglebb((spec[1].from_seg, ), kw['i_merge_bblock']),
         make_edges=False,
@@ -110,11 +110,11 @@ def make_peace(spec, cart_resl, ori_resl, clash_check, dump_pdb, **kw):
     )
     print('whole:', spec[0])
     rslt, imerge = merge_results(
-        graph, crit, in_rslt, in_graph, ot_rslt, ot_graph, binner, hash_table
+        ssdag, crit, in_rslt, in_graph, ot_rslt, ot_graph, binner, hash_table
     )
     ntot = len(rslt.idx)
     tclash = time()
-    rslt = prune_clashes(graph, crit, rslt, at_most=10000, thresh=3.0, **kw)
+    rslt = prune_clashes(ssdag, crit, rslt, at_most=10000, thresh=3.0, **kw)
     tclash = time() - tclash
     print(
         '  nresults', len(rslt.idx), 'withclash', ntot, 'clashrate',
@@ -124,7 +124,7 @@ def make_peace(spec, cart_resl, ori_resl, clash_check, dump_pdb, **kw):
     symdata = util.get_symdata('C' + str(crit.nfold))
     for i in range(min(999, len(rslt.idx))):
         pose = make_pose_crit(
-            bbdb, graph, crit, rslt.idx[i], rslt.pos[i], only_connected='auto'
+            bbdb, ssdag, crit, rslt.idx[i], rslt.pos[i], only_connected='auto'
         )
         ros.core.util.switch_to_residue_type_set(pose, 'centroid')
         ros.core.pose.symmetry.make_symmetric_pose(pose, symdata)
@@ -142,10 +142,10 @@ def make_peace(spec, cart_resl, ori_resl, clash_check, dump_pdb, **kw):
         # graph_dump_pdb('outer_%03i_bb_trim.pdb' % i, ot_graph, ot_rslt.idx[i_ot_rslt],
         # ot_rslt.pos[i_ot_rslt], join='bb', trim=True) # yapf: disable
 
-        # graph_dump_pdb('whole_%03i_bb.pdb' % i, graph, rslt.idx[i], rslt.pos[i],
+        # graph_dump_pdb('whole_%03i_bb.pdb' % i, ssdag, rslt.idx[i], rslt.pos[i],
         # join='bb', trim=True) # yapf: disable
 
-        # bb1 = graph.bbs[1][graph.verts[1].ibblock[rslt.idx[i, 1]]]
+        # bb1 = ssdag.bbs[1][ssdag.verts[1].ibblock[rslt.idx[i, 1]]]
         # print(bytes(bb1.file))
         # bblock_dump_pdb('bblock1_%03i_bb.pdb' % i, bb1)
 
@@ -155,7 +155,7 @@ def make_peace(spec, cart_resl, ori_resl, clash_check, dump_pdb, **kw):
 
 
 def merge_results(
-        graph,
+        ssdag,
         crit,
         in_rslt,
         in_graph,
@@ -166,18 +166,18 @@ def merge_results(
         err_cut=2.0
 ):
     assert len(in_graph.bbs[-1]) == len(ot_graph.bbs[0]
-                                        ) == len(graph.bbs[crit.from_seg]) == 1
+                                        ) == len(ssdag.bbs[crit.from_seg]) == 1
     assert in_graph.bbs[-1][0].filehash == ot_graph.bbs[0][0].filehash
-    assert in_graph.bbs[-1][0].filehash == graph.bbs[crit.from_seg][0].filehash
+    assert in_graph.bbs[-1][0].filehash == ssdag.bbs[crit.from_seg][0].filehash
     for i in range(crit.from_seg):
         [bb.filehash
-         for bb in graph.bbs[i]] == [bb.filehash for bb in in_graph.bbs[i]]
-    for i in range(len(graph.verts) - crit.from_seg):
-        [bb.filehash for bb in graph.bbs[crit.from_seg + i]
+         for bb in ssdag.bbs[i]] == [bb.filehash for bb in in_graph.bbs[i]]
+    for i in range(len(ssdag.verts) - crit.from_seg):
+        [bb.filehash for bb in ssdag.bbs[crit.from_seg + i]
          ] == [bb.filehash for bb in ot_graph.bbs[i]]
 
     n = len(in_rslt.idx)
-    nv = len(graph.verts)
+    nv = len(ssdag.verts)
     merged = SearchResult(
         pos=np.empty((n, nv, 4, 4), dtype='f8'),
         idx=np.empty((n, nv), dtype='i4'),
@@ -203,7 +203,7 @@ def merge_results(
         isite_in = v_inner.isite[i_inner, 0]
         isite_out = v_outer.isite[i_outer, 1]
         isite_out2 = ot_graph.verts[-1].isite[i_outer2, 0]
-        mrgv = graph.verts[crit.from_seg]
+        mrgv = ssdag.verts[crit.from_seg]
         assert max(mrgv.ibblock) == 0
         assert max(ot_graph.verts[-1].ibblock) == 0
         x = ((mrgv.ires[:, 0] == ires_in) * (mrgv.ires[:, 1] == ires_out))
@@ -218,8 +218,8 @@ def merge_results(
         idx = np.concatenate(
             (in_rslt.idx[i_in_rslt, :-1], imerge, ot_rslt.idx[i_ot_rslt, 1:])
         )
-        assert len(idx) == len(graph.verts)
-        for ii, v in zip(idx, graph.verts):
+        assert len(idx) == len(ssdag.verts)
+        for ii, v in zip(idx, ssdag.verts):
             assert ii < v.len
         pos = np.concatenate((
             in_rslt.pos[i_in_rslt, :-1],
@@ -259,22 +259,22 @@ def outside_grow(spec, min_radius, i_merge_bblock, **kw):
 
     if os.path.exists('outer.pickle'):
         with open('outer.pickle', 'rb') as inp:
-            graph, rslt, crit = pickle.load(inp)
+            ssdag, rslt, crit = pickle.load(inp)
     else:
         crit = Cyclic(crit0.nfold, min_radius=min_radius)
-        graph = linear_graph(bbspec, modbbs=modsinglebb((0, -1), i_merge_bblock),
+        ssdag = simple_search_dag(bbspec, modbbs=modsinglebb((0, -1), i_merge_bblock),
             **kw)
         rslt = grow_linear(
-            graph,
+            ssdag,
             loss_function=crit.jit_lossfunc(),
             loss_threshold=1.0,
             last_bb_same_as=crit.from_seg,
             **kw
         )
         with open('outer.pickle', 'wb') as out:
-            pickle.dump((graph, rslt, crit), out)
+            pickle.dump((ssdag, rslt, crit), out)
 
-    return graph, rslt, crit
+    return ssdag, rslt, crit
 
 
 def inside_grow(spec, binner, table, i_merge_bblock, **kw):
@@ -285,34 +285,34 @@ def inside_grow(spec, binner, table, i_merge_bblock, **kw):
 
     if os.path.exists('inner.pickle'):
         with open('inner.pickle', 'rb') as inp:
-            graph, rslt = pickle.load(inp)
+            ssdag, rslt = pickle.load(inp)
     else:
-        graph = linear_graph(bbspec, modbbs=modsinglebb((-1, ), i_merge_bblock),
+        ssdag = simple_search_dag(bbspec, modbbs=modsinglebb((-1, ), i_merge_bblock),
             **kw)
         rslt = grow_linear(
-            graph,
+            ssdag,
             loss_function=_hash_lossfunc(binner, table, crit0.nfold),
             # loss_function=lossfunc_rand_1_in(1000),
             loss_threshold=1.0,
             **kw
         )
         with open('inner.pickle', 'wb') as out:
-            pickle.dump((graph, rslt), out)
-    return graph, rslt
+            pickle.dump((ssdag, rslt), out)
+    return ssdag, rslt
 
 
 
-def _make_hash_table(graph, rslt, binner):
+def _make_hash_table(ssdag, rslt, binner):
     assert np.max(np.abs(rslt.pos[:, -1, 0, 3])) < 512.0
     assert np.max(np.abs(rslt.pos[:, -1, 0, 3])) < 512.0
     assert np.max(np.abs(rslt.pos[:, -1, 0, 3])) < 512.0
     keys = binner(rslt.pos[:, -1])
     assert keys.dtype == np.int64
     ridx = np.arange(len(rslt.idx))
-    ibb0 = graph.verts[+0].ibblock[rslt.idx[:, +0]]
-    ibb1 = graph.verts[-1].ibblock[rslt.idx[:, -1]]
-    isite0 = graph.verts[+0].isite[rslt.idx[:, +0], 1]
-    isite1 = graph.verts[-1].isite[rslt.idx[:, -1], 0]
+    ibb0 = ssdag.verts[+0].ibblock[rslt.idx[:, +0]]
+    ibb1 = ssdag.verts[-1].ibblock[rslt.idx[:, -1]]
+    isite0 = ssdag.verts[+0].isite[rslt.idx[:, +0], 1]
+    isite1 = ssdag.verts[-1].isite[rslt.idx[:, -1], 0]
     assert np.all(ibb0 == ibb1)
     assert np.all(isite0 != isite1)
     assert np.all(isite0 < 2**8)

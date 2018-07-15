@@ -10,4 +10,4 @@
 --dbfiles worms/data/wheel/wheel_c6.json
 --output_prefix test_c6
 --cachedir .worms_pytest_cache
-
+--merge_bblock 0

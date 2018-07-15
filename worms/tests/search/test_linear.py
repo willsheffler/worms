@@ -1,5 +1,5 @@
 from worms.search.linear import grow_linear
-from worms import Vertex, Edge, BBlockDB, Graph
+from worms import Vertex, Edge, BBlockDB, SearchSpaceDag
 import pytest
 import numpy as np
 import os
@@ -45,8 +45,8 @@ def test_linear_search_two(bbdb_fullsize_prots):
     assert np.all(u.inout[:, 1] == np.arange(u.len))
     assert np.all(v.inout[:, 0] == np.arange(v.len))
 
-    graph = Graph(None, (bbs, ) * 2, verts, edges)
-    result = grow_linear(graph)
+    ssdag = SearchSpaceDag(None, (bbs, ) * 2, verts, edges)
+    result = grow_linear(ssdag)
     assert np.allclose(result.pos[:, 0], np.eye(4))
 
     isort = np.lexsort((result.idx[:, 1], result.idx[:, 0]))
@@ -82,8 +82,8 @@ def test_linear_search_three(bbdb_fullsize_prots):
     # _print_splices(f)
     # print('------------- result ---------------')
 
-    graph = Graph(None, (bbs, ) * 3, verts, edges)
-    result = grow_linear(graph)
+    ssdag = SearchSpaceDag(None, (bbs, ) * 3, verts, edges)
+    result = grow_linear(ssdag)
 
     # from time import clock
     # t = clock()

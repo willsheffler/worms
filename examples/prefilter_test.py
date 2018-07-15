@@ -6,11 +6,11 @@ from time import clock, time
 import numpy as np
 import pytest
 
-from worms import linear_graph, Cyclic, grow_linear, NullCriteria
+from worms import simple_search_dag, Cyclic, grow_linear, NullCriteria
 from worms.util import InProcessExecutor
 from worms.database import BBlockDB, SpliceDB
 from worms.graph_pose import make_pose_crit, make_pose
-from worms.graph import graph_dump_pdb
+from worms.ssdag import graph_dump_pdb
 from worms.filters.clash import prune_clashes
 from worms.search import lossfunc_rand_1_in
 
@@ -55,7 +55,7 @@ def worm_grow_3(
     if clash_check < dump_pdb: clash_check = dump_pdb * 100
     ttot = time()
 
-    graph, tdb, tvertex, tedge = linear_graph(
+    ssdag, tdb, tvertex, tedge = simple_search_dag(
         [
             ('C3_N', '_N'),
             ('Het:NCy', 'C_'),
@@ -81,7 +81,7 @@ def worm_grow_3(
 
     tgrow = time()
     rslt = grow_linear(
-        graph,
+        ssdag,
         # loss_function=lf,
         loss_function=lossfunc_rand_1_in(1000),
         parallel=parallel,
@@ -92,7 +92,7 @@ def worm_grow_3(
     tgrow = time() - tgrow
 
     Nres = len(rslt.err)
-    Ntot = np.prod([v.len for v in graph.verts])
+    Ntot = np.prod([v.len for v in ssdag.verts])
     logtot = np.log10(Ntot)
     print(
         'frac last_bb_same_as',
@@ -119,7 +119,7 @@ def worm_grow_3(
     tclash = time()
     norig = len(rslt.idx)
     # rslt = prune_clashes(
-    # graph, crit, rslt, at_most=clash_check, thresh=4.0, parallel=parallel
+    # ssdag, crit, rslt, at_most=clash_check, thresh=4.0, parallel=parallel
     # )
     print(
         'pruned clashes, %i of %i remain,' %
@@ -129,9 +129,9 @@ def worm_grow_3(
 
     for i, idx in enumerate(rslt.idx[:10]):
         graph_dump_pdb(
-            'graph_%i_nojoin.pdb' % i, graph, idx, rslt.pos[i], join=0
+            'graph_%i_nojoin.pdb' % i, ssdag, idx, rslt.pos[i], join=0
         )
-        # graph_dump_pdb('graph_%i.pdb' % i, graph, idx, rslt.pos[i])
+        # graph_dump_pdb('graph_%i.pdb' % i, ssdag, idx, rslt.pos[i])
 
     return
 
@@ -143,7 +143,7 @@ def worm_grow_3(
             for i in range(min(dump_pdb, len(rslt.idx))):
                 kw = dict(
                     bbdb=bbdb,
-                    graph=graph,
+                    ssdag=ssdag,
                     # crit=crit,
                     i=i,
                     indices=rslt.idx[i],

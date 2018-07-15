@@ -8,7 +8,7 @@ from worms.search.result import SearchResult
 
 
 def prune_clashes(
-        graph,
+        ssdag,
         crit,
         rslt,
         max_clash_check=-1,
@@ -23,7 +23,7 @@ def prune_clashes(
         return rslt
     max_clash_check = min(max_clash_check, len(rslt.idx))
     if max_clash_check < 0: max_clash_check = len(rslt.idx)
-    verts = tuple(graph.verts)
+    verts = tuple(ssdag.verts)
     # exe = cf.ProcessPoolExecutor if parallel else InProcessExecutor
     exe = InProcessExecutor
     with exe() as pool:
@@ -32,12 +32,12 @@ def prune_clashes(
             dirns = tuple([v.dirn for v in verts])
             iress = tuple([v.ires for v in verts])
             chains = tuple([
-                graph.bbs[k][verts[k].ibblock[rslt.idx[i, k]]].chains
-                for k in range(len(graph.verts))
+                ssdag.bbs[k][verts[k].ibblock[rslt.idx[i, k]]].chains
+                for k in range(len(ssdag.verts))
             ])
             ncacs = tuple([
-                graph.bbs[k][verts[k].ibblock[rslt.idx[i, k]]].ncac
-                for k in range(len(graph.verts))
+                ssdag.bbs[k][verts[k].ibblock[rslt.idx[i, k]]].ncac
+                for k in range(len(ssdag.verts))
             ])
             futures.append(
                 pool.submit(

@@ -25,7 +25,7 @@ from worms.criteria import cyclic
     ('min_seg_len', nt.int32),
 ))  # yapf: disable
 class _Vertex:
-    """contains data for one topological vertex in the topological graph
+    """contains data for one topological vertex in the topological ssdag
 
     Attributes:
         dirn (TYPE): Description

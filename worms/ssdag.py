@@ -18,7 +18,7 @@ def _validate_bbs_verts(bbs, verts):
         assert np.max(vert.ibblock) < len(bb)
 
 
-class Graph:
+class SearchSpaceDag:
     def __init__(self, bbspec, bbs, verts, edges):
         _validate_bbs_verts(bbs, verts)
         assert isinstance(bbs[0][0], _BBlock)
@@ -49,9 +49,9 @@ class Graph:
         assert len(self.bbs) == len(self.verts) == len(self.edges) + 1
 
 
-def linear_graph(
-        bbspec,
-        db,
+def simple_search_dag(
+        criteria,
+        db=None,
         nbblocks=100,
         shuf=False,
         min_seg_len=15,
@@ -61,13 +61,12 @@ def linear_graph(
         cache_sync=0.001,
         modbbs=None,
         make_edges=True,
-        singlebb=[],
-        which_single=0,
+        merge_bblock=None,
         **kw
 ):
 
     bbdb, spdb = db
-    queries, directions = zip(*bbspec)
+    queries, directions = zip(*criteria.bbspec)
     info('bblock queries', queries)
     info('directions', directions)
     tdb = time()
@@ -79,8 +78,10 @@ def linear_graph(
         assert len(v) > 0, 'no bblocks for query: "' + k + '"'
     bbs = [bbmap[q] for q in queries]
     if modbbs: modbbs(bbs)
-    for i in singlebb:
-        bbs[i] = (bbs[i][which_single], )
+    if merge_bblock is not None:
+        print('which_mergebb', criteria.bbspec, criteria.which_mergebb())
+        for i in criteria.which_mergebb():
+            bbs[i] = (bbs[i][merge_bblock], )
 
     tdb = time() - tdb
     info(f'bblock creation time {tdb:7.3f}', 'num bbs:', [len(x) for x in bbs])
@@ -116,7 +117,7 @@ def linear_graph(
         )
         spdb.sync_to_disk()
 
-    toret = Graph(bbspec, bbs, verts, edges)
+    toret = SearchSpaceDag(criteria.bbspec, bbs, verts, edges)
     if timing:
         toret = toret, tdb, tvertex, tedge
     return toret
@@ -131,7 +132,7 @@ def print_edge_summary(edges):
     print()
 
 
-def graph_dump_pdb(out, graph, idx, pos, join='splice', trim=True):
+def graph_dump_pdb(out, ssdag, idx, pos, join='splice', trim=True):
     close = False
     if isinstance(out, str):
         out = open(out, 'w')
@@ -141,7 +142,7 @@ def graph_dump_pdb(out, graph, idx, pos, join='splice', trim=True):
     assert pos.ndim == 3
     assert pos.shape[-2:] == (4, 4)
     chain, anum, rnum = 0, 1, 1
-    for i, tup in enumerate(zip(graph.bbs, graph.verts, idx, pos)):
+    for i, tup in enumerate(zip(ssdag.bbs, ssdag.verts, idx, pos)):
         bbs, vert, ivert, x = tup
         chain, anum, rnum = bblock_dump_pdb(
             out=out,

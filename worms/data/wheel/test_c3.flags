@@ -11,3 +11,4 @@
 --output_prefix test_c3
 --cachedir .worms_pytest_cache
 --ca_clash_dis 3.0
+--merge_bblock 0

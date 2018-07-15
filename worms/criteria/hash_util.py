@@ -4,17 +4,17 @@ from worms.khash import KHashi8i8
 from worms.khash.khash_cffi import _khash_get
 
 
-def make_hash_table(graph, rslt, gubinner):
+def make_hash_table(ssdag, rslt, gubinner):
     assert np.max(np.abs(rslt.pos[:, -1, 0, 3])) < 512.0
     assert np.max(np.abs(rslt.pos[:, -1, 0, 3])) < 512.0
     assert np.max(np.abs(rslt.pos[:, -1, 0, 3])) < 512.0
     keys = gubinner(rslt.pos[:, -1])
     assert keys.dtype == np.int64
     ridx = np.arange(len(rslt.idx))
-    ibb0 = graph.verts[+0].ibblock[rslt.idx[:, +0]]
-    ibb1 = graph.verts[-1].ibblock[rslt.idx[:, -1]]
-    isite0 = graph.verts[+0].isite[rslt.idx[:, +0], 1]
-    isite1 = graph.verts[-1].isite[rslt.idx[:, -1], 0]
+    ibb0 = ssdag.verts[+0].ibblock[rslt.idx[:, +0]]
+    ibb1 = ssdag.verts[-1].ibblock[rslt.idx[:, -1]]
+    isite0 = ssdag.verts[+0].isite[rslt.idx[:, +0], 1]
+    isite1 = ssdag.verts[-1].isite[rslt.idx[:, -1], 0]
     assert np.all(ibb0 == ibb1)
     assert np.all(isite0 != isite1)
     assert np.all(isite0 < 2**8)

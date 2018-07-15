@@ -28,7 +28,7 @@ def lossfunc_rand_1_in(n):
 
 
 def grow_linear(
-        graph,
+        ssdag,
         loss_function=null_lossfunc,
         loss_threshold=2.0,
         last_bb_same_as=-1,
@@ -37,8 +37,8 @@ def grow_linear(
         verbosity=0,
         **kw
 ):
-    verts = graph.verts
-    edges = graph.edges
+    verts = ssdag.verts
+    edges = ssdag.edges
     if last_bb_same_as is None: last_bb_same_as = -1
     assert len(verts) > 1
     assert len(verts) == len(edges) + 1
@@ -155,8 +155,8 @@ def _grow_linear_recurse(
 
     Args:
         result (SearchResult): accumulated pos, idx, and err
-        verts (tuple(_Vertex)*N): Vertices in the linear 'graph', store entry/exit geometry
-        edges (tuple(_Edge)*(N-1)): Edges in the linear 'graph', store allowed splices
+        verts (tuple(_Vertex)*N): Vertices in the linear 'ssdag', store entry/exit geometry
+        edges (tuple(_Edge)*(N-1)): Edges in the linear 'ssdag', store allowed splices
         loss_function (jit function): Arbitrary loss function, must be numba-jitable
         loss_threshold (float): only worms with loss <= loss_threshold are put into result
         nresults (int): total number of accumulated results so far
@@ -274,8 +274,8 @@ def _grow_linear_mc_recurse(
 
     Args:
         result (SearchResult): accumulated pos, idx, and err
-        verts (tuple(_Vertex)*N): Vertices in the linear 'graph', store entry/exit geometry
-        edges (tuple(_Edge)*(N-1)): Edges in the linear 'graph', store allowed splices
+        verts (tuple(_Vertex)*N): Vertices in the linear 'ssdag', store entry/exit geometry
+        edges (tuple(_Edge)*(N-1)): Edges in the linear 'ssdag', store allowed splices
         loss_function (jit function): Arbitrary loss function, must be numba-jitable
         loss_threshold (float): only worms with loss <= loss_threshold are put into result
         nresults (int): total number of accumulated results so far

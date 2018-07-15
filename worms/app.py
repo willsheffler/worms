@@ -10,7 +10,7 @@ import homog as hg
 
 from worms.criteria import *
 from worms.database import BBlockDB, SpliceDB
-from worms.graph import linear_graph, graph_dump_pdb
+from worms.ssdag import simple_search_dag, graph_dump_pdb
 from worms.search import grow_linear, SearchResult, subset_result
 from worms.graph_pose import make_pose_crit
 from worms.util import get_symdata
@@ -52,7 +52,7 @@ def parse_args(argv):
         splice_clash_contact_range=60,
         #
         min_radius=0.0,
-        merge_bblock=0,
+        merge_bblock=-1,
         merged_err_cut=2.0,
         max_merge=10000,
         #
@@ -75,7 +75,13 @@ def parse_args(argv):
     if isinstance(crit, Cyclic) and crit.origin_seg is not None:
         assert crit.origin_seg < len(bb)
     crit.bbspec = list(list(x) for x in zip(bb, nc))
-    return crit, vars(args)
+    if args.merge_bblock < 0: args.merge_bblock = None
+    kw = vars(args)
+    kw['db'] = BBlockDB(**kw), SpliceDB(**kw)
+    # kw['bblockdb'] = BBlockDB(**kw)
+    # kw['splicedb'] = SpliceDB(**kw)
+
+    return crit, kw
 
 
 def run_and_time(func, *args, **kw):
@@ -95,19 +101,20 @@ def worms_main(argv):
     for k, v in kw.items():
         print('   ', k, v)
     pyrosetta.init('-mute all -beta')
-    db = BBlockDB(**kw), SpliceDB(**kw)
+
+    ssdag = simple_search_dag(criteria, **kw)
 
     # search
     search_func = select_search_function(criteria)
-    graph, result, tsearch = run_and_time(search_func, db, criteria, **kw)
+    ssdag, result, tsearch = run_and_time(search_func, criteria, **kw)
     print(f'raw results: {len(result.idx):,}, in {int(tsearch)}s')
 
     # filter
-    result, tclash = run_and_time(prune_clashes, graph, criteria, result, **kw)
+    result, tclash = run_and_time(prune_clashes, ssdag, criteria, result, **kw)
     print(f'nresults {len(result.idx):,}, dumping')
 
     # dump results
-    output_results(db, criteria, graph, result, **kw)
+    output_results(criteria, ssdag, result, **kw)
 
 
 def select_search_function(criteria):
@@ -117,20 +124,14 @@ def select_search_function(criteria):
         return search_one_stage
 
 
-def search_one_stage(db, criteria, singlebb=[], lbl='', **kw):
+def search_one_stage(criteria, lbl='', **kw):
     if kw['run_cache']:
         if os.path.exists(kw['run_cache'] + lbl + '.pickle'):
             with (open(kw['run_cache'] + lbl + '.pickle', 'rb')) as inp:
                 return _pickle.load(inp)
-    graph = linear_graph(
-        bbspec=criteria.bbspec,
-        db=db,
-        singlebb=singlebb,
-        which_single=kw['merge_bblock'],
-        **kw
-    )
+    ssdag = simple_search_dag(criteria, **kw)
     result = grow_linear(
-        graph=graph,
+        ssdag=ssdag,
         loss_function=criteria.jit_lossfunc(),
         last_bb_same_as=criteria.from_seg if criteria.is_cyclic else -1,
         **kw
@@ -138,41 +139,37 @@ def search_one_stage(db, criteria, singlebb=[], lbl='', **kw):
     print('grow_linear done, nresluts', len(result.idx))
     if kw['run_cache']:
         with (open(kw['run_cache'] + lbl + '.pickle', 'wb')) as out:
-            _pickle.dump((graph, result), out)
-    return graph, result
+            _pickle.dump((ssdag, result), out)
+    return ssdag, result
 
 
 def output_results(
-        db, criteria, graph, result, output_pose, merge_bblock,
+        criteria, ssdag, result, output_pose, merge_bblock, db,
         output_symmetric, output_centroid, output_prefix, max_output, **kw
 ):
     for i in range(min(max_output, len(result.idx))):
 
-        #
-
-        tmp, seenit = list(), set()
-        for j in range(len(graph.verts)):
-            v = graph.verts[j]
-            ibb = v.ibblock[result.idx[i, j]]
-            bb = graph.bbs[j][ibb]
-            fname = str(bytes(bb.file), 'utf-8')
-            if fname not in seenit:
-                for e in db[0]._alldb:
-                    if e['file'] == fname:
-                        tmp.append(e)
-            seenit.add(fname)
-        import json
-        with open('tmp_%i.json' % i, 'w') as out:
-            json.dump(tmp, out)
-
-        #
+        # tmp, seenit = list(), set()
+        # for j in range(len(ssdag.verts)):
+        #     v = ssdag.verts[j]
+        #     ibb = v.ibblock[result.idx[i, j]]
+        #     bb = ssdag.bbs[j][ibb]
+        #     fname = str(bytes(bb.file), 'utf-8')
+        #     if fname not in seenit:
+        #         for e in db[0]._alldb:
+        #             if e['file'] == fname:
+        #                 tmp.append(e)
+        #     seenit.add(fname)
+        # import json
+        # with open('tmp_%i.json' % i, 'w') as out:
+        #     json.dump(tmp, out)
 
         if merge_bblock is not None: mbb = f'_mbb{merge_bblock:03d}'
         fname = output_prefix + mbb + '_%03i.pdb' % i
         if output_pose:
             pose = make_pose_crit(
                 db[0],
-                graph,
+                ssdag,
                 criteria,
                 result.idx[i],
                 result.pos[i],
@@ -190,7 +187,7 @@ def output_results(
                 raise NotImplementedError('no symmetry w/o poses')
             graph_dump_pdb(
                 fname,
-                graph,
+                ssdag,
                 result.idx[i],
                 result.pos[i],
                 join='bb',
@@ -198,29 +195,21 @@ def output_results(
             )
 
 
-def search_two_stage(db, criteria, **kw):
+def search_two_stage(criteria, **kw):
 
     critA = stage_one_criteria(criteria, **kw)
-    graphA, rsltA = search_one_stage(
-        db, critA, lbl='A', singlebb=[0, -1], **kw
-    )
+    graphA, rsltA = search_one_stage(critA, lbl='A', **kw)
 
     critB = stage_two_criteria(criteria, graphA, rsltA, **kw)
-    graphB, rsltB = search_one_stage(db, critB, lbl='B', singlebb=[-1], **kw)
+    graphB, rsltB = search_one_stage(critB, lbl='B', **kw)
 
-    graph = linear_graph(
-        bbspec=criteria.bbspec,
-        db=db,
-        singlebb=[criteria.from_seg, -1],
-        which_single=kw['merge_bblock'],
-        **kw
-    )
+    ssdag = simple_search_dag(criteria, **kw)
 
     result, imerge = merge_results(
-        criteria, graph, graphA, rsltA, critB, graphB, rsltB, **kw
+        criteria, ssdag, graphA, rsltA, critB, graphB, rsltB, **kw
     )
 
-    return graph, result
+    return ssdag, result
 
 
 def stage_one_criteria(criteria, min_radius=0, **kw):
@@ -273,17 +262,17 @@ def get_cli_args(argv=None, **kw):
     return args
 
 
-def _make_hash_table(graph, rslt, gubinner):
+def _make_hash_table(ssdag, rslt, gubinner):
     assert np.max(np.abs(rslt.pos[:, -1, 0, 3])) < 512.0
     assert np.max(np.abs(rslt.pos[:, -1, 0, 3])) < 512.0
     assert np.max(np.abs(rslt.pos[:, -1, 0, 3])) < 512.0
     keys = gubinner(rslt.pos[:, -1])
     assert keys.dtype == np.int64
     ridx = np.arange(len(rslt.idx))
-    ibb0 = graph.verts[+0].ibblock[rslt.idx[:, +0]]
-    ibb1 = graph.verts[-1].ibblock[rslt.idx[:, -1]]
-    isite0 = graph.verts[+0].isite[rslt.idx[:, +0], 1]
-    isite1 = graph.verts[-1].isite[rslt.idx[:, -1], 0]
+    ibb0 = ssdag.verts[+0].ibblock[rslt.idx[:, +0]]
+    ibb1 = ssdag.verts[-1].ibblock[rslt.idx[:, -1]]
+    isite0 = ssdag.verts[+0].isite[rslt.idx[:, +0], 1]
+    isite1 = ssdag.verts[-1].isite[rslt.idx[:, -1], 0]
     assert np.all(ibb0 == ibb1)
     assert np.all(isite0 != isite1)
     assert np.all(isite0 < 2**8)
@@ -329,6 +318,9 @@ class HashCriteria:
         self.hash_table = hash_table
         self.is_cyclic = False
 
+    def which_mergebb(self):
+        return (-1, )
+
     def jit_lossfunc(self):
         rots, irots = _get_has_lossfunc_data(self.orig_criteria.nfold)
         binner = self.binner
@@ -367,7 +359,7 @@ class HashCriteria:
 
 
 def merge_results(
-        criteria, graph, graphA, rsltA, critB, graphB, rsltB, merged_err_cut,
+        criteria, ssdag, graphA, rsltA, critB, graphB, rsltB, merged_err_cut,
         max_merge, **kw
 ):
     rsltB = subset_result(rsltB, slice(max_merge))
@@ -378,20 +370,20 @@ def merge_results(
     binner = critB.binner
     hash_table = critB.hash_table
     assert len(graphB.bbs[-1]) == len(graphA.bbs[0]) == len(
-        graph.bbs[criteria.from_seg]
+        ssdag.bbs[criteria.from_seg]
     ) == 1
     assert graphB.bbs[-1][0].filehash == graphA.bbs[0][0].filehash
-    assert graphB.bbs[-1][0].filehash == graph.bbs[criteria.from_seg
+    assert graphB.bbs[-1][0].filehash == ssdag.bbs[criteria.from_seg
                                                    ][0].filehash
     for i in range(criteria.from_seg):
-        f = [bb.filehash for bb in graph.bbs[i]]
+        f = [bb.filehash for bb in ssdag.bbs[i]]
         assert f == [bb.filehash for bb in graphB.bbs[i]]
-    for i in range(len(graph.verts) - criteria.from_seg):
-        f = [bb.filehash for bb in graph.bbs[criteria.from_seg + i]]
+    for i in range(len(ssdag.verts) - criteria.from_seg):
+        f = [bb.filehash for bb in ssdag.bbs[criteria.from_seg + i]]
         assert f == [bb.filehash for bb in graphA.bbs[i]]
 
     n = len(rsltB.idx)
-    nv = len(graph.verts)
+    nv = len(ssdag.verts)
     merged = SearchResult(
         pos=np.empty((n, nv, 4, 4), dtype='f8'),
         idx=np.empty((n, nv), dtype='i4'),
@@ -431,7 +423,7 @@ def merge_results(
         isite_in = v_inner.isite[i_inner, 0]
         isite_out = v_outer.isite[i_outer, 1]
         isite_out2 = graphA.verts[-1].isite[i_outer2, 0]
-        mrgv = graph.verts[criteria.from_seg]
+        mrgv = ssdag.verts[criteria.from_seg]
         assert max(mrgv.ibblock) == 0
         assert max(graphA.verts[-1].ibblock) == 0
 
@@ -455,8 +447,8 @@ def merge_results(
             (rsltB.idx[i_in_rslt, :-1],
              [imerge], rsltA.idx[i_ot_rslt, 1:])
         )
-        assert len(idx) == len(graph.verts)
-        for ii, v in zip(idx, graph.verts):
+        assert len(idx) == len(ssdag.verts)
+        for ii, v in zip(idx, ssdag.verts):
             assert ii < v.len
         assert len(pos) == len(idx) == nv
         merged.pos[i_in_rslt] = pos
