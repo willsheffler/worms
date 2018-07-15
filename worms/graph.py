@@ -24,7 +24,8 @@ class Graph:
         assert isinstance(bbs[0][0], _BBlock)
         assert isinstance(verts[0], _Vertex)
         assert len(edges) == 0 or isinstance(edges[0], _Edge)
-        assert len(bbspec) == len(bbs)
+        if bbspec:
+            assert len(bbspec) == len(bbs)
         assert len(edges) == 0 or len(edges) + 1 == len(verts)
         self.bbspec = bbspec
         self.bbs = tuple(bbs)
