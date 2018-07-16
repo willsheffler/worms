@@ -1,10 +1,15 @@
 import numpy as np
+
+import homog as hg
+
 from worms.criteria import WormCriteria
 from worms.khash import KHashi8i8
 from worms.khash.khash_cffi import _khash_get
+from worms.util import jit
 
 
 def make_hash_table(ssdag, rslt, gubinner):
+    # print(rslt.idx[:5])
     assert np.max(np.abs(rslt.pos[:, -1, 0, 3])) < 512.0
     assert np.max(np.abs(rslt.pos[:, -1, 0, 3])) < 512.0
     assert np.max(np.abs(rslt.pos[:, -1, 0, 3])) < 512.0
@@ -25,6 +30,8 @@ def make_hash_table(ssdag, rslt, gubinner):
         np.left_shift(ridx, 32) + np.left_shift(ibb0, 16) +
         np.left_shift(isite0, 8) + isite1
     )
+    # print(keys[:10])
+    # print(vals[:10])
     hash_table = KHashi8i8()
     hash_table.update2(keys, vals)
     return keys, hash_table
@@ -37,8 +44,14 @@ class HashCriteria(WormCriteria):
         self.hash_table = hash_table
         self.is_cyclic = False
 
+    def which_mergebb(self):
+        return (-1, )
+
+    def score(self, *args):
+        return 0
+
     def jit_lossfunc(self):
-        rots, irots = _get_has_lossfunc_data(self.orig_criteria.nfold)
+        rots, irots = _get_hash_lossfunc_data(self.orig_criteria.nfold)
         binner = self.binner
         hash_vp = self.hash_table.hash
 
@@ -72,3 +85,26 @@ class HashCriteria(WormCriteria):
             return 9e9
 
         return func
+
+
+def _get_hash_lossfunc_data(nfold):
+    rots = np.stack((
+        hg.hrot([0, 0, 1, 0], np.pi * 2. / nfold),
+        hg.hrot([0, 0, 1, 0], -np.pi * 2. / nfold),
+    ))
+    assert rots.shape == (2, 4, 4)
+    irots = (0, 1) if nfold > 2 else (0, )
+    return rots, irots
+
+
+def _get_hash_val(gubinner, hash_table, pos, nfold):
+    rots, irots = _get_hash_lossfunc_data(nfold)
+    for irot in irots:
+        to_pos = rots[irot] @ pos
+        xtgt = np.linalg.inv(pos) @ to_pos
+        key = gubinner(xtgt)
+        val = hash_table.get(key)
+        if val != -9223372036854775808:
+            return val
+    # assert 0, 'pos not found in table!'
+    return -1

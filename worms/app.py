@@ -3,7 +3,6 @@ import os
 import argparse
 import _pickle
 from copy import deepcopy
-from time import time
 
 from xbin import gu_xbin_indexer, numba_xbin_indexer
 import homog as hg
@@ -13,10 +12,11 @@ from worms.database import BBlockDB, SpliceDB
 from worms.ssdag import simple_search_dag, graph_dump_pdb
 from worms.search import grow_linear, SearchResult, subset_result
 from worms.graph_pose import make_pose_crit
-from worms.util import get_symdata
+from worms.util import get_symdata, run_and_time, binary_search_pair
 from worms.filters.clash import prune_clashes
 from worms.khash import KHashi8i8
 from worms.khash.khash_cffi import _khash_get
+from worms.criteria.hash_util import _get_hash_val
 
 import pyrosetta
 from pyrosetta import rosetta as ros
@@ -84,15 +84,6 @@ def parse_args(argv):
     return crit, kw
 
 
-def run_and_time(func, *args, **kw):
-    t = time()
-    rslt = func(*args, **kw)
-    t = time() - t
-    if isinstance(rslt, tuple) and not isinstance(rslt, SearchResult):
-        return rslt + (t, )
-    return rslt, t
-
-
 def worms_main(argv):
 
     # read inputs
@@ -102,11 +93,9 @@ def worms_main(argv):
         print('   ', k, v)
     pyrosetta.init('-mute all -beta')
 
-    ssdag = simple_search_dag(criteria, **kw)
-
     # search
-    search_func = select_search_function(criteria)
-    ssdag, result, tsearch = run_and_time(search_func, criteria, **kw)
+    ssdag = simple_search_dag(criteria, **kw)
+    result, tsearch = run_and_time(search_func, criteria, ssdag, **kw)
     print(f'raw results: {len(result.idx):,}, in {int(tsearch)}s')
 
     # filter
@@ -117,14 +106,27 @@ def worms_main(argv):
     output_results(criteria, ssdag, result, **kw)
 
 
-def select_search_function(criteria):
-    if isinstance(criteria, Cyclic) and criteria.origin_seg is not None:
-        return search_two_stage
+def search_func(criteria, ssdag, **kw):
+    results = list()
+    for i, stage_criteria in enumerate(criteria.stages(**kw)):
+        if callable(stage_criteria):
+            stage_criteria = stage_criteria(*results[-1])
+        tmp = search_single_stage(stage_criteria, lbl=str(i), **kw)
+        results.append((stage_criteria, ) + tmp)
+
+    if len(results) == 1:
+        return results[0][-1]
+    elif len(results) == 2:
+        critA, ssdagA, rsltA = results[0]
+        critB, ssdagB, rsltB = results[1]
+        return merge_results(
+            criteria, ssdag, ssdagA, rsltA, critB, ssdagB, rsltB, **kw
+        )
     else:
-        return search_one_stage
+        raise NotImplementedError('dunno more than two stages!')
 
 
-def search_one_stage(criteria, lbl='', **kw):
+def search_single_stage(criteria, lbl='', **kw):
     if kw['run_cache']:
         if os.path.exists(kw['run_cache'] + lbl + '.pickle'):
             with (open(kw['run_cache'] + lbl + '.pickle', 'rb')) as inp:
@@ -140,6 +142,11 @@ def search_one_stage(criteria, lbl='', **kw):
     if kw['run_cache']:
         with (open(kw['run_cache'] + lbl + '.pickle', 'wb')) as out:
             _pickle.dump((ssdag, result), out)
+
+    # print(result.idx[:10])
+    # print(result.err[:100])
+    # assert 0
+
     return ssdag, result
 
 
@@ -195,49 +202,6 @@ def output_results(
             )
 
 
-def search_two_stage(criteria, **kw):
-
-    critA = stage_one_criteria(criteria, **kw)
-    graphA, rsltA = search_one_stage(critA, lbl='A', **kw)
-
-    critB = stage_two_criteria(criteria, graphA, rsltA, **kw)
-    graphB, rsltB = search_one_stage(critB, lbl='B', **kw)
-
-    ssdag = simple_search_dag(criteria, **kw)
-
-    result, imerge = merge_results(
-        criteria, ssdag, graphA, rsltA, critB, graphB, rsltB, **kw
-    )
-
-    return ssdag, result
-
-
-def stage_one_criteria(criteria, min_radius=0, **kw):
-    assert criteria.origin_seg == 0
-    bbspec = deepcopy(criteria.bbspec[criteria.from_seg:])
-    bbspec[0][1] = '_' + bbspec[0][1][1]
-    if isinstance(criteria, Cyclic):
-        critA = Cyclic(criteria.nfold, min_radius=min_radius)
-    else:
-        raise ValueError('dont know stage one for: ' + str(criteria))
-    critA.bbspec = bbspec
-    return critA
-
-
-def stage_two_criteria(
-        criteria, graphA, rsltA, hash_cart_resl, hash_ori_resl, **kw
-):
-    assert criteria.origin_seg == 0
-    bbspec = deepcopy(criteria.bbspec[:criteria.from_seg + 1])
-    bbspec[-1][1] = bbspec[-1][1][0] + '_'
-    gubinner = gu_xbin_indexer(hash_cart_resl, hash_ori_resl)
-    numba_binner = numba_xbin_indexer(hash_cart_resl, hash_ori_resl)
-    keys, hash_table = _make_hash_table(graphA, rsltA, gubinner)
-    critB = HashCriteria(criteria, numba_binner, hash_table)
-    critB.bbspec = bbspec
-    return critB
-
-
 def get_cli_args(argv=None, **kw):
     if argv is None: argv = sys.argv[1:]
     # add from @files
@@ -262,125 +226,40 @@ def get_cli_args(argv=None, **kw):
     return args
 
 
-def _make_hash_table(ssdag, rslt, gubinner):
-    assert np.max(np.abs(rslt.pos[:, -1, 0, 3])) < 512.0
-    assert np.max(np.abs(rslt.pos[:, -1, 0, 3])) < 512.0
-    assert np.max(np.abs(rslt.pos[:, -1, 0, 3])) < 512.0
-    keys = gubinner(rslt.pos[:, -1])
-    assert keys.dtype == np.int64
-    ridx = np.arange(len(rslt.idx))
-    ibb0 = ssdag.verts[+0].ibblock[rslt.idx[:, +0]]
-    ibb1 = ssdag.verts[-1].ibblock[rslt.idx[:, -1]]
-    isite0 = ssdag.verts[+0].isite[rslt.idx[:, +0], 1]
-    isite1 = ssdag.verts[-1].isite[rslt.idx[:, -1], 0]
-    assert np.all(ibb0 == ibb1)
-    assert np.all(isite0 != isite1)
-    assert np.all(isite0 < 2**8)
-    assert np.all(isite1 < 2**8)
-    assert np.all(ibb0 < 2**16)
-    assert np.all(keys >= 0)
-    vals = (
-        np.left_shift(ridx, 32) + np.left_shift(ibb0, 16) +
-        np.left_shift(isite0, 8) + isite1
-    )
-    hash_table = KHashi8i8()
-    hash_table.update2(keys, vals)
-    return keys, hash_table
-
-
-def _get_has_lossfunc_data(nfold):
-    rots = np.stack((
-        hg.hrot([0, 0, 1, 0], np.pi * 2. / nfold),
-        hg.hrot([0, 0, 1, 0], -np.pi * 2. / nfold),
-    ))
-    assert rots.shape == (2, 4, 4)
-    irots = (0, 1) if nfold > 2 else (0, )
-    return rots, irots
-
-
-def _get_hash_val(gubinner, hash_table, pos, nfold):
-    rots, irots = _get_has_lossfunc_data(nfold)
-    for irot in irots:
-        to_pos = rots[irot] @ pos
-        xtgt = np.linalg.inv(pos) @ to_pos
-        key = gubinner(xtgt)
-        val = hash_table.get(key)
-        if val != -9223372036854775808:
-            return val
-    # assert 0, 'pos not found in table!'
-    return -1
-
-
-class HashCriteria:
-    def __init__(self, orig_criteria, binner, hash_table):
-        self.orig_criteria = orig_criteria
-        self.binner = binner
-        self.hash_table = hash_table
-        self.is_cyclic = False
-
-    def which_mergebb(self):
-        return (-1, )
-
-    def jit_lossfunc(self):
-        rots, irots = _get_has_lossfunc_data(self.orig_criteria.nfold)
-        binner = self.binner
-        hash_vp = self.hash_table.hash
-
-        @jit
-        def func(pos, idx, verts):
-            pos = pos[-1]
-            for irot in irots:
-                to_pos = rots[irot] @ pos
-                xtgt = np.linalg.inv(pos) @ to_pos
-                key = binner(xtgt)
-                val = _khash_get(hash_vp, key, -9223372036854775808)
-
-                # if missing, no hit
-                if val == -9223372036854775808:
-                    continue
-
-                # must use same bblock
-                ibody = verts[-1].ibblock[idx[-1]]
-                ibody0 = np.right_shift(val, 16) % 2**16
-                if ibody != ibody0:
-                    continue
-
-                # must use different site
-                isite0 = np.right_shift(val, 8) % 2**8
-                isite1 = val % 2**8
-                isite = verts[-1].isite[idx[-1], 0]
-                if isite == isite0 or isite == isite1:
-                    continue
-
-                return 0
-            return 9e9
-
-        return func
-
-
 def merge_results(
-        criteria, ssdag, graphA, rsltA, critB, graphB, rsltB, merged_err_cut,
+        criteria, ssdag, ssdagA, rsltA, critB, ssdagB, rsltB, merged_err_cut,
         max_merge, **kw
 ):
+    bsfull = [x[0] for x in ssdag.bbspec]
+    bspartA = [x[0] for x in ssdagA.bbspec]
+    bspartB = [x[0] for x in ssdagB.bbspec]
+    assert bsfull[-len(bspartA):] == bspartA
+    assert bsfull[:len(bspartB)] == bspartB
+
+    # print('merge_results ssdag.bbspec', ssdag.bbspec)
+    # print('merge_results criteria.bbspec', criteria.bbspec)
     rsltB = subset_result(rsltB, slice(max_merge))
     print(
         'merge_results num rsltA:', len(rsltA.idx), 'num rsltB:',
         len(rsltB.idx)
     )
+
+    print('rsltB.idx[:10])', rsltB.idx[:10])
+
     binner = critB.binner
     hash_table = critB.hash_table
-    assert len(graphB.bbs[-1]) == len(graphA.bbs[0]) == len(
+    assert len(ssdagB.bbs[-1]) == len(ssdagA.bbs[0]) == len(
         ssdag.bbs[criteria.from_seg]
     ) == 1
-    assert graphB.bbs[-1][0].filehash == graphA.bbs[0][0].filehash
-    assert graphB.bbs[-1][0].filehash == ssdag.bbs[criteria.from_seg
+    assert ssdagB.bbs[-1][0].filehash == ssdagA.bbs[0][0].filehash
+    assert ssdagB.bbs[-1][0].filehash == ssdag.bbs[criteria.from_seg
                                                    ][0].filehash
-    for i in range(criteria.from_seg):
-        f = [bb.filehash for bb in ssdag.bbs[i]]
-        assert f == [bb.filehash for bb in graphB.bbs[i]]
-    for i in range(len(ssdag.verts) - criteria.from_seg):
-        f = [bb.filehash for bb in ssdag.bbs[criteria.from_seg + i]]
-        assert f == [bb.filehash for bb in graphA.bbs[i]]
+    for _ in range(criteria.from_seg):
+        f = [bb.filehash for bb in ssdag.bbs[_]]
+        assert f == [bb.filehash for bb in ssdagB.bbs[_]]
+    for _ in range(len(ssdag.verts) - criteria.from_seg):
+        f = [bb.filehash for bb in ssdag.bbs[criteria.from_seg + _]]
+        assert f == [bb.filehash for bb in ssdagA.bbs[_]]
 
     n = len(rsltB.idx)
     nv = len(ssdag.verts)
@@ -392,10 +271,17 @@ def merge_results(
     )
     ok = np.ones(n, dtype=np.bool)
     for i_in_rslt in range(n):
+        # print(rsltB.pos[i_in_rslt, -1])
         val = _get_hash_val(
             binner, hash_table, rsltB.pos[i_in_rslt, -1], criteria.nfold
         )
+        # print(
+        # 'merge_results', i_in_rslt, val, np.right_shift(val, 32),
+        # np.right_shift(val, 16) % 16,
+        # np.right_shift(val, 8) % 8, val % 8
+        # )
         if val < 0:
+            print('val < 0')
             ok[i_in_rslt] = False
             continue
         i_ot_rslt = np.right_shift(val, 32)
@@ -409,37 +295,28 @@ def merge_results(
         assert np.allclose(pos[criteria.from_seg], rsltB.pos[i_in_rslt, -1])
         err = criteria.score(pos.reshape(-1, 1, 4, 4))
         merged.err[i_in_rslt] = err
+        # print('merge_results', i_in_rslt, pos)
+        # print('merge_results', i_in_rslt, err)
         if err > merged_err_cut: continue
 
         i_outer = rsltA.idx[i_ot_rslt, 0]
         i_outer2 = rsltA.idx[i_ot_rslt, -1]
         i_inner = rsltB.idx[i_in_rslt, -1]
-        v_inner = graphB.verts[-1]
-        v_outer = graphA.verts[0]
+        v_inner = ssdagB.verts[-1]
+        v_outer = ssdagA.verts[0]
         ibb = v_outer.ibblock[i_outer]
         assert ibb == 0
         ires_in = v_inner.ires[i_inner, 0]
         ires_out = v_outer.ires[i_outer, 1]
         isite_in = v_inner.isite[i_inner, 0]
         isite_out = v_outer.isite[i_outer, 1]
-        isite_out2 = graphA.verts[-1].isite[i_outer2, 0]
+        isite_out2 = ssdagA.verts[-1].isite[i_outer2, 0]
         mrgv = ssdag.verts[criteria.from_seg]
         assert max(mrgv.ibblock) == 0
-        assert max(graphA.verts[-1].ibblock) == 0
+        assert max(ssdagA.verts[-1].ibblock) == 0
 
-        x = ((mrgv.ires[:, 0] == ires_in) * (mrgv.ires[:, 1] == ires_out))
-        imerge_old = np.where(x)[0]
-        imerge = _binary_search_pair(mrgv.ires, (ires_in, ires_out))
-        # print(imerge, imerge_old)
-        if imerge_old:
-            assert imerge_old[0] == imerge
-        else:
-            assert imerge == -1
-        # print(
-        # ' ', i_in_rslt, ibb, ires_in, ires_out, isite_in, isite_out,
-        # isite_out2, imerge
-        # )
-        if not len(imerge_old) == 1:
+        imerge = binary_search_pair(mrgv.ires, (ires_in, ires_out))
+        if imerge == -1:
             # if imerge < 0:
             ok[i_in_rslt] = False
             continue
@@ -461,20 +338,4 @@ def merge_results(
     ok[merged.err > merged_err_cut] = False
     ok = np.where(ok)[0][np.argsort(merged.err[ok])]
     merged = subset_result(merged, ok)
-    print('merge_results done', len(ok))
-    return merged, ok
-
-
-@jit
-def _binary_search_pair(ires, tgt, ret=0):
-    n = len(ires)
-    if n == 1:
-        if ires[0, 0] == tgt[0] and ires[0, 1] == tgt[1]:
-            return ret
-        else:
-            return -1
-    mid = n // 2
-    if (ires[mid, 0], ires[mid, 1]) > tgt:
-        return _binary_search_pair(ires[:mid], tgt, ret)
-    else:
-        return _binary_search_pair(ires[mid:], tgt, ret + mid)
+    return merged

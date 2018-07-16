@@ -7,6 +7,7 @@ import itertools as it
 import operator
 import multiprocessing
 import threading
+from time import time
 
 from hashlib import sha1
 import numpy as np
@@ -16,6 +17,7 @@ from concurrent.futures import as_completed as cf_as_completed
 from homog import hrot
 import pandas as pd
 import numba as nb
+
 try:
     # god, I'm so tired of this crap....
     from pyrosetta import rosetta as ros
@@ -24,6 +26,26 @@ except ImportError:
     HAVE_PYROSETTA = False
 
 jit = nb.njit(nogil=True, fastmath=True)
+
+
+def run_and_time(func, *args, **kw):
+    t = time()
+    return func(*args, **kw), time() - t
+
+
+@jit
+def binary_search_pair(is_sorted, tgt, ret=0):
+    n = len(is_sorted)
+    if n == 1:
+        if is_sorted[0, 0] == tgt[0] and is_sorted[0, 1] == tgt[1]:
+            return ret
+        else:
+            return -1
+    mid = n // 2
+    if (is_sorted[mid, 0], is_sorted[mid, 1]) > tgt:
+        return binary_search_pair(is_sorted[:mid], tgt, ret)
+    else:
+        return binary_search_pair(is_sorted[mid:], tgt, ret + mid)
 
 
 @jit

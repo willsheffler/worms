@@ -100,7 +100,13 @@ def grow_linear(
         stats=tot_stats
     )
     result = remove_duplicate_results(result)
-    return result
+    order = np.argsort(result.err)
+    return SearchResult(
+        pos=result.pos[order],
+        idx=result.idx[order],
+        err=result.err[order],
+        stats=result.stats
+    )
 
 
 def _grow_linear_start(verts_pickleable, edges_pickleable, **kwargs):

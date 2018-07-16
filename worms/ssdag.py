@@ -79,7 +79,7 @@ def simple_search_dag(
     bbs = [bbmap[q] for q in queries]
     if modbbs: modbbs(bbs)
     if merge_bblock is not None:
-        print('which_mergebb', criteria.bbspec, criteria.which_mergebb())
+        # print('which_mergebb', criteria.bbspec, criteria.which_mergebb())
         for i in criteria.which_mergebb():
             bbs[i] = (bbs[i][merge_bblock], )
 

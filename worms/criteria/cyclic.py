@@ -1,7 +1,8 @@
 from .base import *
 from worms.util import jit
-from worms.criteria import make_hash_table
+from worms.criteria import make_hash_table, HashCriteria
 from homog import numba_axis_angle
+from xbin import gu_xbin_indexer, numba_xbin_indexer
 from copy import deepcopy
 
 
@@ -48,6 +49,7 @@ class Cyclic(WormCriteria):
         self.sym_axes = [(self.nfold, Uz, [0, 0, 0, 1])]
         a = self.symangle
 
+        self.min_radius = min_radius
         if self.nfold == 1:
             self.min_sep2 = 0.0
         elif self.nfold == 2:
@@ -133,27 +135,28 @@ class Cyclic(WormCriteria):
         return func
 
     def stages(self, hash_cart_resl, hash_ori_resl, **kw):
-        if criteria.origin_seg is None:
+        "return spearate criteria for each search stage"
+        if self.origin_seg is None:
             return [self]
 
         assert self.origin_seg == 0
         bbspec = deepcopy(self.bbspec[self.from_seg:])
         bbspec[0][1] = '_' + bbspec[0][1][1]
-        critA = Cyclic(self.nfold, min_radius=min_radius)
+        critA = Cyclic(self.nfold, min_radius=self.min_radius)
         critA.bbspec = bbspec
 
-        def stage2(prev_results):
-            graphA, rsltA = prev_results[-1]
+        def stageB(critA, ssdagA, resultA):
             bbspec = deepcopy(self.bbspec[:self.from_seg + 1])
             bbspec[-1][1] = bbspec[-1][1][0] + '_'
             gubinner = gu_xbin_indexer(hash_cart_resl, hash_ori_resl)
             numba_binner = numba_xbin_indexer(hash_cart_resl, hash_ori_resl)
-            keys, hash_table = make_hash_table(graphA, rsltA, gubinner)
+            keys, hash_table = make_hash_table(ssdagA, resultA, gubinner)
             critB = HashCriteria(self, numba_binner, hash_table)
             critB.bbspec = bbspec
             return critB
 
-        return [critA, stage2]
+        return [critA, stageB]
 
     def which_mergebb(self):
+        "which bbs are being merged together"
         return self.from_seg, self.to_seg
