@@ -104,7 +104,7 @@ def simple_search_dag(
     if make_edges:
         tedge = time()
         edges = [
-            Edge(verts[i], bbs[i], verts[i + 1], bbs[i + 1], splicedb=spdb,sync_to_disk_every=cache_sync, **kw)
+            Edge(verts[i], bbs[i], verts[i + 1], bbs[i + 1], splicedb=spdb,sync_to_disk_every=cache_sync, verbosity=verbosity, **kw)
             for i in range(len(verts) - 1)
         ] # yapf: disable
         tedge = time() - tedge

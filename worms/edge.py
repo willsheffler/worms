@@ -117,6 +117,7 @@ def get_allowed_splices(
     pairs_with_no_valid_splices = 0
     tcache = 0
     exe = cf.ProcessPoolExecutor if parallel else InProcessExecutor
+    # exe = cf.ThreadPoolExecutor if parallel else InProcessExecutor
     with exe() as pool:
         futures = list()
         ofst0 = 0
@@ -159,6 +160,7 @@ def get_allowed_splices(
                 total=len(futures),
                 smoothing=0.0  # does this do anything?
             )
+        print(len(futures))
         for future in future_iter:
             iblk0, iblk1, ofst0, ofst1, ires0, ires1 = future.stash
             result = future.result()

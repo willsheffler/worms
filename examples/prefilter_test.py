@@ -9,7 +9,7 @@ import pytest
 from worms import simple_search_dag, Cyclic, grow_linear, NullCriteria
 from worms.util import InProcessExecutor
 from worms.database import BBlockDB, SpliceDB
-from worms.graph_pose import make_pose_crit, make_pose
+from worms.ssdag_pose import make_pose_crit, make_pose
 from worms.ssdag import graph_dump_pdb
 from worms.filters.clash import prune_clashes
 from worms.search import lossfunc_rand_1_in

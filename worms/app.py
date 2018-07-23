@@ -11,13 +11,13 @@ from worms.criteria import *
 from worms.database import BBlockDB, SpliceDB
 from worms.ssdag import simple_search_dag, graph_dump_pdb
 from worms.search import grow_linear, SearchResult, subset_result
-from worms.graph_pose import make_pose_crit
+from worms.ssdag_pose import make_pose_crit
 from worms.util import get_symdata, run_and_time, binary_search_pair
 from worms.filters.clash import prune_clashes
 from worms.khash import KHashi8i8
 from worms.khash.khash_cffi import _khash_get
 from worms.criteria.hash_util import _get_hash_val
-
+from worms.filters.db_filters import get_affected_positions
 import pyrosetta
 from pyrosetta import rosetta as ros
 
@@ -27,6 +27,7 @@ def parse_args(argv):
         argv=argv,
         geometry=[''],
         bbconn=[''],
+        config_file='',
         nbblocks=64,
         monte_carlo=0.0,
         parallel=1,
@@ -66,9 +67,24 @@ def parse_args(argv):
         output_centroid=False,
 
     )
-    crit = eval(''.join(args.geometry))
-    bb = args.bbconn[1::2]
-    nc = args.bbconn[0::2]
+
+    if not args.config_file:
+        crit = eval(''.join(args.geometry))
+        bb = args.bbconn[1::2]
+        nc = args.bbconn[0::2]
+    else:
+        with open(args.config_file) as inp:
+            lines = inp.readlines()
+            assert len(lines) is 2
+
+            def orient(a, b):
+                return (a or '_') + (b or '_')
+
+            bbnc = eval(lines[0])
+            bb = [x[0] for x in bbnc]
+            nc = [x[1] for x in bbnc]
+            crit = eval(lines[1])
+
     assert len(nc) == len(bb)
     assert crit.from_seg < len(bb)
     assert crit.to_seg < len(bb)
@@ -107,12 +123,15 @@ def worms_main(argv):
 
 
 def search_func(criteria, ssdag, **kw):
+
+    stages = [criteria]
+    if hasattr(criteria, 'stages'):
+        stages = criteria.stages(**kw)
     results = list()
-    for i, stage_criteria in enumerate(criteria.stages(**kw)):
+    for i, stage_criteria in enumerate(stages):
         if callable(stage_criteria):
             stage_criteria = stage_criteria(*results[-1])
-        tmp = search_single_stage(stage_criteria, lbl=str(i), **kw)
-        results.append((stage_criteria, ) + tmp)
+        results.append(search_single_stage(stage_criteria, lbl=str(i), **kw))
 
     if len(results) == 1:
         return results[0][-1]
@@ -130,7 +149,8 @@ def search_single_stage(criteria, lbl='', **kw):
     if kw['run_cache']:
         if os.path.exists(kw['run_cache'] + lbl + '.pickle'):
             with (open(kw['run_cache'] + lbl + '.pickle', 'rb')) as inp:
-                return _pickle.load(inp)
+                ssdag, result = _pickle.load(inp)
+                return criteria, ssdag, result
     ssdag = simple_search_dag(criteria, **kw)
     result = grow_linear(
         ssdag=ssdag,
@@ -147,7 +167,7 @@ def search_single_stage(criteria, lbl='', **kw):
     # print(result.err[:100])
     # assert 0
 
-    return ssdag, result
+    return criteria, ssdag, result
 
 
 def output_results(
@@ -174,21 +194,38 @@ def output_results(
         if merge_bblock is not None: mbb = f'_mbb{merge_bblock:03d}'
         fname = output_prefix + mbb + '_%03i.pdb' % i
         if output_pose:
-            pose = make_pose_crit(
+            print('make_pose_crit')
+            pose, prov = make_pose_crit(
                 db[0],
                 ssdag,
                 criteria,
                 result.idx[i],
                 result.pos[i],
-                only_connected='auto'
+                only_connected='auto',
+                provenance=True
             )
+            with open('wip_pose_prov.pickle', 'wb') as out:
+                _pickle.dump((pose, prov), out)
             if output_centroid:
                 ros.core.util.switch_to_residue_type_set(pose, 'centroid')
             if output_symmetric:
                 symdata = get_symdata(criteria.symname)
                 ros.core.pose.symmetry.make_symmetric_pose(pose, symdata)
+
             print('output pdb', fname)
+            mod, new, lost, junct = get_affected_positions(pose, prov)
             pose.dump_pdb(fname)
+            commas = lambda l: ','.join(str(_) for _ in l)
+            with open(fname, 'a') as out:
+                nchain = pose.num_chains()
+                out.write('Modified positions: ' + commas(mod) + '\n')
+                out.write('New contact positions: ' + commas(new) + '\n')
+                out.write('Lost contact positions: ' + commas(lost) + '\n')
+                out.write('Junction residues: ' + commas(junct) + '\n')
+                out.write('Length of asymetric unit: ' + str(len(pose)) + '\n')
+                out.write('Number of chains in ASU: ' + str(nchain) + '\n')
+                out.write('Closure error: ' + str(result.err[i]) + '\n')
+
         else:
             if output_symmetric:
                 raise NotImplementedError('no symmetry w/o poses')
@@ -239,12 +276,6 @@ def merge_results(
     # print('merge_results ssdag.bbspec', ssdag.bbspec)
     # print('merge_results criteria.bbspec', criteria.bbspec)
     rsltB = subset_result(rsltB, slice(max_merge))
-    print(
-        'merge_results num rsltA:', len(rsltA.idx), 'num rsltB:',
-        len(rsltB.idx)
-    )
-
-    print('rsltB.idx[:10])', rsltB.idx[:10])
 
     binner = critB.binner
     hash_table = critB.hash_table

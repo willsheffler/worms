@@ -7,6 +7,7 @@ from worms.vis import format_atom
 from worms.filters.clash import _chain_bounds
 import numba.types as nt
 import homog
+from worms.util import hash_str_to_int
 
 
 def BBlock(entry, pdbfile, filehash, pose, ss):
@@ -32,6 +33,11 @@ def BBlock(entry, pdbfile, filehash, pose, ss):
     else:
         assert 0, 'bad ncac'
 
+    if entry['base']:
+        basehash = hash_str_to_int(entry['base'])
+    else:
+        basehash = 0
+
     npfb = np.frombuffer
     bblock = _BBlock(
         connections=conn,
@@ -44,6 +50,7 @@ def BBlock(entry, pdbfile, filehash, pose, ss):
         validated=entry['validated'],
         _type=npfb(entry['type'].encode(), dtype='i1'),
         base=npfb(entry['base'].encode(), dtype='i1'),
+        basehash=basehash,
         ncac=np.ascontiguousarray(ncac),
         chains=np.array(chains, dtype='i4'),
         ss=ss,
@@ -172,6 +179,7 @@ def _ncac_to_stubs(ncac):
     ('validated'  , nt.boolean),
     ('_type'      , nt.int8[:]),
     ('base'       , nt.int8[:]),
+    ('basehash'   , nt.int64),
     ('ncac'       , nt.float64[:, :, :]),
     ('chains'     , nt.int32[:,:]),
     ('ss'         , nt.int8[:]),
@@ -180,7 +188,7 @@ def _ncac_to_stubs(ncac):
 class _BBlock:
     def __init__(
             self, connections, file, filehash, components, protocol, name,
-            classes, validated, _type, base, ncac, chains, ss, stubs
+            classes, validated, _type, base, basehash, ncac, chains, ss, stubs
     ):
         self.connections = connections
         self.file = file
@@ -192,6 +200,7 @@ class _BBlock:
         self.validated = validated
         self._type = _type
         self.base = base
+        self.basehash = basehash
         self.ncac = ncac
         self.chains = chains
         self.ss = ss
@@ -221,7 +230,8 @@ class _BBlock:
         return (
             self.connections, self.file, self.filehash, self.components,
             self.protocol, self.name, self.classes, self.validated, self._type,
-            self.base, self.ncac, self.chains, self.ss, self.stubs
+            self.base, self.basehash, self.ncac, self.chains, self.ss,
+            self.stubs
         )
 
 
