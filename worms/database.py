@@ -38,7 +38,9 @@ class SpliceDB:
     """Stores valid NC splices for bblock pairs"""
 
     def __init__(self, cachedirs=None, **kw):
-        cachedirs = [x for x in cachedirs if x]
+        cachedirs = cachedirs or []
+        if not isinstance(cachedirs, str):
+            cachedirs = [x for x in cachedirs if x]
         if not cachedirs:
             if 'HOME' in os.environ:
                 cachedirs = os.environ['HOME'] + os.sep + '.worms/cache'
@@ -118,7 +120,9 @@ class BBlockDB:
             lazy (bool, optional): Description
             read_new_pdbs (bool, optional): Description
         """
-        cachedirs = [x for x in cachedirs if x]
+        cachedirs = cachedirs or []
+        if not isinstance(cachedirs, str):
+            cachedirs = [x for x in cachedirs if x]
         if not cachedirs:
             if 'HOME' in os.environ:
                 cachedirs = [os.environ['HOME'] + os.sep + '.worms/cache']
@@ -128,6 +132,7 @@ class BBlockDB:
             cachedirs = [cachedirs]
         self.cachedirs = cachedirs
         self.load_poses = load_poses
+        print(cachedirs)
         os.makedirs(self.cachedirs[0] + '/poses', exist_ok=True)
         os.makedirs(self.cachedirs[0] + '/bblock', exist_ok=True)
         self._bblock_cache, self._poses_cache = dict(), dict()
@@ -217,8 +222,10 @@ class BBlockDB:
             if not pdbkey in self._bblock_cache:
                 if not self.load_cached_bblock_into_memory(pdbkey):
                     pdbfile = self.key_to_pdbfile[pdbkey]
-                    raise ValueError('no bblock data for key', pdbkey,
-                                     pdbfile, 'in', self.cachedirs)
+                    raise ValueError(
+                        'no bblock data for key', pdbkey, pdbfile, 'in',
+                        self.cachedirs
+                    )
             return self._bblock_cache[pdbkey]
         elif isinstance(pdbkey, list):
             return [self.bblock(f) for f in pdbkey]
@@ -299,7 +306,9 @@ class BBlockDB:
             candidate = os.path.join(d, 'bblock', '%016x.pickle' % pdbkey)
             if os.path.exists(candidate):
                 return candidate
-        return os.path.join(self.cachedirs[0], 'bblock', '%016x.pickle' % pdbkey)
+        return os.path.join(
+            self.cachedirs[0], 'bblock', '%016x.pickle' % pdbkey
+        )
 
     def load_cached_bblock_into_memory(self, pdbkey):
         assert not isinstance(pdbkey, (str, bytes))
