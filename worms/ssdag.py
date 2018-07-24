@@ -5,6 +5,8 @@ from worms import Vertex, Edge
 from worms.bblock import bblock_dump_pdb, _BBlock
 from worms.vertex import _Vertex
 from worms.edge import _Edge
+import worms
+
 from worms.util import InProcessExecutor
 from pprint import pprint
 from logging import info
@@ -58,17 +60,17 @@ def simple_search_dag(
         parallel=False,
         verbosity=0,
         timing=0,
-        cache_sync=0.001,
         modbbs=None,
         make_edges=True,
         merge_bblock=None,
+        precompute_splices=False,
         **kw
 ):
 
     bbdb, spdb = db
     queries, directions = zip(*criteria.bbspec)
-    info('bblock queries', queries)
-    info('directions', directions)
+    info('bblock queries: ' + str(queries))
+    info('directions: ' + str(directions))
     tdb = time()
     bbmap = {
         q: bbdb.query(q, max_bblocks=nbblocks, shuffle=shuf)
@@ -84,7 +86,10 @@ def simple_search_dag(
             bbs[i] = (bbs[i][merge_bblock], )
 
     tdb = time() - tdb
-    info(f'bblock creation time {tdb:7.3f}', 'num bbs:', [len(x) for x in bbs])
+    info(f'bblock creation time {tdb:7.3f} num bbs: ' + str([len(x) for x in bbs]))
+
+    if precompute_splices:
+        worms.edge.precompute_splices(db, criteria.bbspec, bbs, verbosity=verbosity, parallel=parallel, **kw)
 
     tvertex = time()
     exe = cf.ThreadPoolExecutor if parallel else InProcessExecutor
@@ -96,24 +101,24 @@ def simple_search_dag(
 
     tvertex = time() - tvertex
     info(
-        f'vertex creation time {tvertex:7.3f}', 'num verts',
-        [v.len for v in verts]
+        f'vertex creation time {tvertex:7.3f} num verts ' +
+        str([v.len for v in verts])
     )
 
     edges = []
     if make_edges:
         tedge = time()
         edges = [
-            Edge(verts[i], bbs[i], verts[i + 1], bbs[i + 1], splicedb=spdb,sync_to_disk_every=cache_sync, verbosity=verbosity, **kw)
+            Edge(verts[i], bbs[i], verts[i + 1], bbs[i + 1], splicedb=spdb, verbosity=verbosity, **kw)
             for i in range(len(verts) - 1)
         ] # yapf: disable
         tedge = time() - tedge
         if verbosity > 0:
             print_edge_summary(edges)
         info(
-            f'edge creation time {tedge:7.3f}', 'num splices',
-            [e.total_allowed_splices() for e in edges], 'num exits',
-            [e.len for e in edges]
+            f'edge creation time {tedge:7.3f} num splices ' +
+            str([e.total_allowed_splices() for e in edges]) + ' num exits ' +
+            str([e.len for e in edges])
         )
         spdb.sync_to_disk()
 

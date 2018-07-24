@@ -12,12 +12,13 @@ from worms.database import BBlockDB, SpliceDB
 from worms.ssdag import simple_search_dag, graph_dump_pdb
 from worms.search import grow_linear, SearchResult, subset_result
 from worms.ssdag_pose import make_pose_crit
-from worms.util import get_symdata, run_and_time, binary_search_pair
+from worms.util import get_symdata, run_and_time, binary_search_pair, cpu_count, get_cli_args
 from worms.filters.clash import prune_clashes
 from worms.khash import KHashi8i8
 from worms.khash.khash_cffi import _khash_get
 from worms.criteria.hash_util import _get_hash_val
 from worms.filters.db_filters import get_affected_positions
+
 import pyrosetta
 from pyrosetta import rosetta as ros
 
@@ -32,8 +33,9 @@ def parse_args(argv):
         monte_carlo=0.0,
         parallel=1,
         verbosity=2,
+        precompute_splices=True,
         #
-        cachedir='',
+        cachedirs=[''],
         dbfiles=[''],
         load_poses=False,
         read_new_pdbs=False,
@@ -237,30 +239,6 @@ def output_results(
                 join='bb',
                 trim=True
             )
-
-
-def get_cli_args(argv=None, **kw):
-    if argv is None: argv = sys.argv[1:]
-    # add from @files
-    atfiles = []
-    for a in argv:
-        if a.startswith('@'):
-            atfiles.append(a)
-    for a in atfiles:
-        argv.remove(a)
-        with open(a[1:]) as inp:
-            argv = list(inp.read().split()) + argv
-    p = argparse.ArgumentParser()
-    for k, v in kw.items():
-        nargs = None
-        type_ = type(v)
-        if isinstance(v, list):
-            nargs = '+'
-            type_ = type(v[0])
-        p.add_argument('--' + k, type=type_, dest=k, default=v, nargs=nargs)
-        # print('arg', k, type_, nargs, v)
-    args = p.parse_args(argv)
-    return args
 
 
 def merge_results(

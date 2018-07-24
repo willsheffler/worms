@@ -21,7 +21,7 @@ except ImportError:
 @pytest.fixture(scope='session')
 def bbdb(datadir):
     return BBlockDB(
-        cachedir=str('.worms_pytest_cache'),
+        cachedirs=[str('.worms_pytest_cache')],
         dbfiles=[os.path.join(datadir, 'test_db_file.json')],
         lazy=False,
         read_new_pdbs=HAVE_PYROSETTA,
@@ -30,13 +30,13 @@ def bbdb(datadir):
 
 @pytest.fixture(scope='session')
 def spdb(datadir):
-    return SpliceDB(cachedir=str('.worms_pytest_cache'))
+    return SpliceDB(cachedirs=[str('.worms_pytest_cache')])
 
 
 @pytest.fixture(scope='session')
 def bbdb_fullsize_prots(datadir):
     return BBlockDB(
-        cachedir=str('.worms_pytest_cache'),
+        cachedirs=[str('.worms_pytest_cache')],
         dbfiles=[os.path.join(datadir, 'test_fullsize_prots.json')],
         lazy=False,
         read_new_pdbs=HAVE_PYROSETTA,

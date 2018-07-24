@@ -8,6 +8,7 @@ from collections import namedtuple, defaultdict
 from pyrosetta.rosetta.core.select.residue_selector import *
 import numpy as np
 from pyrosetta import rosetta
+pyrosetta.Pose = pyrosetta.rosetta.core.pose.Pose
 from pyrosetta import toolbox
 from pyrosetta.toolbox import *
 from pyrosetta.toolbox import generate_resfile

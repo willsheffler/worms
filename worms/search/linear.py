@@ -51,9 +51,9 @@ def grow_linear(
     #     if not 'NUMBA_DISABLE_JIT' in os.environ:
     #         loss_function = nb.njit(nogil=1, fastmath=1)
 
-    exe = cf.ThreadPoolExecutor if parallel else InProcessExecutor
-    # exe = cf.ProcessPoolExecutor if parallel else InProcessExecutor
-    with exe() as pool:
+    exe = cf.ThreadPoolExecutor(max_workers=parallel) if parallel else InProcessExecutor()
+    # exe = cf.ProcessPoolExecutor(max_workers=parallel) if parallel else InProcessExecutor()
+    with exe as pool:
         verts_pickleable = [v._state for v in verts]
         edges_pickleable = [e._state for e in edges]
         kwargs = dict(

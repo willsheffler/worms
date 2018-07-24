@@ -1,28 +1,27 @@
-from worms.database import BBlockDB
 from logging import info
 import argparse
-import pyrosetta
+
 import os
+
+from worms.util import get_cli_args
+from worms.database import BBlockDB
+
+import pyrosetta
 
 if __name__ == '__main__':
 
     info('sent to info')
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--dbfiles', type=str, nargs='+', dest='dbfiles')
-    parser.add_argument('--cachedir', type=str, dest='cachedir')
-    parser.add_argument('--nprocs', type=int, dest='nprocs', default=1)
-    parser.add_argument(
-        '--read_new_pdbs', type=bool, dest='read_new_pdbs', default=False
-    )
-    args = parser.parse_args()
+    args = get_cli_args(dbfiles=[''], cachedirs='', read_new_pdbs=False, parallel=0)
+    if args.parallel == 0: args.parallel = 1
+
     pyrosetta.init('-mute all -ignore_unrecognized_res')
 
     try:
         pp = BBlockDB(
             dbfiles=args.dbfiles,
-            nprocs=args.nprocs,
-            cachedir=args.cachedir,
+            nprocs=args.parallel,
+            cachedirs=args.cachedirs,
             read_new_pdbs=args.read_new_pdbs,
             lazy=False,
         )

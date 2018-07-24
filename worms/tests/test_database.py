@@ -56,7 +56,7 @@ def test_database_simple(tmpdir, caplog):
 @only_if_pyrosetta_distributed
 def test_construct_database_from_pdbs(tmpdir, datadir):
     pp = BBlockDB(
-        cachedir=str(tmpdir),
+        cachedirs=str(tmpdir),
         dbfiles=[os.path.join(datadir, 'test_db_file.json')],
         lazy=False,
         read_new_pdbs=True

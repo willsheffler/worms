@@ -37,13 +37,16 @@ def flatten_path(pdbfile):
 class SpliceDB:
     """Stores valid NC splices for bblock pairs"""
 
-    def __init__(self, cachedir=None, **kw):
-        if not cachedir:
+    def __init__(self, cachedirs=None, **kw):
+        cachedirs = [x for x in cachedirs if x]
+        if not cachedirs:
             if 'HOME' in os.environ:
-                cachedir = os.environ['HOME'] + os.sep + '.worms/cache'
+                cachedirs = os.environ['HOME'] + os.sep + '.worms/cache'
             else:
-                cachedir = '.worms/cache'
-        self.cachedir = os.path.join(cachedir, 'splices')
+                cachedirs = ['.worms/cache']
+        if isinstance(cachedirs, str):
+            cachedirs = [cachedirs]
+        self.cachedirs = [os.path.join(x, 'splices') for x in cachedirs]
         self._cache = dict()
         self._dirty = set()
 
@@ -51,7 +54,11 @@ class SpliceDB:
         # stock hash ok for tuples of numbers (?)
         prm = '%016x' % abs(hash(params))
         key = '%016x.pickle' % pdbkey
-        return os.path.join(self.cachedir, prm, key)
+        for d in self.cachedirs:
+            candidate = os.path.join(d, prm, key)
+            if os.path.exists(candidate):
+                return candidate
+        return os.path.join(self.cachedirs[0], prm, key)
 
     def partial(self, params, pdbkey):
         assert isinstance(pdbkey, int)
@@ -92,7 +99,7 @@ class BBlockDB:
 
     def __init__(
             self,
-            cachedir=None,
+            cachedirs=None,
             dbfiles=[],
             load_poses=False,
             nprocs=1,
@@ -104,22 +111,25 @@ class BBlockDB:
         """TODO: Summary
 
         Args:
-            cachedir (None, optional): Description
+            cachedirs (None, optional): Description
             dbfiles (list, optional): Description
             load_poses (bool, optional): Description
             nprocs (int, optional): Description
             lazy (bool, optional): Description
             read_new_pdbs (bool, optional): Description
         """
-        if not cachedir:
+        cachedirs = [x for x in cachedirs if x]
+        if not cachedirs:
             if 'HOME' in os.environ:
-                cachedir = os.environ['HOME'] + os.sep + '.worms/cache'
+                cachedirs = [os.environ['HOME'] + os.sep + '.worms/cache']
             else:
-                cachedir = '.worms/cache'
-        self.cachedir = str(cachedir)
+                cachedirs = ['.worms/cache']
+        if isinstance(cachedirs, str):
+            cachedirs = [cachedirs]
+        self.cachedirs = cachedirs
         self.load_poses = load_poses
-        os.makedirs(self.cachedir + '/poses', exist_ok=True)
-        os.makedirs(self.cachedir + '/bblock', exist_ok=True)
+        os.makedirs(self.cachedirs[0] + '/poses', exist_ok=True)
+        os.makedirs(self.cachedirs[0] + '/bblock', exist_ok=True)
         self._bblock_cache, self._poses_cache = dict(), dict()
         self.nprocs = nprocs
         self.lazy = lazy
@@ -163,20 +173,20 @@ class BBlockDB:
             self._alldb[i] = self.dictdb[k]
 
     def lock_cachedir(self):
-        assert not os.path.exists(self.cachedir + '/lock'), (
+        assert not os.path.exists(self.cachedirs[0] + '/lock'), (
             "database is locked! if you're sure no other jobs are editing it, remove "
-            + self.cachedir + "/lock"
+            + self.cachedirs[0] + "/lock"
         )
-        open(self.cachedir + '/lock', 'w').close()
-        assert os.path.exists(self.cachedir + '/lock')
+        open(self.cachedirs[0] + '/lock', 'w').close()
+        assert os.path.exists(self.cachedirs[0] + '/lock')
         self._holding_lock = True
 
     def unlock_cachedir(self):
-        os.remove(self.cachedir + '/lock')
+        os.remove(self.cachedirs[0] + '/lock')
         self._holding_lock = False
 
     def islocked_cachedir(self):
-        return os.path.exists(self.cachedir + '/lock')
+        return os.path.exists(self.cachedirs[0] + '/lock')
 
     def check_lock_cachedir(self):
         if not self._holding_lock:
@@ -207,7 +217,8 @@ class BBlockDB:
             if not pdbkey in self._bblock_cache:
                 if not self.load_cached_bblock_into_memory(pdbkey):
                     pdbfile = self.key_to_pdbfile[pdbkey]
-                    raise ValueError('no bblock data for key', pdbkey, pdbfile)
+                    raise ValueError('no bblock data for key', pdbkey,
+                                     pdbfile, 'in', self.cachedirs)
             return self._bblock_cache[pdbkey]
         elif isinstance(pdbkey, list):
             return [self.bblock(f) for f in pdbkey]
@@ -284,7 +295,11 @@ class BBlockDB:
 
     def bblockfile(self, pdbkey):
         assert not isinstance(pdbkey, str)
-        return os.path.join(self.cachedir, 'bblock', '%016x.pickle' % pdbkey)
+        for d in self.cachedirs:
+            candidate = os.path.join(d, 'bblock', '%016x.pickle' % pdbkey)
+            if os.path.exists(candidate):
+                return candidate
+        return os.path.join(self.cachedirs[0], 'bblock', '%016x.pickle' % pdbkey)
 
     def load_cached_bblock_into_memory(self, pdbkey):
         assert not isinstance(pdbkey, (str, bytes))
@@ -303,7 +318,11 @@ class BBlockDB:
             return False
 
     def posefile(self, pdbfile):
-        return os.path.join(self.cachedir, 'poses', flatten_path(pdbfile))
+        for d in self.cachedirs:
+            candidate = os.path.join(d, 'poses', flatten_path(pdbfile))
+            if os.path.exists(candidate):
+                return candidate
+        return os.path.join(self.cachedirs[0], 'poses', flatten_path(pdbfile))
 
     def load_from_pdbs(self):
         shuffle(self._alldb)

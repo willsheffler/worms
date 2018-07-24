@@ -1,4 +1,4 @@
-[{"file": "/home/yhsia/helixfuse/rosetta_scripts_ver/output/3L6HC2-4_2/DHR64/3L6HC2-4_2_asu_DHR64_BA_0001_0002.pdb",
+[{"file": "__DATADIR__/wheel/3L6HC2-4_2_asu_DHR64_BA_0001_0002.pdb",
  "name": "HFuse_3L6HC2-4_2_0018",
  "class": ["C2_N"],
  "type": "HFuse_C2_N",

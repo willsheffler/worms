@@ -8,6 +8,8 @@ import operator
 import multiprocessing
 import threading
 from time import time
+import sys
+import argparse
 
 from hashlib import sha1
 import numpy as np
@@ -521,3 +523,30 @@ def hash_str_to_int(s):
     if isinstance(s, str): s = s.encode()
     buf = sha1(s).digest()[:8]
     return int(abs(np.frombuffer(buf, dtype='i8')[0]))
+
+
+def get_cli_args(argv=None, **kw):
+    if argv is None: argv = sys.argv[1:]
+    # add from @files
+    atfiles = []
+    for a in argv:
+        if a.startswith('@'):
+            atfiles.append(a)
+    for a in atfiles:
+        argv.remove(a)
+        with open(a[1:]) as inp:
+            argv = list(inp.read().split()) + argv
+    p = argparse.ArgumentParser()
+    for k, v in kw.items():
+        nargs = None
+        type_ = type(v)
+        if isinstance(v, list):
+            nargs = '+'
+            type_ = type(v[0])
+        p.add_argument('--' + k, type=type_, dest=k, default=v, nargs=nargs)
+        # print('arg', k, type_, nargs, v)
+    args = p.parse_args(argv)
+    if hasattr(args, 'parallel') and args.parallel < 0:
+        args.parallel = cpu_count()
+    return args
+

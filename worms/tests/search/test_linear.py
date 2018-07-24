@@ -115,7 +115,7 @@ def test_linear_search_three(bbdb_fullsize_prots):
 
 if __name__ == '__main__':
     bbdb_fullsize_prots = BBlockDB(
-        cachedir=str('.worms_pytest_cache'),
+        cachedirs=[str('.worms_pytest_cache')],
         dbfiles=[os.path.join('worms/data/test_fullsize_prots.json')],
         lazy=False,
         read_new_pdbs=True,

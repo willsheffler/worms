@@ -71,7 +71,7 @@ def get_allowed_splices(
         skip_on_fail=True,
         parallel=False,
         verbosity=1,
-        sync_to_disk_every=0.001,
+        cache_sync=0.001,
         **kw
 ):
     assert (u.dirn[1] + v.dirn[0]) == 1, 'get_allowed_splices dirn mismatch'
@@ -116,9 +116,9 @@ def get_allowed_splices(
 
     pairs_with_no_valid_splices = 0
     tcache = 0
-    exe = cf.ProcessPoolExecutor if parallel else InProcessExecutor
-    # exe = cf.ThreadPoolExecutor if parallel else InProcessExecutor
-    with exe() as pool:
+    exe = cf.ProcessPoolExecutor(max_workers=parallel) if parallel else InProcessExecutor()
+    # exe = cf.ThreadPoolExecutor(max_workers=parallel) if parallel else InProcessExecutor()
+    with exe as pool:
         futures = list()
         ofst0 = 0
         for iblk0, ires0 in outblk_res.items():
@@ -160,7 +160,6 @@ def get_allowed_splices(
                 total=len(futures),
                 smoothing=0.0  # does this do anything?
             )
-        print(len(futures))
         for future in future_iter:
             iblk0, iblk1, ofst0, ofst1, ires0, ires1 = future.stash
             result = future.result()
@@ -181,7 +180,7 @@ def get_allowed_splices(
                     key0 = ublks[iblk0].filehash  # C-term side
                     key1 = vblks[iblk1].filehash  # N-term side
                     splicedb.add(params, key0, key1, result)
-                    if np.random.random() < sync_to_disk_every:
+                    if np.random.random() < cache_sync:
                         print('sync_to_disk splices data')
                         splicedb.sync_to_disk()
 
@@ -200,7 +199,7 @@ def get_allowed_splices(
             for ir, jr in zip(irs, jrs):
                 valid_splices[ir].append(jr)
 
-    if sync_to_disk_every > 0 and splicedb:
+    if cache_sync > 0 and splicedb:
         splicedb.sync_to_disk()
 
     if pairs_with_no_valid_splices:
@@ -381,3 +380,10 @@ def _splice_respairs(edgemat, bbc, bbn):
                 count += 1
     assert count == n
     return out0, out1
+
+
+
+
+
+def precompute_splices(db, bbspec, bbs, verbosity, parallel, **kw):
+    pass
