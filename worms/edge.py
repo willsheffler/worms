@@ -72,14 +72,15 @@ def get_allowed_splices(
         parallel=False,
         verbosity=1,
         cache_sync=0.001,
+        precache_splices=False,
         **kw
 ):
     assert (u.dirn[1] + v.dirn[0]) == 1, 'get_allowed_splices dirn mismatch'
 
+    # note: this is duplicated in edge_batch.py
     params = (
         splice_max_rms, splice_ncontact_cut, splice_clash_d2,
-        splice_contact_d2, splice_rms_range, splice_clash_contact_range,
-        u.min_seg_len, v.min_seg_len
+        splice_contact_d2, splice_rms_range, splice_clash_contact_range
     )
 
     outidx = _get_outidx(u.inout[:, 1])
@@ -116,7 +117,10 @@ def get_allowed_splices(
 
     pairs_with_no_valid_splices = 0
     tcache = 0
-    exe = cf.ProcessPoolExecutor(max_workers=parallel) if parallel else InProcessExecutor()
+
+    exe = InProcessExecutor()
+    if parallel:
+        exe = cf.ProcessPoolExecutor(max_workers=parallel)
     # exe = cf.ThreadPoolExecutor(max_workers=parallel) if parallel else InProcessExecutor()
     with exe as pool:
         futures = list()
@@ -153,7 +157,7 @@ def get_allowed_splices(
             print('get_allowed_splices read caches time:', tcache)
 
         future_iter = cf.as_completed(futures)
-        if verbosity > 1:
+        if verbosity > 1 and not precache_splices:
             future_iter = tqdm(
                 cf.as_completed(futures),
                 'checking splices',
@@ -380,10 +384,3 @@ def _splice_respairs(edgemat, bbc, bbn):
                 count += 1
     assert count == n
     return out0, out1
-
-
-
-
-
-def precompute_splices(db, bbspec, bbs, verbosity, parallel, **kw):
-    pass

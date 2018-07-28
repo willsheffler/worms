@@ -235,6 +235,17 @@ class _BBlock:
         )
 
 
+class BBlockWrap:
+    def __init__(self, _bblock):
+        self._bblock = _bblock
+
+    def __setstate__(self, state):
+        self._bblock = _BBlock(*state)
+
+    def __getstate__(self):
+        return self._bblock._state
+
+
 @jit
 def chain_of_ires(bb, ires):
     """Summary

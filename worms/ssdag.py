@@ -1,7 +1,7 @@
 from time import time
 import concurrent.futures as cf
 import numpy as np
-from worms import Vertex, Edge
+from worms import Vertex, Edge, precompute_splicedb
 from worms.bblock import bblock_dump_pdb, _BBlock
 from worms.vertex import _Vertex
 from worms.edge import _Edge
@@ -63,7 +63,7 @@ def simple_search_dag(
         modbbs=None,
         make_edges=True,
         merge_bblock=None,
-        precompute_splices=False,
+        precache_splices=False,
         **kw
 ):
 
@@ -86,10 +86,20 @@ def simple_search_dag(
             bbs[i] = (bbs[i][merge_bblock], )
 
     tdb = time() - tdb
-    info(f'bblock creation time {tdb:7.3f} num bbs: ' + str([len(x) for x in bbs]))
+    info(
+        f'bblock creation time {tdb:7.3f} num bbs: ' +
+        str([len(x) for x in bbs])
+    )
 
-    if precompute_splices:
-        worms.edge.precompute_splices(db, criteria.bbspec, bbs, verbosity=verbosity, parallel=parallel, **kw)
+    if precache_splices:
+        bbnames = [[bytes(bb.file) for bb in bbtup] for bbtup in bbs]
+        bbpairs = set()
+        for bb1, bb2, dirn1 in zip(bbnames, bbnames[1:], directions):
+            rev = dirn1[1] == 'N'
+            bbpairs.update((b, a) if rev else (a, b) for a in bb1 for b in bb2)
+        precompute_splicedb(
+            db, bbpairs, verbosity=verbosity, parallel=parallel, **kw
+        )
 
     tvertex = time()
     exe = cf.ThreadPoolExecutor if parallel else InProcessExecutor
@@ -109,7 +119,7 @@ def simple_search_dag(
     if make_edges:
         tedge = time()
         edges = [
-            Edge(verts[i], bbs[i], verts[i + 1], bbs[i + 1], splicedb=spdb, verbosity=verbosity, **kw)
+            Edge(verts[i], bbs[i], verts[i + 1], bbs[i + 1], splicedb=spdb, verbosity=verbosity, precache_splices=precache_splices,**kw)
             for i in range(len(verts) - 1)
         ] # yapf: disable
         tedge = time() - tedge
@@ -117,8 +127,8 @@ def simple_search_dag(
             print_edge_summary(edges)
         info(
             f'edge creation time {tedge:7.3f} num splices ' +
-            str([e.total_allowed_splices() for e in edges]) + ' num exits ' +
-            str([e.len for e in edges])
+            str([e.total_allowed_splices()
+                 for e in edges]) + ' num exits ' + str([e.len for e in edges])
         )
         spdb.sync_to_disk()
 

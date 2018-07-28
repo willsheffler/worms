@@ -33,7 +33,7 @@ def parse_args(argv):
         monte_carlo=0.0,
         parallel=1,
         verbosity=2,
-        precompute_splices=True,
+        precache_splices=False,
         #
         cachedirs=[''],
         dbfiles=[''],
@@ -196,7 +196,6 @@ def output_results(
         if merge_bblock is not None: mbb = f'_mbb{merge_bblock:03d}'
         fname = output_prefix + mbb + '_%03i.pdb' % i
         if output_pose:
-            print('make_pose_crit')
             pose, prov = make_pose_crit(
                 db[0],
                 ssdag,
