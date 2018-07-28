@@ -3,6 +3,7 @@ import os
 import argparse
 import _pickle
 from copy import deepcopy
+from time import time
 
 from xbin import gu_xbin_indexer, numba_xbin_indexer
 import homog as hg
@@ -129,6 +130,9 @@ def search_func(criteria, ssdag, **kw):
     stages = [criteria]
     if hasattr(criteria, 'stages'):
         stages = criteria.stages(**kw)
+    if len(stages) > 1:
+        assert kw['merge_bblock'] is not None
+
     results = list()
     for i, stage_criteria in enumerate(stages):
         if callable(stage_criteria):
@@ -148,26 +152,35 @@ def search_func(criteria, ssdag, **kw):
 
 
 def search_single_stage(criteria, lbl='', **kw):
+
     if kw['run_cache']:
         if os.path.exists(kw['run_cache'] + lbl + '.pickle'):
             with (open(kw['run_cache'] + lbl + '.pickle', 'rb')) as inp:
                 ssdag, result = _pickle.load(inp)
                 return criteria, ssdag, result
+
     ssdag = simple_search_dag(criteria, **kw)
-    result = grow_linear(
+
+    result, tsearch = run_and_time(
+        grow_linear,
         ssdag=ssdag,
         loss_function=criteria.jit_lossfunc(),
         last_bb_same_as=criteria.from_seg if criteria.is_cyclic else -1,
         **kw
     )
-    print('grow_linear done, nresluts', len(result.idx))
+
+    Nsparse = result.stats.total_samples[0]
+    Nsparse_rate = int(Nsparse / tsearch)
+    frac_redundant = 0
+    if len(result.idx):
+        frac_redundant = result.stats.n_redundant_results[0] / len(result.idx)
+    print(
+        f'grow_linear done, nresluts {len(result.idx):,}',
+        f'samp/sec {Nsparse_rate:,}', 'redundant ratio', frac_redundant
+    )
     if kw['run_cache']:
         with (open(kw['run_cache'] + lbl + '.pickle', 'wb')) as out:
             _pickle.dump((ssdag, result), out)
-
-    # print(result.idx[:10])
-    # print(result.err[:100])
-    # assert 0
 
     return criteria, ssdag, result
 
@@ -256,17 +269,18 @@ def merge_results(
 
     binner = critB.binner
     hash_table = critB.hash_table
-    assert len(ssdagB.bbs[-1]) == len(ssdagA.bbs[0]) == len(
-        ssdag.bbs[criteria.from_seg]
-    ) == 1
+    from_seg = criteria.from_seg
+
+    assert len(ssdagB.bbs[-1]) == len(ssdagA.bbs[0])
+    assert len(ssdagB.bbs[-1]) == len(ssdag.bbs[from_seg])
+    assert len(ssdagB.bbs[-1]) == 1, 'did you set merge_bblock?'
     assert ssdagB.bbs[-1][0].filehash == ssdagA.bbs[0][0].filehash
-    assert ssdagB.bbs[-1][0].filehash == ssdag.bbs[criteria.from_seg
-                                                   ][0].filehash
-    for _ in range(criteria.from_seg):
+    assert ssdagB.bbs[-1][0].filehash == ssdag.bbs[from_seg][0].filehash
+    for _ in range(from_seg):
         f = [bb.filehash for bb in ssdag.bbs[_]]
         assert f == [bb.filehash for bb in ssdagB.bbs[_]]
-    for _ in range(len(ssdag.verts) - criteria.from_seg):
-        f = [bb.filehash for bb in ssdag.bbs[criteria.from_seg + _]]
+    for _ in range(len(ssdag.verts) - from_seg):
+        f = [bb.filehash for bb in ssdag.bbs[from_seg + _]]
         assert f == [bb.filehash for bb in ssdagA.bbs[_]]
 
     n = len(rsltB.idx)
@@ -300,7 +314,7 @@ def merge_results(
             rsltB.pos[i_in_rslt, :-1],
             rsltB.pos[i_in_rslt, -1] @ rsltA.pos[i_ot_rslt, :]
         ))
-        assert np.allclose(pos[criteria.from_seg], rsltB.pos[i_in_rslt, -1])
+        assert np.allclose(pos[from_seg], rsltB.pos[i_in_rslt, -1])
         err = criteria.score(pos.reshape(-1, 1, 4, 4))
         merged.err[i_in_rslt] = err
         # print('merge_results', i_in_rslt, pos)
@@ -319,7 +333,7 @@ def merge_results(
         isite_in = v_inner.isite[i_inner, 0]
         isite_out = v_outer.isite[i_outer, 1]
         isite_out2 = ssdagA.verts[-1].isite[i_outer2, 0]
-        mrgv = ssdag.verts[criteria.from_seg]
+        mrgv = ssdag.verts[from_seg]
         assert max(mrgv.ibblock) == 0
         assert max(ssdagA.verts[-1].ibblock) == 0
 

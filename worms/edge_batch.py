@@ -71,6 +71,7 @@ def precompute_splicedb(db, bbpairs, **kw):
         kw['splice_clash_contact_range']
     )
     bbpairs = _remove_already_cached(spdb, bbpairs, params)
+    if not bbpairs: return
 
     splices = compute_splices(bbdb, bbpairs, **kw)
     for key, val in splices.items():
