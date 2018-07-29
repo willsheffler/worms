@@ -1,4 +1,5 @@
 import os
+import sys
 from tqdm import tqdm
 import concurrent.futures as cf
 from collections import defaultdict
@@ -35,6 +36,7 @@ def compute_splices(bbdb, bbpairs, verbosity=2, parallel=0, **kw):
             f = pool.submit(_valid_splice_pairs, bbw0, bbw1, **kw)
             f.bbpair = bbpair
             futures.append(f)
+        print('batch compute_splices, npairs:', len(futures))
         fiter = cf.as_completed(futures)
         if verbosity > 1:
             fiter = tqdm(fiter, 'precache splices', total=len(futures))
@@ -80,3 +82,5 @@ def precompute_splicedb(db, bbpairs, **kw):
         spdb.add(params, pdbkey0, pdbkey1, val)
 
     spdb.sync_to_disk()
+    print('precompute_splicedb done')
+    sys.stdout.flush()

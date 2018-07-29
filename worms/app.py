@@ -4,7 +4,8 @@ import argparse
 import _pickle
 from copy import deepcopy
 from time import time
-
+import concurrent.futures as cf
+from tqdm import tqdm
 from xbin import gu_xbin_indexer, numba_xbin_indexer
 import homog as hg
 
@@ -13,19 +14,21 @@ from worms.database import BBlockDB, SpliceDB
 from worms.ssdag import simple_search_dag, graph_dump_pdb
 from worms.search import grow_linear, SearchResult, subset_result
 from worms.ssdag_pose import make_pose_crit
-from worms.util import get_symdata, run_and_time, binary_search_pair, cpu_count, get_cli_args
+from worms.util import run_and_time
+from worms import util
 from worms.filters.clash import prune_clashes
 from worms.khash import KHashi8i8
 from worms.khash.khash_cffi import _khash_get
 from worms.criteria.hash_util import _get_hash_val
 from worms.filters.db_filters import get_affected_positions
+from worms.bblock import _BBlock
 
 import pyrosetta
 from pyrosetta import rosetta as ros
 
 
 def parse_args(argv):
-    args = get_cli_args(
+    args = util.get_cli_args(
         argv=argv,
         geometry=[''],
         bbconn=[''],
@@ -34,7 +37,8 @@ def parse_args(argv):
         monte_carlo=0.0,
         parallel=1,
         verbosity=2,
-        precache_splices=False,
+        precache_splices=True,
+        precache_splices_and_quit=False,
         #
         cachedirs=[''],
         dbfiles=[''],
@@ -112,10 +116,68 @@ def worms_main(argv):
         print('   ', k, v)
     pyrosetta.init('-mute all -beta')
 
+    bbs = None
+    if kw['precache_splices']:
+        merge_bblock = kw['merge_bblock']
+        del kw['merge_bblock']
+        bbs = simple_search_dag(
+            criteria, merge_bblock=None, precache_only=True, **kw
+        )
+        kw['merge_bblock'] = merge_bblock
+
+    merge_segment = criteria.merge_segment(**kw)
+    if (merge_segment is None
+            or (kw['merge_bblock'] is not None and kw['merge_bblock'] >= 0)):
+        worms_main_protocol(criteria, bbs=bbs, **kw)
+    else:
+        worms_main_each_mergebb(criteria, bbs=bbs, **kw)
+
+
+def worms_main_each_mergebb(
+        criteria, precache_splices, merge_bblock, parallel, verbosity, bbs,
+        **kw
+):
+    exe = util.InProcessExecutor()
+    if parallel:
+        exe = cf.ProcessPoolExecutor(max_workers=parallel)
+    bbs_states = [[b._state for b in bb] for bb in bbs]
+    kw['db'][0].clear()  # remove cached BBlocks
+    with exe as pool:
+        merge_segment = criteria.merge_segment(**kw)
+        futures = [
+            pool.submit(
+                worms_main_protocol,
+                criteria,
+                merge_bblock=i,
+                verbosity=1,
+                parallel=0,
+                bbs_states=bbs_states,
+                **kw
+            ) for i in range(len(bbs[merge_segment]))
+        ]
+        print('parallel over merge_bblock, n =', len(futures))
+        fiter = cf.as_completed(futures)
+        if verbosity > 1:
+            fiter = tqdm(
+                fiter,
+                f'main_protocol {len(futures):04d}',
+                position=0,
+                total=len(futures)
+            )
+        for f in fiter:
+            f.result()
+    print('done')
+
+
+def worms_main_protocol(criteria, bbs_states=None, **kw):
+
+    if bbs_states is not None:
+        kw['bbs'] = [tuple(_BBlock(*s) for s in bb) for bb in bbs_states]
+
     # search
     ssdag = simple_search_dag(criteria, **kw)
     result, tsearch = run_and_time(search_func, criteria, ssdag, **kw)
-    print(f'raw results: {len(result.idx):,}, in {int(tsearch)}s')
+    # print(f'raw results: {len(result.idx):,}, in {int(tsearch)}s')
 
     # filter
     result, tclash = run_and_time(prune_clashes, ssdag, criteria, result, **kw)
@@ -125,19 +187,19 @@ def worms_main(argv):
     output_results(criteria, ssdag, result, **kw)
 
 
-def search_func(criteria, ssdag, **kw):
+def search_func(criteria, ssdag, bbs, **kw):
 
     stages = [criteria]
     if hasattr(criteria, 'stages'):
-        stages = criteria.stages(**kw)
+        stages = criteria.stages(bbs=bbs, **kw)
     if len(stages) > 1:
         assert kw['merge_bblock'] is not None
 
     results = list()
-    for i, stage_criteria in enumerate(stages):
-        if callable(stage_criteria):
-            stage_criteria = stage_criteria(*results[-1])
-        results.append(search_single_stage(stage_criteria, lbl=str(i), **kw))
+    for i, stage in enumerate(stages):
+        crit, bbs = stage
+        if callable(crit): crit = crit(*results[-1])
+        results.append(search_single_stage(crit, lbl=str(i), bbs=bbs, **kw))
 
     if len(results) == 1:
         return results[0][-1]
@@ -175,8 +237,8 @@ def search_single_stage(criteria, lbl='', **kw):
     if len(result.idx):
         frac_redundant = result.stats.n_redundant_results[0] / len(result.idx)
     print(
-        f'grow_linear done, nresluts {len(result.idx):,}',
-        f'samp/sec {Nsparse_rate:,}', 'redundant ratio', frac_redundant
+        f'grow_linear {lbl} done, nresults {len(result.idx):,}, ' +
+        f'samp/sec {Nsparse_rate:,}, redundant ratio {frac_redundant}\n'
     )
     if kw['run_cache']:
         with (open(kw['run_cache'] + lbl + '.pickle', 'wb')) as out:
@@ -223,7 +285,7 @@ def output_results(
             if output_centroid:
                 ros.core.util.switch_to_residue_type_set(pose, 'centroid')
             if output_symmetric:
-                symdata = get_symdata(criteria.symname)
+                symdata = util.get_symdata(criteria.symname)
                 ros.core.pose.symmetry.make_symmetric_pose(pose, symdata)
 
             print('output pdb', fname)
@@ -337,7 +399,7 @@ def merge_results(
         assert max(mrgv.ibblock) == 0
         assert max(ssdagA.verts[-1].ibblock) == 0
 
-        imerge = binary_search_pair(mrgv.ires, (ires_in, ires_out))
+        imerge = util.binary_search_pair(mrgv.ires, (ires_in, ires_out))
         if imerge == -1:
             # if imerge < 0:
             ok[i_in_rslt] = False
@@ -356,7 +418,7 @@ def merge_results(
     # print(merged.err[:100])
     nbad = np.sum(1 - ok)
     if nbad: print('bad imerge', nbad, 'of', n)
-    print('bad score', np.sum(merged.err > merged_err_cut), 'of', n)
+    # print('bad score', np.sum(merged.err > merged_err_cut), 'of', n)
     ok[merged.err > merged_err_cut] = False
     ok = np.where(ok)[0][np.argsort(merged.err[ok])]
     merged = subset_result(merged, ok)

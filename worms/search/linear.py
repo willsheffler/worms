@@ -35,6 +35,7 @@ def grow_linear(
         parallel=0,
         monte_carlo=0,
         verbosity=0,
+        merge_bblock=None,
         **kw
 ):
     verts = ssdag.verts
@@ -51,7 +52,8 @@ def grow_linear(
     #     if not 'NUMBA_DISABLE_JIT' in os.environ:
     #         loss_function = nb.njit(nogil=1, fastmath=1)
 
-    exe = cf.ThreadPoolExecutor(max_workers=parallel) if parallel else InProcessExecutor()
+    exe = cf.ThreadPoolExecutor(max_workers=parallel
+                                ) if parallel else InProcessExecutor()
     # exe = cf.ProcessPoolExecutor(max_workers=parallel) if parallel else InProcessExecutor()
     with exe as pool:
         verts_pickleable = [v._state for v in verts]
@@ -71,6 +73,7 @@ def grow_linear(
             kwargs['fn'] = _grow_linear_mc_start
             kwargs['seconds'] = monte_carlo
             kwargs['ivertex_range'] = (0, verts[0].len)
+            kwargs['merge_bblock'] = merge_bblock
             njob = cpu_count() if parallel else 1
             for ivert in range(njob):
                 kwargs['threadno'] = ivert
@@ -87,8 +90,12 @@ def grow_linear(
             for f in cf.as_completed(futures):
                 results.append(f.result())
         else:
-            for f in tqdm(cf.as_completed(futures), 'linear searching',
-                          total=len(futures)):
+            lbl = 'linear search'
+            if merge_bblock is None: merge_bblock = -1
+            if merge_bblock >= 0:
+                lbl = f'linear search {merge_bblock:04d}'
+            for f in tqdm(cf.as_completed(futures), lbl,
+                          position=merge_bblock + 1, total=len(futures)):
                 results.append(f.result())
     tot_stats = zero_search_stats()
     for i in range(len(tot_stats)):
@@ -223,7 +230,8 @@ def _grow_linear_recurse(
 
 
 def _grow_linear_mc_start(
-        seconds, verts_pickleable, edges_pickleable, threadno, **kwargs
+        seconds, verts_pickleable, edges_pickleable, threadno, merge_bblock,
+        **kwargs
 ):
     tstart = time()
     verts = tuple([_Vertex(*vp) for vp in verts_pickleable])
@@ -236,7 +244,11 @@ def _grow_linear_mc_start(
     del kwargs['nresults']
     nresults = 0
     if threadno == 0:
-        pbar = tqdm(desc='searching worms', total=seconds)
+        lbl = 'linear search'
+        if merge_bblock is None: merge_bblock = -1
+        if merge_bblock >= 0:
+            lbl = f'linear search {merge_bblock:04d}'
+        pbar = tqdm(desc=lbl, position=merge_bblock + 1, total=seconds)
         last = tstart
     nbatch = [1000, 330, 100, 33, 10, 3] + [1] * 99
     nbatch = nbatch[len(edges)]

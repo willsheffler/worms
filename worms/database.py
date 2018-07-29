@@ -188,6 +188,9 @@ class BBlockDB:
         for i, k in enumerate(sorted(self.dictdb)):
             self._alldb[i] = self.dictdb[k]
 
+    def clear(self):
+        self._bblock_cache, self._poses_cache = dict(), dict()
+
     def lock_cachedir(self):
         assert not os.path.exists(self.cachedirs[0] + '/lock'), (
             "database is locked! if you're sure no other jobs are editing it, remove "

@@ -64,23 +64,29 @@ def simple_search_dag(
         make_edges=True,
         merge_bblock=None,
         precache_splices=False,
+        precache_only=False,
+        bbs=None,
         **kw
 ):
-
     bbdb, spdb = db
     queries, directions = zip(*criteria.bbspec)
-    info('bblock queries: ' + str(queries))
-    info('directions: ' + str(directions))
     tdb = time()
-    bbmap = {
-        q: bbdb.query(q, max_bblocks=nbblocks, shuffle=shuf)
-        for q in set(queries)
-    }
-    for k, v in bbmap.items():
-        assert len(v) > 0, 'no bblocks for query: "' + k + '"'
-    bbs = [bbmap[q] for q in queries]
+    if bbs is None:
+        info('bblock queries: ' + str(queries))
+        info('directions: ' + str(directions))
+        bbmap = {
+            q: bbdb.query(q, max_bblocks=nbblocks, shuffle=shuf)
+            for q in set(queries)
+        }
+        for k, v in bbmap.items():
+            assert len(v) > 0, 'no bblocks for query: "' + k + '"'
+        bbs = [bbmap[q] for q in queries]
+    else:
+        bbs = bbs.copy()
+    assert len(bbs) == len(criteria.bbspec)
+
     if modbbs: modbbs(bbs)
-    if merge_bblock is not None:
+    if merge_bblock is not None and merge_bblock >= 0:
         # print('which_mergebb', criteria.bbspec, criteria.which_mergebb())
         for i in criteria.which_mergebb():
             bbs[i] = (bbs[i][merge_bblock], )
@@ -100,10 +106,14 @@ def simple_search_dag(
         precompute_splicedb(
             db, bbpairs, verbosity=verbosity, parallel=parallel, **kw
         )
+    if precache_only:
+        return bbs
 
     tvertex = time()
-    exe = cf.ThreadPoolExecutor if parallel else InProcessExecutor
-    with exe() as pool:
+    exe = InProcessExecutor()
+    if parallel:
+        exe = cf.ThreadPoolExecutor(max_workers=parallel)
+    with exe as pool:
         futures = list()
         for bb, dirn in zip(bbs, directions):
             futures.append(pool.submit(Vertex, bb, dirn, min_seg_len=15))
@@ -123,8 +133,8 @@ def simple_search_dag(
             for i in range(len(verts) - 1)
         ] # yapf: disable
         tedge = time() - tedge
-        if verbosity > 0:
-            print_edge_summary(edges)
+        # if verbosity > 1:
+        # print_edge_summary(edges)
         info(
             f'edge creation time {tedge:7.3f} num splices ' +
             str([e.total_allowed_splices()

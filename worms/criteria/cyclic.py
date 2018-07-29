@@ -134,7 +134,12 @@ class Cyclic(WormCriteria):
 
         return func
 
-    def stages(self, hash_cart_resl, hash_ori_resl, **kw):
+    def merge_segment(self, **kw):
+        if self.origin_seg is None:
+            return None
+        return self.from_seg
+
+    def stages(self, hash_cart_resl, hash_ori_resl, bbs, **kw):
         "return spearate criteria for each search stage"
         if self.origin_seg is None:
             return [self]
@@ -144,6 +149,8 @@ class Cyclic(WormCriteria):
         bbspec[0][1] = '_' + bbspec[0][1][1]
         critA = Cyclic(self.nfold, min_radius=self.min_radius)
         critA.bbspec = bbspec
+        bbsA = bbs[self.from_seg:] if bbs else None
+        bbsB = bbs[:self.from_seg + 1] if bbs else None
 
         def stageB(critA, ssdagA, resultA):
             bbspec = deepcopy(self.bbspec[:self.from_seg + 1])
@@ -155,7 +162,7 @@ class Cyclic(WormCriteria):
             critB.bbspec = bbspec
             return critB
 
-        return [critA, stageB]
+        return [(critA, bbsA), (stageB, bbsB)]
 
     def which_mergebb(self):
         "which bbs are being merged together"
