@@ -150,6 +150,7 @@ def worms_main_each_mergebb(
                 criteria,
                 merge_bblock=i,
                 parallel=0,
+                verbosity=verbosity,
                 bbs_states=bbs_states,
                 **kw
             ) for i in range(len(bbs[merge_segment]))
