@@ -196,7 +196,9 @@ def search_func(criteria, ssdag, bbs, **kw):
         crit, bbs = stage
         if callable(crit): crit = crit(*results[-1])
         results.append(
-            search_single_stage(crit, lbl=f'stage{i}', bbs=bbs, **kw)
+            search_single_stage(
+                crit, lbl=f'stage{i}_mbb{kw["merge_bblock"]}', bbs=bbs, **kw
+            )
         )
 
     if len(results) == 1:
@@ -237,7 +239,7 @@ def search_single_stage(criteria, lbl='', **kw):
         frac_redundant = result.stats.n_redundant_results[0] / len(result.idx)
     print(
         f'grow_linear {lbl} done, nresults {len(result.idx):,}, ' +
-        f'samp/sec {Nsparse_rate:,}, redundant ratio {frac_redundant}\n'
+        f'samp/sec {Nsparse_rate:,}, redundant ratio {frac_redundant}'
     )
     if kw['run_cache']:
         with (open(kw['run_cache'] + lbl + '.pickle', 'wb')) as out:

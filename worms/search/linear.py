@@ -252,27 +252,26 @@ def _grow_linear_mc_start(
     stats = zero_search_stats()
     result = SearchResult(pos=pos, idx=idx, err=err, stats=stats)
     del kwargs['nresults']
-    nresults = 0
-    if threadno == 0 and verbosity > 1:
+
+    if threadno == 0 and verbosity > 1 and merge_bblock in (None, 0, -1):
         desc = 'linear search ' + str(lbl)
         if merge_bblock is not None and merge_bblock >= 0:
             desc = f'{desc} {merge_bblock:04d}'
         if merge_bblock is None: merge_bblock = 0
         pbar = tqdm(desc=desc, position=merge_bblock + 1, total=seconds)
         last = tstart
+
     nbatch = [1000, 330, 100, 33, 10, 3] + [1] * 99
-    nbatch = nbatch[len(edges)]
-    # nbatch = 10000
+    nbatch = nbatch[len(edges)] * 10
+    nresults = 0
     while time() < tstart + seconds:
-        if threadno == 0:
-            if 'pbar' in vars():
-                pbar.update(time() - last)
+        if 'pbar' in vars():
+            pbar.update(time() - last)
             last = time()
         nresults, result = _grow_linear_mc(
             nbatch, result, verts, edges, nresults=nresults, **kwargs
         )
-    if threadno == 0:
-        pbar.close()
+    if 'pbar' in vars(): pbar.close()
 
     result = SearchResult(
         result.pos[:nresults], result.idx[:nresults], result.err[:nresults],
