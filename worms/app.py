@@ -118,10 +118,13 @@ def worms_main(argv):
     if kw['precache_splices']:
         merge_bblock = kw['merge_bblock']
         del kw['merge_bblock']
-        bbs = simple_search_dag(
-            criteria, merge_bblock=None, precache_only=True, **kw
-        )
+        for i in range(3):
+            bbs = simple_search_dag(
+                criteria, merge_bblock=None, precache_only=True, **kw
+            )
         kw['merge_bblock'] = merge_bblock
+        if kw['precache_splices_and_quit']:
+            return
 
     merge_segment = criteria.merge_segment(**kw)
     if (merge_segment is None
