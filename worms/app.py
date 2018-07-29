@@ -156,12 +156,9 @@ def worms_main_each_mergebb(
         ]
         print('parallel over merge_bblock, n =', len(futures))
         fiter = cf.as_completed(futures)
-        if verbosity > 1:
+        if verbosity > 0:
             fiter = tqdm(
-                fiter,
-                f'main_protocol {len(futures):04d}',
-                position=0,
-                total=len(futures)
+                fiter, f'main_protocol', position=0, total=len(futures)
             )
         for f in fiter:
             f.result()
@@ -220,13 +217,14 @@ def search_single_stage(criteria, lbl='', **kw):
                 ssdag, result = _pickle.load(inp)
                 return criteria, ssdag, result
 
-    ssdag = simple_search_dag(criteria, **kw)
+    ssdag = simple_search_dag(criteria, lbl=lbl, **kw)
 
     result, tsearch = run_and_time(
         grow_linear,
         ssdag=ssdag,
         loss_function=criteria.jit_lossfunc(),
         last_bb_same_as=criteria.from_seg if criteria.is_cyclic else -1,
+        lbl=lbl,
         **kw
     )
 

@@ -36,6 +36,7 @@ def grow_linear(
         monte_carlo=0,
         verbosity=0,
         merge_bblock=None,
+        lbl='',
         **kw
 ):
     verts = ssdag.verts
@@ -74,6 +75,8 @@ def grow_linear(
             kwargs['seconds'] = monte_carlo
             kwargs['ivertex_range'] = (0, verts[0].len)
             kwargs['merge_bblock'] = merge_bblock
+            kwargs['lbl'] = lbl
+            kwargs['verbosity'] = verbosity
             njob = cpu_count() if parallel else 1
             for ivert in range(njob):
                 kwargs['threadno'] = ivert
@@ -90,12 +93,16 @@ def grow_linear(
             for f in cf.as_completed(futures):
                 results.append(f.result())
         else:
-            lbl = 'linear search'
+            desc = 'linear search ' + str(lbl)
             if merge_bblock is None: merge_bblock = -1
             if merge_bblock >= 0:
-                lbl = f'linear search {merge_bblock:04d}'
-            for f in tqdm(cf.as_completed(futures), lbl,
-                          position=merge_bblock + 1, total=len(futures)):
+                desc = f'{desc} {merge_bblock:04d}'
+            fiter = cf.as_completed(futures)
+            if verbosity > 1:
+                fiter = tqdm(
+                    desc=desc, position=merge_bblock + 1, total=len(futures)
+                )
+            for f in fiter:
                 results.append(f.result())
     tot_stats = zero_search_stats()
     for i in range(len(tot_stats)):
@@ -231,7 +238,7 @@ def _grow_linear_recurse(
 
 def _grow_linear_mc_start(
         seconds, verts_pickleable, edges_pickleable, threadno, merge_bblock,
-        **kwargs
+        lbl, verbosity, **kwargs
 ):
     tstart = time()
     verts = tuple([_Vertex(*vp) for vp in verts_pickleable])
@@ -243,19 +250,20 @@ def _grow_linear_mc_start(
     result = SearchResult(pos=pos, idx=idx, err=err, stats=stats)
     del kwargs['nresults']
     nresults = 0
-    if threadno == 0:
-        lbl = 'linear search'
+    if threadno == 0 and verbosity > 1:
+        desc = 'linear search ' + str(lbl)
         if merge_bblock is None: merge_bblock = -1
         if merge_bblock >= 0:
-            lbl = f'linear search {merge_bblock:04d}'
-        pbar = tqdm(desc=lbl, position=merge_bblock + 1, total=seconds)
+            desc = f'{desc} {merge_bblock:04d}'
+        pbar = tqdm(desc=desc, position=merge_bblock + 1, total=seconds)
         last = tstart
     nbatch = [1000, 330, 100, 33, 10, 3] + [1] * 99
     nbatch = nbatch[len(edges)]
     # nbatch = 10000
     while time() < tstart + seconds:
         if threadno == 0:
-            pbar.update(time() - last)
+            if 'pbar' in vars():
+                pbar.update(time() - last)
             last = time()
         nresults, result = _grow_linear_mc(
             nbatch, result, verts, edges, nresults=nresults, **kwargs
