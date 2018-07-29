@@ -149,7 +149,6 @@ def worms_main_each_mergebb(
                 worms_main_protocol,
                 criteria,
                 merge_bblock=i,
-                verbosity=1,
                 parallel=0,
                 bbs_states=bbs_states,
                 **kw
