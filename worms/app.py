@@ -3,6 +3,7 @@ import os
 import argparse
 import _pickle
 from copy import deepcopy
+import itertools as it
 from time import time
 import concurrent.futures as cf
 from tqdm import tqdm
@@ -173,8 +174,8 @@ def worms_main_protocol(criteria, bbs_states=None, **kw):
         kw['bbs'] = [tuple(_BBlock(*s) for s in bb) for bb in bbs_states]
 
     # search
-    ssdag = simple_search_dag(criteria, **kw)
-    result, tsearch = run_and_time(search_func, criteria, ssdag, **kw)
+    tup, tsearch = run_and_time(search_func, criteria, **kw)
+    result, ssdag = tup
     # print(f'raw results: {len(result.idx):,}, in {int(tsearch)}s')
 
     # filter
@@ -185,7 +186,7 @@ def worms_main_protocol(criteria, bbs_states=None, **kw):
     output_results(criteria, ssdag, result, **kw)
 
 
-def search_func(criteria, ssdag, bbs, **kw):
+def search_func(criteria, bbs, **kw):
 
     stages = [criteria]
     if hasattr(criteria, 'stages'):
@@ -204,13 +205,25 @@ def search_func(criteria, ssdag, bbs, **kw):
         )
 
     if len(results) == 1:
-        return results[0][-1]
+        return results[0][1:]
     elif len(results) == 2:
-        critA, ssdagA, rsltA = results[0]
-        critB, ssdagB, rsltB = results[1]
-        return merge_results(
-            criteria, ssdag, ssdagA, rsltA, critB, ssdagB, rsltB, **kw
+        # todo: this whole block is very protocol-specific... needs refactoring
+        mseg = criteria.merge_segment(**kw)
+        # simple_search_dag getting not-to-simple maybe split?
+        _____, ssdA, rsltA = results[0]
+        critB, ssdB, rsltB = results[1]
+        # remove unnecessary verts before creating more
+        # ssdA.verts = ssdA.verts[:1] + (None, ) * len(ssdA.verts[1:])
+        # ssdB.verts = (None, ) * len(ssdB.verts[:1]) + ssdB.verts[-1:]
+        ssdag = simple_search_dag(
+            criteria, only_seg=mseg, make_edges=False, **kw
         )
+        ssdag.verts = ssdB.verts[:-1] + (ssdag.verts[mseg], ) + ssdA.verts[1:]
+        assert len(ssdag.verts) == len(criteria.bbspec)
+        rslt = merge_results(
+            criteria, ssdag, ssdA, rsltA, critB, ssdB, rsltB, **kw
+        )
+        return rslt, ssdag
     else:
         raise NotImplementedError('dunno more than two stages!')
 
@@ -414,7 +427,7 @@ def merge_results(
         )
         assert len(idx) == len(ssdag.verts)
         for ii, v in zip(idx, ssdag.verts):
-            assert ii < v.len
+            if v is not None: assert ii < v.len
         assert len(pos) == len(idx) == nv
         merged.pos[i_in_rslt] = pos
         merged.idx[i_in_rslt] = idx

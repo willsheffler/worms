@@ -16,6 +16,7 @@ import string
 def _validate_bbs_verts(bbs, verts):
     assert len(bbs) == len(verts)
     for bb, vert in zip(bbs, verts):
+        if vert is None: continue
         assert 0 <= np.min(vert.ibblock)
         assert np.max(vert.ibblock) < len(bb)
 
@@ -24,7 +25,7 @@ class SearchSpaceDag:
     def __init__(self, bbspec, bbs, verts, edges):
         _validate_bbs_verts(bbs, verts)
         assert isinstance(bbs[0][0], _BBlock)
-        assert isinstance(verts[0], _Vertex)
+        assert isinstance(verts[0], (_Vertex, type(None)))
         assert len(edges) == 0 or isinstance(edges[0], _Edge)
         if bbspec:
             assert len(bbspec) == len(bbs)
@@ -66,6 +67,7 @@ def simple_search_dag(
         precache_splices=False,
         precache_only=False,
         bbs=None,
+        only_seg=None,
         **kw
 ):
     bbdb, spdb = db
@@ -111,28 +113,45 @@ def simple_search_dag(
 
     tvertex = time()
     exe = InProcessExecutor()
-    print('parallel', parallel)
+
     if parallel:
         exe = cf.ThreadPoolExecutor(max_workers=parallel)
     with exe as pool:
+        if only_seg is not None:
+            save = bbs, directions
+            bbs = [bbs[only_seg]]
+            directions = [directions[only_seg]]
         futures = list()
         for bb, dirn in zip(bbs, directions):
-            futures.append(pool.submit(Vertex, bb, dirn, min_seg_len=15))
+            futures.append(
+                pool.submit(Vertex, bb, dirn, min_seg_len=min_seg_len)
+            )
         verts = [f.result() for f in futures]
-
+        if only_seg is not None:
+            verts = ([None] * only_seg + verts +
+                     [None] * (len(queries) - only_seg - 1))
+            bbs, directions = save
     tvertex = time() - tvertex
     info(
         f'vertex creation time {tvertex:7.3f} num verts ' +
-        str([v.len for v in verts])
+        str([v.len if v else 0 for v in verts])
     )
 
     edges = []
     if make_edges:
         tedge = time()
         edges = [
-            Edge(verts[i], bbs[i], verts[i + 1], bbs[i + 1], splicedb=spdb, verbosity=verbosity, precache_splices=precache_splices,**kw)
-            for i in range(len(verts) - 1)
-        ] # yapf: disable
+            Edge(
+                verts[i],
+                bbs[i],
+                verts[i + 1],
+                bbs[i + 1],
+                splicedb=spdb,
+                verbosity=verbosity,
+                precache_splices=precache_splices,
+                **kw
+            ) for i in range(len(verts) - 1)
+        ]
         tedge = time() - tedge
         # if verbosity > 1:
         # print_edge_summary(edges)
