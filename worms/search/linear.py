@@ -94,13 +94,16 @@ def grow_linear(
                 results.append(f.result())
         else:
             desc = 'linear search ' + str(lbl)
-            if merge_bblock is None: merge_bblock = -1
-            if merge_bblock >= 0:
+            if merge_bblock is not None and merge_bblock >= 0:
                 desc = f'{desc} {merge_bblock:04d}'
+            if merge_bblock is None: merge_bblock = 0
             fiter = cf.as_completed(futures)
             if verbosity > 1:
                 fiter = tqdm(
-                    desc=desc, position=merge_bblock + 1, total=len(futures)
+                    fiter,
+                    desc=desc,
+                    position=merge_bblock,
+                    total=len(futures)
                 )
             for f in fiter:
                 results.append(f.result())
@@ -252,9 +255,9 @@ def _grow_linear_mc_start(
     nresults = 0
     if threadno == 0 and verbosity > 1:
         desc = 'linear search ' + str(lbl)
-        if merge_bblock is None: merge_bblock = -1
-        if merge_bblock >= 0:
+        if merge_bblock is not None and merge_bblock >= 0:
             desc = f'{desc} {merge_bblock:04d}'
+        if merge_bblock is None: merge_bblock = 0
         pbar = tqdm(desc=desc, position=merge_bblock + 1, total=seconds)
         last = tstart
     nbatch = [1000, 330, 100, 33, 10, 3] + [1] * 99

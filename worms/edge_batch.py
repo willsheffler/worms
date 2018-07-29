@@ -4,6 +4,7 @@ from tqdm import tqdm
 import concurrent.futures as cf
 from collections import defaultdict
 import _pickle
+from random import shuffle
 
 from worms import Vertex, Edge
 from worms.edge import _jit_splice_metrics, _splice_respairs
@@ -26,11 +27,13 @@ def _valid_splice_pairs(bbw0, bbw1, **kw):
 
 
 def compute_splices(bbdb, bbpairs, verbosity=2, parallel=0, **kw):
+    bbpairs_shuf = bbpairs.copy()
+    shuffle(bbpairs_shuf)
     exe = InProcessExecutor()
     if parallel: exe = cf.ProcessPoolExecutor(max_workers=parallel)
     with exe as pool:
         futures = list()
-        for bbpair in bbpairs:
+        for bbpair in bbpairs_shuf:
             bbw0 = BBlockWrap(bbdb.bblock(bbpair[0]))
             bbw1 = BBlockWrap(bbdb.bblock(bbpair[1]))
             f = pool.submit(_valid_splice_pairs, bbw0, bbw1, **kw)
@@ -51,6 +54,8 @@ def _remove_already_cached(spdb, bbpairs, params):
     ret = list()
     for pdb0, pdb1s in pairmap.items():
         pdbkey0 = hash_str_to_int(pdb0)
+        if all(spdb.has(params, pdbkey0, hash_str_to_int(p1)) for p1 in pdb1s):
+            continue
         listpath = spdb.listpath(params, pdbkey0)
         haveit = set()
         if os.path.exists(listpath):

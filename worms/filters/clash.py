@@ -16,6 +16,7 @@ def prune_clashes(
         parallel=False,
         approx=0,
         verbosity=0,
+        merge_bblock=None,
         **kw
 ):
     print('todo: clash check should handle symmetry')
@@ -55,11 +56,16 @@ def prune_clashes(
             futures[-1].index = i
 
         if verbosity > 1:
+            desc = 'checking clashes '
+            if merge_bblock is not None and merge_bblock >= 0:
+                desc = f'{desc} {merge_bblock:04d}'
+            if merge_bblock is None:
+                merge_bblock = 0
             futures = tqdm(
                 cf.as_completed(futures),
-                'checking clashes',
+                desc=desc,
                 total=len(futures),
-                smoothing=0.0  # does this do anything?
+                position=merge_bblock,
             )
 
         ok = np.empty(len(futures), dtype='?')

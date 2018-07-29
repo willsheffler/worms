@@ -45,12 +45,8 @@ def parse_args(argv):
         load_poses=False,
         read_new_pdbs=False,
         run_cache='',
+        merge_bblock=-1,
 
-        #
-        cache_sync=0.003,
-        hash_cart_resl=1.0,
-        hash_ori_resl=5.0,
-        #
         # splice stuff
         splice_max_rms=0.7,
         splice_ncontact_cut=30,
@@ -59,20 +55,22 @@ def parse_args(argv):
         splice_rms_range=6,
         splice_clash_contact_range=60,
         #
-        min_radius=0.0,
-        merge_bblock=-1,
-        merged_err_cut=2.0,
+        hash_cart_resl=2.0,
+        hash_ori_resl=10.0,
+        merged_err_cut=4.0,
+        ca_clash_dis=3.5,
+        #
         max_merge=10000,
-        #
         max_clash_check=10000,
-        ca_clash_dis=4.0,
-        #
         max_output=1000,
+        #
         output_pose=True,
         output_symmetric=False,
         output_prefix='./worms',
         output_centroid=False,
-
+        #
+        cache_sync=0.003,
+        min_radius=0.0,
     )
 
     if not args.config_file:
@@ -152,6 +150,7 @@ def worms_main_each_mergebb(
                 parallel=0,
                 verbosity=verbosity,
                 bbs_states=bbs_states,
+                precache_splices=precache_splices,
                 **kw
             ) for i in range(len(bbs[merge_segment]))
         ]
@@ -196,7 +195,9 @@ def search_func(criteria, ssdag, bbs, **kw):
     for i, stage in enumerate(stages):
         crit, bbs = stage
         if callable(crit): crit = crit(*results[-1])
-        results.append(search_single_stage(crit, lbl=str(i), bbs=bbs, **kw))
+        results.append(
+            search_single_stage(crit, lbl=f'stage{i}', bbs=bbs, **kw)
+        )
 
     if len(results) == 1:
         return results[0][-1]
@@ -267,7 +268,8 @@ def output_results(
         #     json.dump(tmp, out)
 
         if merge_bblock is not None: mbb = f'_mbb{merge_bblock:03d}'
-        fname = output_prefix + mbb + '_%03i.pdb' % i
+        err = int(result.err[i] * 100)
+        fname = f'{output_prefix}{mbb}_{i:03}_err{err:03}.pdb'
         if output_pose:
             pose, prov = make_pose_crit(
                 db[0],

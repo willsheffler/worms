@@ -161,8 +161,7 @@ def get_allowed_splices(
             future_iter = tqdm(
                 cf.as_completed(futures),
                 'checking splices',
-                total=len(futures),
-                smoothing=0.0  # does this do anything?
+                total=len(futures)
             )
         for future in future_iter:
             iblk0, iblk1, ofst0, ofst1, ires0, ires1 = future.stash

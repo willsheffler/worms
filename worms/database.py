@@ -63,6 +63,13 @@ class SpliceDB:
                 self._cache[params, pdbkey] = dict()
         return self._cache[params, pdbkey]
 
+    def has(self, params, pdbkey0, pdbkey1):
+        k = (params, pdbkey0)
+        if k in self._cache:
+            if pdbkey1 in self._cache[k]:
+                return True
+        return False
+
     def add(self, params, pdbkey0, pdbkey1, val):
         assert isinstance(pdbkey0, int)
         assert isinstance(pdbkey1, int)
