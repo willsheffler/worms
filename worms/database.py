@@ -95,23 +95,29 @@ class SpliceDB:
     def sync_to_disk(self, dirty_only=True):
         for i in range(10):
             keys = list(self._dirty) if dirty_only else self.cache.keys()
-            for params, pdbkey in keys:
-                cachefile = self.cachepath(params, pdbkey)
+            for key in keys:
+                cachefile = self.cachepath(*key)
                 if os.path.exists(cachefile + '.lock'):
                     continue
                 if not os.path.exists(os.path.dirname(cachefile)):
                     os.makedirs(os.path.dirname(cachefile))
                 with open(cachefile + '.lock', 'w'):
+                    print('lock', cachefile)
+                    if os.path.exists(cachefile):
+                        with open(cachefile, 'rb') as inp:
+                            self._cache[key].update(pickle.load(inp))
                     with open(cachefile, 'wb') as out:
-                        data = self._cache[params, pdbkey]
+                        data = self._cache[key]
                         pickle.dump(data, out)
-                    listfile = self.listpath(params, pdbkey)
+                    listfile = self.listpath(*key)
                     with open(listfile, 'wb') as out:
-                        data = set(self._cache[params, pdbkey].keys())
+                        data = set(self._cache[key].keys())
                         pickle.dump(data, out)
                 os.remove(cachefile + '.lock')
-                self._dirty.remove((params, pdbkey))
+                print('unlock', cachefile)
+                self._dirty.remove(key)
         if len(self._dirty):
+            print(self._dirty)
             print('warning: some caches unsaved', len(self._dirty))
 
 
