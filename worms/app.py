@@ -106,6 +106,9 @@ def parse_args(argv):
     return crit, kw
 
 
+_shared_ssdag = None
+
+
 def worms_main(argv):
 
     # read inputs
@@ -125,6 +128,9 @@ def worms_main(argv):
         kw['merge_bblock'] = merge_bblock
         if kw['precache_splices_and_quit']:
             return
+
+    global _shared_ssdag
+    _shared_ssdag = simple_search_dag(criteria, **kw)
 
     merge_segment = criteria.merge_segment(**kw)
     if (merge_segment is None
@@ -180,7 +186,7 @@ def worms_main_protocol(criteria, bbs_states=None, **kw):
 
     # filter
     result, tclash = run_and_time(prune_clashes, ssdag, criteria, result, **kw)
-    print(f'nresults {len(result.idx):,}, dumping')
+    if len(result.err): print(f'nresults {len(result.idx):,}, dumping')
 
     # dump results
     output_results(criteria, ssdag, result, **kw)
@@ -216,7 +222,11 @@ def search_func(criteria, bbs, **kw):
         # ssdA.verts = ssdA.verts[:1] + (None, ) * len(ssdA.verts[1:])
         # ssdB.verts = (None, ) * len(ssdB.verts[:1]) + ssdB.verts[-1:]
         ssdag = simple_search_dag(
-            criteria, only_seg=mseg, make_edges=False, **kw
+            criteria,
+            only_seg=mseg,
+            make_edges=False,
+            source=_shared_ssdag,
+            **kw
         )
         ssdag.verts = ssdB.verts[:-1] + (ssdag.verts[mseg], ) + ssdA.verts[1:]
         assert len(ssdag.verts) == len(criteria.bbspec)
@@ -236,7 +246,7 @@ def search_single_stage(criteria, lbl='', **kw):
                 ssdag, result = _pickle.load(inp)
                 return criteria, ssdag, result
 
-    ssdag = simple_search_dag(criteria, lbl=lbl, **kw)
+    ssdag = simple_search_dag(criteria, source=_shared_ssdag, lbl=lbl, **kw)
 
     result, tsearch = run_and_time(
         grow_linear,

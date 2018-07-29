@@ -1,3 +1,4 @@
+import sys
 from time import time
 import concurrent.futures as cf
 import numpy as np
@@ -68,6 +69,7 @@ def simple_search_dag(
         precache_only=False,
         bbs=None,
         only_seg=None,
+        source=None,
         **kw
 ):
     bbdb, spdb = db
@@ -111,6 +113,38 @@ def simple_search_dag(
     if precache_only:
         return bbs
 
+    verts = [None] * len(queries)
+    edges = [None] * len(queries[1:])
+    if source:
+        srcdirn = [''.join('NC_' [d] for d in source.verts[i].dirn)
+                   for i in range(len(source.verts))] # yapf: disable
+        srcverts, srcedges = list(), list()
+        for i, bb in enumerate(bbs):
+            for isrc, bbsrc in enumerate(source.bbs):
+                if directions[i] != srcdirn[isrc]: continue
+                if [b.filehash for b in bb] == [b.filehash for b in bbsrc]:
+                    verts[i] = source.verts[isrc]
+                    srcverts.append(isrc)
+        for i, bb in enumerate(zip(bbs, bbs[1:])):
+            bb0, bb1 = bb
+            for isrc, bbsrc in enumerate(zip(source.bbs, source.bbs[1:])):
+                bbsrc0, bbsrc1 = bbsrc
+                if directions[i] != srcdirn[isrc]: continue
+                if directions[i + 1] != srcdirn[isrc + 1]: continue
+                he = [b.filehash for b in bb0] == [b.filehash for b in bbsrc0]
+                he &= [b.filehash for b in bb1] == [b.filehash for b in bbsrc1]
+                if not he: continue
+                edges[i] = source.edges[isrc]
+                srcedges.append(isrc)
+
+        # print(
+        #     'src', sum(x is not None for x in verts), 'of', len(verts),
+        #     'verts', '\n   ', sum(x is not None for x in edges), 'of',
+        #     len(edges), 'edges', '\n   isrc verts', srcverts,
+        #     '\n   isrc edges', srcedges, '\n   lenbbs', len(bbs)
+        # )
+        # sys.stdout.flush()
+
     tvertex = time()
     exe = InProcessExecutor()
 
@@ -121,12 +155,22 @@ def simple_search_dag(
             save = bbs, directions
             bbs = [bbs[only_seg]]
             directions = [directions[only_seg]]
+            verts = [verts[only_seg]]
         futures = list()
-        for bb, dirn in zip(bbs, directions):
-            futures.append(
-                pool.submit(Vertex, bb, dirn, min_seg_len=min_seg_len)
-            )
-        verts = [f.result() for f in futures]
+        for i, bb in enumerate(bbs):
+            dirn = directions[i]
+            if verts[i] is None:
+                futures.append(
+                    pool.submit(Vertex, bb, dirn, min_seg_len=min_seg_len)
+                )
+        verts_new = [f.result() for f in futures]
+        isnone = [i for i in range(len(verts)) if verts[i] is None]
+        for i, inone in enumerate(isnone):
+            verts[inone] = verts_new[i]
+        # print(i, len(verts_new), len(verts))
+        if isnone:
+            assert i + 1 == len(verts_new)
+        assert all(v for v in verts)
         if only_seg is not None:
             verts = ([None] * only_seg + verts +
                      [None] * (len(queries) - only_seg - 1))
@@ -137,21 +181,20 @@ def simple_search_dag(
         str([v.len if v else 0 for v in verts])
     )
 
-    edges = []
     if make_edges:
         tedge = time()
-        edges = [
-            Edge(
-                verts[i],
-                bbs[i],
-                verts[i + 1],
-                bbs[i + 1],
-                splicedb=spdb,
-                verbosity=verbosity,
-                precache_splices=precache_splices,
-                **kw
-            ) for i in range(len(verts) - 1)
-        ]
+        for i, e in enumerate(edges):
+            if e is None:
+                edges[i] = Edge(
+                    verts[i],
+                    bbs[i],
+                    verts[i + 1],
+                    bbs[i + 1],
+                    splicedb=spdb,
+                    verbosity=verbosity,
+                    precache_splices=precache_splices,
+                    **kw
+                )
         tedge = time() - tedge
         # if verbosity > 1:
         # print_edge_summary(edges)
