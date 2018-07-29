@@ -123,6 +123,7 @@ def _has_ca_clash(position, ncacs, i, ichntrm, j, jchntrm, thresh, step=1):
 def _check_all_chain_clashes(
         dirns, iress, idx, pos, chn, ncacs, thresh, approx
 ):
+    pos = pos.astype(np.float64)
 
     for step in (3, 1):  # 20% speedup.... ug... need BVH...
 

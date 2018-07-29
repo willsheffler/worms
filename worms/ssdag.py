@@ -111,6 +111,7 @@ def simple_search_dag(
 
     tvertex = time()
     exe = InProcessExecutor()
+    print('parallel', parallel)
     if parallel:
         exe = cf.ThreadPoolExecutor(max_workers=parallel)
     with exe as pool:

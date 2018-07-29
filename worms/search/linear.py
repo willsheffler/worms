@@ -3,7 +3,7 @@ import numpy as np
 import numba as nb
 import types
 from worms.util import jit, InProcessExecutor
-from worms.vertex import _Vertex
+from worms.vertex import _Vertex, vertex_xform_dtype
 from worms.edge import _Edge
 from random import random
 import concurrent.futures as cf
@@ -67,7 +67,7 @@ def grow_linear(
             last_bb_same_as=last_bb_same_as,
             nresults=0,
             isplice=0,
-            splice_position=np.eye(4),
+            splice_position=np.eye(4, dtype=vertex_xform_dtype),
         )
         futures = list()
         if monte_carlo:
@@ -129,7 +129,7 @@ def grow_linear(
 def _grow_linear_start(verts_pickleable, edges_pickleable, **kwargs):
     verts = tuple([_Vertex(*vp) for vp in verts_pickleable])
     edges = tuple([_Edge(*ep) for ep in edges_pickleable])
-    pos = np.empty(shape=(1024, len(verts), 4, 4), dtype=np.float64)
+    pos = np.empty(shape=(1024, len(verts), 4, 4), dtype=np.float32)
     idx = np.empty(shape=(1024, len(verts)), dtype=np.int32)
     err = np.empty(shape=(1024, ), dtype=np.float32)
     stats = zero_search_stats()
@@ -185,7 +185,7 @@ def _grow_linear_recurse(
         nresults (int): total number of accumulated results so far
         isplice (int): index of current out-vertex / edge / splice
         ivertex_range (tuple(int, int)): range of ivertex with allowed entry ienter
-        splice_position (float64[:4,:4]): rigid body position of splice
+        splice_position (float32[:4,:4]): rigid body position of splice
 
     Returns:
         (int, SearchResult): accumulated pos, idx, and err
@@ -194,6 +194,8 @@ def _grow_linear_recurse(
     current_vertex = verts[isplice]
     for ivertex in range(*ivertex_range):
         result.idx[nresults, isplice] = ivertex
+        # assert splice_position.dtype is np.float32, 'splice_position not 32'
+        # assert current_vertex.x2orig.dtype is np.float32, 'current_vertex not 32'
         vertex_position = splice_position @ current_vertex.x2orig[ivertex]
         result.pos[nresults, isplice] = vertex_position
         if isplice == len(edges):
@@ -246,7 +248,7 @@ def _grow_linear_mc_start(
     tstart = time()
     verts = tuple([_Vertex(*vp) for vp in verts_pickleable])
     edges = tuple([_Edge(*ep) for ep in edges_pickleable])
-    pos = np.empty(shape=(1024, len(verts), 4, 4), dtype=np.float64)
+    pos = np.empty(shape=(1024, len(verts), 4, 4), dtype=np.float32)
     idx = np.empty(shape=(1024, len(verts)), dtype=np.int32)
     err = np.empty(shape=(1024, ), dtype=np.float32)
     stats = zero_search_stats()
@@ -309,7 +311,7 @@ def _grow_linear_mc_recurse(
         nresults (int): total number of accumulated results so far
         isplice (int): index of current out-vertex / edge / splice
         ivertex_range (tuple(int, int)): range of ivertex with allowed entry ienter
-        splice_position (float64[:4,:4]): rigid body position of splice
+        splice_position (float32[:4,:4]): rigid body position of splice
 
     Returns:
         (int, SearchResult): accumulated pos, idx, and err

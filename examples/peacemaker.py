@@ -179,7 +179,7 @@ def merge_results(
     n = len(in_rslt.idx)
     nv = len(ssdag.verts)
     merged = SearchResult(
-        pos=np.empty((n, nv, 4, 4), dtype='f8'),
+        pos=np.empty((n, nv, 4, 4), dtype='f4'),
         idx=np.empty((n, nv), dtype='i4'),
         err=np.empty((n, ), dtype='f8'),
         stats=np.empty(n, dtype='i4')

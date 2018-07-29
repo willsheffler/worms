@@ -60,7 +60,7 @@ class HashCriteria(WormCriteria):
             pos = pos[-1]
             for irot in irots:
                 to_pos = rots[irot] @ pos
-                xtgt = np.linalg.inv(pos) @ to_pos
+                xtgt = (np.linalg.inv(pos) @ to_pos).astype(np.float64)
                 key = binner(xtgt)
                 val = _khash_get(hash_vp, key, -9223372036854775808)
 
@@ -91,7 +91,7 @@ def _get_hash_lossfunc_data(nfold):
     rots = np.stack((
         hg.hrot([0, 0, 1, 0], np.pi * 2. / nfold),
         hg.hrot([0, 0, 1, 0], -np.pi * 2. / nfold),
-    ))
+    )).astype(np.float32)
     assert rots.shape == (2, 4, 4)
     irots = (0, 1) if nfold > 2 else (0, )
     return rots, irots
@@ -102,6 +102,7 @@ def _get_hash_val(gubinner, hash_table, pos, nfold):
     for irot in irots:
         to_pos = rots[irot] @ pos
         xtgt = np.linalg.inv(pos) @ to_pos
+        xtgt = xtgt.astype(np.float64)
         key = gubinner(xtgt)
         val = hash_table.get(key)
         if val != -9223372036854775808:

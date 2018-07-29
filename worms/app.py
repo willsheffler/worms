@@ -55,8 +55,8 @@ def parse_args(argv):
         splice_rms_range=6,
         splice_clash_contact_range=60,
         #
-        hash_cart_resl=2.0,
-        hash_ori_resl=10.0,
+        hash_cart_resl=1.0,
+        hash_ori_resl=5.0,
         merged_err_cut=4.0,
         ca_clash_dis=3.5,
         #
@@ -118,10 +118,9 @@ def worms_main(argv):
     if kw['precache_splices']:
         merge_bblock = kw['merge_bblock']
         del kw['merge_bblock']
-        for i in range(3):
-            bbs = simple_search_dag(
-                criteria, merge_bblock=None, precache_only=True, **kw
-            )
+        bbs = simple_search_dag(
+            criteria, merge_bblock=None, precache_only=True, **kw
+        )
         kw['merge_bblock'] = merge_bblock
         if kw['precache_splices_and_quit']:
             return
@@ -353,7 +352,7 @@ def merge_results(
     n = len(rsltB.idx)
     nv = len(ssdag.verts)
     merged = SearchResult(
-        pos=np.empty((n, nv, 4, 4), dtype='f8'),
+        pos=np.empty((n, nv, 4, 4), dtype='f4'),
         idx=np.empty((n, nv), dtype='i4'),
         err=9e9 * np.ones((n, ), dtype='f8'),
         stats=np.empty(n, dtype='i4')

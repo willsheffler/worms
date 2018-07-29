@@ -12,9 +12,11 @@ import concurrent.futures as cf
 from worms.util import InProcessExecutor, jit
 from worms.criteria import cyclic
 
+vertex_xform_dtype = np.float32
+
 @nb.jitclass((
-    ('x2exit'  , nt.float64[:, :, :]),
-    ('x2orig'  , nt.float64[:, :, :]),
+    ('x2exit'  , nb.typeof(vertex_xform_dtype(0))[:, :, :]),
+    ('x2orig'  , nb.typeof(vertex_xform_dtype(0))[:, :, :]),
     ('inout'   , nt.int32[:, :]),
     ('inbreaks', nt.int32[:]),
     ('ires'    , nt.int32[:, :]),
@@ -57,8 +59,8 @@ class _Vertex:
         Deleted Parameters:
             bblock (TYPE): Description
         """
-        self.x2exit = x2exit
-        self.x2orig = x2orig
+        self.x2exit = x2exit.astype(vertex_xform_dtype)
+        self.x2orig = x2orig.astype(vertex_xform_dtype)
         self.ires = ires
         self.isite = isite
         self.ichain = ichain

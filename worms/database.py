@@ -102,7 +102,6 @@ class SpliceDB:
                 if not os.path.exists(os.path.dirname(cachefile)):
                     os.makedirs(os.path.dirname(cachefile))
                 with open(cachefile + '.lock', 'w'):
-                    print('lock', cachefile)
                     if os.path.exists(cachefile):
                         with open(cachefile, 'rb') as inp:
                             self._cache[key].update(pickle.load(inp))
@@ -114,7 +113,6 @@ class SpliceDB:
                         data = set(self._cache[key].keys())
                         pickle.dump(data, out)
                 os.remove(cachefile + '.lock')
-                print('unlock', cachefile)
                 self._dirty.remove(key)
         if len(self._dirty):
             print(self._dirty)
