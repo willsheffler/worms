@@ -55,7 +55,7 @@ def parse_args(argv):
         splice_clash_d2=4.0**2,  # ca only
         splice_contact_d2=8.0**2,
         splice_clash_contact_range=30,
-        splice_ncontact_cut=25,
+        splice_ncontact_cut=20,
         #
         hash_cart_resl=1.0,
         hash_ori_resl=5.0,
@@ -348,6 +348,12 @@ def output_results(
             pose.dump_pdb(fname)
             commas = lambda l: ','.join(str(_) for _ in l)
             with open(fname, 'a') as out:
+                for ip, p in enumerate(prov):
+                    lb, ub, psrc, lbsrc, ubsrc = p
+                    out.write(
+                        f'Segment: {ip:2} resis {lb:4}-{ub:4} come from resis'
+                        + f'{lbsrc}-{ubsrc} of {psrc.pdb_info().name()}\n'
+                    )
                 nchain = pose.num_chains()
                 out.write('Modified positions: ' + commas(mod) + '\n')
                 out.write('New contact positions: ' + commas(new) + '\n')
