@@ -78,6 +78,7 @@ def grow_linear(
             kwargs['merge_bblock'] = merge_bblock
             kwargs['lbl'] = lbl
             kwargs['verbosity'] = verbosity
+            kwargs['pbar'] = pbar
             njob = cpu_count() if parallel else 1
             for ivert in range(njob):
                 kwargs['threadno'] = ivert
@@ -242,7 +243,7 @@ def _grow_linear_recurse(
 
 def _grow_linear_mc_start(
         seconds, verts_pickleable, edges_pickleable, threadno, pbar, lbl,
-        verbosity, **kwargs
+        verbosity, merge_bblock, **kwargs
 ):
     tstart = time()
     verts = tuple([_Vertex(*vp) for vp in verts_pickleable])
@@ -256,20 +257,21 @@ def _grow_linear_mc_start(
 
     if threadno == 0 and pbar:
         desc = 'linear search ' + str(lbl)
-        pbar = tqdm(desc=desc, position=1, total=seconds)
+        if merge_bblock is None: merge_bblock = 0
+        pbar_inst = tqdm(desc=desc, position=merge_bblock + 1, total=seconds)
         last = tstart
 
     nbatch = [1000, 330, 100, 33, 10, 3] + [1] * 99
     nbatch = nbatch[len(edges)] * 10
     nresults = 0
     while time() < tstart + seconds:
-        if 'pbar' in vars():
-            pbar.update(time() - last)
+        if 'pbar_inst' in vars():
+            pbar_inst.update(time() - last)
             last = time()
         nresults, result = _grow_linear_mc(
             nbatch, result, verts, edges, nresults=nresults, **kwargs
         )
-    if 'pbar' in vars(): pbar.close()
+    if 'pbar_inst' in vars(): pbar_inst.close()
 
     result = SearchResult(
         result.pos[:nresults], result.idx[:nresults], result.err[:nresults],

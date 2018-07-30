@@ -35,7 +35,7 @@ def parse_args(argv):
         bbconn=[''],
         config_file='',
         nbblocks=64,
-        monte_carlo=0.0,
+        monte_carlo=[0.0],
         parallel=1,
         verbosity=2,
         precache_splices=True,
@@ -174,7 +174,7 @@ def worms_main_each_mergebb(
         if not pbar: print(log[-1])
 
         fiter = cf.as_completed(futures)
-        if kw['pbar']:
+        if pbar:
             fiter = tqdm(
                 fiter, f'main_protocol', position=0, total=len(futures)
             )
@@ -210,13 +210,17 @@ def worms_main_protocol(criteria, bbs_states=None, **kw):
     return log
 
 
-def search_func(criteria, bbs, **kw):
+def search_func(criteria, bbs, monte_carlo, **kw):
 
     stages = [criteria]
     if hasattr(criteria, 'stages'):
         stages = criteria.stages(bbs=bbs, **kw)
     if len(stages) > 1:
         assert kw['merge_bblock'] is not None
+
+    assert len(monte_carlo) in (1, len(stages))
+    if len(monte_carlo) != len(stages):
+        monte_carlo *= len(stages)
 
     results = list()
     for i, stage in enumerate(stages):
@@ -225,6 +229,7 @@ def search_func(criteria, bbs, **kw):
         results.append(
             search_single_stage(
                 crit,
+                monte_carlo=monte_carlo[i],
                 lbl=f'stage{i}_mbb{kw["merge_bblock"]:04}',
                 bbs=bbs,
                 **kw
