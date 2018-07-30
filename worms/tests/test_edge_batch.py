@@ -14,7 +14,10 @@ def test_percomp_splices_1(bbdb_fullsize_prots, spdb):
         splice_clash_contact_range=60,
         splice_max_rms=0.7,
         splice_ncontact_cut=30,
-        skip_on_fail=True
+        skip_on_fail=True,
+        pbar=False,
+        verbosity=0,
+        parallel=0
     )
     k0 = ('worms/data/fullsize1.pdb', 'worms/data/fullsize1.pdb')
     k1 = ('worms/data/fullsize1.pdb', 'worms/data/fullsize2.pdb')

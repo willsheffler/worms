@@ -26,7 +26,7 @@ def _valid_splice_pairs(bbw0, bbw1, **kw):
     return _splice_respairs(ok, blk0, blk1)
 
 
-def compute_splices(bbdb, bbpairs, verbosity=2, parallel=0, **kw):
+def compute_splices(bbdb, bbpairs, verbosity, parallel, pbar, **kw):
     bbpairs_shuf = bbpairs.copy()
     shuffle(bbpairs_shuf)
     exe = InProcessExecutor()
