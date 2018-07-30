@@ -37,6 +37,7 @@ def grow_linear(
         verbosity=0,
         merge_bblock=None,
         lbl='',
+        pbar=False,
         **kw
 ):
     verts = ssdag.verts
@@ -94,15 +95,13 @@ def grow_linear(
                 results.append(f.result())
         else:
             desc = 'linear search ' + str(lbl)
-            if merge_bblock is not None and merge_bblock >= 0:
-                desc = f'{desc} {merge_bblock:04d}'
             if merge_bblock is None: merge_bblock = 0
             fiter = cf.as_completed(futures)
-            if verbosity > 1:
+            if pbar:
                 fiter = tqdm(
                     fiter,
                     desc=desc,
-                    position=merge_bblock,
+                    position=merge_bblock + 1,
                     total=len(futures)
                 )
             for f in fiter:
@@ -242,8 +241,8 @@ def _grow_linear_recurse(
 
 
 def _grow_linear_mc_start(
-        seconds, verts_pickleable, edges_pickleable, threadno, merge_bblock,
-        lbl, verbosity, **kwargs
+        seconds, verts_pickleable, edges_pickleable, threadno, pbar, lbl,
+        verbosity, **kwargs
 ):
     tstart = time()
     verts = tuple([_Vertex(*vp) for vp in verts_pickleable])
@@ -255,12 +254,9 @@ def _grow_linear_mc_start(
     result = SearchResult(pos=pos, idx=idx, err=err, stats=stats)
     del kwargs['nresults']
 
-    if threadno == 0 and verbosity > 1 and merge_bblock in (None, 0, -1):
+    if threadno == 0 and pbar:
         desc = 'linear search ' + str(lbl)
-        if merge_bblock is not None and merge_bblock >= 0:
-            desc = f'{desc} {merge_bblock:04d}'
-        if merge_bblock is None: merge_bblock = 0
-        pbar = tqdm(desc=desc, position=merge_bblock + 1, total=seconds)
+        pbar = tqdm(desc=desc, position=1, total=seconds)
         last = tstart
 
     nbatch = [1000, 330, 100, 33, 10, 3] + [1] * 99

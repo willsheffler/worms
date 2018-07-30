@@ -40,6 +40,7 @@ def parse_args(argv):
         verbosity=2,
         precache_splices=True,
         precache_splices_and_quit=False,
+        pbar=False,
         #
         cachedirs=[''],
         dbfiles=[''],
@@ -49,12 +50,12 @@ def parse_args(argv):
         merge_bblock=-1,
 
         # splice stuff
+        splice_rms_range=6,
         splice_max_rms=0.7,
-        splice_ncontact_cut=30,
         splice_clash_d2=4.0**2,  # ca only
         splice_contact_d2=8.0**2,
-        splice_rms_range=6,
-        splice_clash_contact_range=60,
+        splice_clash_contact_range=30,
+        splice_ncontact_cut=25,
         #
         hash_cart_resl=1.0,
         hash_ori_resl=5.0,
@@ -130,19 +131,24 @@ def worms_main(argv):
             return
 
     global _shared_ssdag
-    _shared_ssdag = simple_search_dag(criteria, **kw)
+    _shared_ssdag = simple_search_dag(criteria, print_edge_summary=True, **kw)
 
     merge_segment = criteria.merge_segment(**kw)
     if (merge_segment is None
             or (kw['merge_bblock'] is not None and kw['merge_bblock'] >= 0)):
-        worms_main_protocol(criteria, bbs=bbs, **kw)
+        log = worms_main_protocol(criteria, bbs=bbs, **kw)
     else:
-        worms_main_each_mergebb(criteria, bbs=bbs, **kw)
+        log = worms_main_each_mergebb(criteria, bbs=bbs, **kw)
+    if kw['pbar']:
+        print('======================== logs ========================')
+        for msg in log:
+            print(msg)
+        print('======================== done ========================')
 
 
 def worms_main_each_mergebb(
         criteria, precache_splices, merge_bblock, parallel, verbosity, bbs,
-        **kw
+        pbar, **kw
 ):
     exe = util.InProcessExecutor()
     if parallel:
@@ -160,18 +166,23 @@ def worms_main_each_mergebb(
                 verbosity=verbosity,
                 bbs_states=bbs_states,
                 precache_splices=precache_splices,
+                pbar=pbar,
                 **kw
             ) for i in range(len(bbs[merge_segment]))
         ]
-        print('parallel over merge_bblock, n =', len(futures))
+        log = ['parallel over merge_bblock, n =' + str(len(futures))]
+        if not pbar: print(log[-1])
+
         fiter = cf.as_completed(futures)
-        if verbosity > 0:
+        if kw['pbar']:
             fiter = tqdm(
                 fiter, f'main_protocol', position=0, total=len(futures)
             )
         for f in fiter:
-            f.result()
-    print('done')
+            log.extend(f.result())
+        if pbar:
+            log = [''] * len(futures) + log
+        return log
 
 
 def worms_main_protocol(criteria, bbs_states=None, **kw):
@@ -181,15 +192,22 @@ def worms_main_protocol(criteria, bbs_states=None, **kw):
 
     # search
     tup, tsearch = run_and_time(search_func, criteria, **kw)
-    result, ssdag = tup
+    result, ssdag, log = tup
     # print(f'raw results: {len(result.idx):,}, in {int(tsearch)}s')
 
     # filter
-    result, tclash = run_and_time(prune_clashes, ssdag, criteria, result, **kw)
-    if len(result.err): print(f'nresults {len(result.idx):,}, dumping')
+    result2, tclash = run_and_time(
+        prune_clashes, ssdag, criteria, result, **kw
+    )
+    log.append(
+        f'    nresults {len(result2.idx):,}, w/clashes {len(result2.idx):,}'
+    )
+    if not kw['pbar']: print(log[-1])
 
     # dump results
-    output_results(criteria, ssdag, result, **kw)
+    output_results(criteria, ssdag, result2, **kw)
+
+    return log
 
 
 def search_func(criteria, bbs, **kw):
@@ -203,10 +221,13 @@ def search_func(criteria, bbs, **kw):
     results = list()
     for i, stage in enumerate(stages):
         crit, bbs = stage
-        if callable(crit): crit = crit(*results[-1])
+        if callable(crit): crit = crit(*results[-1][:-1])
         results.append(
             search_single_stage(
-                crit, lbl=f'stage{i}_mbb{kw["merge_bblock"]}', bbs=bbs, **kw
+                crit,
+                lbl=f'stage{i}_mbb{kw["merge_bblock"]:04}',
+                bbs=bbs,
+                **kw
             )
         )
 
@@ -216,8 +237,8 @@ def search_func(criteria, bbs, **kw):
         # todo: this whole block is very protocol-specific... needs refactoring
         mseg = criteria.merge_segment(**kw)
         # simple_search_dag getting not-to-simple maybe split?
-        _____, ssdA, rsltA = results[0]
-        critB, ssdB, rsltB = results[1]
+        _____, ssdA, rsltA, logA = results[0]
+        critB, ssdB, rsltB, logB = results[1]
         # remove unnecessary verts before creating more
         # ssdA.verts = ssdA.verts[:1] + (None, ) * len(ssdA.verts[1:])
         # ssdB.verts = (None, ) * len(ssdB.verts[:1]) + ssdB.verts[-1:]
@@ -233,7 +254,7 @@ def search_func(criteria, bbs, **kw):
         rslt = merge_results(
             criteria, ssdag, ssdA, rsltA, critB, ssdB, rsltB, **kw
         )
-        return rslt, ssdag
+        return rslt, ssdag, logA + logB
     else:
         raise NotImplementedError('dunno more than two stages!')
 
@@ -244,7 +265,7 @@ def search_single_stage(criteria, lbl='', **kw):
         if os.path.exists(kw['run_cache'] + lbl + '.pickle'):
             with (open(kw['run_cache'] + lbl + '.pickle', 'rb')) as inp:
                 ssdag, result = _pickle.load(inp)
-                return criteria, ssdag, result
+                return criteria, ssdag, result, ['from run cache ' + lbl]
 
     ssdag = simple_search_dag(criteria, source=_shared_ssdag, lbl=lbl, **kw)
 
@@ -262,15 +283,18 @@ def search_single_stage(criteria, lbl='', **kw):
     frac_redundant = 0
     if len(result.idx):
         frac_redundant = result.stats.n_redundant_results[0] / len(result.idx)
-    print(
+
+    log = [
         f'grow_linear {lbl} done, nresults {len(result.idx):,}, ' +
         f'samp/sec {Nsparse_rate:,}, redundant ratio {frac_redundant}'
-    )
+    ]
+    if not kw['pbar']: print(log[-1])
+
     if kw['run_cache']:
         with (open(kw['run_cache'] + lbl + '.pickle', 'wb')) as out:
             _pickle.dump((ssdag, result), out)
 
-    return criteria, ssdag, result
+    return criteria, ssdag, result, log
 
 
 def output_results(
@@ -315,7 +339,6 @@ def output_results(
                 symdata = util.get_symdata(criteria.symname)
                 ros.core.pose.symmetry.make_symmetric_pose(pose, symdata)
 
-            print('output pdb', fname)
             mod, new, lost, junct = get_affected_positions(pose, prov)
             pose.dump_pdb(fname)
             commas = lambda l: ','.join(str(_) for _ in l)

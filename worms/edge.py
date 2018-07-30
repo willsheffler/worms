@@ -73,6 +73,7 @@ def get_allowed_splices(
         verbosity=1,
         cache_sync=0.001,
         precache_splices=False,
+        pbar=False,
         **kw
 ):
     assert (u.dirn[1] + v.dirn[0]) == 1, 'get_allowed_splices dirn mismatch'
@@ -157,7 +158,7 @@ def get_allowed_splices(
             print('get_allowed_splices read caches time:', tcache)
 
         future_iter = cf.as_completed(futures)
-        if verbosity > 1 and not precache_splices:
+        if pbar and not precache_splices:
             future_iter = tqdm(
                 cf.as_completed(futures),
                 'checking splices',

@@ -5,9 +5,11 @@
     NN    Het:NNy
     C_    Het:CCC
 --geometry Cyclic(6, origin_seg=0, from_seg=2)
---parallel 1
+--parallel 3
 --verbosity 2
 --dbfiles worms/data/wheel/wheel_c6.json
 --output_prefix test_c6
 --cachedir .worms_pytest_cache
 --merge_bblock 0
+--splice_clash_contact_range 60
+--splice_ncontact_cut 30

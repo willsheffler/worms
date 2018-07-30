@@ -70,6 +70,7 @@ def simple_search_dag(
         bbs=None,
         only_seg=None,
         source=None,
+        print_edge_summary=False,
         **kw
 ):
     bbdb, spdb = db
@@ -196,8 +197,8 @@ def simple_search_dag(
                     **kw
                 )
         tedge = time() - tedge
-        # if verbosity > 1:
-        # print_edge_summary(edges)
+        if print_edge_summary:
+            _print_edge_summary(edges)
         info(
             f'edge creation time {tedge:7.3f} num splices ' +
             str([e.total_allowed_splices()
@@ -211,7 +212,7 @@ def simple_search_dag(
     return toret
 
 
-def print_edge_summary(edges):
+def _print_edge_summary(edges):
     print('  splice stats: ', end='')
     for e in edges:
         nsplices = e.total_allowed_splices()

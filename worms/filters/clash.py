@@ -17,9 +17,10 @@ def prune_clashes(
         approx=0,
         verbosity=0,
         merge_bblock=None,
+        pbar=False,
         **kw
 ):
-    print('todo: clash check should handle symmetry')
+    # print('todo: clash check should handle symmetry')
     if max_clash_check == 0:
         return rslt
     max_clash_check = min(max_clash_check, len(rslt.idx))
@@ -55,17 +56,17 @@ def prune_clashes(
             )
             futures[-1].index = i
 
-        if verbosity > 1:
+        if pbar:
             desc = 'checking clashes '
             if merge_bblock is not None and merge_bblock >= 0:
-                desc = f'{desc} {merge_bblock:04d}'
+                desc = f'{desc}    mbb{merge_bblock:04d}'
             if merge_bblock is None:
                 merge_bblock = 0
             futures = tqdm(
                 cf.as_completed(futures),
                 desc=desc,
                 total=len(futures),
-                position=merge_bblock,
+                position=merge_bblock + 1,
             )
 
         ok = np.empty(len(futures), dtype='?')

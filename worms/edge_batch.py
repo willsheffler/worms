@@ -41,7 +41,7 @@ def compute_splices(bbdb, bbpairs, verbosity=2, parallel=0, **kw):
             futures.append(f)
         print('batch compute_splices, npairs:', len(futures))
         fiter = cf.as_completed(futures)
-        if verbosity > 1:
+        if pbar:
             fiter = tqdm(fiter, 'precache splices', total=len(futures))
         res = {f.bbpair: f.result() for f in fiter}
     return {bbpair: res[bbpair] for bbpair in bbpairs}
