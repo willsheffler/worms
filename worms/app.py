@@ -18,6 +18,7 @@ from worms.ssdag_pose import make_pose_crit
 from worms.util import run_and_time
 from worms import util
 from worms.filters.clash import prune_clashes
+from worms.filters.db_filters import run_db_filters
 from worms.khash import KHashi8i8
 from worms.khash.khash_cffi import _khash_get
 from worms.criteria.hash_util import _get_hash_val
@@ -38,14 +39,14 @@ def parse_args(argv):
         monte_carlo=[0.0],
         parallel=1,
         verbosity=2,
-        precache_splices=True,
-        precache_splices_and_quit=False,
-        pbar=False,
+        precache_splices=1,
+        precache_splices_and_quit=0,
+        pbar=0,
         #
         cachedirs=[''],
         dbfiles=[''],
-        load_poses=False,
-        read_new_pdbs=False,
+        load_poses=0,
+        read_new_pdbs=0,
         run_cache='',
         merge_bblock=-1,
 
@@ -57,24 +58,34 @@ def parse_args(argv):
         splice_clash_contact_range=30,
         splice_ncontact_cut=20,
         #
+        tol=1.0,
+        lever=50.0,
+        min_radius=0.0,
         hash_cart_resl=1.0,
         hash_ori_resl=5.0,
-        merged_err_cut=4.0,
+        merged_err_cut=999.0,
+        rms_err_cut=2.0,
         ca_clash_dis=3.5,
         #
         max_merge=10000,
         max_clash_check=10000,
         max_output=1000,
+        max_score0=100,
         #
-        output_pose=True,
-        output_symmetric=False,
+        output_from_pose=1,
+        output_symmetric=1,
         output_prefix='./worms',
-        output_centroid=False,
+        output_centroid=0,
         #
         cache_sync=0.003,
-        min_radius=0.0,
-    )
+        #
+        postfilt_splice_max_rms=0.6,
+        postfilt_splice_rms_length=10,
+        postfilt_splice_ncontact_cut=40,
+        postfilt_splice_ncontact_no_helix_cut=2,
+        postfilt_splice_nhelix_contacted_cut=3,
 
+    )
     if not args.config_file:
         crit = eval(''.join(args.geometry))
         bb = args.bbconn[1::2]
@@ -101,8 +112,6 @@ def parse_args(argv):
     if args.merge_bblock < 0: args.merge_bblock = None
     kw = vars(args)
     kw['db'] = BBlockDB(**kw), SpliceDB(**kw)
-    # kw['bblockdb'] = BBlockDB(**kw)
-    # kw['splicedb'] = SpliceDB(**kw)
 
     return crit, kw
 
@@ -118,6 +127,27 @@ def worms_main(argv):
     for k, v in kw.items():
         print('   ', k, v)
     pyrosetta.init('-mute all -beta')
+
+    #
+
+    # with open('wip_db_filters.pickle', 'rb') as inp:
+    #     ssdag, result, pose, prov = _pickle.load(inp)
+
+    # db = kw['db']
+    # del kw['db']
+    # (jstr, jstr1, filter, grade, splices, mc, mcnh, mhc, nc, ncnh,
+    #  nhc) = run_db_filters(
+    #      db, criteria, ssdag, 0, result.idx[0], pose, prov, **kw
+    #  )
+    # print(jstr)
+    # print(jstr1)
+    # print(filter)
+    # print(grade)
+    # print(splices)
+    # print(mc, nc)
+    # print(mcnh, ncnh)
+    # print(mhc, nhc)
+    # sys.exit()
 
     bbs = None
     if kw['precache_splices']:
@@ -200,12 +230,12 @@ def worms_main_protocol(criteria, bbs_states=None, **kw):
         prune_clashes, ssdag, criteria, result, **kw
     )
     log.append(
-        f'    nresults {len(result2.idx):,}, w/clashes {len(result2.idx):,}'
+        f'    nresults {len(result2.idx):,}, tot w/clashes {len(result2.idx):,}'
     )
     if not kw['pbar']: print(log[-1])
 
     # dump results
-    output_results(criteria, ssdag, result2, **kw)
+    filter_and_output_results(criteria, ssdag, result2, **kw)
 
     return log
 
@@ -256,7 +286,7 @@ def search_func(criteria, bbs, monte_carlo, **kw):
         )
         ssdag.verts = ssdB.verts[:-1] + (ssdag.verts[mseg], ) + ssdA.verts[1:]
         assert len(ssdag.verts) == len(criteria.bbspec)
-        rslt = merge_results(
+        rslt = merge_results_concat(
             criteria, ssdag, ssdA, rsltA, critB, ssdB, rsltB, **kw
         )
         return rslt, ssdag, logA + logB
@@ -302,81 +332,133 @@ def search_single_stage(criteria, lbl='', **kw):
     return criteria, ssdag, result, log
 
 
-def output_results(
-        criteria, ssdag, result, output_pose, merge_bblock, db,
-        output_symmetric, output_centroid, output_prefix, max_output, **kw
+def filter_and_output_results(
+        criteria, ssdag, result, output_from_pose, merge_bblock, db,
+        output_symmetric, output_centroid, output_prefix, max_output,
+        max_score0, rms_err_cut, **kw
 ):
-    for i in range(min(max_output, len(result.idx))):
+    sf = ros.core.scoring.ScoreFunctionFactory.create_score_function('score0')
+    sfsym = ros.core.scoring.symmetry.symmetrize_scorefunction(sf)
+    mbb = ''
+    if merge_bblock is not None: mbb = f'_mbb{merge_bblock:04d}'
+    with open(f'{output_prefix}{mbb}.info', 'w') as info_file:
+        for iresult in range(min(max_output, len(result.idx))):
 
-        # tmp, seenit = list(), set()
-        # for j in range(len(ssdag.verts)):
-        #     v = ssdag.verts[j]
-        #     ibb = v.ibblock[result.idx[i, j]]
-        #     bb = ssdag.bbs[j][ibb]
-        #     fname = str(bytes(bb.file), 'utf-8')
-        #     if fname not in seenit:
-        #         for e in db[0]._alldb:
-        #             if e['file'] == fname:
-        #                 tmp.append(e)
-        #     seenit.add(fname)
-        # import json
-        # with open('tmp_%i.json' % i, 'w') as out:
-        #     json.dump(tmp, out)
+            # make json files with bblocks for single result
+            # tmp, seenit = list(), set()
+            # for j in range(len(ssdag.verts)):
+            #     v = ssdag.verts[j]
+            #     ibb = v.ibblock[result.idx[iresult, j]]
+            #     bb = ssdag.bbs[j][ibb]
+            #     fname = str(bytes(bb.file), 'utf-8')
+            #     if fname not in seenit:
+            #         for e in db[0]._alldb:
+            #             if e['file'] == fname:
+            #                 tmp.append(e)
+            #     seenit.add(fname)
+            # import json
+            # with open('tmp_%i.json' % iresult, 'w') as out:
+            #     json.dump(tmp, out)
 
-        if merge_bblock is not None: mbb = f'_mbb{merge_bblock:03d}'
-        err = int(result.err[i] * 100)
-        fname = f'{output_prefix}{mbb}_{i:03}_err{err:03}.pdb'
-        if output_pose:
-            pose, prov = make_pose_crit(
-                db[0],
-                ssdag,
-                criteria,
-                result.idx[i],
-                result.pos[i],
-                only_connected='auto',
-                provenance=True
-            )
-            with open('wip_pose_prov.pickle', 'wb') as out:
-                _pickle.dump((pose, prov), out)
-            if output_centroid:
-                ros.core.util.switch_to_residue_type_set(pose, 'centroid')
-            if output_symmetric:
-                symdata = util.get_symdata(criteria.symname)
-                ros.core.pose.symmetry.make_symmetric_pose(pose, symdata)
+            if output_from_pose:
+                pose, prov = make_pose_crit(
+                    db[0],
+                    ssdag,
+                    criteria,
+                    result.idx[iresult],
+                    result.pos[iresult],
+                    only_connected='auto',
+                    provenance=True
+                )
 
-            mod, new, lost, junct = get_affected_positions(pose, prov)
-            pose.dump_pdb(fname)
-            commas = lambda l: ','.join(str(_) for _ in l)
-            with open(fname, 'a') as out:
-                for ip, p in enumerate(prov):
-                    lb, ub, psrc, lbsrc, ubsrc = p
-                    out.write(
-                        f'Segment: {ip:2} resis {lb:4}-{ub:4} come from resis'
-                        + f'{lbsrc}-{ubsrc} of {psrc.pdb_info().name()}\n'
+                if iresult == 0:
+                    chain_header = 'Nchains ' + ' '
+                    for chain in range(pose.num_chains()):
+                        chain_header = chain_header + ' L%s ' % (chain + 1)
+                    info_file.write(
+                        'Name                                                                  %s   close_err  score0  [exit_pdb       exit_resN entrance_resN entrance_pdb        ]   jct_res filter jct_rmsd  nc nc_wo_jct n_nb \n'
+                        % chain_header
                     )
-                nchain = pose.num_chains()
-                out.write('Modified positions: ' + commas(mod) + '\n')
-                out.write('New contact positions: ' + commas(new) + '\n')
-                out.write('Lost contact positions: ' + commas(lost) + '\n')
-                out.write('Junction residues: ' + commas(junct) + '\n')
-                out.write('Length of asymetric unit: ' + str(len(pose)) + '\n')
-                out.write('Number of chains in ASU: ' + str(nchain) + '\n')
-                out.write('Closure error: ' + str(result.err[i]) + '\n')
 
-        else:
-            if output_symmetric:
-                raise NotImplementedError('no symmetry w/o poses')
-            graph_dump_pdb(
-                fname,
-                ssdag,
-                result.idx[i],
-                result.pos[i],
-                join='bb',
-                trim=True
-            )
+                # with open('wip_db_filters.pickle', 'wb') as out:
+                # _pickle.dump((ssdag, result, pose, prov), out)
+
+                (jstr, jstr1, filt, grade, sp, mc, mcnh, mhc, nc, ncnh,
+                 nhc) = run_db_filters(
+                     db, criteria, ssdag, iresult, result.idx[iresult], pose,
+                     prov, **kw
+                 )
+                head = f'{output_prefix}{mbb}_'
+                fname = '%s_%04i_%s_%s_%s_%s_%s' % (
+                    head, iresult, jstr.replace('_0001', '')[:200], grade, mc,
+                    mcnh, mhc
+                )
+
+                cenpose = pose.clone()
+                ros.core.util.switch_to_residue_type_set(cenpose, 'centroid')
+                rms = criteria.iface_rms(cenpose, prov, **kw)
+                print(
+                    iresult, 'err', result.err[iresult], 'rms', rms, filt,
+                    grade
+                )
+                if rms > rms_err_cut: continue
+
+                symdata = util.get_symdata(criteria.symname)
+                sympose = cenpose.clone()
+                ros.core.pose.symmetry.make_symmetric_pose(sympose, symdata)
+                score0 = sfsym(sympose)
+
+                # out_file.write('%-80s %s  %3.2f  %7.2f  %s %s %-8s %5.2f %4d %4d %4d \n'%(junct_str,chain_info,s[top_hit],score0,junct_str1,w.splicepoints(top_hit),filter,result,min_contacts,min_contacts_no_helix,min_helices_contacted))
+                chains = pose.split_by_chain()
+                chain_info = '%4d ' % (len(list(chains)))
+                for chain in chains:
+                    chain_info = chain_info + '%4d ' % chain.size()
+                info_file.write(
+                    '%-80s %s  %3.2f  %7.2f  %s %s %-8s %5.2f %4d %4d %4d \n' %
+                    (
+                        jstr, chain_info, rms, score0, jstr1, sp, grade, 0, mc,
+                        mcnh, mhc
+                    )
+                )
+
+                if score0 >= max_score0: continue
+                mod, new, lost, junct = get_affected_positions(sympose, prov)
+                if output_symmetric: sympose.dump_pdb(fname + '_sym.pdb')
+                if output_centroid: pose = cenpose
+                pose.dump_pdb(fname + '_asym.pdb')
+                commas = lambda l: ','.join(str(_) for _ in l)
+                with open(fname + '_asym.pdb', 'a') as out:
+                    for ip, p in enumerate(prov):
+                        lb, ub, psrc, lbsrc, ubsrc = p
+                        out.write(
+                            f'Segment: {ip:2} resis {lb:4}-{ub:4} come from resis'
+                            + f'{lbsrc}-{ubsrc} of {psrc.pdb_info().name()}\n'
+                        )
+                    nchain = pose.num_chains()
+                    out.write('Modified positions: ' + commas(mod) + '\n')
+                    out.write('New contact positions: ' + commas(new) + '\n')
+                    out.write('Lost contact positions: ' + commas(lost) + '\n')
+                    out.write('Junction residues: ' + commas(junct) + '\n')
+                    out.write(
+                        'Length of asymetric unit: ' + str(len(pose)) + '\n'
+                    )
+                    out.write('Number of chains in ASU: ' + str(nchain) + '\n')
+                    out.write('Closure error: ' + str(rms) + '\n')
+
+            else:
+                # if output_symmetric:
+                # raise NotImplementedError('no symmetry w/o poses')
+                graph_dump_pdb(
+                    fname + '.pdb',
+                    ssdag,
+                    result.idx[iresult],
+                    result.pos[iresult],
+                    join='bb',
+                    trim=True
+                )
 
 
-def merge_results(
+def merge_results_concat(
         criteria, ssdag, ssdagA, rsltA, critB, ssdagB, rsltB, merged_err_cut,
         max_merge, **kw
 ):
@@ -386,8 +468,8 @@ def merge_results(
     assert bsfull[-len(bspartA):] == bspartA
     assert bsfull[:len(bspartB)] == bspartB
 
-    # print('merge_results ssdag.bbspec', ssdag.bbspec)
-    # print('merge_results criteria.bbspec', criteria.bbspec)
+    # print('merge_results_concat ssdag.bbspec', ssdag.bbspec)
+    # print('merge_results_concat criteria.bbspec', criteria.bbspec)
     rsltB = subset_result(rsltB, slice(max_merge))
 
     binner = critB.binner
@@ -421,7 +503,7 @@ def merge_results(
             binner, hash_table, rsltB.pos[i_in_rslt, -1], criteria.nfold
         )
         # print(
-        # 'merge_results', i_in_rslt, val, np.right_shift(val, 32),
+        # 'merge_results_concat', i_in_rslt, val, np.right_shift(val, 32),
         # np.right_shift(val, 16) % 16,
         # np.right_shift(val, 8) % 8, val % 8
         # )
@@ -440,8 +522,8 @@ def merge_results(
         assert np.allclose(pos[from_seg], rsltB.pos[i_in_rslt, -1])
         err = criteria.score(pos.reshape(-1, 1, 4, 4))
         merged.err[i_in_rslt] = err
-        # print('merge_results', i_in_rslt, pos)
-        # print('merge_results', i_in_rslt, err)
+        # print('merge_results_concat', i_in_rslt, pos)
+        # print('merge_results_concat', i_in_rslt, err)
         if err > merged_err_cut: continue
 
         i_outer = rsltA.idx[i_ot_rslt, 0]

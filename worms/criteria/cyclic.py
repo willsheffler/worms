@@ -1,9 +1,11 @@
 from .base import *
-from worms.util import jit
+from worms import util
 from worms.criteria import make_hash_table, HashCriteria
-from homog import numba_axis_angle
+from homog import numba_axis_angle, hrot
 from xbin import gu_xbin_indexer, numba_xbin_indexer
 from copy import deepcopy
+
+import pyrosetta.rosetta as ros
 
 
 class Cyclic(WormCriteria):
@@ -120,7 +122,7 @@ class Cyclic(WormCriteria):
         lever = self.lever
         min_sep2 = self.min_sep2
 
-        @jit
+        @util.jit
         def func(pos, idx, verts):
             x_from = pos[from_seg]
             x_to = pos[to_seg]
@@ -147,7 +149,12 @@ class Cyclic(WormCriteria):
         assert self.origin_seg == 0
         bbspec = deepcopy(self.bbspec[self.from_seg:])
         bbspec[0][1] = '_' + bbspec[0][1][1]
-        critA = Cyclic(self.nfold, min_radius=self.min_radius)
+        critA = Cyclic(
+            self.nfold,
+            min_radius=self.min_radius,
+            lever=self.lever,
+            tol=self.tol * 2.0
+        )
         critA.bbspec = bbspec
         bbsA = bbs[self.from_seg:] if bbs else None
         bbsB = bbs[:self.from_seg + 1] if bbs else None
@@ -167,3 +174,46 @@ class Cyclic(WormCriteria):
     def which_mergebb(self):
         "which bbs are being merged together"
         return self.from_seg, self.to_seg
+
+    def iface_rms(self, pose0, prov, **kw):
+        if self.origin_seg is None:
+            print('WARNING: iface_rms not implemented for simple cyclic')
+        else:
+            assert prov[-1][2] is prov[-2][2]
+            ithird = list()
+            for i, pr in enumerate(prov[:-2]):
+                if pr[2] is prov[-1][2]:
+                    ithird.append(i)
+            if len(ithird) > 1: return 9e9
+            ithird = ithird[0]
+            a1 = util.subpose(pose0, prov[-2][0], prov[-2][1])
+            a2 = util.subpose(pose0, prov[-1][0], prov[-1][1])
+            a3 = util.subpose(pose0, prov[ithird][0], prov[ithird][1])
+            b1 = util.subpose(prov[-2][2], prov[-2][3], prov[-2][4])
+            b2 = util.subpose(prov[-1][2], prov[-1][3], prov[-1][4])
+            b3 = util.subpose(
+                prov[ithird][2], prov[ithird][3], prov[ithird][4]
+            )
+            # a1.dump_pdb('first.pdb')
+            # a2.dump_pdb('second.pdb')
+            # a3.dump_pdb('third.pdb')
+
+            forward = hrot([0, 0, 1], 360.0 / self.nfold)
+            backward = hrot([0, 0, 1], -720.0 / self.nfold)
+            util.xform_pose(forward, a3)
+            # a3.dump_pdb('a3_forward.pdb')
+            fdist = a1.residue(1).xyz(2).distance(a3.residue(1).xyz(2))
+            util.xform_pose(backward, a3)
+            # a3.dump_pdb('a3_backward.pdb')
+            bdist = a1.residue(1).xyz(2).distance(a3.residue(1).xyz(2))
+            if bdist > fdist:
+                util.xform_pose(forward, a3)
+                util.xform_pose(forward, a3)
+
+            ros.core.pose.append_pose_to_pose(a1, a2, True)
+            ros.core.pose.append_pose_to_pose(a1, a3, True)
+            ros.core.pose.append_pose_to_pose(b1, b2, True)
+            ros.core.pose.append_pose_to_pose(b1, b3, True)
+            # a1.dump_pdb('a1.pdb')
+            # b1.dump_pdb('b1.pdb')
+            return ros.core.scoring.CA_rmsd(a1, b1)

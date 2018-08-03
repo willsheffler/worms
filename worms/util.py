@@ -325,6 +325,20 @@ def trim_pose(pose, resid, direction, pad=0):
     return p, lb, ub
 
 
+def fix_bb_h(pose, ires):
+    r = pose.residue(ires)
+    ih = r.atom_index('H')
+    crd = r.build_atom_ideal(ih, pose.conformation())
+    pose.set_xyz(ros.core.id.AtomID(ih, ires), crd)
+
+
+def fix_bb_o(pose, ires):
+    r = pose.residue(ires)
+    io = r.atom_index('O')
+    crd = r.build_atom_ideal(io, pose.conformation())
+    pose.set_xyz(ros.core.id.AtomID(io, ires), crd)
+
+
 def symfile_path(name):
     path, _ = os.path.split(__file__)
     return os.path.join(path, 'rosetta_symdef', name + '.sym')
@@ -549,4 +563,3 @@ def get_cli_args(argv=None, **kw):
     if hasattr(args, 'parallel') and args.parallel < 0:
         args.parallel = cpu_count()
     return args
-

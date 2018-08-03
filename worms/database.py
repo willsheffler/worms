@@ -235,6 +235,8 @@ class BBlockDB:
         """load pose from _bblock_cache, read from file if not in memory"""
         if isinstance(pdbfile, bytes):
             pdbfile = str(pdbfile, 'utf-8')
+        if isinstance(pdbfile, np.ndarray):
+            pdbfile = str(bytes(pdbfile), 'utf-8')
         if not pdbfile in self._poses_cache:
             if not self.load_cached_pose_into_memory(pdbfile):
                 self._poses_cache[pdbfile] = pose_from_file(pdbfile)

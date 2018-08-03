@@ -381,7 +381,10 @@ def make_contorted_pose(
             rm_lower_t(chain, 1)
             splicepoints.append(len(pose))
             if make_chain_list: ret_chain_list.append(chain)
+            fixres = len(pose)
             ros.core.pose.append_pose_to_pose(pose, chain, not join)
+            util.fix_bb_o(pose, fixres)
+            util.fix_bb_h(pose, fixres + 1)
             prov0.append(source)
     if not only_connected or only_connected == 'auto':
         for chain, source in it.chain(*rest):
