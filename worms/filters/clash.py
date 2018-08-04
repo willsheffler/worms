@@ -66,6 +66,7 @@ def prune_clashes(
                 cf.as_completed(futures),
                 desc=desc,
                 total=len(futures),
+                mininterval=1.0,
                 position=merge_bblock + 1,
             )
 

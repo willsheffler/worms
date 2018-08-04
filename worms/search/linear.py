@@ -103,6 +103,7 @@ def grow_linear(
                     fiter,
                     desc=desc,
                     position=merge_bblock + 1,
+                    mininterval=1.0,
                     total=len(futures)
                 )
             for f in fiter:
@@ -258,7 +259,12 @@ def _grow_linear_mc_start(
     if threadno == 0 and pbar:
         desc = 'linear search ' + str(lbl)
         if merge_bblock is None: merge_bblock = 0
-        pbar_inst = tqdm(desc=desc, position=merge_bblock + 1, total=seconds)
+        pbar_inst = tqdm(
+            desc=desc,
+            position=merge_bblock + 1,
+            total=seconds,
+            mininterval=1.0
+        )
         last = tstart
 
     nbatch = [1000, 330, 100, 33, 10, 3] + [1] * 99
