@@ -103,7 +103,7 @@ def grow_linear(
                     fiter,
                     desc=desc,
                     position=merge_bblock + 1,
-                    mininterval=1.0,
+                    mininterval=10.0,
                     total=len(futures)
                 )
             for f in fiter:
@@ -263,7 +263,7 @@ def _grow_linear_mc_start(
             desc=desc,
             position=merge_bblock + 1,
             total=seconds,
-            mininterval=1.0
+            mininterval=10.0
         )
         last = tstart
 

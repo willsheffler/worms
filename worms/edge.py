@@ -162,7 +162,7 @@ def get_allowed_splices(
             future_iter = tqdm(
                 cf.as_completed(futures),
                 'checking splices',
-                mininterval=1.0,
+                mininterval=10.0,
                 total=len(futures)
             )
         for future in future_iter:
