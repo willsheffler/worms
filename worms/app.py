@@ -51,21 +51,21 @@ def parse_args(argv):
         merge_bblock=-1,
 
         # splice stuff
-        splice_rms_range=6,
-        splice_max_rms=0.7,
-        splice_clash_d2=4.0**2,  # ca only
+        splice_rms_range=5,
+        splice_max_rms=0.6,
+        splice_clash_d2=3.5**2,  # ca only
         splice_contact_d2=8.0**2,
         splice_clash_contact_range=30,
         splice_ncontact_cut=20,
         #
         tol=1.0,
-        lever=50.0,
+        lever=25.0,
         min_radius=0.0,
         hash_cart_resl=1.0,
         hash_ori_resl=5.0,
         merged_err_cut=999.0,
-        rms_err_cut=2.0,
-        ca_clash_dis=3.5,
+        rms_err_cut=3.0,
+        ca_clash_dis=3.0,
         #
         max_merge=10000,
         max_clash_check=10000,
