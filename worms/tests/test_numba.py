@@ -143,26 +143,26 @@ def test_many_specs():
     assert 0
 
 
-@only_if_jit
-def test_jitclass_print():
-    @nb.jitclass((('add', nt.int32), ))
-    class DummyFilter:
-        def __init__(self, add):
-            self.add = add
-
-        def jitclass_members_still_cant_print(self):
-            print('literal')  # this is ok
-            print(self.add)  # these are not
-            print(np.eye(4))
-            return 13
-
-    # cannot subclass from a jitclass
-    # @nb.jitclass((('add', nt.int32), ))
-    # class DummyFilter2(DummyFilter):
-    # pass
-    df = DummyFilter(13)
-    with pytest.raises(RuntimeError):
-        assert df.jitclass_members_still_cant_print() == 13
+# @only_if_jit
+# def test_jitclass_print():
+#     @nb.jitclass((('add', nt.int32), ))
+#     class DummyFilter:
+#         def __init__(self, add):
+#             self.add = add
+#
+#         def jitclass_members_still_cant_print(self):
+#             print('literal')  # this is ok
+#             print(self.add)  # these are not
+#             print(np.eye(4))
+#             return 13
+#
+#     # cannot subclass from a jitclass
+#     # @nb.jitclass((('add', nt.int32), ))
+#     # class DummyFilter2(DummyFilter):
+#     # pass
+#     df = DummyFilter(13)
+#     with pytest.raises(RuntimeError):
+#         assert df.jitclass_members_still_cant_print() == 13
 
 
 @only_if_jit
