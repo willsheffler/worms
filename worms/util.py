@@ -23,8 +23,10 @@ import numba as nb
 try:
     # god, I'm so tired of this crap....
     from pyrosetta import rosetta as ros
+    import pyrosetta.rosetta as ros
     HAVE_PYROSETTA = True
 except ImportError:
+    ros = None
     HAVE_PYROSETTA = False
 
 jit = nb.njit(nogil=True, fastmath=True)

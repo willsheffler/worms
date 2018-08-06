@@ -4,8 +4,7 @@ from worms.criteria import make_hash_table, HashCriteria
 from homog import numba_axis_angle, hrot
 from xbin import gu_xbin_indexer, numba_xbin_indexer
 from copy import deepcopy
-
-import pyrosetta.rosetta as ros
+from worms.util import ros
 
 
 class Cyclic(WormCriteria):
