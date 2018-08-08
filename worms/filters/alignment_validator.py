@@ -196,6 +196,7 @@ class AlignmentValidator:
                 len(residue_distances2)
             )
         )
+        # print('DBG', superimpose_length, len(residue_distances2))
         lowest_observed_distance2 = math.inf
         for index in range(0, len(residue_distances2)):
             sum_distance2 = sum_distance2 + residue_distances2[index]

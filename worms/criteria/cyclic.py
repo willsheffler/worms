@@ -178,41 +178,55 @@ class Cyclic(WormCriteria):
         if self.origin_seg is None:
             print('WARNING: iface_rms not implemented for simple cyclic')
         else:
-            assert prov[-1][2] is prov[-2][2]
-            ithird = list()
-            for i, pr in enumerate(prov[:-2]):
+            same_as_last = list()
+            for i, pr in enumerate(prov[:-1]):
                 if pr[2] is prov[-1][2]:
-                    ithird.append(i)
-            if len(ithird) > 1: return 9e9
-            ithird = ithird[0]
-            a1 = util.subpose(pose0, prov[-2][0], prov[-2][1])
-            a2 = util.subpose(pose0, prov[-1][0], prov[-1][1])
-            a3 = util.subpose(pose0, prov[ithird][0], prov[ithird][1])
-            b1 = util.subpose(prov[-2][2], prov[-2][3], prov[-2][4])
-            b2 = util.subpose(prov[-1][2], prov[-1][3], prov[-1][4])
-            b3 = util.subpose(
-                prov[ithird][2], prov[ithird][3], prov[ithird][4]
-            )
-            # a1.dump_pdb('first.pdb')
-            # a2.dump_pdb('second.pdb')
-            # a3.dump_pdb('third.pdb')
+                    same_as_last.append(i)
+            if len(same_as_last) < 2:
+                print('err, not 3 merge subs! same_as_last:', same_as_last)
+                for i, (lb, ub, src, slb, sub) in enumerate(prov):
+                    print(i, lb, ub, id(src), len(src), slb, sub)
+                return 9e9
+
+            i1, i2 = same_as_last[-2:]
+            i3 = -1
+            a1 = util.subpose(pose0, prov[i1][0], prov[i1][1])
+            a2 = util.subpose(pose0, prov[i2][0], prov[i2][1])
+            a3 = util.subpose(pose0, prov[i3][0], prov[i3][1])
+            b1 = util.subpose(prov[i1][2], prov[i1][3], prov[i1][4])
+            b2 = util.subpose(prov[i2][2], prov[i2][3], prov[i2][4])
+            b3 = util.subpose(prov[i3][2], prov[i3][3], prov[i3][4])
 
             forward = hrot([0, 0, 1], 360.0 / self.nfold)
             backward = hrot([0, 0, 1], -720.0 / self.nfold)
-            util.xform_pose(forward, a3)
-            # a3.dump_pdb('a3_forward.pdb')
+            util.xform_pose(forward, a1)
+            # a1.dump_pdb('a3_forward.pdb')
             fdist = a1.residue(1).xyz(2).distance(a3.residue(1).xyz(2))
-            util.xform_pose(backward, a3)
-            # a3.dump_pdb('a3_backward.pdb')
+            util.xform_pose(backward, a1)
+            # a1.dump_pdb('a3_backward.pdb')
             bdist = a1.residue(1).xyz(2).distance(a3.residue(1).xyz(2))
             if bdist > fdist:
-                util.xform_pose(forward, a3)
-                util.xform_pose(forward, a3)
+                util.xform_pose(forward, a1)
+                util.xform_pose(forward, a1)
+
+            # pose0.dump_pdb('pose0.pdb')
+            # a1.dump_pdb('a1.pdb')
+            # a2.dump_pdb('a2.pdb')
+            # a3.dump_pdb('a3.pdb')
+            # prov[-1][2].dump_pdb('src.pdb')
+            # b1.dump_pdb('b1.pdb')
+            # b2.dump_pdb('b2.pdb')
+            # b3.dump_pdb('b3.pdb')
 
             ros.core.pose.append_pose_to_pose(a1, a2, True)
             ros.core.pose.append_pose_to_pose(a1, a3, True)
             ros.core.pose.append_pose_to_pose(b1, b2, True)
             ros.core.pose.append_pose_to_pose(b1, b3, True)
-            # a1.dump_pdb('a1.pdb')
-            # b1.dump_pdb('b1.pdb')
-            return ros.core.scoring.CA_rmsd(a1, b1)
+
+            # a1.dump_pdb('a.pdb')
+            # b1.dump_pdb('b.pdb')
+
+            rms = ros.core.scoring.CA_rmsd(a1, b1)
+            # assert 0, 'debug iface rms ' + str(rms)
+
+            return rms

@@ -225,14 +225,14 @@ def worms_main_protocol(criteria, bbs_states=None, **kw):
     result, ssdag, log = tup
     # print(f'raw results: {len(result.idx):,}, in {int(tsearch)}s')
 
-    # filter
+    filter
     result2, tclash = run_and_time(
         prune_clashes, ssdag, criteria, result, **kw
     )
-    log.append(
-        f'    nresults {len(result2.idx):,}, tot w/clashes {len(result2.idx):,}'
-    )
-    if not kw['pbar']: print(log[-1])
+
+    msg = f'nresults {len(result2.idx):,}, tot w/clashes {len(result.idx):,}'
+    log.append('    ' + msg)
+    print(log[-1])
 
     # dump results
     filter_and_output_results(criteria, ssdag, result2, **kw)
@@ -376,7 +376,7 @@ def filter_and_output_results(
                     for chain in range(pose.num_chains()):
                         chain_header = chain_header + ' L%s ' % (chain + 1)
                     info_file.write(
-                        'Name                                                                  %s   close_err  score0  [exit_pdb       exit_resN entrance_resN entrance_pdb        ]   jct_res filter jct_rmsd  nc nc_wo_jct n_nb \n'
+                        'close_err close_rms score0 filter nc nc_wo_jct n_nb  Name                                                                  %s   [exit_pdb       exit_resN entrance_resN entrance_pdb        ]   jct_res \n'
                         % chain_header
                     )
 
@@ -394,30 +394,30 @@ def filter_and_output_results(
                     mcnh, mhc
                 )
 
+                rms = criteria.iface_rms(pose, prov, **kw)
+                # if rms > rms_err_cut: continue
+
                 cenpose = pose.clone()
                 ros.core.util.switch_to_residue_type_set(cenpose, 'centroid')
-                rms = criteria.iface_rms(cenpose, prov, **kw)
-                print(
-                    iresult, 'err', result.err[iresult], 'rms', rms, filt,
-                    grade
-                )
-                if rms > rms_err_cut: continue
 
                 symdata = util.get_symdata(criteria.symname)
                 sympose = cenpose.clone()
                 ros.core.pose.symmetry.make_symmetric_pose(sympose, symdata)
                 score0 = sfsym(sympose)
 
+                print(
+                    f'mbb{merge_bblock:4d} {iresult:4d} err {result.err[iresult]:5.2f} rms {rms:5.2f} score0 {score0:7.2f} {grade} {filt} {fname}'
+                )
                 # out_file.write('%-80s %s  %3.2f  %7.2f  %s %s %-8s %5.2f %4d %4d %4d \n'%(junct_str,chain_info,s[top_hit],score0,junct_str1,w.splicepoints(top_hit),filter,result,min_contacts,min_contacts_no_helix,min_helices_contacted))
                 chains = pose.split_by_chain()
                 chain_info = '%4d ' % (len(list(chains)))
                 for chain in chains:
                     chain_info = chain_info + '%4d ' % chain.size()
                 info_file.write(
-                    '%-80s %s  %3.2f  %7.2f  %s %s %-8s %5.2f %4d %4d %4d \n' %
+                    '%5.2f %5.2f %7.2f %-8s %4d %4d %4d  %-80s %s  %s %s \n' %
                     (
-                        jstr, chain_info, rms, score0, jstr1, sp, grade, 0, mc,
-                        mcnh, mhc
+                        result.err[iresult], rms, score0, grade, mc, mcnh, mhc,
+                        fname, chain_info, jstr1, sp
                     )
                 )
 
