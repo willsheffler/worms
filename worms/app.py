@@ -6,6 +6,8 @@ from copy import deepcopy
 import itertools as it
 from time import time
 import concurrent.futures as cf
+import traceback
+
 from tqdm import tqdm
 from xbin import gu_xbin_indexer, numba_xbin_indexer
 import homog as hg
@@ -42,6 +44,7 @@ def parse_args(argv):
         precache_splices=1,
         precache_splices_and_quit=0,
         pbar=0,
+        pbar_interval=10.0,
         #
         cachedirs=[''],
         dbfiles=[''],
@@ -50,6 +53,7 @@ def parse_args(argv):
         run_cache='',
         merge_bblock=-1,
         no_duplicate_bases=1,
+        shuffle_bblocks=1,
 
         # splice stuff
         splice_rms_range=5,
@@ -71,7 +75,7 @@ def parse_args(argv):
         max_merge=10000,
         max_clash_check=10000,
         max_output=1000,
-        max_score0=100,
+        max_score0=10,
         #
         output_from_pose=1,
         output_symmetric=1,
@@ -167,10 +171,15 @@ def worms_main(argv):
     assert len(_shared_ssdag.bbs) == len(kw['bbs'])
     for a, b in zip(_shared_ssdag.bbs, kw['bbs']):
         assert a is b
+    if not kw['shuffle_bblocks']:
+        bbnames = [[bytes(b.file).decode('utf-8')
+                    for b in bb]
+                   for bb in kw['bbs']]
+        with open(kw['output_prefix'] + '_bblocks.pickle', 'wb') as out:
+            _pickle.dump(bbnames, out)
 
-    merge_segment = criteria.merge_segment(**kw)
-    if (merge_segment is None
-            or (kw['merge_bblock'] is not None and kw['merge_bblock'] >= 0)):
+    # merge_segment = criteria.merge_segment(**kw)
+    if kw['parallel'] == 0:
         log = worms_main_protocol(criteria, **kw)
     else:
         log = worms_main_each_mergebb(criteria, **kw)
@@ -192,6 +201,8 @@ def worms_main_each_mergebb(
     kw['db'][0].clear()  # remove cached BBlocks
     with exe as pool:
         merge_segment = criteria.merge_segment(**kw)
+        if merge_segment is None:
+            merge_segment = 0
         futures = [
             pool.submit(
                 worms_main_protocol,
@@ -223,7 +234,7 @@ def worms_main_protocol(criteria, bbs_states=None, **kw):
 
     # search
     tup, tsearch = run_and_time(search_func, criteria, **kw)
-    result, ssdag, log = tup
+    ssdag, result, log = tup
     # print(f'raw results: {len(result.idx):,}, in {int(tsearch)}s')
 
     filter
@@ -257,13 +268,12 @@ def search_func(criteria, bbs, monte_carlo, **kw):
     for i, stage in enumerate(stages):
         crit, stage_bbs = stage
         if callable(crit): crit = crit(*results[-1][:-1])
+        lbl = f'stage{i}'
+        if kw['merge_bblock'] is not None:
+            lbl = f'stage{i}_mbb{kw["merge_bblock"]:04}'
         results.append(
             search_single_stage(
-                crit,
-                monte_carlo=monte_carlo[i],
-                lbl=f'stage{i}_mbb{kw["merge_bblock"]:04}',
-                bbs=stage_bbs,
-                **kw
+                crit, monte_carlo=monte_carlo[i], lbl=lbl, bbs=stage_bbs, **kw
             )
         )
 
@@ -291,7 +301,7 @@ def search_func(criteria, bbs, monte_carlo, **kw):
         rslt = merge_results_concat(
             criteria, ssdag, ssdA, rsltA, critB, ssdB, rsltB, **kw
         )
-        return rslt, ssdag, logA + logB
+        return ssdag, rslt, logA + logB
     else:
         raise NotImplementedError('dunno more than two stages!')
 
@@ -385,11 +395,20 @@ def filter_and_output_results(
                 # with open('wip_db_filters.pickle', 'wb') as out:
                 # _pickle.dump((ssdag, result, pose, prov), out)
 
-                (jstr, jstr1, filt, grade, sp, mc, mcnh, mhc, nc, ncnh,
-                 nhc) = run_db_filters(
-                     db, criteria, ssdag, iresult, result.idx[iresult], pose,
-                     prov, **kw
-                 )
+                try:
+                    (
+                        jstr, jstr1, filt, grade, sp, mc, mcnh, mhc, nc, ncnh,
+                        nhc
+                    ) = run_db_filters(
+                        db, criteria, ssdag, iresult, result.idx[iresult],
+                        pose, prov, **kw
+                    )
+                except Exception as e:
+                    print('error in db_filters:')
+                    print(traceback.format_exc())
+                    print(exc)
+                    continue
+
                 head = f'{output_prefix}{mbb}_'
                 fname = '%s_%04i_%s_%s_%s_%s_%s' % (
                     head, iresult, jstr.replace('_0001', '')[:200], grade, mc,
@@ -406,9 +425,16 @@ def filter_and_output_results(
                 sympose = cenpose.clone()
                 ros.core.pose.symmetry.make_symmetric_pose(sympose, symdata)
                 score0 = sfsym(sympose)
+                # if score0 >= 10 * max_score0: continue
 
+                bases = ssdag.get_bases(result.idx[iresult])
+                # print(bases, ssdag.get_base_hashes(result.idx[iresult]))
+                bases_str = ','.join(bases)
+                mbbstr = 'None'
+                if merge_bblock is not None:
+                    mbbstr = f'{merge_bblock:4d}'
                 print(
-                    f'mbb{merge_bblock:4d} {iresult:4d} err {result.err[iresult]:5.2f} rms {rms:5.2f} score0 {score0:7.2f} {grade} {filt} {fname}'
+                    f'mbb{mbbstr} {iresult:4d} err {result.err[iresult]:5.2f} rms {rms:5.2f} score0 {score0:7.2f} {grade} {filt} {bases_str} {fname}'
                 )
                 # out_file.write('%-80s %s  %3.2f  %7.2f  %s %s %-8s %5.2f %4d %4d %4d \n'%(junct_str,chain_info,s[top_hit],score0,junct_str1,w.splicepoints(top_hit),filter,result,min_contacts,min_contacts_no_helix,min_helices_contacted))
                 chains = pose.split_by_chain()
@@ -416,12 +442,13 @@ def filter_and_output_results(
                 for chain in chains:
                     chain_info = chain_info + '%4d ' % chain.size()
                 info_file.write(
-                    '%5.2f %5.2f %7.2f %-8s %4d %4d %4d  %-80s %s  %s %s \n' %
-                    (
+                    '%5.2f %5.2f %7.2f %-8s %4d %4d %4d %s %-80s %s  %s %s \n'
+                    % (
                         result.err[iresult], rms, score0, grade, mc, mcnh, mhc,
-                        fname, chain_info, jstr1, sp
+                        bases_str, fname, chain_info, jstr1, sp
                     )
                 )
+                info_file.flush()
 
                 if score0 >= max_score0: continue
                 mod, new, lost, junct = get_affected_positions(sympose, prov)
@@ -450,6 +477,8 @@ def filter_and_output_results(
             else:
                 # if output_symmetric:
                 # raise NotImplementedError('no symmetry w/o poses')
+                head = f'{output_prefix}{mbb}_'
+                fname = '%s_%04i' % (head, iresult)
                 graph_dump_pdb(
                     fname + '.pdb',
                     ssdag,

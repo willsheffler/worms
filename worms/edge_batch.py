@@ -26,7 +26,9 @@ def _valid_splice_pairs(bbw0, bbw1, **kw):
     return _splice_respairs(ok, blk0, blk1)
 
 
-def compute_splices(bbdb, bbpairs, verbosity, parallel, pbar, **kw):
+def compute_splices(
+        bbdb, bbpairs, verbosity, parallel, pbar, pbar_interval, **kw
+):
     bbpairs_shuf = bbpairs.copy()
     shuffle(bbpairs_shuf)
     exe = InProcessExecutor()
@@ -45,7 +47,7 @@ def compute_splices(bbdb, bbpairs, verbosity, parallel, pbar, **kw):
             fiter = tqdm(
                 fiter,
                 'precache splices',
-                mininterval=10.0,
+                mininterval=pbar_interval,
                 total=len(futures)
             )
         res = {f.bbpair: f.result() for f in fiter}

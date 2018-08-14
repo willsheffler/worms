@@ -143,7 +143,7 @@ class Cyclic(WormCriteria):
     def stages(self, hash_cart_resl, hash_ori_resl, bbs, **kw):
         "return spearate criteria for each search stage"
         if self.origin_seg is None:
-            return [self]
+            return [(self, bbs)]
 
         assert self.origin_seg == 0
         bbspec = deepcopy(self.bbspec[self.from_seg:])
@@ -176,7 +176,8 @@ class Cyclic(WormCriteria):
 
     def iface_rms(self, pose0, prov, **kw):
         if self.origin_seg is None:
-            print('WARNING: iface_rms not implemented for simple cyclic')
+            # print('WARNING: iface_rms not implemented for simple cyclic')
+            return -1
         else:
             same_as_last = list()
             for i, pr in enumerate(prov[:-1]):

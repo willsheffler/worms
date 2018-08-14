@@ -18,6 +18,7 @@ def prune_clashes(
         verbosity=0,
         merge_bblock=None,
         pbar=False,
+        pbar_interval=10.0,
         **kw
 ):
     # print('todo: clash check should handle symmetry')
@@ -66,7 +67,7 @@ def prune_clashes(
                 cf.as_completed(futures),
                 desc=desc,
                 total=len(futures),
-                mininterval=10.0,
+                mininterval=pbar_interval,
                 position=merge_bblock + 1,
             )
 

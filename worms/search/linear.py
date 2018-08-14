@@ -12,6 +12,7 @@ from multiprocessing import cpu_count
 from tqdm import tqdm
 from time import time, clock
 from worms.search.result import remove_duplicate_results
+from worms.bblock import _BBlock
 
 
 @jit
@@ -38,6 +39,7 @@ def grow_linear(
         merge_bblock=None,
         lbl='',
         pbar=False,
+        pbar_interval=10.0,
         **kw
 ):
     verts = ssdag.verts
@@ -58,9 +60,15 @@ def grow_linear(
                                 ) if parallel else InProcessExecutor()
     # exe = cf.ProcessPoolExecutor(max_workers=parallel) if parallel else InProcessExecutor()
     with exe as pool:
+        bb_base = tuple([
+            np.array([b.basehash
+                      for b in bb], dtype=np.int64)
+            for bb in ssdag.bbs
+        ])
         verts_pickleable = [v._state for v in verts]
         edges_pickleable = [e._state for e in edges]
         kwargs = dict(
+            bb_base=bb_base,
             verts_pickleable=verts_pickleable,
             edges_pickleable=edges_pickleable,
             loss_function=loss_function,
@@ -79,6 +87,7 @@ def grow_linear(
             kwargs['lbl'] = lbl
             kwargs['verbosity'] = verbosity
             kwargs['pbar'] = pbar
+            kwargs['pbar_interval'] = pbar_interval
             njob = cpu_count() if parallel else 1
             for ivert in range(njob):
                 kwargs['threadno'] = ivert
@@ -103,7 +112,7 @@ def grow_linear(
                     fiter,
                     desc=desc,
                     position=merge_bblock + 1,
-                    mininterval=10.0,
+                    mininterval=pbar_interval,
                     total=len(futures)
                 )
             for f in fiter:
@@ -127,7 +136,7 @@ def grow_linear(
     )
 
 
-def _grow_linear_start(verts_pickleable, edges_pickleable, **kwargs):
+def _grow_linear_start(bb_base, verts_pickleable, edges_pickleable, **kwargs):
     verts = tuple([_Vertex(*vp) for vp in verts_pickleable])
     edges = tuple([_Edge(*ep) for ep in edges_pickleable])
     pos = np.empty(shape=(1024, len(verts), 4, 4), dtype=np.float32)
@@ -135,7 +144,15 @@ def _grow_linear_start(verts_pickleable, edges_pickleable, **kwargs):
     err = np.empty(shape=(1024, ), dtype=np.float32)
     stats = zero_search_stats()
     result = SearchResult(pos=pos, idx=idx, err=err, stats=stats)
-    nresults, result = _grow_linear_recurse(result, verts, edges, **kwargs)
+    bases = np.zeros(len(verts), dtype=np.int64)
+    nresults, result = _grow_linear_recurse(
+        result=result,
+        bb_base=bb_base,
+        verts=verts,
+        edges=edges,
+        bases=bases,
+        **kwargs
+    )
     result = SearchResult(
         result.pos[:nresults], result.idx[:nresults], result.err[:nresults],
         result.stats
@@ -172,8 +189,9 @@ def _last_bb_mismatch(result, verts, ivertex, nresults, last_bb_same_as):
 
 @jit
 def _grow_linear_recurse(
-        result, verts, edges, loss_function, loss_threshold, last_bb_same_as,
-        nresults, isplice, ivertex_range, splice_position
+        result, bb_base, verts, edges, loss_function, loss_threshold,
+        last_bb_same_as, nresults, isplice, ivertex_range, splice_position,
+        bases
 ):
     """Takes a partially built 'worm' of length isplice and extends them by one based on ivertex_range
 
@@ -194,6 +212,10 @@ def _grow_linear_recurse(
 
     current_vertex = verts[isplice]
     for ivertex in range(*ivertex_range):
+        if not (last_bb_same_as >= 0 and isplice == len(edges)):
+            basehash = bb_base[isplice][current_vertex.ibblock[ivertex]]
+            if basehash != 0 and np.any(basehash == bases[:isplice]): continue
+            bases[isplice] = basehash
         result.idx[nresults, isplice] = ivertex
         # assert splice_position.dtype is np.float32, 'splice_position not 32'
         # assert current_vertex.x2orig.dtype is np.float32, 'current_vertex not 32'
@@ -229,6 +251,7 @@ def _grow_linear_recurse(
                 assert next_ivertex_range[1] <= next_vertex.len, 'ivrt rng err'
                 nresults, result = _grow_linear_recurse(
                     result=result,
+                    bb_base=bb_base,
                     verts=verts,
                     edges=edges,
                     loss_function=loss_function,
@@ -238,13 +261,14 @@ def _grow_linear_recurse(
                     isplice=isplice + 1,
                     ivertex_range=next_ivertex_range,
                     splice_position=next_splicepos,
+                    bases=bases,
                 )
     return nresults, result
 
 
 def _grow_linear_mc_start(
         seconds, verts_pickleable, edges_pickleable, threadno, pbar, lbl,
-        verbosity, merge_bblock, **kwargs
+        verbosity, merge_bblock, pbar_interval, **kwargs
 ):
     tstart = time()
     verts = tuple([_Vertex(*vp) for vp in verts_pickleable])
@@ -254,6 +278,7 @@ def _grow_linear_mc_start(
     err = np.empty(shape=(1024, ), dtype=np.float32)
     stats = zero_search_stats()
     result = SearchResult(pos=pos, idx=idx, err=err, stats=stats)
+    bases = np.zeros(len(verts), dtype=np.int64)
     del kwargs['nresults']
 
     if threadno == 0 and pbar:
@@ -263,7 +288,7 @@ def _grow_linear_mc_start(
             desc=desc,
             position=merge_bblock + 1,
             total=seconds,
-            mininterval=10.0
+            mininterval=pbar_interval
         )
         last = tstart
 
@@ -275,7 +300,13 @@ def _grow_linear_mc_start(
             pbar_inst.update(time() - last)
             last = time()
         nresults, result = _grow_linear_mc(
-            nbatch, result, verts, edges, nresults=nresults, **kwargs
+            nbatch,
+            result,
+            verts,
+            edges,
+            bases=bases,
+            nresults=nresults,
+            **kwargs
         )
     if 'pbar_inst' in vars(): pbar_inst.close()
 
@@ -289,20 +320,23 @@ def _grow_linear_mc_start(
 @jit
 def _grow_linear_mc(
         niter, result, verts, edges, loss_function, loss_threshold,
-        last_bb_same_as, nresults, isplice, ivertex_range, splice_position
+        last_bb_same_as, nresults, isplice, ivertex_range, splice_position,
+        bb_base, bases
 ):
     for i in range(niter):
         nresults, result = _grow_linear_mc_recurse(
-            result, verts, edges, loss_function, loss_threshold,
-            last_bb_same_as, nresults, isplice, ivertex_range, splice_position
+            result, bb_base, verts, edges, loss_function, loss_threshold,
+            last_bb_same_as, nresults, isplice, ivertex_range, splice_position,
+            bases
         )
     return nresults, result
 
 
 @jit
 def _grow_linear_mc_recurse(
-        result, verts, edges, loss_function, loss_threshold, last_bb_same_as,
-        nresults, isplice, ivertex_range, splice_position
+        result, bb_base, verts, edges, loss_function, loss_threshold,
+        last_bb_same_as, nresults, isplice, ivertex_range, splice_position,
+        bases
 ):
     """Takes a partially built 'worm' of length isplice and extends them by one based on ivertex_range
 
@@ -323,6 +357,11 @@ def _grow_linear_mc_recurse(
 
     current_vertex = verts[isplice]
     ivertex = np.random.randint(*ivertex_range)
+    if not (last_bb_same_as >= 0 and isplice == len(edges)):
+        basehash = bb_base[isplice][current_vertex.ibblock[ivertex]]
+        if basehash != 0 and np.any(basehash == bases[:isplice]):
+            return nresults, result
+        bases[isplice] = basehash
     result.idx[nresults, isplice] = ivertex
     vertex_position = splice_position @ current_vertex.x2orig[ivertex]
     result.pos[nresults, isplice] = vertex_position
@@ -358,6 +397,7 @@ def _grow_linear_mc_recurse(
             assert next_ivertex_range[1] <= next_vertex.len, 'ivrt rng err'
             nresults, result = _grow_linear_mc_recurse(
                 result=result,
+                bb_base=bb_base,
                 verts=verts,
                 edges=edges,
                 loss_function=loss_function,
@@ -367,5 +407,6 @@ def _grow_linear_mc_recurse(
                 isplice=isplice + 1,
                 ivertex_range=next_ivertex_range,
                 splice_position=next_splicepos,
+                bases=bases,
             )
     return nresults, result

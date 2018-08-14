@@ -52,12 +52,27 @@ class SearchSpaceDag:
         _validate_bbs_verts(self.bbs, self.verts)
         assert len(self.bbs) == len(self.verts) == len(self.edges) + 1
 
+    def get_bases(self, idx):
+        assert len(idx) == len(self.verts)
+        bases = list()
+        for i in range(len(idx)):
+            bb = self.bbs[i][self.verts[i].ibblock[idx[i]]]
+            bases.append(bytes(bb.base).decode('utf-8'))
+        return bases
+
+    def get_base_hashes(self, idx):
+        assert len(idx) == len(self.verts)
+        bases = list()
+        for i in range(len(idx)):
+            bb = self.bbs[i][self.verts[i].ibblock[idx[i]]]
+            bases.append(bb.basehash)
+        return bases
+
 
 def simple_search_dag(
         criteria,
         db=None,
         nbblocks=100,
-        shuf=False,
         min_seg_len=15,
         parallel=False,
         verbosity=0,
@@ -72,6 +87,7 @@ def simple_search_dag(
         source=None,
         print_edge_summary=False,
         no_duplicate_bases=False,
+        shuffle_bblocks=False,
         **kw
 ):
     bbdb, spdb = db
@@ -85,7 +101,7 @@ def simple_search_dag(
                 bbdb.query(
                     query,
                     max_bblocks=nbblocks,
-                    shuffle=shuf,
+                    shuffle_bblocks=shuffle_bblocks,
                     # exclude_bases=exclude_bases
                 )
             )

@@ -10,7 +10,7 @@ class AxesIntersect(WormCriteria):
             symname,
             tgtaxis1,
             tgtaxis2,
-            from_seg,
+            from_seg=0,
             origin_seg=None,
             *,
             tol=1.0,
@@ -91,6 +91,8 @@ class AxesIntersect(WormCriteria):
     def alignment(self, segpos, debug=0, **kw):
         """
         """
+        if hm.angle_degrees(self.tgtaxis1[1], self.tgtaxis2[1]) < 0.1:
+            return np.eye(4)
         cen1 = segpos[self.from_seg][..., :, 3]
         cen2 = segpos[self.to_seg][..., :, 3]
         ax1 = segpos[self.from_seg][..., :, 2]
@@ -126,6 +128,24 @@ class AxesIntersect(WormCriteria):
             #     raise AssertionError('hm.align_vectors sucks')
 
         return x
+
+    def merge_segment(self, **kw):
+        if self.origin_seg is None:
+            return None
+        return self.from_seg
+
+    def stages(self, hash_cart_resl, hash_ori_resl, bbs, **kw):
+        "return spearate criteria for each search stage"
+        if self.origin_seg is None:
+            return [(self, bbs)]
+        raise NotImplementedError
+
+    def which_mergebb(self):
+        "which bbs are being merged together"
+        return self.from_seg, self.to_seg
+
+    def iface_rms(self, pose0, prov, **kw):
+        return -1
 
 
 def D2(c2=0, c2b=-1, **kw):
@@ -195,3 +215,7 @@ def Icosahedral(c5=None, c3=None, c2=None, **kw):
         tgtaxis2=(nf2, hm.sym.icosahedral_axes[nf2]),
         **kw
     )
+
+
+def Stack(sym=3, **kw):
+    return AxesIntersect('C' + str(sym), (3, Uz), (3, Uz), **kw)

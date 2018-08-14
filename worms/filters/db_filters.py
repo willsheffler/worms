@@ -254,7 +254,8 @@ def run_db_filters(
         in_helix, before_helix, after_helix, helix_id = identify_helical_segments(
             ss, resN
         )
-
+        if len(before_helix) is 0:
+            print('bad before helix', final_junction_res)
         start_helix_list = sorted(before_helix[min(before_helix.keys())])
         end_helix_list = sorted(after_helix[max(after_helix.keys())])
         if start_helix_list == []:

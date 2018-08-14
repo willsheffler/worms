@@ -44,7 +44,7 @@ def worm_grow_3(
         bbdb,
         spdb,
         nbblocks=10,
-        shuf=0,
+        shuffle_bblocks=0,
         parallel=1,
         verbosity=1,
         monte_carlo=0,

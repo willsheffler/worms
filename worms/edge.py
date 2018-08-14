@@ -30,8 +30,9 @@ def Edge(u, ublks, v, vblks, verbosity=0, **kw):
         a[0] = len(splices[i]) + 1
         a[1:a[0]] = sorted(splices[i])
 
-    assert np.max(splice_ary[:, 1:]) < len(v.inbreaks), \
-            'egde.py bad splice_ary'
+    if splice_ary.shape[1] > 1:
+        assert np.max(splice_ary[:, 1:]) < len(v.inbreaks), \
+                'egde.py bad splice_ary'
     assert len(splice_ary) == 1 + np.max(u.inout[:, 1]), \
             'edge.py, bad splice_ary'
 
@@ -74,6 +75,7 @@ def get_allowed_splices(
         cache_sync=0.001,
         precache_splices=False,
         pbar=False,
+        pbar_interval=10.0,
         **kw
 ):
     assert (u.dirn[1] + v.dirn[0]) == 1, 'get_allowed_splices dirn mismatch'
@@ -162,7 +164,7 @@ def get_allowed_splices(
             future_iter = tqdm(
                 cf.as_completed(futures),
                 'checking splices',
-                mininterval=10.0,
+                mininterval=pbar_interval,
                 total=len(futures)
             )
         for future in future_iter:

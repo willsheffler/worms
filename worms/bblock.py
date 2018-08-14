@@ -33,7 +33,7 @@ def BBlock(entry, pdbfile, filehash, pose, ss):
     else:
         assert 0, 'bad ncac'
 
-    if entry['base']:
+    if entry['base'] != '':
         basehash = hash_str_to_int(entry['base'])
     else:
         basehash = 0

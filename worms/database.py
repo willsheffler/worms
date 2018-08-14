@@ -260,7 +260,13 @@ class BBlockDB:
             raise ValueError('bad pdbkey' + str(type(pdbkey)))
 
     def query(
-            self, query, *, useclass=True, max_bblocks=150, shuffle=True, **kw
+            self,
+            query,
+            *,
+            useclass=True,
+            max_bblocks=150,
+            shuffle_bblocks=True,
+            **kw
     ):
         """
         match name, _type, _class
@@ -277,7 +283,7 @@ class BBlockDB:
         """
         names = self.query_names(query, useclass=useclass, **kw)
         if len(names) > max_bblocks:
-            if shuffle: random.shuffle(names)
+            if shuffle_bblocks: random.shuffle(names)
             names = names[:max_bblocks]
         return [self.bblock(n) for n in names]
 
