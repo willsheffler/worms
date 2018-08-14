@@ -71,21 +71,33 @@ def simple_search_dag(
         only_seg=None,
         source=None,
         print_edge_summary=False,
+        no_duplicate_bases=False,
         **kw
 ):
     bbdb, spdb = db
     queries, directions = zip(*criteria.bbspec)
     tdb = time()
     if bbs is None:
-        info('bblock queries: ' + str(queries))
-        info('directions: ' + str(directions))
-        bbmap = {
-            q: bbdb.query(q, max_bblocks=nbblocks, shuffle=shuf)
-            for q in set(queries)
-        }
-        for k, v in bbmap.items():
-            assert len(v) > 0, 'no bblocks for query: "' + k + '"'
-        bbs = [bbmap[q] for q in queries]
+        bbs = list()
+        exclude_bases = set()
+        for query in queries:
+            bbs.append(
+                bbdb.query(
+                    query,
+                    max_bblocks=nbblocks,
+                    shuffle=shuf,
+                    # exclude_bases=exclude_bases
+                )
+            )
+            if False:  # too few unique bases to filter here
+                new_bases = [bytes(b.base).decode('utf-8') for b in bbs[-1]]
+                exclude_bases.update(new_bases)
+                print('N exclude_bases', len(exclude_bases))
+        assert len(bbs) == len(queries)
+        for i, v in enumerate(bbs):
+            assert len(v) > 0, 'no bblocks for query: "' + queries[i] + '"'
+        print('bblock queries:', str(queries))
+        print('bblock numbers:', [len(b) for b in bbs])
     else:
         bbs = bbs.copy()
     assert len(bbs) == len(criteria.bbspec)

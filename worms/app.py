@@ -49,6 +49,7 @@ def parse_args(argv):
         read_new_pdbs=0,
         run_cache='',
         merge_bblock=-1,
+        no_duplicate_bases=1,
 
         # splice stuff
         splice_rms_range=5,
@@ -56,7 +57,7 @@ def parse_args(argv):
         splice_clash_d2=3.5**2,  # ca only
         splice_contact_d2=8.0**2,
         splice_clash_contact_range=30,
-        splice_ncontact_cut=20,
+        splice_ncontact_cut=30,
         #
         tol=1.0,
         lever=25.0,
@@ -149,11 +150,10 @@ def worms_main(argv):
     # print(mhc, nhc)
     # sys.exit()
 
-    bbs = None
     if kw['precache_splices']:
         merge_bblock = kw['merge_bblock']
         del kw['merge_bblock']
-        bbs = simple_search_dag(
+        kw['bbs'] = simple_search_dag(
             criteria, merge_bblock=None, precache_only=True, **kw
         )
         kw['merge_bblock'] = merge_bblock
@@ -162,13 +162,18 @@ def worms_main(argv):
 
     global _shared_ssdag
     _shared_ssdag = simple_search_dag(criteria, print_edge_summary=True, **kw)
+    if not 'bbs' in kw:
+        kw['bbs'] = _shared_ssdag.bbs
+    assert len(_shared_ssdag.bbs) == len(kw['bbs'])
+    for a, b in zip(_shared_ssdag.bbs, kw['bbs']):
+        assert a is b
 
     merge_segment = criteria.merge_segment(**kw)
     if (merge_segment is None
             or (kw['merge_bblock'] is not None and kw['merge_bblock'] >= 0)):
-        log = worms_main_protocol(criteria, bbs=bbs, **kw)
+        log = worms_main_protocol(criteria, **kw)
     else:
-        log = worms_main_each_mergebb(criteria, bbs=bbs, **kw)
+        log = worms_main_each_mergebb(criteria, **kw)
     if kw['pbar']:
         print('======================== logs ========================')
         for msg in log:
@@ -204,10 +209,6 @@ def worms_main_each_mergebb(
         if not pbar: print(log[-1])
 
         fiter = cf.as_completed(futures)
-        if pbar:
-            fiter = tqdm(
-                fiter, f'main_protocol', position=0, total=len(futures)
-            )
         for f in fiter:
             log.extend(f.result())
         if pbar:
@@ -254,14 +255,14 @@ def search_func(criteria, bbs, monte_carlo, **kw):
 
     results = list()
     for i, stage in enumerate(stages):
-        crit, bbs = stage
+        crit, stage_bbs = stage
         if callable(crit): crit = crit(*results[-1][:-1])
         results.append(
             search_single_stage(
                 crit,
                 monte_carlo=monte_carlo[i],
                 lbl=f'stage{i}_mbb{kw["merge_bblock"]:04}',
-                bbs=bbs,
+                bbs=stage_bbs,
                 **kw
             )
         )
@@ -282,6 +283,7 @@ def search_func(criteria, bbs, monte_carlo, **kw):
             only_seg=mseg,
             make_edges=False,
             source=_shared_ssdag,
+            bbs=bbs,
             **kw
         )
         ssdag.verts = ssdB.verts[:-1] + (ssdag.verts[mseg], ) + ssdA.verts[1:]

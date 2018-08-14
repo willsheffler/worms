@@ -14,3 +14,4 @@
 --merge_bblock 0
 --splice_clash_contact_range 60
 --splice_ncontact_cut 30
+--no_duplicate_bases 0

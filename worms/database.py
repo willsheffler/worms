@@ -174,16 +174,16 @@ class BBlockDB:
                 '__DATADIR__',
                 os.path.relpath(os.path.dirname(__file__) + '/data')
             )
-        self.dictdb = {e['file']: e for e in self._alldb}
+        self._dictdb = {e['file']: e for e in self._alldb}
         self.key_to_pdbfile = {
             hash_str_to_int(e['file']): e['file']
             for e in self._alldb
         }
-        if len(self._alldb) != len(self.dictdb):
+        if len(self._alldb) != len(self._dictdb):
             warning('!' * 100)
             warning(
                 '!' * 23, 'DIRE WARNING: %6i duplicate pdb files in database' %
-                (len(self._alldb) - len(self.dictdb)), '!' * 23
+                (len(self._alldb) - len(self._dictdb)), '!' * 23
             )
             warning('!' * 100)
         info('loading %i db entries' % len(self._alldb))
@@ -196,8 +196,8 @@ class BBlockDB:
                 # reload because processpool cache entries not serialized back
                 self.nprocs = 1
                 self.load_from_pdbs()
-        for i, k in enumerate(sorted(self.dictdb)):
-            self._alldb[i] = self.dictdb[k]
+        for i, k in enumerate(sorted(self._dictdb)):
+            self._alldb[i] = self._dictdb[k]
 
     def clear(self):
         self._bblock_cache, self._poses_cache = dict(), dict()
@@ -259,7 +259,9 @@ class BBlockDB:
         else:
             raise ValueError('bad pdbkey' + str(type(pdbkey)))
 
-    def query(self, query, *, useclass=True, max_bblocks=150, shuffle=True):
+    def query(
+            self, query, *, useclass=True, max_bblocks=150, shuffle=True, **kw
+    ):
         """
         match name, _type, _class
         if one match, use it
@@ -273,13 +275,13 @@ class BBlockDB:
         Returns:
             TYPE: Description
         """
-        names = self.query_names(query, useclass=useclass)
+        names = self.query_names(query, useclass=useclass, **kw)
         if len(names) > max_bblocks:
             if shuffle: random.shuffle(names)
             names = names[:max_bblocks]
         return [self.bblock(n) for n in names]
 
-    def query_names(self, query, *, useclass=True):
+    def query_names(self, query, *, useclass=True, exclude_bases=None):
         """query for names only"""
         if query.lower() == "all":
             return [db['file'] for db in self._alldb]
@@ -310,6 +312,13 @@ class BBlockDB:
                         hits.append(db['file'])
                     elif nc + nn > tc + tn and excon is not False:
                         hits.append(db['file'])
+        if exclude_bases is not None:
+            hits0, hits = hits, []
+            for h in hits0:
+                base = self._dictdb[h]['base']
+                if base == '' or base not in exclude_bases:
+                    hits.append(h)
+            print('exclude_bases', len(hits0), len(hits))
         return hits
 
     def load_cached_pose_into_memory(self, pdbfile):
@@ -370,8 +379,8 @@ class BBlockDB:
         new = [_[0] for _ in result if _[0]]
         missing = [_[1] for _ in result if _[1]]
         for miss in missing:
-            self._alldb.remove(self.dictdb[miss])
-            del self.dictdb[miss]
+            self._alldb.remove(self._dictdb[miss])
+            del self._dictdb[miss]
         return len(new), len(missing)
 
     def load_from_pdbs_inner(self, exe):
