@@ -133,27 +133,6 @@ def worms_main(argv):
         print('   ', k, v)
     pyrosetta.init('-mute all -beta')
 
-    #
-
-    # with open('wip_db_filters.pickle', 'rb') as inp:
-    #     ssdag, result, pose, prov = _pickle.load(inp)
-
-    # db = kw['db']
-    # del kw['db']
-    # (jstr, jstr1, filter, grade, splices, mc, mcnh, mhc, nc, ncnh,
-    #  nhc) = run_db_filters(
-    #      db, criteria, ssdag, 0, result.idx[0], pose, prov, **kw
-    #  )
-    # print(jstr)
-    # print(jstr1)
-    # print(filter)
-    # print(grade)
-    # print(splices)
-    # print(mc, nc)
-    # print(mcnh, ncnh)
-    # print(mhc, nhc)
-    # sys.exit()
-
     if kw['precache_splices']:
         merge_bblock = kw['merge_bblock']
         del kw['merge_bblock']
@@ -170,7 +149,8 @@ def worms_main(argv):
         kw['bbs'] = _shared_ssdag.bbs
     assert len(_shared_ssdag.bbs) == len(kw['bbs'])
     for a, b in zip(_shared_ssdag.bbs, kw['bbs']):
-        assert a is b
+        for aa, bb in zip(a, b):
+            assert aa is bb
     if not kw['shuffle_bblocks']:
         bbnames = [[bytes(b.file).decode('utf-8')
                     for b in bb]
@@ -242,7 +222,7 @@ def worms_main_protocol(criteria, bbs_states=None, **kw):
         prune_clashes, ssdag, criteria, result, **kw
     )
 
-    msg = f'nresults {len(result2.idx):,}, tot w/clashes {len(result.idx):,}'
+    msg = f'nresults w/o bad clashes {len(result2.idx):,}'
     log.append('    ' + msg)
     print(log[-1])
 

@@ -46,7 +46,7 @@ def test_linear_search_two(bbdb_fullsize_prots):
     assert np.all(v.inout[:, 0] == np.arange(v.len))
 
     ssdag = SearchSpaceDag(None, (bbs, ) * 2, verts, edges)
-    result = grow_linear(ssdag)
+    result = grow_linear(ssdag, no_duplicate_bases=False)
     assert np.allclose(result.pos[:, 0], np.eye(4))
 
     isort = np.lexsort((result.idx[:, 1], result.idx[:, 0]))
@@ -83,7 +83,7 @@ def test_linear_search_three(bbdb_fullsize_prots):
     # print('------------- result ---------------')
 
     ssdag = SearchSpaceDag(None, (bbs, ) * 3, verts, edges)
-    result = grow_linear(ssdag)
+    result = grow_linear(ssdag, no_duplicate_bases=False)
 
     # from time import clock
     # t = clock()

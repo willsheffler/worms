@@ -102,7 +102,7 @@ def simple_search_dag(
                     query,
                     max_bblocks=nbblocks,
                     shuffle_bblocks=shuffle_bblocks,
-                    # exclude_bases=exclude_bases
+                    parallel=parallel,
                 )
             )
             if False:  # too few unique bases to filter here

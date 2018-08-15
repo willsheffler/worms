@@ -27,7 +27,7 @@ def _valid_splice_pairs(bbw0, bbw1, **kw):
 
 
 def compute_splices(
-        bbdb, bbpairs, verbosity, parallel, pbar, pbar_interval, **kw
+        bbdb, bbpairs, verbosity, parallel, pbar, pbar_interval=10.0, **kw
 ):
     bbpairs_shuf = bbpairs.copy()
     shuffle(bbpairs_shuf)

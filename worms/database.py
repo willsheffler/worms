@@ -4,15 +4,17 @@ import os
 import json
 import random
 import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import concurrent.futures as cf
 import itertools as it
 import logging
 from logging import info, warning, error
 from random import shuffle
-from worms.util import hash_str_to_int
+import time
+
 import numpy as np
 from tqdm import tqdm
 
+from worms.util import hash_str_to_int
 from worms import util
 from worms.bblock import BBlock, _BBlock
 
@@ -202,6 +204,17 @@ class BBlockDB:
     def clear(self):
         self._bblock_cache, self._poses_cache = dict(), dict()
 
+    def acquire_cachedir_lock(self, timeout=600):
+        for i in range(timeout):
+            if self.islocked_cachedir():
+                if i % 10 == 0:
+                    print(f'waiting {i}/600s to acquire_cachedir_lock')
+                time.sleep(1)
+            else:
+                self.lock_cachedir()
+                return True
+        return False
+
     def lock_cachedir(self):
         assert not os.path.exists(self.cachedirs[0] + '/lock'), (
             "database is locked! if you're sure no other jobs are editing it, remove "
@@ -266,6 +279,7 @@ class BBlockDB:
             useclass=True,
             max_bblocks=150,
             shuffle_bblocks=True,
+            parallel=0,
             **kw
     ):
         """
@@ -285,7 +299,12 @@ class BBlockDB:
         if len(names) > max_bblocks:
             if shuffle_bblocks: random.shuffle(names)
             names = names[:max_bblocks]
-        return [self.bblock(n) for n in names]
+
+        try:
+            return [self.bblock(n) for n in names]
+        except ValueError:
+            self.load_pdbs_multiprocess(names, parallel)
+            return [self.bblock(n) for n in names]
 
     def query_names(self, query, *, useclass=True, exclude_bases=None):
         """query for names only"""
@@ -326,6 +345,15 @@ class BBlockDB:
                     hits.append(h)
             print('exclude_bases', len(hits0), len(hits))
         return hits
+
+    def clear_caches(self):
+        data = self._poses_cache, self._bblock_cache
+        self._poses_cache = dict()
+        self._bblock_cache = dict()
+        return data
+
+    def restore_caches(self, data):
+        self._poses_cache, self._bblock_cache = data
 
     def load_cached_pose_into_memory(self, pdbfile):
         posefile = self.posefile(pdbfile)
@@ -374,13 +402,40 @@ class BBlockDB:
                 return candidate
         return os.path.join(self.cachedirs[0], 'poses', flatten_path(pdbfile))
 
+    def load_pdbs_multiprocess(self, names, parallel):
+        self.read_new_pdbs, tmp = True, self.read_new_pdbs
+        data = self.clear_caches()
+        if not self.acquire_cachedir_lock():
+            raise ValueError(
+                'cachedir locked, cant write new entries.\n'
+                'If no other worms jobs are running, you may manually remove:\n'
+                + self.cachedirs[0] + '/lock'
+            )
+        exe = util.InProcessExecutor()
+        if parallel: exe = cf.ProcessPoolExecutor(max_workers=parallel)
+        with exe as pool:
+            futures = list()
+            for n in names:
+                futures.append(
+                    pool.submit(
+                        self.build_pdb_data, self._dictdb[n], uselock=False
+                    )
+                )
+            iter = cf.as_completed(futures)
+            iter = tqdm(iter, 'loading pdb files', total=len(futures))
+            for f in iter:
+                f.result()
+        self.unlock_cachedir()
+        self.restore_caches(data)
+        self.read_new_pdbs = tmp
+
     def load_from_pdbs(self):
         shuffle(self._alldb)
         if self.nprocs is 1:
             with util.InProcessExecutor() as exe:
                 result = self.load_from_pdbs_inner(exe)
         else:
-            with ThreadPoolExecutor(max_workers=self.nprocs) as exe:
+            with cf.ThreadPoolExecutor(max_workers=self.nprocs) as exe:
                 result = self.load_from_pdbs_inner(exe)
         new = [_[0] for _ in result if _[0]]
         missing = [_[1] for _ in result if _[1]]
@@ -400,14 +455,14 @@ class BBlockDB:
             'leave': True
         }
         futures = [exe.submit(self.build_pdb_data, e) for e in self._alldb]
-        work = as_completed(futures)
+        work = cf.as_completed(futures)
         if self.verbosity > 1:
             work = tqdm(work, 'building pdb data', **kwargs)
         for f in work:
             r.append(f.result())
         return r
 
-    def build_pdb_data(self, entry):
+    def build_pdb_data(self, entry, uselock=True):
         """return Nnew, Nmissing"""
         pdbfile = entry['file']
         pdbkey = hash_str_to_int(pdbfile)
@@ -419,7 +474,7 @@ class BBlockDB:
                 assert self.load_cached_pose_into_memory(pdbfile)
             return None, None  # new, missing
         elif self.read_new_pdbs:
-            self.check_lock_cachedir()
+            if uselock: self.check_lock_cachedir()
             read_pdb = False
             # info('BBlockDB.build_pdb_data reading %s' % pdbfile)
             pose = self.pose(pdbfile)

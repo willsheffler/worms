@@ -40,6 +40,7 @@ def grow_linear(
         lbl='',
         pbar=False,
         pbar_interval=10.0,
+        no_duplicate_bases=True,
         **kw
 ):
     verts = ssdag.verts
@@ -61,9 +62,8 @@ def grow_linear(
     # exe = cf.ProcessPoolExecutor(max_workers=parallel) if parallel else InProcessExecutor()
     with exe as pool:
         bb_base = tuple([
-            np.array([b.basehash
-                      for b in bb], dtype=np.int64)
-            for bb in ssdag.bbs
+            np.array([b.basehash if no_duplicate_bases else 0 for b in bb],
+                     dtype=np.int64) for bb in ssdag.bbs
         ])
         verts_pickleable = [v._state for v in verts]
         edges_pickleable = [e._state for e in edges]
