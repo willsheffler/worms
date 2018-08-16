@@ -7,13 +7,17 @@ import numpy as np
 def make_pose_crit(
         bbdb,
         ssdag,
-        crit,
+        criteria,
         indices,
         positions,
         only_connected='auto',
         provenance=False,
         join=True,
 ):
+    cryst_info = None
+    if hasattr(criteria, 'crystinfo'):
+        cryst_info = criteria.crystinfo(segpos=positions)
+
     return make_pose(
         bbdb=bbdb,
         ssdag=ssdag,
@@ -22,11 +26,12 @@ def make_pose_crit(
         only_connected=only_connected,
         provenance=provenance,
         join=join,
-        from_seg=crit.from_seg,
-        to_seg=crit.to_seg,
-        origin_seg=crit.origin_seg,
-        is_cyclic=crit.is_cyclic,
-        position=crit.alignment(positions),
+        from_seg=criteria.from_seg,
+        to_seg=criteria.to_seg,
+        origin_seg=criteria.origin_seg,
+        is_cyclic=criteria.is_cyclic,
+        position=criteria.alignment(positions),
+        cryst_info=cryst_info,
     )
 
 
@@ -43,6 +48,7 @@ def make_pose(
         origin_seg=None,
         is_cyclic=False,
         position=np.eye(4),
+        cryst_info=None,
 ):
     cyclic_info = [None] * 5
     if is_cyclic:
@@ -86,7 +92,7 @@ def make_pose(
         position=position,
         is_cyclic=is_cyclic,
         align=True,
-        cryst_info=None,
+        cryst_info=cryst_info,
         end=(not is_cyclic),
         iend=None,  #(-1 if is_cyclic else None),
         only_connected=only_connected,

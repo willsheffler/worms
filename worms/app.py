@@ -131,15 +131,17 @@ def worms_main(argv):
     print('worms_main, args:')
     for k, v in kw.items():
         print('   ', k, v)
-    pyrosetta.init('-mute all -beta')
+    pyrosetta.init('-mute all -beta -preserve_crystinfo')
 
     if kw['precache_splices']:
+        print('precaching splices')
         merge_bblock = kw['merge_bblock']
         del kw['merge_bblock']
         kw['bbs'] = simple_search_dag(
             criteria, merge_bblock=None, precache_only=True, **kw
         )
         kw['merge_bblock'] = merge_bblock
+        print('precaching splices done')
         if kw['precache_splices_and_quit']:
             return
 
@@ -360,7 +362,7 @@ def filter_and_output_results(
                     result.idx[iresult],
                     result.pos[iresult],
                     only_connected='auto',
-                    provenance=True
+                    provenance=True,
                 )
 
                 if iresult == 0:
@@ -401,9 +403,22 @@ def filter_and_output_results(
                 cenpose = pose.clone()
                 ros.core.util.switch_to_residue_type_set(cenpose, 'centroid')
 
-                symdata = util.get_symdata(criteria.symname)
+                if hasattr(criteria, 'symfile_modifiers'):
+                    symdata = util.get_symdata_modified(
+                        criteria.symname,
+                        **criteria.symfile_modifiers(
+                            segpos=result.pos[iresult]
+                        )
+                    )
+                else:
+                    symdata = util.get_symdata(self.criteria.symname)
+
                 sympose = cenpose.clone()
+                # if pose.pdb_info() and pose.pdb_info().crystinfo().A() > 0:
+                #     ros.protocols.cryst.MakeLatticeMover().apply(sympose)
+                # else:
                 ros.core.pose.symmetry.make_symmetric_pose(sympose, symdata)
+
                 score0 = sfsym(sympose)
                 # if score0 >= 10 * max_score0: continue
 
