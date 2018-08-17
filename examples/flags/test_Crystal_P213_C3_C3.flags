@@ -1,8 +1,9 @@
---geometry Sheet_P6(c3=0, c2=2)
+--geometry Crystal_P213_C3_C3(c3a=0, c3b=-1)
 --bbconn
-	_N C6_N
-	CC Het:CC
-	N_ C2_N
+	_N C3_N
+    CN Het:CN
+	C_ C3_C
+--max_score0 10
 --dbfiles
     worms/data/c6_database.json
     worms/data/HBRP_Cx_database.json

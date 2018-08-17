@@ -146,13 +146,18 @@ def worms_main(argv):
             return
 
     global _shared_ssdag
-    _shared_ssdag = simple_search_dag(criteria, print_edge_summary=True, **kw)
-    if not 'bbs' in kw:
-        kw['bbs'] = _shared_ssdag.bbs
-    assert len(_shared_ssdag.bbs) == len(kw['bbs'])
-    for a, b in zip(_shared_ssdag.bbs, kw['bbs']):
-        for aa, bb in zip(a, b):
-            assert aa is bb
+    if 'bbs' in kw and (len(kw['bbs']) > 2
+                        or kw['bbs'][0] is not kw['bbs'][1]):
+        _shared_ssdag = simple_search_dag(
+            criteria, print_edge_summary=True, **kw
+        )
+    if _shared_ssdag:
+        if not 'bbs' in kw:
+            kw['bbs'] = _shared_ssdag.bbs
+        assert len(_shared_ssdag.bbs) == len(kw['bbs'])
+        for a, b in zip(_shared_ssdag.bbs, kw['bbs']):
+            for aa, bb in zip(a, b):
+                assert aa is bb
     if not kw['shuffle_bblocks']:
         bbnames = [[bytes(b.file).decode('utf-8')
                     for b in bb]
@@ -297,7 +302,7 @@ def search_single_stage(criteria, lbl='', **kw):
                 return criteria, ssdag, result, ['from run cache ' + lbl]
 
     ssdag = simple_search_dag(criteria, source=_shared_ssdag, lbl=lbl, **kw)
-    print('number of bblocks:', [len(x) for x in ssdag.bbs])
+    # print('number of bblocks:', [len(x) for x in ssdag.bbs])
 
     result, tsearch = run_and_time(
         grow_linear,

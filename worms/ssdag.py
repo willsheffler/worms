@@ -96,7 +96,15 @@ def simple_search_dag(
     if bbs is None:
         bbs = list()
         exclude_bases = set()
-        for query in queries:
+        for iquery, query in enumerate(queries):
+            msegs = [
+                i + len(queries) if i < 0 else i
+                for i in criteria.which_mergeseg()
+            ]
+            if iquery in msegs[1:]:
+                print('seg', iquery, 'repeating bblocks from', msegs[0])
+                bbs.append(bbs[msegs[0]])
+                continue
             bbs.append(
                 bbdb.query(
                     query,
@@ -114,14 +122,16 @@ def simple_search_dag(
             assert len(v) > 0, 'no bblocks for query: "' + queries[i] + '"'
         print('bblock queries:', str(queries))
         print('bblock numbers:', [len(b) for b in bbs])
+        print('bblocks id:', [id(b) for b in bbs])
+        print('bblock0 id ', [id(b[0]) for b in bbs])
     else:
         bbs = bbs.copy()
     assert len(bbs) == len(criteria.bbspec)
 
     if modbbs: modbbs(bbs)
     if merge_bblock is not None and merge_bblock >= 0:
-        # print('which_mergebb', criteria.bbspec, criteria.which_mergebb())
-        for i in criteria.which_mergebb():
+        # print('which_mergeseg', criteria.bbspec, criteria.which_mergeseg())
+        for i in criteria.which_mergeseg():
             bbs[i] = (bbs[i][merge_bblock], )
 
     tdb = time() - tdb
@@ -133,9 +143,18 @@ def simple_search_dag(
     if precache_splices:
         bbnames = [[bytes(bb.file) for bb in bbtup] for bbtup in bbs]
         bbpairs = set()
-        for bb1, bb2, dirn1 in zip(bbnames, bbnames[1:], directions):
+        # for bb1, bb2, dirn1 in zip(bbnames, bbnames[1:], directions):
+        for i in range(len(bbnames) - 1):
+            bb1 = bbnames[i]
+            bb2 = bbnames[i + 1]
+            dirn1 = directions[i]
             rev = dirn1[1] == 'N'
-            bbpairs.update((b, a) if rev else (a, b) for a in bb1 for b in bb2)
+            if bbs[i] is bbs[i + 1]:
+                bbpairs.update((a, a) for a in bb1)
+            else:
+                bbpairs.update((b, a) if rev else (a, b)
+                               for a in bb1
+                               for b in bb2)
         precompute_splicedb(
             db, bbpairs, verbosity=verbosity, parallel=parallel, **kw
         )

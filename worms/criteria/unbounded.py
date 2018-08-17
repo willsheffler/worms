@@ -143,7 +143,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
         "return spearate criteria for each search stage"
         return [(self, bbs)]
 
-    def which_mergebb(self):
+    def which_mergeseg(self):
         "which bbs are being merged together"
         return (self.from_seg, )
 

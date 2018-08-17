@@ -140,7 +140,7 @@ class AxesIntersect(WormCriteria):
             return [(self, bbs)]
         raise NotImplementedError
 
-    def which_mergebb(self):
+    def which_mergeseg(self):
         "which bbs are being merged together"
         return (self.from_seg, )
 
@@ -263,7 +263,7 @@ class Stack(WormCriteria):
         "return spearate criteria for each search stage"
         return [(self, bbs)]
 
-    def which_mergebb(self):
+    def which_mergeseg(self):
         "which bbs are being merged together"
         return (self.from_seg, )
 

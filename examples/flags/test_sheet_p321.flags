@@ -1,6 +1,6 @@
 --geometry Sheet_P321(c3=0, c2=2)
 --bbconn
-	_N C6_N
+	_N C3_N
 	CC Het:CC
 	N_ C2_N
 --dbfiles

@@ -1,8 +1,8 @@
---geometry Sheet_P6(c3=0, c2=2)
+--geometry Cyclic(5)
 --bbconn
-	_N C6_N
+	_N Het:NNN
 	CC Het:CC
-	N_ C2_N
+	N_ Het:NNN
 --dbfiles
     worms/data/c6_database.json
     worms/data/HBRP_Cx_database.json

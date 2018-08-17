@@ -44,7 +44,7 @@ class HashCriteria(WormCriteria):
         self.hash_table = hash_table
         self.is_cyclic = False
 
-    def which_mergebb(self):
+    def which_mergeseg(self):
         return (-1, )
 
     def score(self, *args):

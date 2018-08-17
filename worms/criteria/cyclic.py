@@ -168,7 +168,7 @@ class Cyclic(WormCriteria):
     def merge_segment(self, **kw):
         return self.from_seg
 
-    def which_mergebb(self):
+    def which_mergeseg(self):
         "which bbs are being merged together"
         return self.from_seg, self.to_seg
 
