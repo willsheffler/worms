@@ -15,7 +15,8 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
             tol=1.0,
             lever=50,
             to_seg=-1,
-            space_group_str=None
+            space_group_str=None,
+            cell_dist_scale=1.0
     ):
         """ Worms criteria for non-intersecting axes re: unbounded things
 
@@ -32,6 +33,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
         """
 
         self.symname = symname
+        self.cell_dist_scale = cell_dist_scale
         self.tgtaxis1 = np.asarray(
             tgtaxis1, dtype='f8'
         )  ## we are treating these as vectors for now, make it an array if it isn't yet, set array type to 8-type float
@@ -123,7 +125,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
 
     def symfile_modifiers(self, segpos):
         x, cell_dist = self.alignment(segpos, out_cell_spacing=True)
-        return dict(scale_positions=cell_dist * 2)
+        return dict(scale_positions=cell_dist * self.cell_dist_scale)
 
     def crystinfo(self, segpos):
         #CRYST1   85.001   85.001   85.001  90.00  90.00  90.00 P 21 3
@@ -131,11 +133,11 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
             return None
         #print("hi")
         x, cell_dist = self.alignment(segpos, out_cell_spacing=True)
-        cell_dist = abs(2 * cell_dist)
+        cell_dist = abs(cell_dist * self.cell_dist_scale)
         return cell_dist, cell_dist, cell_dist, 90, 90, 90, self.space_group_str
 
     def merge_segment(self, **kw):
-        return None
+        return self.from_seg
 
     def stages(self, hash_cart_resl, hash_ori_resl, bbs, **kw):
         "return spearate criteria for each search stage"
@@ -143,7 +145,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
 
     def which_mergebb(self):
         "which bbs are being merged together"
-        return self.from_seg, self.to_seg
+        return (self.from_seg, )
 
     def iface_rms(self, pose0, prov, **kw):
         return -1
@@ -193,10 +195,13 @@ def Crystal_P213_C3_C3(c3a=None, c3b=None, **kw):
         raise ValueError('must specify ...?')  #one or two of c6, c2
     #return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
     return AxesAngle(
-        'Crystal_P213_C3_C3_depth3_1comp', [1, 1, 1, 0], [-1, -1, 1, 0],
+        'Crystal_P213_C3_C3_depth3_1comp',
+        [1, 1, 1, 0],
+        [-1, -1, 1, 0],
         from_seg=c3a,
         to_seg=c3b,
         space_group_str="P 21 3",
+        cell_dist_scale=2.0,  # for some reason, this one needs this
         **kw
     )
     #dihedral angle = 70.5288

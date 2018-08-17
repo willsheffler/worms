@@ -297,6 +297,7 @@ def search_single_stage(criteria, lbl='', **kw):
                 return criteria, ssdag, result, ['from run cache ' + lbl]
 
     ssdag = simple_search_dag(criteria, source=_shared_ssdag, lbl=lbl, **kw)
+    print('number of bblocks:', [len(x) for x in ssdag.bbs])
 
     result, tsearch = run_and_time(
         grow_linear,
@@ -402,6 +403,8 @@ def filter_and_output_results(
 
                 cenpose = pose.clone()
                 ros.core.util.switch_to_residue_type_set(cenpose, 'centroid')
+                if sf(cenpose) > max_score0:
+                    continue
 
                 if hasattr(criteria, 'symfile_modifiers'):
                     symdata = util.get_symdata_modified(
@@ -411,7 +414,7 @@ def filter_and_output_results(
                         )
                     )
                 else:
-                    symdata = util.get_symdata(self.criteria.symname)
+                    symdata = util.get_symdata(criteria.symname)
 
                 sympose = cenpose.clone()
                 # if pose.pdb_info() and pose.pdb_info().crystinfo().A() > 0:

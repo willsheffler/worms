@@ -135,11 +135,6 @@ class Cyclic(WormCriteria):
 
         return func
 
-    def merge_segment(self, **kw):
-        if self.origin_seg is None:
-            return None
-        return self.from_seg
-
     def stages(self, hash_cart_resl, hash_ori_resl, bbs, **kw):
         "return spearate criteria for each search stage"
         if self.origin_seg is None:
@@ -169,6 +164,9 @@ class Cyclic(WormCriteria):
             return critB
 
         return [(critA, bbsA), (stageB, bbsB)]
+
+    def merge_segment(self, **kw):
+        return self.from_seg
 
     def which_mergebb(self):
         "which bbs are being merged together"

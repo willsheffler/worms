@@ -142,7 +142,7 @@ class AxesIntersect(WormCriteria):
 
     def which_mergebb(self):
         "which bbs are being merged together"
-        return self.from_seg, self.to_seg
+        return (self.from_seg, )
 
     def iface_rms(self, pose0, prov, **kw):
         return -1
@@ -265,7 +265,7 @@ class Stack(WormCriteria):
 
     def which_mergebb(self):
         "which bbs are being merged together"
-        return self.from_seg, self.to_seg
+        return (self.from_seg, )
 
     def iface_rms(self, pose0, prov, **kw):
         return -1
