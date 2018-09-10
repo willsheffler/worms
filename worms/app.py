@@ -72,8 +72,8 @@ def parse_args(argv):
         rms_err_cut=3.0,
         ca_clash_dis=3.0,
         #
-        max_merge=10000,
-        max_clash_check=10000,
+        max_merge=50000,
+        max_clash_check=50000,
         max_output=1000,
         max_score0=10,
         #

@@ -1,0 +1,262 @@
+[{
+    "file": "/home/acourbet/Fivans/pdb_database/1na0C33_DSS310_6.pdb",
+  "type": "D3_N-C" ,
+  "base": "1na0C33_DSS310_6" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Alex_dihedral_axles",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-1:"]},
+   {"chain": 1, "direction": "N", "residues":[":1"]}
+  ]
+},
+
+{
+    "file": "/home/acourbet/Fivans/pdb_database/1na0C33_DSS310_7.pdb",
+  "type": "D3_N-C" ,
+  "base": "1na0C33_DSS310_7" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Alex_dihedral_axles",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-1:"]},
+   {"chain": 1, "direction": "N", "residues":[":1"]}
+  ]
+},
+
+{
+    "file": "/home/acourbet/Fivans/pdb_database/D2_813_8.pdb",
+  "type": "D2_N-C" ,
+  "base": "D2_813_8" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Alex_denovo_dihedrals",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-1:"]},
+   {"chain": 1, "direction": "N", "residues":[":1"]}
+  ]
+},
+
+{
+    "file": "/home/acourbet/Fivans/pdb_database/D2_158_1.pdb",
+  "type": "D2_N-C" ,
+  "base": "D2_158_1" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Alex_denovo_dihedrals",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-1:"]},
+   {"chain": 1, "direction": "N", "residues":[":1"]}
+  ]
+},
+
+{
+    "file": "/home/acourbet/Fivans/pdb_database/D2_893_3.pdb",
+  "type": "D2_N-C" ,
+  "base": "D2_893_3" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Alex_denovo_dihedrals",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-1:"]},
+   {"chain": 1, "direction": "N", "residues":[":1"]}
+  ]
+},
+
+{
+    "file": "/home/acourbet/Fivans/pdb_database/1na0C33_DSS310_20.pdb",
+  "type": "D3_N-C" ,
+  "base": "1na0C33_DSS310_20" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Alex_dihedral_axles",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-1:"]},
+   {"chain": 1, "direction": "N", "residues":[":1"]}
+  ]
+},
+
+{
+    "file": "/home/acourbet/Fivans/pdb_database/1552_1na0C3_int2_3.pdb",
+  "type": "D3_N-C" ,
+  "base": "1552_1na0C3_int2_3" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Alex_dihedral_axles",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-1:"]},
+   {"chain": 1, "direction": "N", "residues":[":1"]}
+  ]
+},
+
+
+{
+    "file": "/home/acourbet/Fivans/pdb_database/1552_1na0C3_int2_4.pdb",
+  "type": "D3_N-C" ,
+  "base": "1552_1na0C3_int2_4" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Alex_dihedral_axles",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-1:"]},
+   {"chain": 1, "direction": "N", "residues":[":1"]}
+  ]
+},
+
+{
+    "file": "/home/acourbet/Fivans/pdb_database/1552_1na0C3_int2_6.pdb",
+  "type": "D3_N-C" ,
+  "base": "1552_1na0C3_int2_6" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Alex_dihedral_axles",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-1:"]},
+   {"chain": 1, "direction": "N", "residues":[":1"]}
+  ]
+},
+
+{
+    "file": "/home/acourbet/Fivans/pdb_database/1552_1na0C3_int2_11.pdb",
+  "type": "D3_N-C" ,
+  "base": "1552_1na0C3_int2_11" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Alex_dihedral_axles",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-1:"]},
+   {"chain": 1, "direction": "N", "residues":[":1"]}
+  ]
+},
+
+{
+    "file": "/home/acourbet/Fivans/pdb_database/1552_1na0C3_int2_18.pdb",
+  "type": "D3_N-C" ,
+  "base": "1552_1na0C3_int2_18" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Alex_dihedral_axles",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-1:"]},
+   {"chain": 1, "direction": "N", "residues":[":1"]}
+  ]
+},
+
+{
+    "file": "/home/acourbet/Fivans/pdb_database/D2_1119_7_tj81C2_V39_4.pdb",
+  "type": "D2_N-C" ,
+  "base": "D2_1119_tj81C2_V39_4" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Alex_dihedral_axles",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-1:"]},
+   {"chain": 1, "direction": "N", "residues":[":1"]}
+  ]
+},
+
+{
+    "file": "/home/acourbet/Fivans/pdb_database/D2_1119_7_tj81C2_V39_6.pdb",
+  "type": "D2_N-C" ,
+  "base": "D2_1119_tj81C2_V39_6" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Alex_dihedral_axles",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-1:"]},
+   {"chain": 1, "direction": "N", "residues":[":1"]}
+  ]
+},
+
+{
+    "file": "/home/acourbet/Fivans/pdb_database/D_1na0C3_int2_418.pdb",
+  "type": "D3_N-C" ,
+  "base": "D_1na0C3_int2_418" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Alex_dihedral_axles",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-1:"]},
+   {"chain": 1, "direction": "N", "residues":[":1"]}
+  ]
+},
+
+{
+    "file": "/home/acourbet/Fivans/pdb_database/D_1na0C3_int2_441.pdb",
+  "type": "D3_N-C" ,
+  "base": "D_1na0C3_int2_441" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Alex_dihedral_axles",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-1:"]},
+   {"chain": 1, "direction": "N", "residues":[":1"]}
+  ]
+},
+
+{
+    "file": "/home/acourbet/Fivans/pdb_database/D_1na0C3_int2_1138.pdb",
+  "type": "D3_N-C" ,
+  "base": "D_1na0C3_int2_1138" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Alex_dihedral_axles",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-1:"]},
+   {"chain": 1, "direction": "N", "residues":[":1"]}
+  ]
+},
+
+{
+    "file": "/home/acourbet/Fivans/pdb_database/D_1na0C4_G1_1558.pdb",
+  "type": "D4_N-C" ,
+  "base": "D_1na0C4_G1_1558" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Alex_dihedral_axles",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-1:"]},
+   {"chain": 1, "direction": "N", "residues":[":1"]}
+  ]
+},
+
+{
+    "file": "/home/acourbet/Fivans/pdb_database/D_tj10C4_G1_178.pdb",
+  "type": "D4_N-C" ,
+  "base": "D_tj10C4_G1_178" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Alex_dihedral_axles",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-1:"]},
+   {"chain": 1, "direction": "N", "residues":[":1"]}
+  ]
+},
+
+{
+    "file": "/home/acourbet/Fivans/pdb_database/D_tj10C4_G1_498.pdb",
+ "type": "D4_N-C" ,
+  "base": "D_tj10C4_G1_498" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Alex_dihedral_axles",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-1:"]},
+   {"chain": 1, "direction": "N", "residues":[":1"]}
+  ]
+},
+
+
+{
+    "file": "/home/acourbet/Fivans/pdb_database/D_tj10C4_G1_678.pdb",
+ "type": "D4_N-C" ,
+  "base": "D_tj10C4_G1_678" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Alex_dihedral_axles",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-1:"]},
+   {"chain": 1, "direction": "N", "residues":[":1"]}
+  ]
+}
+]

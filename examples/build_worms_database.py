@@ -12,7 +12,9 @@ if __name__ == '__main__':
 
     info('sent to info')
 
-    args = get_cli_args(dbfiles=[''], cachedirs='', read_new_pdbs=False, parallel=0)
+    args = get_cli_args(
+        dbfiles=[''], cachedirs=[''], read_new_pdbs=False, parallel=0
+    )
     if args.parallel == 0: args.parallel = 1
 
     pyrosetta.init('-mute all -ignore_unrecognized_res')
@@ -30,7 +32,3 @@ if __name__ == '__main__':
         print('total entries', len(pp._bblock_cache))
     except AssertionError as e:
         print(e)
-    except:
-        if args.read_new_pdbs:
-            os.remove(os.environ['HOME'] + '/.worms/cache/lock')
-        raise

@@ -45,12 +45,16 @@ class SpliceDB:
             cachedirs = [x for x in cachedirs if x]
         if not cachedirs:
             if 'HOME' in os.environ:
-                cachedirs = os.environ['HOME'] + os.sep + '.worms/cache'
+                cachedirs = [
+                    os.environ['HOME'] + os.sep + '.worms/cache',
+                    '/databases/worms',
+                ]
             else:
-                cachedirs = ['.worms/cache']
+                cachedirs = ['.worms/cache', '/databases/worms']
         if isinstance(cachedirs, str):
             cachedirs = [cachedirs]
         self.cachedirs = [os.path.join(x, 'splices') for x in cachedirs]
+        print('SpliceDB cachedirs:', self.cachedirs)
         self._cache = dict()
         self._dirty = set()
 
@@ -150,12 +154,16 @@ class BBlockDB:
             cachedirs = [x for x in cachedirs if x]
         if not cachedirs:
             if 'HOME' in os.environ:
-                cachedirs = [os.environ['HOME'] + os.sep + '.worms/cache']
+                cachedirs = [
+                    os.environ['HOME'] + os.sep + '.worms/cache',
+                    '/databases/worms',
+                ]
             else:
-                cachedirs = ['.worms/cache']
+                cachedirs = ['.worms/cache', '/databases/worms']
         if isinstance(cachedirs, str):
             cachedirs = [cachedirs]
         self.cachedirs = cachedirs
+        print('BBlockDB cachedirs:', self.cachedirs)
         self.load_poses = load_poses
         os.makedirs(self.cachedirs[0] + '/poses', exist_ok=True)
         os.makedirs(self.cachedirs[0] + '/bblock', exist_ok=True)
