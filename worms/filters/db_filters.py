@@ -83,13 +83,13 @@ def get_affected_positions(pose, prov):
     return modified_positions, new_contact_positions, lost_contact_positions, final_junction_res
 
 
-def make_junct_strs(criteria, ssdag, idx):
+def make_junct_strs(db, criteria, ssdag, idx):
 
     body_names = list()
     for i in range(len(idx)):
         fn = bytes(ssdag.bbs[i][ssdag.verts[i].ibblock[idx[i]]].file).decode()
-        fn = os.path.basename(fn).replace('.pdb', '')  # .replace('_0001', '')
-        body_names.append(fn)
+        dbentry = db.get_json_entry(fn)
+        body_names.append(dbentry['name'])
 
     enres = [ssdag.verts[i].ires[idx[i], 0] + 1 for i in range(len(idx))]
     exres = [ssdag.verts[i].ires[idx[i], 1] + 1 for i in range(len(idx))]
@@ -133,7 +133,7 @@ def run_db_filters(
         superimpose_rmsd=postfilt_splice_max_rms + 0.2,
         superimpose_length=postfilt_splice_rms_length
     )
-    junct_str, junct_str1 = make_junct_strs(criteria, ssdag, idx)
+    junct_str, junct_str1 = make_junct_strs(databases[0], criteria, ssdag, idx)
 
     ori_segment_map = []
     final_segment_map = []

@@ -220,12 +220,9 @@ def worms_main_protocol(criteria, bbs_states=None, **kw):
     if bbs_states is not None:
         kw['bbs'] = [tuple(_BBlock(*s) for s in bb) for bb in bbs_states]
 
-    # search
     tup, tsearch = run_and_time(search_func, criteria, **kw)
     ssdag, result, log = tup
-    # print(f'raw results: {len(result.idx):,}, in {int(tsearch)}s')
 
-    filter
     result2, tclash = run_and_time(
         prune_clashes, ssdag, criteria, result, **kw
     )
@@ -234,7 +231,6 @@ def worms_main_protocol(criteria, bbs_states=None, **kw):
     log.append('    ' + msg)
     print(log[-1])
 
-    # dump results
     filter_and_output_results(criteria, ssdag, result2, **kw)
 
     return log

@@ -212,6 +212,9 @@ class BBlockDB:
     def clear(self):
         self._bblock_cache, self._poses_cache = dict(), dict()
 
+    def get_json_entry(self, file):
+        return self._dictdb[file]
+
     def acquire_cachedir_lock(self, timeout=600):
         for i in range(timeout):
             if self.islocked_cachedir():
