@@ -374,7 +374,7 @@ class BBlockDB:
                     warning('corrupt pickled pose will be replaced', posefile)
                     os.remove(posefile)
                     return False
-        except FileNotFoundError:
+        except (OSError, FileNotFoundError):
             return False
 
     def bblockfile(self, pdbkey):
@@ -479,7 +479,8 @@ class BBlockDB:
         if os.path.exists(cachefile):
             assert self.load_cached_bblock_into_memory(pdbkey)
             if self.load_poses:
-                assert self.load_cached_pose_into_memory(pdbfile)
+                if not self.load_cached_pose_into_memory(pdbfile):
+                    print('warning, not saved:', pdbfile)
             return None, None  # new, missing
         elif self.read_new_pdbs:
             if uselock: self.check_lock_cachedir()
