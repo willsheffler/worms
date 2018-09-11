@@ -1,5 +1,5 @@
-"""TODO: Summary
-"""
-import pytest
 import sys
-pytest.main(sys.argv + ['--pyargs', 'worms'])
+from worms.app import worms_main
+
+if __name__ == '__main__':
+    worms_main(sys.argv[1:])

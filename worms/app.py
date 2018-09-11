@@ -1,5 +1,6 @@
 import sys
 import os
+import io
 import argparse
 import _pickle
 from copy import deepcopy
@@ -272,9 +273,6 @@ def search_func(criteria, bbs, monte_carlo, **kw):
         # simple_search_dag getting not-to-simple maybe split?
         _____, ssdA, rsltA, logA = results[0]
         critB, ssdB, rsltB, logB = results[1]
-        # remove unnecessary verts before creating more
-        # ssdA.verts = ssdA.verts[:1] + (None, ) * len(ssdA.verts[1:])
-        # ssdB.verts = (None, ) * len(ssdB.verts[:1]) + ssdB.verts[-1:]
         ssdag = simple_search_dag(
             criteria,
             only_seg=mseg,
@@ -341,155 +339,152 @@ def filter_and_output_results(
     sfsym = ros.core.scoring.symmetry.symmetrize_scorefunction(sf)
     mbb = ''
     if merge_bblock is not None: mbb = f'_mbb{merge_bblock:04d}'
-    with open(f'{output_prefix}{mbb}.info', 'w') as info_file:
-        for iresult in range(min(max_output, len(result.idx))):
+    info_file = io.StringIO()
+    for iresult in range(min(max_output, len(result.idx))):
 
-            # make json files with bblocks for single result
-            # tmp, seenit = list(), set()
-            # for j in range(len(ssdag.verts)):
-            #     v = ssdag.verts[j]
-            #     ibb = v.ibblock[result.idx[iresult, j]]
-            #     bb = ssdag.bbs[j][ibb]
-            #     fname = str(bytes(bb.file), 'utf-8')
-            #     if fname not in seenit:
-            #         for e in db[0]._alldb:
-            #             if e['file'] == fname:
-            #                 tmp.append(e)
-            #     seenit.add(fname)
-            # import json
-            # with open('tmp_%i.json' % iresult, 'w') as out:
-            #     json.dump(tmp, out)
+        # make json files with bblocks for single result
+        # tmp, seenit = list(), set()
+        # for j in range(len(ssdag.verts)):
+        #     v = ssdag.verts[j]
+        #     ibb = v.ibblock[result.idx[iresult, j]]
+        #     bb = ssdag.bbs[j][ibb]
+        #     fname = str(bytes(bb.file), 'utf-8')
+        #     if fname not in seenit:
+        #         for e in db[0]._alldb:
+        #             if e['file'] == fname:
+        #                 tmp.append(e)
+        #     seenit.add(fname)
+        # import json
+        # with open('tmp_%i.json' % iresult, 'w') as out:
+        #     json.dump(tmp, out)
 
-            if output_from_pose:
-                pose, prov = make_pose_crit(
-                    db[0],
-                    ssdag,
-                    criteria,
-                    result.idx[iresult],
-                    result.pos[iresult],
-                    only_connected='auto',
-                    provenance=True,
-                )
+        if output_from_pose:
+            pose, prov = make_pose_crit(
+                db[0],
+                ssdag,
+                criteria,
+                result.idx[iresult],
+                result.pos[iresult],
+                only_connected='auto',
+                provenance=True,
+            )
 
-                if iresult == 0:
-                    chain_header = 'Nchains ' + ' '
-                    for chain in range(pose.num_chains()):
-                        chain_header = chain_header + ' L%s ' % (chain + 1)
-                    info_file.write(
-                        'close_err close_rms score0 filter nc nc_wo_jct n_nb  Name                                                                  %s   [exit_pdb       exit_resN entrance_resN entrance_pdb        ]   jct_res \n'
-                        % chain_header
-                    )
-
-                # with open('wip_db_filters.pickle', 'wb') as out:
-                # _pickle.dump((ssdag, result, pose, prov), out)
-
-                try:
-                    (
-                        jstr, jstr1, filt, grade, sp, mc, mcnh, mhc, nc, ncnh,
-                        nhc
-                    ) = run_db_filters(
-                        db, criteria, ssdag, iresult, result.idx[iresult],
-                        pose, prov, **kw
-                    )
-                except Exception as e:
-                    print('error in db_filters:')
-                    print(traceback.format_exc())
-                    print(exc)
-                    continue
-
-                head = f'{output_prefix}{mbb}_'
-                fname = '%s_%04i_%s_%s_%s_%s_%s' % (
-                    head, iresult, jstr.replace('_0001', '')[:200], grade, mc,
-                    mcnh, mhc
-                )
-
-                rms = criteria.iface_rms(pose, prov, **kw)
-                # if rms > rms_err_cut: continue
-
-                cenpose = pose.clone()
-                ros.core.util.switch_to_residue_type_set(cenpose, 'centroid')
-                if sf(cenpose) > max_score0:
-                    continue
-
-                if hasattr(criteria, 'symfile_modifiers'):
-                    symdata = util.get_symdata_modified(
-                        criteria.symname,
-                        **criteria.symfile_modifiers(
-                            segpos=result.pos[iresult]
-                        )
-                    )
-                else:
-                    symdata = util.get_symdata(criteria.symname)
-
-                sympose = cenpose.clone()
-                # if pose.pdb_info() and pose.pdb_info().crystinfo().A() > 0:
-                #     ros.protocols.cryst.MakeLatticeMover().apply(sympose)
-                # else:
-                ros.core.pose.symmetry.make_symmetric_pose(sympose, symdata)
-
-                score0 = sfsym(sympose)
-                # if score0 >= 10 * max_score0: continue
-
-                bases = ssdag.get_bases(result.idx[iresult])
-                # print(bases, ssdag.get_base_hashes(result.idx[iresult]))
-                bases_str = ','.join(bases)
-                mbbstr = 'None'
-                if merge_bblock is not None:
-                    mbbstr = f'{merge_bblock:4d}'
-                print(
-                    f'mbb{mbbstr} {iresult:4d} err {result.err[iresult]:5.2f} rms {rms:5.2f} score0 {score0:7.2f} {grade} {filt} {bases_str} {fname}'
-                )
-                # out_file.write('%-80s %s  %3.2f  %7.2f  %s %s %-8s %5.2f %4d %4d %4d \n'%(junct_str,chain_info,s[top_hit],score0,junct_str1,w.splicepoints(top_hit),filter,result,min_contacts,min_contacts_no_helix,min_helices_contacted))
-                chains = pose.split_by_chain()
-                chain_info = '%4d ' % (len(list(chains)))
-                for chain in chains:
-                    chain_info = chain_info + '%4d ' % chain.size()
+            if iresult == 0:
+                chain_header = 'Nchains ' + ' '
+                for chain in range(pose.num_chains()):
+                    chain_header = chain_header + ' L%s ' % (chain + 1)
                 info_file.write(
-                    '%5.2f %5.2f %7.2f %-8s %4d %4d %4d %s %-80s %s  %s %s \n'
-                    % (
-                        result.err[iresult], rms, score0, grade, mc, mcnh, mhc,
-                        bases_str, fname, chain_info, jstr1, sp
-                    )
+                    'close_err close_rms score0 filter nc nc_wo_jct n_nb  Name                                                                  %s   [exit_pdb       exit_resN entrance_resN entrance_pdb        ]   jct_res \n'
+                    % chain_header
                 )
-                info_file.flush()
 
-                if score0 >= max_score0: continue
-                mod, new, lost, junct = get_affected_positions(sympose, prov)
-                if output_symmetric: sympose.dump_pdb(fname + '_sym.pdb')
-                if output_centroid: pose = cenpose
-                pose.dump_pdb(fname + '_asym.pdb')
-                commas = lambda l: ','.join(str(_) for _ in l)
-                with open(fname + '_asym.pdb', 'a') as out:
-                    for ip, p in enumerate(prov):
-                        lb, ub, psrc, lbsrc, ubsrc = p
-                        out.write(
-                            f'Segment: {ip:2} resis {lb:4}-{ub:4} come from resis'
-                            + f'{lbsrc}-{ubsrc} of {psrc.pdb_info().name()}\n'
-                        )
-                    nchain = pose.num_chains()
-                    out.write('Modified positions: ' + commas(mod) + '\n')
-                    out.write('New contact positions: ' + commas(new) + '\n')
-                    out.write('Lost contact positions: ' + commas(lost) + '\n')
-                    out.write('Junction residues: ' + commas(junct) + '\n')
-                    out.write(
-                        'Length of asymetric unit: ' + str(len(pose)) + '\n'
-                    )
-                    out.write('Number of chains in ASU: ' + str(nchain) + '\n')
-                    out.write('Closure error: ' + str(rms) + '\n')
+            # with open('wip_db_filters.pickle', 'wb') as out:
+            # _pickle.dump((ssdag, result, pose, prov), out)
 
+            try:
+                (jstr, jstr1, filt, grade, sp, mc, mcnh, mhc, nc, ncnh,
+                 nhc) = run_db_filters(
+                     db, criteria, ssdag, iresult, result.idx[iresult], pose,
+                     prov, **kw
+                 )
+            except Exception as e:
+                print('error in db_filters:')
+                print(traceback.format_exc())
+                print(e)
+                continue
+
+            head = f'{output_prefix}{mbb}_'
+            fname = '%s_%04i_%s_%s_%s_%s_%s' % (
+                head, iresult, jstr.replace('_0001', '')[:200], grade, mc,
+                mcnh, mhc
+            )
+
+            rms = criteria.iface_rms(pose, prov, **kw)
+            # if rms > rms_err_cut: continue
+
+            cenpose = pose.clone()
+            ros.core.util.switch_to_residue_type_set(cenpose, 'centroid')
+            if sf(cenpose) > max_score0:
+                continue
+
+            if hasattr(criteria, 'symfile_modifiers'):
+                symdata = util.get_symdata_modified(
+                    criteria.symname,
+                    **criteria.symfile_modifiers(segpos=result.pos[iresult])
+                )
             else:
-                # if output_symmetric:
-                # raise NotImplementedError('no symmetry w/o poses')
-                head = f'{output_prefix}{mbb}_'
-                fname = '%s_%04i' % (head, iresult)
-                graph_dump_pdb(
-                    fname + '.pdb',
-                    ssdag,
-                    result.idx[iresult],
-                    result.pos[iresult],
-                    join='bb',
-                    trim=True
+                symdata = util.get_symdata(criteria.symname)
+
+            sympose = cenpose.clone()
+            # if pose.pdb_info() and pose.pdb_info().crystinfo().A() > 0:
+            #     ros.protocols.cryst.MakeLatticeMover().apply(sympose)
+            # else:
+            ros.core.pose.symmetry.make_symmetric_pose(sympose, symdata)
+
+            score0 = sfsym(sympose)
+            # if score0 >= 10 * max_score0: continue
+
+            bases = ssdag.get_bases(result.idx[iresult])
+            # print(bases, ssdag.get_base_hashes(result.idx[iresult]))
+            bases_str = ','.join(bases)
+            mbbstr = 'None'
+            if merge_bblock is not None:
+                mbbstr = f'{merge_bblock:4d}'
+            print(
+                f'mbb{mbbstr} {iresult:4d} err {result.err[iresult]:5.2f} rms {rms:5.2f} score0 {score0:7.2f} {grade} {filt} {bases_str} {fname}'
+            )
+            # out_file.write('%-80s %s  %3.2f  %7.2f  %s %s %-8s %5.2f %4d %4d %4d \n'%(junct_str,chain_info,s[top_hit],score0,junct_str1,w.splicepoints(top_hit),filter,result,min_contacts,min_contacts_no_helix,min_helices_contacted))
+            chains = pose.split_by_chain()
+            chain_info = '%4d ' % (len(list(chains)))
+            for chain in chains:
+                chain_info = chain_info + '%4d ' % chain.size()
+            info_file.write(
+                '%5.2f %5.2f %7.2f %-8s %4d %4d %4d %s %-80s %s  %s %s \n' % (
+                    result.err[iresult], rms, score0, grade, mc, mcnh, mhc,
+                    bases_str, fname, chain_info, jstr1, sp
                 )
+            )
+            info_file.flush()
+
+            if score0 >= max_score0: continue
+            mod, new, lost, junct = get_affected_positions(sympose, prov)
+            if output_symmetric: sympose.dump_pdb(fname + '_sym.pdb')
+            if output_centroid: pose = cenpose
+            pose.dump_pdb(fname + '_asym.pdb')
+            commas = lambda l: ','.join(str(_) for _ in l)
+            with open(fname + '_asym.pdb', 'a') as out:
+                for ip, p in enumerate(prov):
+                    lb, ub, psrc, lbsrc, ubsrc = p
+                    out.write(
+                        f'Segment: {ip:2} resis {lb:4}-{ub:4} come from resis'
+                        + f'{lbsrc}-{ubsrc} of {psrc.pdb_info().name()}\n'
+                    )
+                nchain = pose.num_chains()
+                out.write('Modified positions: ' + commas(mod) + '\n')
+                out.write('New contact positions: ' + commas(new) + '\n')
+                out.write('Lost contact positions: ' + commas(lost) + '\n')
+                out.write('Junction residues: ' + commas(junct) + '\n')
+                out.write('Length of asymetric unit: ' + str(len(pose)) + '\n')
+                out.write('Number of chains in ASU: ' + str(nchain) + '\n')
+                out.write('Closure error: ' + str(rms) + '\n')
+
+        else:
+            # if output_symmetric:
+            # raise NotImplementedError('no symmetry w/o poses')
+            head = f'{output_prefix}{mbb}_'
+            fname = '%s_%04i' % (head, iresult)
+            graph_dump_pdb(
+                fname + '.pdb',
+                ssdag,
+                result.idx[iresult],
+                result.pos[iresult],
+                join='bb',
+                trim=True
+            )
+    infostr = info_file.getvalue()
+    if infostr:
+        with open(f'{output_prefix}{mbb}.info', 'w') as out:
+            out.write(infostr)
 
 
 def merge_results_concat(
