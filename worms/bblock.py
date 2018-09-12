@@ -235,6 +235,22 @@ class _BBlock:
         )
 
 
+def bb_splice_res(bb, dirn):
+    r = []
+    for iconn in range(bb.n_connections):
+        if bb.conn_dirn(iconn) == dirn:
+            r.append(bb.conn_resids(iconn))
+    return np.concatenate(r)
+
+
+def bb_splice_res_N(bb):
+    return splice_res(bb, 0)
+
+
+def bb_splice_res_C(bb):
+    return splice_res(bb, 1)
+
+
 class BBlockWrap:
     def __init__(self, _bblock):
         self._bblock = _bblock
@@ -248,15 +264,6 @@ class BBlockWrap:
 
 @jit
 def chain_of_ires(bb, ires):
-    """Summary
-
-    Args:
-        bb (TYPE): Description
-        ires (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
     chain = np.empty_like(ires)
     for i, ir in enumerate(ires):
         if ir < 0:
@@ -269,49 +276,31 @@ def chain_of_ires(bb, ires):
 
 
 def _make_connections_array(entries, chain_bounds):
-    """TODO: Summary
-
-    Args:
-        entries (TYPE): Description
-        chain_bounds (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
     try:
         reslists = [_get_connection_residues(e, chain_bounds) for e in entries]
     except Exception as e:
         print('make_connections_array failed on', entries, 'error was:', e)
         return np.zeros((0, 0))
-    reslists = sorted(reslists, key=lambda x: x[0])
+
+    order = np.argsort([x[0] for x in reslists])
     mx = max(len(x) for x in reslists)
     conn = np.zeros((len(reslists), mx + 2), 'i4') - 1
-    for i, ires_ary in enumerate(reslists):
-        conn[i, 0] = entries[i]['direction'] == 'C'
-        conn[i, 1] = len(ires_ary) + 2
-        conn[i, 2:conn[i, 1]] = ires_ary
+    for i, iord in enumerate(order):
+        conn[i, 0] = entries[iord]['direction'] == 'C'
+        conn[i, 1] = len(reslists[iord]) + 2
+        conn[i, 2:conn[i, 1]] = reslists[iord]
     return conn
-    # print(chain_bounds)
-    # print(repr(conn))
 
 
 def _get_connection_residues(entry, chain_bounds):
-    """TODO: Summary
-
-    Args:
-        entry (TYPE): Description
-        chain_bounds (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
+    """should return sorted list of resi positions"""
     chain_bounds[-1][-1]
     r, c, d = entry['residues'], int(entry['chain']), entry['direction']
     if isinstance(r, str) and r.startswith('['):
         r = eval(r)
     if isinstance(r, list):
         try:
-            return [int(_) for _ in r]
+            return sorted(int(i) for i in r)
         except ValueError:
             assert len(r) is 1
             r = r[0]
@@ -329,26 +318,10 @@ def _get_connection_residues(entry, chain_bounds):
 
 
 def bblock_components(bblock):
-    """TODO: Summary
-
-    Args:
-        bblock (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
     return eval(bytes(bblock.components))
 
 
 def bblock_str(bblock):
-    """TODO: Summary
-
-    Args:
-        bblock (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
     return '\n'.join([
         'jitclass BBlock(',
         '    file=' + str(bytes(bblock.file)),
