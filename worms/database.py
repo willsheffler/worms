@@ -497,9 +497,12 @@ class BBlockDB:
             with open(cachefile, 'wb') as f:
                 pickle.dump(bblock._state, f)
             if not os.path.exists(posefile):
-                with open(posefile, 'wb') as f:
-                    pickle.dump(pose, f)
-                    info('dumped _bblock_cache files for %s' % pdbfile)
+                try:
+                    with open(posefile, 'wb') as f:
+                        pickle.dump(pose, f)
+                        info('dumped _bblock_cache files for %s' % pdbfile)
+                except OSError as e:
+                    print('not saving', posefile)
 
             if self.load_poses:
                 self._poses_cache[pdbfile] = pose
