@@ -76,7 +76,7 @@ def parse_args(argv):
         max_merge=50000,
         max_clash_check=50000,
         max_output=1000,
-        max_score0=10,
+        max_score0=9e9,
         #
         output_from_pose=1,
         output_symmetric=1,
@@ -96,6 +96,9 @@ def parse_args(argv):
         crit = eval(''.join(args.geometry))
         bb = args.bbconn[1::2]
         nc = args.bbconn[0::2]
+        if args.max_score0 > 9e8:
+            args.max_score0 = 6.0 * len(nc)
+            print('set max_score0 to', args.max_score0)
     else:
         with open(args.config_file) as inp:
             lines = inp.readlines()
@@ -165,11 +168,7 @@ def worms_main(argv):
         with open(kw['output_prefix'] + '_bblocks.pickle', 'wb') as out:
             _pickle.dump(bbnames, out)
 
-    # merge_segment = criteria.merge_segment(**kw)
-    if kw['parallel'] == 0:
-        log = worms_main_protocol(criteria, **kw)
-    else:
-        log = worms_main_each_mergebb(criteria, **kw)
+    log = worms_main_each_mergebb(criteria, **kw)
     if kw['pbar']:
         print('======================== logs ========================')
         for msg in log:
@@ -203,7 +202,7 @@ def worms_main_each_mergebb(
                 **kw
             ) for i in range(len(bbs[merge_segment]))
         ]
-        log = ['parallel over merge_bblock, n =' + str(len(futures))]
+        log = ['split job over merge_bblock, n =' + str(len(futures))]
         if not pbar: print(log[-1])
 
         fiter = cf.as_completed(futures)
@@ -235,9 +234,12 @@ def worms_main_protocol(criteria, bbs_states=None, **kw):
 
         filter_and_output_results(criteria, ssdag, result2, **kw)
 
-        print('completed: ' + str(kw['merge_bblock']))
-        sys.stdout.flush()
+        if not kw['pbar']:
+            print('completed: ' + str(kw['merge_bblock']))
+            sys.stdout.flush()
+
         return log
+
     except Exception as e:
         print('error on mbb' + str(kw['merge_bblock']))
         print(type(e))
@@ -411,7 +413,12 @@ def filter_and_output_results(
 
             cenpose = pose.clone()
             ros.core.util.switch_to_residue_type_set(cenpose, 'centroid')
-            if sf(cenpose) > max_score0:
+            score0 = sf(cenpose)
+            if score0 > max_score0:
+                print(
+                    'score0 fail', merge_bblock, iresult, 'score0', score0,
+                    'rms', rms, 'grade', grade
+                )
                 continue
 
             if hasattr(criteria, 'symfile_modifiers'):
@@ -428,8 +435,13 @@ def filter_and_output_results(
             # else:
             ros.core.pose.symmetry.make_symmetric_pose(sympose, symdata)
 
-            score0 = sfsym(sympose)
-            # if score0 >= 10 * max_score0: continue
+            score0sym = sfsym(sympose)
+            if score0sym >= (len(sympose) / len(cenpose)) * max_score0:
+                print(
+                    'score0sym fail', merge_bblock, iresult, 'score0sym',
+                    score0sym, 'rms', rms, 'grade', grade
+                )
+                continue
 
             bases = ssdag.get_bases(result.idx[iresult])
             # print(bases, ssdag.get_base_hashes(result.idx[iresult]))
@@ -438,7 +450,7 @@ def filter_and_output_results(
             if merge_bblock is not None:
                 mbbstr = f'{merge_bblock:4d}'
             print(
-                f'mbb{mbbstr} {iresult:4d} err {result.err[iresult]:5.2f} rms {rms:5.2f} score0 {score0:7.2f} {grade} {filt} {bases_str} {fname}'
+                f'mbb{mbbstr} {iresult:4d} err {result.err[iresult]:5.2f} rms {rms:5.2f} score0 {score0:7.2f} score0sym {score0sym:7.2f} {grade} {filt} {bases_str} {fname}'
             )
             # out_file.write('%-80s %s  %3.2f  %7.2f  %s %s %-8s %5.2f %4d %4d %4d \n'%(junct_str,chain_info,s[top_hit],score0,junct_str1,w.splicepoints(top_hit),filter,result,min_contacts,min_contacts_no_helix,min_helices_contacted))
             chains = pose.split_by_chain()

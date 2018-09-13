@@ -5,6 +5,10 @@ from worms.app import parse_args
 from worms.edge import splice_metrics_pair, _ires_from_conn
 from worms.bblock import bb_splice_res
 
+from worms.filters.alignment_validator import AlignmentValidator, PoseInfo
+from worms.filters.contact_analyzer import ContactAnalyzer, PoseMap
+from worms.filters.interface_contacts import count_contacts_accross_junction, identify_helical_segments
+
 
 def filter_audit():
     print('filter_audit')
@@ -37,15 +41,14 @@ def filter_audit():
         splice_res_n = bb_splice_res(bb2, dirn=0)
         assert np.all(_ires_from_conn(bb1.connections, 1) == splice_res_c)
         assert np.all(_ires_from_conn(bb2.connections, 0) == splice_res_n)
-        for i in range(rms.shape[0]):
-            for j in range(rms.shape[1]):
-                build pose and run_db_filters?
-        break
+        pose1 = bbdb.pose(bb1.file)
+        pose2 = bbdb.pose(bb2.file)
 
-    # (jstr, jstr1, filt, grade, sp, mc, mcnh, mhc, nc, ncnh,
-    # nhc) = run_db_filters(
-    # db, criteria, ssdag, iresult, result.idx[iresult], pose, prov, **kw
-    # )
+        # for i in range(rms.shape[0]):
+        # for j in range(rms.shape[1]):
+        # print(i, j, rms[i, j], nclash[i, j], ncontact[i, j])
+        # build pose and run_db_filters?
+        break
 
 
 filter_audit()
