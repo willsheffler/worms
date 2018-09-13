@@ -142,7 +142,6 @@ def worms_main(argv):
             criteria, merge_bblock=None, precache_only=True, **kw
         )
         kw['merge_bblock'] = merge_bblock
-        print('precaching splices done')
         if kw['precache_splices_and_quit']:
             return
 
@@ -210,30 +209,42 @@ def worms_main_each_mergebb(
         fiter = cf.as_completed(futures)
         for f in fiter:
             log.extend(f.result())
-        if pbar:
+        if pbar and log:
             log = [''] * len(futures) + log
         return log
 
 
 def worms_main_protocol(criteria, bbs_states=None, **kw):
 
-    if bbs_states is not None:
-        kw['bbs'] = [tuple(_BBlock(*s) for s in bb) for bb in bbs_states]
+    try:
+        if bbs_states is not None:
+            kw['bbs'] = [tuple(_BBlock(*s) for s in bb) for bb in bbs_states]
 
-    tup, tsearch = run_and_time(search_func, criteria, **kw)
-    ssdag, result, log = tup
+        tup, tsearch = run_and_time(search_func, criteria, **kw)
+        ssdag, result, log = tup
 
-    result2, tclash = run_and_time(
-        prune_clashes, ssdag, criteria, result, **kw
-    )
+        result2, tclash = run_and_time(
+            prune_clashes, ssdag, criteria, result, **kw
+        )
 
-    msg = f'nresults w/o bad clashes {len(result2.idx):,}'
-    log.append('    ' + msg)
-    print(log[-1])
+        log = []
+        if len(result2.idx) > 0:
+            msg = f'nresults w/o bad clashes {len(result2.idx):,}'
+            log.append('    ' + msg)
+            print(log[-1])
 
-    filter_and_output_results(criteria, ssdag, result2, **kw)
+        filter_and_output_results(criteria, ssdag, result2, **kw)
 
-    return log
+        print('completed: ' + str(kw['merge_bblock']))
+        sys.stdout.flush()
+        return log
+    except Exception as e:
+        print('error on mbb' + str(kw['merge_bblock']))
+        print(type(e))
+        print(traceback.format_exc())
+        print(e)
+        sys.stdout.flush()
+        return []
 
 
 def search_func(criteria, bbs, monte_carlo, **kw):
@@ -309,15 +320,15 @@ def search_single_stage(criteria, lbl='', **kw):
 
     Nsparse = result.stats.total_samples[0]
     Nsparse_rate = int(Nsparse / tsearch)
-    frac_redundant = 0
+
+    log = []
     if len(result.idx):
         frac_redundant = result.stats.n_redundant_results[0] / len(result.idx)
-
-    log = [
-        f'grow_linear {lbl} done, nresults {len(result.idx):,}, ' +
-        f'samp/sec {Nsparse_rate:,}, redundant ratio {frac_redundant}'
-    ]
-    if not kw['pbar']: print(log[-1])
+        log = [
+            f'grow_linear {lbl} done, nresults {len(result.idx):,}, ' +
+            f'samp/sec {Nsparse_rate:,}, redundant ratio {frac_redundant}'
+        ]
+    if not kw['pbar'] and log: print(log[-1])
 
     if kw['run_cache']:
         with (open(kw['run_cache'] + lbl + '.pickle', 'wb')) as out:

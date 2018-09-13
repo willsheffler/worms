@@ -135,10 +135,10 @@ def simple_search_dag(
             bbs[i] = (bbs[i][merge_bblock], )
 
     tdb = time() - tdb
-    info(
-        f'bblock creation time {tdb:7.3f} num bbs: ' +
-        str([len(x) for x in bbs])
-    )
+    # info(
+    # f'bblock creation time {tdb:7.3f} num bbs: ' +
+    # str([len(x) for x in bbs])
+    # )
 
     if precache_splices:
         bbnames = [[bytes(bb.file) for bb in bbtup] for bbtup in bbs]
@@ -224,10 +224,10 @@ def simple_search_dag(
                      [None] * (len(queries) - only_seg - 1))
             bbs, directions = save
     tvertex = time() - tvertex
-    info(
-        f'vertex creation time {tvertex:7.3f} num verts ' +
-        str([v.len if v else 0 for v in verts])
-    )
+    # info(
+    # f'vertex creation time {tvertex:7.3f} num verts ' +
+    # str([v.len if v else 0 for v in verts])
+    # )
 
     if make_edges:
         tedge = time()
@@ -246,11 +246,11 @@ def simple_search_dag(
         tedge = time() - tedge
         if print_edge_summary:
             _print_edge_summary(edges)
-        info(
-            f'edge creation time {tedge:7.3f} num splices ' +
-            str([e.total_allowed_splices()
-                 for e in edges]) + ' num exits ' + str([e.len for e in edges])
-        )
+        # info(
+        # f'edge creation time {tedge:7.3f} num splices ' +
+        # str([e.total_allowed_splices()
+        # for e in edges]) + ' num exits ' + str([e.len for e in edges])
+        # )
         spdb.sync_to_disk()
 
     toret = SearchSpaceDag(criteria.bbspec, bbs, verts, edges)
