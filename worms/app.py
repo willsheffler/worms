@@ -73,9 +73,9 @@ def parse_args(argv):
         rms_err_cut=3.0,
         ca_clash_dis=3.0,
         #
-        max_merge=50000,
-        max_clash_check=50000,
-        max_output=1000,
+        max_merge=500000,
+        max_clash_check=500000,
+        max_output=10000,
         max_score0=9e9,
         #
         output_from_pose=1,
@@ -342,7 +342,7 @@ def search_single_stage(criteria, lbl='', **kw):
 def filter_and_output_results(
         criteria, ssdag, result, output_from_pose, merge_bblock, db,
         output_symmetric, output_centroid, output_prefix, max_output,
-        max_score0, rms_err_cut, **kw
+        max_score0, rms_err_cut, no_duplicate_bases, **kw
 ):
     sf = ros.core.scoring.ScoreFunctionFactory.create_score_function('score0')
     sfsym = ros.core.scoring.symmetry.symmetrize_scorefunction(sf)
@@ -368,6 +368,18 @@ def filter_and_output_results(
         #     json.dump(tmp, out)
 
         if output_from_pose:
+
+            bases = ssdag.get_bases(result.idx[iresult])
+            if no_duplicate_bases:
+                bases_uniq = set(bases[:-1] if criteria.is_cyclic else bases)
+                assert criteria.is_cyclic
+                if len(bases_uniq) != len(bases):
+                    if criteria.is_cyclic:
+                        bases[-1] = '(' + bases[-1] + ')'
+                    print('duplicate bases fail', merge_bblock, iresult, bases)
+                    continue
+            bases_str = ','.join(bases)
+
             pose, prov = make_pose_crit(
                 db[0],
                 ssdag,
@@ -443,9 +455,6 @@ def filter_and_output_results(
                 )
                 continue
 
-            bases = ssdag.get_bases(result.idx[iresult])
-            # print(bases, ssdag.get_base_hashes(result.idx[iresult]))
-            bases_str = ','.join(bases)
             mbbstr = 'None'
             if merge_bblock is not None:
                 mbbstr = f'{merge_bblock:4d}'
@@ -455,8 +464,8 @@ def filter_and_output_results(
             # out_file.write('%-80s %s  %3.2f  %7.2f  %s %s %-8s %5.2f %4d %4d %4d \n'%(junct_str,chain_info,s[top_hit],score0,junct_str1,w.splicepoints(top_hit),filter,result,min_contacts,min_contacts_no_helix,min_helices_contacted))
             chains = pose.split_by_chain()
             chain_info = '%4d ' % (len(list(chains)))
-            for chain in chains:
-                chain_info = chain_info + '%4d ' % chain.size()
+            chain_info += '-'.join(len(c) for c in chains)
+
             info_file.write(
                 '%5.2f %5.2f %7.2f %-8s %4d %4d %4d %s %-80s %s  %s %s \n' % (
                     result.err[iresult], rms, score0, grade, mc, mcnh, mhc,
@@ -479,6 +488,7 @@ def filter_and_output_results(
                         + f'{lbsrc}-{ubsrc} of {psrc.pdb_info().name()}\n'
                     )
                 nchain = pose.num_chains()
+                out.write('Bases: ' + bases_str + '\n')
                 out.write('Modified positions: ' + commas(mod) + '\n')
                 out.write('New contact positions: ' + commas(new) + '\n')
                 out.write('Lost contact positions: ' + commas(lost) + '\n')

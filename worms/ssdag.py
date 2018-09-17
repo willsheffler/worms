@@ -1,5 +1,6 @@
 import sys
 from time import time
+from collections import Counter
 import concurrent.futures as cf
 import numpy as np
 from worms import Vertex, Edge, precompute_splicedb
@@ -95,7 +96,8 @@ def simple_search_dag(
     tdb = time()
     if bbs is None:
         bbs = list()
-        exclude_bases = set()
+        bases = list()
+        # exclude_bases = set()
         for iquery, query in enumerate(queries):
             msegs = [
                 i + len(queries) if i < 0 else i
@@ -104,19 +106,22 @@ def simple_search_dag(
             if iquery in msegs[1:]:
                 print('seg', iquery, 'repeating bblocks from', msegs[0])
                 bbs.append(bbs[msegs[0]])
+                bases.append(bases[msegs[0]])
                 continue
-            bbs.append(
-                bbdb.query(
-                    query,
-                    max_bblocks=nbblocks,
-                    shuffle_bblocks=shuffle_bblocks,
-                    parallel=parallel,
-                )
+            bbs0 = bbdb.query(
+                query,
+                max_bblocks=nbblocks,
+                shuffle_bblocks=shuffle_bblocks,
+                parallel=parallel,
             )
-            if False:  # too few unique bases to filter here
-                new_bases = [bytes(b.base).decode('utf-8') for b in bbs[-1]]
-                exclude_bases.update(new_bases)
-                print('N exclude_bases', len(exclude_bases))
+            bbs.append(bbs0)
+            bases.append(Counter(bytes(b.base).decode('utf-8') for b in bbs0))
+
+            # too few unique bases to filter here
+            # if False:
+            # new_bases = [bytes(b.base).decode('utf-8') for b in bbs[-1]]
+            # exclude_bases.update(new_bases)
+            # print('N exclude_bases', len(exclude_bases))
         assert len(bbs) == len(queries)
         for i, v in enumerate(bbs):
             assert len(v) > 0, 'no bblocks for query: "' + queries[i] + '"'
@@ -124,6 +129,10 @@ def simple_search_dag(
         print('bblock numbers:', [len(b) for b in bbs])
         print('bblocks id:', [id(b) for b in bbs])
         print('bblock0 id ', [id(b[0]) for b in bbs])
+        print('base_counts:')
+        for query, basecount in zip(queries, bases):
+            counts = ' '.join(f'{k}: {c}' for k, c in basecount.items())
+            print(f'   {query:10}', counts)
     else:
         bbs = bbs.copy()
     assert len(bbs) == len(criteria.bbspec)
@@ -260,7 +269,7 @@ def simple_search_dag(
 
 
 def _print_edge_summary(edges):
-    print('  splice stats: ', end='')
+    print('splice stats: ', end='')
     for e in edges:
         nsplices = e.total_allowed_splices()
         ntot = e.nout * e.nent
