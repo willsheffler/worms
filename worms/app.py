@@ -97,7 +97,7 @@ def parse_args(argv):
         bb = args.bbconn[1::2]
         nc = args.bbconn[0::2]
         if args.max_score0 > 9e8:
-            args.max_score0 = 6.0 * len(nc)
+            args.max_score0 = 4.0 * len(nc)
             print('set max_score0 to', args.max_score0)
     else:
         with open(args.config_file) as inp:
@@ -232,7 +232,7 @@ def worms_main_protocol(criteria, bbs_states=None, **kw):
             log.append('    ' + msg)
             print(log[-1])
 
-        filter_and_output_results(criteria, ssdag, result2, **kw)
+        log += filter_and_output_results(criteria, ssdag, result2, **kw)
 
         if not kw['pbar']:
             print('completed: ' + str(kw['merge_bblock']))
@@ -349,6 +349,7 @@ def filter_and_output_results(
     mbb = ''
     if merge_bblock is not None: mbb = f'_mbb{merge_bblock:04d}'
     info_file = io.StringIO()
+    nresults = 0
     for iresult in range(min(max_output, len(result.idx))):
 
         # make json files with bblocks for single result
@@ -371,9 +372,10 @@ def filter_and_output_results(
 
             bases = ssdag.get_bases(result.idx[iresult])
             if no_duplicate_bases:
-                bases_uniq = set(bases[:-1] if criteria.is_cyclic else bases)
-                assert criteria.is_cyclic
-                if len(bases_uniq) != len(bases):
+                bases_uniq = set(bases)
+                nbases = len(bases)
+                if criteria.is_cyclic: nbases -= 1
+                if len(bases_uniq) != nbases:
                     if criteria.is_cyclic:
                         bases[-1] = '(' + bases[-1] + ')'
                     print('duplicate bases fail', merge_bblock, iresult, bases)
@@ -448,7 +450,7 @@ def filter_and_output_results(
             ros.core.pose.symmetry.make_symmetric_pose(sympose, symdata)
 
             score0sym = sfsym(sympose)
-            if score0sym >= (len(sympose) / len(cenpose)) * max_score0:
+            if score0sym >= 2.0 * max_score0:
                 print(
                     'score0sym fail', merge_bblock, iresult, 'score0sym',
                     score0sym, 'rms', rms, 'grade', grade
@@ -464,7 +466,7 @@ def filter_and_output_results(
             # out_file.write('%-80s %s  %3.2f  %7.2f  %s %s %-8s %5.2f %4d %4d %4d \n'%(junct_str,chain_info,s[top_hit],score0,junct_str1,w.splicepoints(top_hit),filter,result,min_contacts,min_contacts_no_helix,min_helices_contacted))
             chains = pose.split_by_chain()
             chain_info = '%4d ' % (len(list(chains)))
-            chain_info += '-'.join(len(c) for c in chains)
+            chain_info += '-'.join(str(len(c)) for c in chains)
 
             info_file.write(
                 '%5.2f %5.2f %7.2f %-8s %4d %4d %4d %s %-80s %s  %s %s \n' % (
@@ -474,11 +476,11 @@ def filter_and_output_results(
             )
             info_file.flush()
 
-            if score0 >= max_score0: continue
             mod, new, lost, junct = get_affected_positions(sympose, prov)
             if output_symmetric: sympose.dump_pdb(fname + '_sym.pdb')
             if output_centroid: pose = cenpose
             pose.dump_pdb(fname + '_asym.pdb')
+            nresults += 1
             commas = lambda l: ','.join(str(_) for _ in l)
             with open(fname + '_asym.pdb', 'a') as out:
                 for ip, p in enumerate(prov):
@@ -510,10 +512,17 @@ def filter_and_output_results(
                 join='bb',
                 trim=True
             )
+            nresults += 1
+
     infostr = info_file.getvalue()
     if infostr:
         with open(f'{output_prefix}{mbb}.info', 'w') as out:
             out.write(infostr)
+
+    if nresults:
+        return ['nresults output' + str(nresults)]
+    else:
+        return []
 
 
 def merge_results_concat(
