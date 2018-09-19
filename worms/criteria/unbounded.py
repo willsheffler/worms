@@ -12,7 +12,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
             tgtaxis2,
             from_seg,
             *,
-            tol=1.0,
+            tolerance=1.0,
             lever=50,
             to_seg=-1,
             space_group_str=None,
@@ -25,7 +25,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
             tgtaxis1: Target axis 1.
             tgtaxis2: Target axis 2.
             from_seg (int): The segment # to start at.
-            tol (float): A geometry/alignment error threshold. Vaguely Angstroms.
+            tolerance (float): A geometry/alignment error threshold. Vaguely Angstroms.
             lever (float): Tradeoff with distances and angles for a lever-like object. To convert an angle error to a distance error for an oblong shape.
             to_seg (int): The segment # to end at.
             space_group_str: The target space group.
@@ -47,7 +47,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
         if hm.angle(self.tgtaxis1, self.tgtaxis2) > np.pi / 2:
             self.tgtaxis2 = -self.tgtaxis2
         self.from_seg = from_seg
-        self.tol = tol
+        self.tolerance = tolerance
         self.lever = lever
         self.to_seg = to_seg
         self.space_group_str = space_group_str
@@ -64,13 +64,14 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
         ax1 = segpos[self.from_seg][..., :, 2]
         ax2 = segpos[self.to_seg][..., :, 2]
         angle = np.arccos(np.abs(hm.hdot(ax1, ax2)))
-        return np.abs((angle - self.target_angle)) / self.tol * self.lever
+        return np.abs((angle - self.target_angle)
+                      ) / self.tolerance * self.lever
 
     def jit_lossfunc(self):
         from_seg = self.from_seg
         to_seg = self.to_seg
         target_angle = self.target_angle
-        tol = self.tol
+        tolerance = self.tolerance
         lever = self.lever
 
         @jit
@@ -78,7 +79,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
             ax1 = pos[from_seg, :3, 2]
             ax2 = pos[to_seg, :3, 2]
             angle = np.arccos(np.abs(np.sum(ax1 * ax2)))
-            return np.abs((angle - target_angle)) / tol * lever
+            return np.abs((angle - target_angle)) / tolerance * lever
 
         return func
 
@@ -287,7 +288,7 @@ class DihedralLattice(WormCriteria):
             tgtaxis2,
             from_seg,
             *,
-            tol=1.0,
+            tolerance=1.0,
             lever=50,
             to_seg=-1,
             space_group_str=None,
@@ -303,7 +304,7 @@ class DihedralLattice(WormCriteria):
         self.tgtaxis2 /= np.linalg.norm(self.tgtaxis2)
         assert np.sum(tgtaxis1 * tgtaxis2) <= 0.0001
         self.from_seg = from_seg
-        self.tol = tol
+        self.tolerance = tolerance
         self.lever = lever
         self.to_seg = to_seg
         self.space_group_str = space_group_str
@@ -317,7 +318,7 @@ class DihedralLattice(WormCriteria):
         to_seg = self.to_seg
         tgt1 = self.tgt1
         tgt2 = self.tgt2
-        tol = self.tol
+        tolerance = self.tolerance
         lever = self.lever
 
         @jit
@@ -327,7 +328,7 @@ class DihedralLattice(WormCriteria):
             ang2 = np.arccos(np.sum(ax2 * tgt1))**2
             cn2_T_tgt1 = cn2 - np.sum(tgt1 * cn2) / np.sum(tgt1 * tgt1) * tgt1
             angb2 = np.arccos(np.sum(cen2_T_tgt1 * tgt2))**2
-            return np.sqrt(ang2 + angb2) / tol * lever
+            return np.sqrt(ang2 + angb2) / tolerance * lever
 
         return func
 

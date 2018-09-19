@@ -1,0 +1,39 @@
+[
+{"file": "./dan_ellis/1gcm_C3.pdb",
+  "name": "GCN4_helical_bundle" ,
+  "class": ["C3"],
+  "type": "C3?" ,
+  "base": "GCN4" ,
+  "components": ["GCN4"],
+  "validated": true,
+  "protocol": "xtal",
+  "connections": [
+    {"chain": 1, "direction": "C", "residues":["-20:"]},
+    {"chain": 1, "direction": "N", "residues":[":20"]}
+  ]
+},
+{"file": "./dan_ellis/1ru7_stem_C3.pdb",
+  "name": "PR8_top-of-stem" ,
+  "class": ["C3_N"],
+  "type": "C3_N?" ,
+  "base": "1ru7" ,
+  "components": ["1ru7"],
+  "validated": true,
+  "protocol": "xtal",
+  "connections": [
+    {"chain": 1, "direction": "C", "residues":["-8:"]}
+  ]
+},
+{"file": "./dan_ellis/dn5b_R32S_C3.pdb",
+  "name": "dn5b_R32S" ,
+  "class": ["C3"],
+  "type": "C3_C?" ,
+  "base": "dn5b" ,
+  "components": ["dn5b"],
+  "validated": true,
+  "protocol": "cyclic_docking_and_design",
+  "connections": [
+    {"chain": 1, "direction": "N", "residues":["16:"]}
+  ]
+}
+]

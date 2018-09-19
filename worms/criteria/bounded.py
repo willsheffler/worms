@@ -13,7 +13,7 @@ class AxesIntersect(WormCriteria):
             from_seg=0,
             origin_seg=None,
             *,
-            tol=1.0,
+            tolerance=1.0,
             lever=50,
             to_seg=-1,
             distinct_axes=False
@@ -35,10 +35,10 @@ class AxesIntersect(WormCriteria):
         assert 3 == len(self.tgtaxis1)
         assert 3 == len(self.tgtaxis2)
         self.tgtangle = hm.angle(tgtaxis1[1], tgtaxis2[1])
-        self.tol = tol
+        self.tolerance = tolerance
         self.lever = lever
         self.to_seg = to_seg
-        self.rot_tol = tol / lever
+        self.rot_tol = tolerance / lever
         self.distinct_axes = distinct_axes  # -z not same as z (for T33)
         self.sym_axes = [self.tgtaxis1, self.tgtaxis2]
         self.is_cyclic = False
@@ -64,7 +64,7 @@ class AxesIntersect(WormCriteria):
             dist = hm.line_line_distance_pa(cen1, ax1, cen2, ax2)
             ang = np.arccos(np.abs(hm.hdot(ax1, ax2)))
         roterr2 = (ang - self.tgtangle)**2
-        return np.sqrt(roterr2 / self.rot_tol**2 + (dist / self.tol)**2)
+        return np.sqrt(roterr2 / self.rot_tol**2 + (dist / self.tolerance)**2)
 
     def jit_lossfunc(self):
         from_seg = self.from_seg
@@ -72,7 +72,7 @@ class AxesIntersect(WormCriteria):
         if self.distinct_axes:
             raise NotImplementedError('T33 not supported yet')
         tgtangle = self.tgtangle
-        tol = self.tol
+        tolerance = self.tolerance
         rot_tol = self.rot_tol
 
         @jit
@@ -84,7 +84,7 @@ class AxesIntersect(WormCriteria):
             dist = hm.numba_line_line_distance_pa(cen1, ax1, cen2, ax2)
             ang = np.arccos(np.abs(hm.numba_dot(ax1, ax2)))
             roterr2 = (ang - tgtangle)**2
-            return np.sqrt(roterr2 / rot_tol**2 + (dist / tol)**2)
+            return np.sqrt(roterr2 / rot_tol**2 + (dist / tolerance)**2)
 
         return func
 
@@ -221,15 +221,15 @@ class Stack(WormCriteria):
     """
     """
 
-    def __init__(self, sym, *, from_seg=0, tol=1.0, lever=50, to_seg=-1):
+    def __init__(self, sym, *, from_seg=0, tolerance=1.0, lever=50, to_seg=-1):
         if from_seg == to_seg:
             raise ValueError('from_seg should not be same as to_seg')
         self.sym = sym
         self.from_seg = from_seg
-        self.tol = tol
+        self.tolerance = tolerance
         self.lever = lever
         self.to_seg = to_seg
-        self.rot_tol = tol / lever
+        self.rot_tol = tolerance / lever
         self.is_cyclic = False
         self.symname = 'C' + str(self.sym)
 
@@ -239,7 +239,7 @@ class Stack(WormCriteria):
     def jit_lossfunc(self):
         from_seg = self.from_seg
         to_seg = self.to_seg
-        tol2 = self.tol**2
+        tol2 = self.tolerance**2
         rot_tol2 = self.rot_tol**2
 
         @jit

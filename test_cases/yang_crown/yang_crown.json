@@ -1,0 +1,14 @@
+[{"file": "test_cases/yang_crown/Sh29_3_Sh29_3_DHR64_AB_C_0001_0006_Sh29_3_DHR71_BA_A_0001_0015.pdb",
+  "name": "HFuse_Sh29_3_3c_2a_0890" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-N" ,
+  "base": "Sh29_3" ,
+  "components": ["DHR64", "DHR71"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 3, "direction": "C", "residues":["-168:-56"]},
+   {"chain": 1, "direction": "N", "residues":["49:147"]}
+  ]
+}
+]

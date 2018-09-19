@@ -133,10 +133,14 @@ def simple_search_dag(
         for query, basecount in zip(queries, bases):
             counts = ' '.join(f'{k}: {c}' for k, c in basecount.items())
             print(f'   {query:10}', counts)
+
+        if criteria.is_cyclic:
+            assert bbs[criteria.from_seg] is bbs[criteria.to_seg]
+
     else:
         bbs = bbs.copy()
-    assert len(bbs) == len(criteria.bbspec)
 
+    assert len(bbs) == len(criteria.bbspec)
     if modbbs: modbbs(bbs)
     if merge_bblock is not None and merge_bblock >= 0:
         # print('which_mergeseg', criteria.bbspec, criteria.which_mergeseg())

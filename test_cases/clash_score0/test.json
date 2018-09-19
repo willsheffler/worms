@@ -1,0 +1,63 @@
+[
+  {"file": "/home/yhsia/helixfuse/2018-07-09_sym/output/5H2LD-10_5/DHR10/5H2LD-10_5_asu_DHR10_BA_0001_0003.pdb",
+  "name": "HFuse_5H2LD-10_5_0005" ,
+  "class": ["C5_N"],
+  "type": "HFuse_C5_N" ,
+  "base": "5H2LD-10" ,
+  "components": ["DHR10"],
+  "validated": false,
+  "protocol": "Hfuse",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":["49:147"]}
+  ]
+},
+
+
+{"file": "/home/yhsia/helixfuse/asym_zibo_combine/output/ZCON-34_2/ZCON-34_2_ZCON-34_2_DHR71_AB_A_0001_0002_ZCON-34_2_TJ41_AB_B_0001_0007/ZCON-34_2_ZCON-34_2_DHR71_AB_A_0001_0002_ZCON-34_2_TJ41_AB_B_0001_0007.pdb",
+  "name": "HFuse_ZCON-34_2_2c_2a_0599" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C2_C-C" ,
+  "base": "ZCON-34_2" ,
+  "components": ["DHR71", "TJ41"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "C", "residues":["-207:-69"]}
+  ]
+},
+
+
+
+{"file": "/home/yhsia/helixfuse/asym_sh_combine/output/Sh13_3/Sh13_3_Sh13_3_DHR64_BA_A_0001_0004_Sh13_3_DHR18_BA_B_0001_0001_Sh13_3_DHR04_BA_C_0001/Sh13_3_Sh13_3_DHR64_BA_A_0001_0004_Sh13_3_DHR18_BA_B_0001_0001_Sh13_3_DHR04_BA_C_0001.pdb",
+  "name": "HFuse_Sh13_3_3c_3a_1331" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_N-N-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR64", "DHR18", "DHR04"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":["56:168"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "N", "residues":["59:177"]}
+  ]
+},
+
+
+{"file": "/home/yhsia/helixfuse/asym_zibo_combine/output/ZCON-15_2/ZCON-15_2_ZCON-15_2_DHR76_AB_A_0001_0002_ZCON-15_2_DHR53_AB_B_0001_0002/ZCON-15_2_ZCON-15_2_DHR76_AB_A_0001_0002_ZCON-15_2_DHR53_AB_B_0001_0002.pdb",
+  "name": "HFuse_ZCON-15_2_2c_2a_0654" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C2_C-C" ,
+  "base": "ZCON-15_2" ,
+  "components": ["DHR76", "DHR53"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-162:-54"]},
+   {"chain": 2, "direction": "C", "residues":["-126:-42"]}
+  ]
+}
+
+
+]

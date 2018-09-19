@@ -1,0 +1,7 @@
+--geometry Cyclic(5, from_seg=2, origin_seg=0)
+--bbconn
+	_N C5_N
+	CC Het:CCY
+	NN Het:NNN
+	CC Het:CCY
+	N_ Het:NNN

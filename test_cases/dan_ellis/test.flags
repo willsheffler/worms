@@ -1,0 +1,7 @@
+--geometry Stack(3)
+--bbconn
+	_C PR8_top-of-stem
+    NC GCN4_helical_bundle
+    N_ dn5b_R32S
+--dbfiles dan_ellis/trihead_worms_setup.txt
+--tol 10

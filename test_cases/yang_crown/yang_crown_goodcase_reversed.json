@@ -1,0 +1,14 @@
+[{"file": "test_cases/yang_crown/Sh13_3_Sh13_3_DHR18_BA_A_0001_0001_Sh13_3_DHR53_AB_B_0001_0002.pdb",
+  "name": "HFuse_Sh13_3_3c_2a_0102" ,
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-N" ,
+  "base": "Sh13_3" ,
+  "components": ["DHR18", "DHR53"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 2, "direction": "C", "residues":["-126:-42"]},
+   {"chain": 1, "direction": "N", "residues":["59:177"]}
+
+  ]
+}]

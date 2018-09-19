@@ -138,55 +138,58 @@ def run_db_filters(
     ori_segment_map = []
     final_segment_map = []
     filter = 'Pass'
-    super_grade = 'Annn'
-    for i in range(len(idx) - 1):
-        if ssdag.verts[i].dirn[1] == 0:  # NC
-            poseN = bbdb.pose(
-                ssdag.bbs[i][ssdag.verts[i].ibblock[idx[i]]].file
-            )
-            poseC = bbdb.pose(
-                ssdag.bbs[i + 1][ssdag.verts[i + 1].ibblock[idx[i + 1]]].file
-            )
-            chainN = int(ssdag.verts[i].ichain[idx[i], 1] + 1)
-            chainC = int(ssdag.verts[i + 1].ichain[idx[i + 1], 0] + 1)
-            resN = int(ssdag.verts[i].ires[idx[i], 1] + 1)
-            resC = int(ssdag.verts[i + 1].ires[idx[i + 1], 0] + 1)
-        elif ssdag.verts[i].dirn[1] == 1:  # CN
-            poseC = bbdb.pose(
-                ssdag.bbs[i][ssdag.verts[i].ibblock[idx[i]]].file
-            )
-            poseN = bbdb.pose(
-                ssdag.bbs[i + 1][ssdag.verts[i + 1].ibblock[idx[i + 1]]].file
-            )
-            chainN = int(ssdag.verts[i + 1].ichain[idx[i + 1], 0] + 1)
-            chainC = int(ssdag.verts[i].ichain[idx[i], 1] + 1)
-            resN = int(ssdag.verts[i + 1].ires[idx[i + 1], 0] + 1)
-            resC = int(ssdag.verts[i].ires[idx[i], 1] + 1)
-        else:
-            print('Warning: no direction information')
-            continue
 
-        chainsN = poseN.split_by_chain()
-        chainsC = poseC.split_by_chain()
-        assert 1 <= chainN <= len(chainsN)
-        assert 1 <= chainC <= len(chainsC)
-        ofstN = sum(len(chainsN[i + 1]) for i in range(chainN - 1))
-        ofstC = sum(len(chainsC[i + 1]) for i in range(chainC - 1))
-        pi1 = PoseInfo(chainsN[chainN])
-        pi2 = PoseInfo(chainsC[chainC])
-        assert 1 <= (resN - ofstN) <= len(pi1._pose)
-        assert 1 <= (resC - ofstC) <= len(pi2._pose)
-        test, result = AV.test_pair_alignment(
-            pi1, pi2, resN - ofstN, resC - ofstC
-        )
+    # AV.test_pair_alignment and prefiltering don't agree perfectly,
+    # but in this case, I trust the prefilter numbers
+    super_grade = 'A'
+    # for i in range(len(idx) - 1):
+    # if ssdag.verts[i].dirn[1] == 0:  # NC
+    #     poseN = bbdb.pose(
+    #         ssdag.bbs[i][ssdag.verts[i].ibblock[idx[i]]].file
+    #     )
+    #     poseC = bbdb.pose(
+    #         ssdag.bbs[i + 1][ssdag.verts[i + 1].ibblock[idx[i + 1]]].file
+    #     )
+    #     chainN = int(ssdag.verts[i].ichain[idx[i], 1] + 1)
+    #     chainC = int(ssdag.verts[i + 1].ichain[idx[i + 1], 0] + 1)
+    #     resN = int(ssdag.verts[i].ires[idx[i], 1] + 1)
+    #     resC = int(ssdag.verts[i + 1].ires[idx[i + 1], 0] + 1)
+    # elif ssdag.verts[i].dirn[1] == 1:  # CN
+    #     poseC = bbdb.pose(
+    #         ssdag.bbs[i][ssdag.verts[i].ibblock[idx[i]]].file
+    #     )
+    #     poseN = bbdb.pose(
+    #         ssdag.bbs[i + 1][ssdag.verts[i + 1].ibblock[idx[i + 1]]].file
+    #     )
+    #     chainN = int(ssdag.verts[i + 1].ichain[idx[i + 1], 0] + 1)
+    #     chainC = int(ssdag.verts[i].ichain[idx[i], 1] + 1)
+    #     resN = int(ssdag.verts[i + 1].ires[idx[i + 1], 0] + 1)
+    #     resC = int(ssdag.verts[i].ires[idx[i], 1] + 1)
+    # else:
+    #     print('Warning: no direction information')
+    #     continue
 
-        if test is None:
-            filter = 'Fail_sup'
-            super_grade = 'F'
-        elif result < postfilt_splice_max_rms:
-            super_grade = 'A'
-        else:
-            super_grade = 'B'
+    # chainsN = poseN.split_by_chain()
+    # chainsC = poseC.split_by_chain()
+    # assert 1 <= chainN <= len(chainsN)
+    # assert 1 <= chainC <= len(chainsC)
+    # ofstN = sum(len(chainsN[i + 1]) for i in range(chainN - 1))
+    # ofstC = sum(len(chainsC[i + 1]) for i in range(chainC - 1))
+    # pi1 = PoseInfo(chainsN[chainN])
+    # pi2 = PoseInfo(chainsC[chainC])
+    # assert 1 <= (resN - ofstN) <= len(pi1._pose)
+    # assert 1 <= (resC - ofstC) <= len(pi2._pose)
+
+    # test, result = AV.test_pair_alignment(
+    #     pi1, pi2, resN - ofstN, resC - ofstC
+    # )
+    # if test is None:
+    #     filter = 'Fail_sup'
+    #     super_grade = 'F'
+    # elif result < postfilt_splice_max_rms:
+    #     super_grade = 'A'
+    # else:
+    #     super_grade = 'B'
 
     last_chain = pose.chain(prov[0][1]
                             )  #chain number  of upper bound of first segment

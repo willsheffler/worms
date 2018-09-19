@@ -265,6 +265,18 @@ def xform_pose(xform, pose, lb=1, ub=-1):
     ros.protocols.sic_dock.xform_pose(pose, xform, lb, ub)
 
 
+def splice_poses(pose_c, pose_n, ires_c, ires_n):
+    new = subpose(pose_c, 1, ires_c)
+    ros.core.pose.append_subpose_to_pose(new, pose_n, ires_n + 1, len(pose_n))
+
+    stubs_ref, _ = get_bb_stubs(pose_c, [ires_c])
+    stubs_move, _ = get_bb_stubs(pose_n, [ires_n])
+    xalign = stubs_ref @ np.linalg.inv(stubs_move)
+    xform_pose(xalign, new, ires_c + 1)
+
+    return new
+
+
 def worst_CN_connect(p):
     for ir in range(1, len(p)):
         worst = 0
@@ -566,3 +578,7 @@ def get_cli_args(argv=None, **kw):
     if hasattr(args, 'parallel') and args.parallel < 0:
         args.parallel = cpu_count()
     return args
+
+
+def map_resis_to_asu(n, resis):
+    return sorted(set((x - 1) % n + 1 for x in resis))

@@ -57,14 +57,14 @@ def parse_args(argv):
         shuffle_bblocks=1,
 
         # splice stuff
-        splice_rms_range=5,
-        splice_max_rms=0.6,
+        splice_rms_range=4,
+        splice_max_rms=0.7,
         splice_clash_d2=3.5**2,  # ca only
         splice_contact_d2=8.0**2,
-        splice_clash_contact_range=30,
+        splice_clash_contact_range=40,
         splice_ncontact_cut=30,
         #
-        tol=1.0,
+        tolernace=1.0,
         lever=25.0,
         min_radius=0.0,
         hash_cart_resl=1.0,
@@ -85,8 +85,8 @@ def parse_args(argv):
         #
         cache_sync=0.003,
         #
-        postfilt_splice_max_rms=0.6,
-        postfilt_splice_rms_length=10,
+        postfilt_splice_max_rms=0.7,
+        postfilt_splice_rms_length=9,
         postfilt_splice_ncontact_cut=40,
         postfilt_splice_ncontact_no_helix_cut=2,
         postfilt_splice_nhelix_contacted_cut=3,
@@ -346,8 +346,13 @@ def filter_and_output_results(
 ):
     sf = ros.core.scoring.ScoreFunctionFactory.create_score_function('score0')
     sfsym = ros.core.scoring.symmetry.symmetrize_scorefunction(sf)
+
     mbb = ''
     if merge_bblock is not None: mbb = f'_mbb{merge_bblock:04d}'
+
+    head = f'{output_prefix}{mbb}'
+    if mbb and output_prefix[-1] != '/': head += '_'
+
     info_file = io.StringIO()
     nresults = 0
     for iresult in range(min(max_output, len(result.idx))):
@@ -416,10 +421,8 @@ def filter_and_output_results(
                 print(e)
                 continue
 
-            head = f'{output_prefix}{mbb}_'
             fname = '%s_%04i_%s_%s_%s_%s_%s' % (
-                head, iresult, jstr.replace('_0001', '')[:200], grade, mc,
-                mcnh, mhc
+                head, iresult, jstr[:200], grade, mc, mcnh, mhc
             )
 
             rms = criteria.iface_rms(pose, prov, **kw)
@@ -476,7 +479,13 @@ def filter_and_output_results(
             )
             info_file.flush()
 
-            mod, new, lost, junct = get_affected_positions(sympose, prov)
+            mod, new, lost, junct = get_affected_positions(cenpose, prov)
+            # mod, new, lost, junct = get_affected_positions(sympose, prov)
+            # mod = util.map_resis_to_asu(len(cenpose), mod)
+            # new = util.map_resis_to_asu(len(cenpose), new)
+            # lost = util.map_resis_to_asu(len(cenpose), lost)
+            # junct = util.map_resis_to_asu(len(cenpose), junct)
+
             if output_symmetric: sympose.dump_pdb(fname + '_sym.pdb')
             if output_centroid: pose = cenpose
             pose.dump_pdb(fname + '_asym.pdb')
@@ -502,7 +511,6 @@ def filter_and_output_results(
         else:
             # if output_symmetric:
             # raise NotImplementedError('no symmetry w/o poses')
-            head = f'{output_prefix}{mbb}_'
             fname = '%s_%04i' % (head, iresult)
             graph_dump_pdb(
                 fname + '.pdb',

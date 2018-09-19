@@ -13,7 +13,7 @@ class Cyclic(WormCriteria):
             symmetry=1,
             from_seg=0,
             *,
-            tol=1.0,
+            tolerance=1.0,
             origin_seg=None,
             lever=50.0,
             to_seg=-1,
@@ -27,12 +27,12 @@ class Cyclic(WormCriteria):
             raise ValueError('to_seg should not be same as origin_seg')
         if isinstance(symmetry, int): symmetry = 'C' + str(symmetry)
         self.symmetry = symmetry
-        self.tol = tol
+        self.tolerance = tolerance
         self.from_seg = from_seg
         self.origin_seg = origin_seg
         self.lever = lever
         self.to_seg = to_seg
-        self.rot_tol = tol / lever
+        self.rot_tol = tolerance / lever
         # self.relweight = relweight if abs(relweight) > 0.001 else None
         if self.symmetry[0] in 'cC':
             self.nfold = int(self.symmetry[1:])
@@ -41,7 +41,7 @@ class Cyclic(WormCriteria):
             self.symangle = np.pi * 2.0 / self.nfold
         else:
             raise ValueError('can only do Cx symmetry for now')
-        if self.tol <= 0: raise ValueError('tol should be > 0')
+        if self.tolerance <= 0: raise ValueError('tolerance should be > 0')
         self.last_body_same_as = self.from_seg
         self.is_cyclic = True
         self.symname = None
@@ -95,7 +95,9 @@ class Cyclic(WormCriteria):
                 print('dot trans', hm.hdot(trans, axis)[0])
                 print('angle', angle[0] * 180 / np.pi)
 
-        return np.sqrt(carterrsq / self.tol**2 + roterrsq / self.rot_tol**2)
+        return np.sqrt(
+            carterrsq / self.tolerance**2 + roterrsq / self.rot_tol**2
+        )
 
     def alignment(self, segpos, **kw):
         if self.origin_seg is not None:
@@ -147,7 +149,7 @@ class Cyclic(WormCriteria):
             self.nfold,
             min_radius=self.min_radius,
             lever=self.lever,
-            tol=self.tol * 2.0
+            tolerance=self.tolerance * 2.0
         )
         critA.bbspec = bbspec
         bbsA = bbs[self.from_seg:] if bbs else None

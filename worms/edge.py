@@ -322,7 +322,12 @@ def _jit_splice_metrics(chains0, chains1,
             xaln = stubs0[aln0] @ stub1_inv
 
             sum_d2, n1b = 0.0, 0
+            # print(
+            # 'rms', aln0 - splice_rms_range, '-', aln0 + splice_rms_range,
+            # 'vs.', aln1 - splice_rms_range, '-', aln1 + splice_rms_range
+            # )
             for i in range(-3 * splice_rms_range, 3 * splice_rms_range + 3):
+                # if i % 3 == 0: print('rms', i, aln0 + i / 3, aln1 + i / 3)
                 a = ncac0[3 * aln0 + i]
                 b = xaln @ ncac1[3 * aln1 + i]
                 sum_d2 += np.sum((a - b)**2)

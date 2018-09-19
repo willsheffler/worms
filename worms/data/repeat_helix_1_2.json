@@ -1,0 +1,22 @@
+[
+{"file": "__DATADIR__/repeat_helix_1.pdb",
+    "name": "repeat_helix_1" ,
+    "class": ["Het"],
+    "type": "?" ,
+    "base": "?" ,
+    "components": ["?"],
+    "validated": false,
+    "protocol": "?",
+    "connections": [{"direction": "C", "chain": 1, "residues": [9]}]
+},
+{"file": "__DATADIR__/repeat_helix_2.pdb",
+    "name": "repeat_helix_2" ,
+    "class": ["Het"],
+    "type": "?" ,
+    "base": "?" ,
+    "components": ["?"],
+    "validated": false,
+    "protocol": "?",
+    "connections": [{"direction": "N", "chain": 1, "residues": [8]}]
+}
+]

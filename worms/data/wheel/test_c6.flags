@@ -11,6 +11,8 @@
 --output_prefix test_c6
 --cachedir .worms_pytest_cache
 --merge_bblock 0
+--splice_rms_range 5
+--splice_max_rms 0.6
 --splice_clash_contact_range 60
 --splice_ncontact_cut 30
 --no_duplicate_bases 0
