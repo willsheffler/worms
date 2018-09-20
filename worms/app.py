@@ -96,9 +96,6 @@ def parse_args(argv):
         crit = eval(''.join(args.geometry))
         bb = args.bbconn[1::2]
         nc = args.bbconn[0::2]
-        if args.max_score0 > 9e8:
-            args.max_score0 = 4.0 * len(nc)
-            print('set max_score0 to', args.max_score0)
     else:
         with open(args.config_file) as inp:
             lines = inp.readlines()
@@ -111,6 +108,10 @@ def parse_args(argv):
             bb = [x[0] for x in bbnc]
             nc = [x[1] for x in bbnc]
             crit = eval(lines[1])
+
+    if args.max_score0 > 9e8:
+        args.max_score0 = 4.0 * len(nc)
+        print('set max_score0 to', args.max_score0)
 
     assert len(nc) == len(bb)
     assert crit.from_seg < len(bb)
