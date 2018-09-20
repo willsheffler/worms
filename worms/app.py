@@ -354,6 +354,13 @@ def filter_and_output_results(
     head = f'{output_prefix}{mbb}'
     if mbb and output_prefix[-1] != '/': head += '_'
 
+    if not merge_bblock:
+        # do this once per run, at merge_bblock == 0 (or None)
+        with open(head + '__HEADER.info', 'w') as info_file:
+            info_file.write(
+                'close_err close_rms score0 score0sym filter nc nc_wo_jct n_nb  Name chain_info [exit_pdb exit_resN entrance_resN entrance_pdb]   jct_res \n'
+            )
+
     info_file = io.StringIO()
     nresults = 0
     for iresult in range(min(max_output, len(result.idx))):
@@ -398,15 +405,6 @@ def filter_and_output_results(
                 provenance=True,
             )
 
-            if iresult == 0:
-                chain_header = 'Nchains ' + ' '
-                for chain in range(pose.num_chains()):
-                    chain_header = chain_header + ' L%s ' % (chain + 1)
-                info_file.write(
-                    'close_err close_rms score0 filter nc nc_wo_jct n_nb  Name                                                                  %s   [exit_pdb       exit_resN entrance_resN entrance_pdb        ]   jct_res \n'
-                    % chain_header
-                )
-
             # with open('wip_db_filters.pickle', 'wb') as out:
             # _pickle.dump((ssdag, result, pose, prov), out)
 
@@ -422,9 +420,7 @@ def filter_and_output_results(
                 print(e)
                 continue
 
-            fname = '%s_%04i_%s_%s_%s_%s_%s' % (
-                head, iresult, jstr[:200], grade, mc, mcnh, mhc
-            )
+            fname = '%s_%04i_%s_%s' % (head, iresult, jstr[:200], grade)
 
             rms = criteria.iface_rms(pose, prov, **kw)
             # if rms > rms_err_cut: continue
@@ -473,9 +469,10 @@ def filter_and_output_results(
             chain_info += '-'.join(str(len(c)) for c in chains)
 
             info_file.write(
-                '%5.2f %5.2f %7.2f %-8s %4d %4d %4d %s %-80s %s  %s %s \n' % (
-                    result.err[iresult], rms, score0, grade, mc, mcnh, mhc,
-                    bases_str, fname, chain_info, jstr1, sp
+                '%5.2f %5.2f %7.2f %7.2f %-8s %4d %4d %4d %s %-80s %s  %s %s \n'
+                % (
+                    result.err[iresult], rms, score0, score0sym, grade, mc,
+                    mcnh, mhc, bases_str, fname, chain_info, jstr1, sp
                 )
             )
             info_file.flush()

@@ -17,8 +17,8 @@ def _valid_splice_pairs(bbw0, bbw1, **kw):
     blk1 = bbw1._bblock
     rms, nclash, ncontact = _jit_splice_metrics(
         blk0.chains, blk1.chains, blk0.ncac, blk1.ncac, blk0.stubs, blk1.stubs,
-        blk0.connections, blk1.connections, kw['splice_clash_d2'],
-        kw['splice_contact_d2'], kw['splice_rms_range'],
+        blk0.connections, blk1.connections, blk0.ss, blk1.ss,
+        kw['splice_clash_d2'], kw['splice_contact_d2'], kw['splice_rms_range'],
         kw['splice_clash_contact_range'], kw['splice_max_rms'], True
     )
     ok = ((nclash == 0) * (rms <= kw['splice_max_rms']) *

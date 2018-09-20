@@ -51,9 +51,9 @@ def splice_metrics_pair(
 ):
     return _jit_splice_metrics(
         blk0.chains, blk1.chains, blk0.ncac, blk1.ncac, blk0.stubs, blk1.stubs,
-        blk0.connections, blk1.connections, splice_clash_d2, splice_contact_d2,
-        splice_rms_range, splice_clash_contact_range, splice_max_rms,
-        skip_on_fail
+        blk0.connections, blk1.connections, blk0.ss, blk1.ss, splice_clash_d2,
+        splice_contact_d2, splice_rms_range, splice_clash_contact_range,
+        splice_max_rms, skip_on_fail
     )
 
 
@@ -145,8 +145,8 @@ def get_allowed_splices(
                     future = pool.submit(
                         _jit_splice_metrics, blk0.chains, blk1.chains,
                         blk0.ncac, blk1.ncac, blk0.stubs, blk1.stubs,
-                        blk0.connections, blk1.connections, splice_clash_d2,
-                        splice_contact_d2, splice_rms_range,
+                        blk0.connections, blk1.connections, blk0.ss, blk1.ss,
+                        splice_clash_d2, splice_contact_d2, splice_rms_range,
                         splice_clash_contact_range, splice_max_rms,
                         skip_on_fail
                     )
@@ -292,6 +292,7 @@ def _jit_splice_metrics(chains0, chains1,
                         ncac0_3d, ncac1_3d,
                         stubs0, stubs1,
                         conn0, conn1,
+                        ss0, ss1,
                         splice_clash_d2,
                         splice_contact_d2,
                         splice_rms_range,
@@ -322,12 +323,7 @@ def _jit_splice_metrics(chains0, chains1,
             xaln = stubs0[aln0] @ stub1_inv
 
             sum_d2, n1b = 0.0, 0
-            # print(
-            # 'rms', aln0 - splice_rms_range, '-', aln0 + splice_rms_range,
-            # 'vs.', aln1 - splice_rms_range, '-', aln1 + splice_rms_range
-            # )
             for i in range(-3 * splice_rms_range, 3 * splice_rms_range + 3):
-                # if i % 3 == 0: print('rms', i, aln0 + i / 3, aln1 + i / 3)
                 a = ncac0[3 * aln0 + i]
                 b = xaln @ ncac1[3 * aln1 + i]
                 sum_d2 += np.sum((a - b)**2)
