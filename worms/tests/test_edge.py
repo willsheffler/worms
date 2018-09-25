@@ -28,7 +28,7 @@ def test_get_allowed_splices_fullsize_prots(bbdb_fullsize_prots):
         341, 342, 343, 344, 345, 346, 347, 348
     ]
 
-    rms, nclash, ncontact = splice_metrics_pair(
+    rms, nclash, ncontact, ncnh, nhc = splice_metrics_pair(
         bbc,
         bbn,
         skip_on_fail=False,

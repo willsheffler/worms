@@ -17,27 +17,18 @@ def count_contacts_accross_junction(pose, resN):
     in_helix, before_helix, after_helix, helix_id = identify_helical_segments(
         ss, resN
     )
-    # print('----- before_contact_res -----')
-    before_contact_res = get_contacts(
-        in_helix, before_helix[-1] + before_helix[-2],
-        after_helix[1] + after_helix[2], pose
-    )
-    # print('----- after_contact_res -----')
-    after_contact_res = get_contacts(
-        in_helix, after_helix[1] + after_helix[2],
-        before_helix[-1] + before_helix[-2], pose
-    )
-    # print('----- contact_res_no_helix -----')
-    contact_res_no_helix = get_contacts(
-        [],
-        before_helix[-1] + before_helix[-2],
-        after_helix[1] + after_helix[2],
-        pose,
-    )
+    before = before_helix[-1] + before_helix[-2]
+    after = after_helix[1] + after_helix[2]
+
+    before_contact_res = get_contacts(in_helix, before, after, pose)
+    after_contact_res = get_contacts(in_helix, after, before, pose)
+
+    before_contact_res_no_helix = get_contacts([], before, after, pose)
+    after_contact_res_no_helix = get_contacts([], after, before, pose)
 
     return (
         len(before_contact_res) + len(after_contact_res),
-        len(contact_res_no_helix),
+        len(before_contact_res_no_helix) + len(after_contact_res_no_helix),
         get_number_helices_contacted(in_helix, helix_id, pose),
         get_number_helices_contacted(before_helix[-1], helix_id, pose),
         get_number_helices_contacted(after_helix[1], helix_id, pose),
@@ -51,10 +42,7 @@ def get_number_helices_contacted(helix, helix_id, pose):
     res_indices = res_selector.apply(pose)
     nb_selector = NeighborhoodResidueSelector(res_indices, 8, False)
     nb_indices = nb_selector.apply(pose)
-    contact_res = [
-        index for index in range(1,
-                                 len(nb_indices) + 1) if nb_indices[index]
-    ]
+    contact_res = [i for i in range(1, len(nb_indices) + 1) if nb_indices[i]]
     helices_contacted = set()
     for res in contact_res:
         if res in helix_id.keys(): helices_contacted.add(helix_id[res])

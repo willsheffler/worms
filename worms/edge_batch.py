@@ -15,7 +15,7 @@ from worms.util import InProcessExecutor, hash_str_to_int
 def _valid_splice_pairs(bbw0, bbw1, **kw):
     blk0 = bbw0._bblock
     blk1 = bbw1._bblock
-    rms, nclash, ncontact = _jit_splice_metrics(
+    rms, nclash, ncontact, ncnh, nhc = _jit_splice_metrics(
         blk0.chains, blk1.chains, blk0.ncac, blk1.ncac, blk0.stubs, blk1.stubs,
         blk0.connections, blk1.connections, blk0.ss, blk1.ss, blk0.cb, blk1.cb,
         kw['splice_clash_d2'], kw['splice_contact_d2'], kw['splice_rms_range'],
@@ -23,7 +23,10 @@ def _valid_splice_pairs(bbw0, bbw1, **kw):
         kw['splice_max_rms'], True
     )
     ok = ((nclash == 0) * (rms <= kw['splice_max_rms']) *
-          (ncontact >= kw['splice_ncontact_cut']))
+          (ncontact >= kw['splice_ncontact_cut']) *
+          (ncnh >= kw['splice_ncontact_no_helix_cut']) *
+          (nhc >= kw['splice_nhelix_contacted_cut']))
+
     return _splice_respairs(ok, blk0, blk1)
 
 
@@ -79,11 +82,12 @@ def _remove_already_cached(spdb, bbpairs, params):
 def precompute_splicedb(db, bbpairs, **kw):
     bbdb, spdb = db
 
-    # note: this is duplicated in edge.py
+    # note: this is duplicated in edge.py and they need to be the same
     params = (
         kw['splice_max_rms'], kw['splice_ncontact_cut'], kw['splice_clash_d2'],
         kw['splice_contact_d2'], kw['splice_rms_range'],
-        kw['splice_clash_contact_range'], kw['splice_clash_contact_by_helix']
+        kw['splice_clash_contact_range'], kw['splice_clash_contact_by_helix'],
+        kw['splice_ncontact_no_helix_cut'], kw['splice_nhelix_contacted_cut']
     )
     bbpairs = _remove_already_cached(spdb, bbpairs, params)
     if not bbpairs: return

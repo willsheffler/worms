@@ -42,7 +42,7 @@ def filter_audit():
     )
 
     for bb1, bb2 in it.product(bbsN, bbsC):
-        rms, nclash, ncontact = splice_metrics_pair(
+        rms, nclash, ncontact, ncnh, nhc = splice_metrics_pair(
             bb1,
             bb2,
             kw['splice_max_rms'],
@@ -88,17 +88,21 @@ def filter_audit():
                 pose = splice_poses(pose1, pose2, ir, jr)
 
                 # print('debug:', ir, jr)
-                if nclash[i, j]:
-                    pose.dump_pdb('pose_clash_%i_%i.pdb' % (ir, jr))
-                else:
-                    pose.dump_pdb('pose_noclh_%i_%i.pdb' % (ir, jr))
+                # if nclash[i, j]:
+                #     pose.dump_pdb('pose_clash_%i_%i.pdb' % (ir, jr))
+                # else:
+                #     pose.dump_pdb('pose_noclh_%i_%i.pdb' % (ir, jr))
 
                 pose.update_residue_neighbors()
-                nc, ncnh, nhc, nhcb, nhca = count_contacts_accross_junction(
+                nc, post_ncnh, post_nhc, post_nhcb, post_nhca = count_contacts_accross_junction(
                     pose, ir
                 )
                 post_ncontacts[i, j] = nc
-                print(ir, jr, int(nclash[i, j]), ncontact[i, j], nc)
+                print(
+                    ir, jr, ' ', int(nclash[i, j]), ' ', ncontact[i, j], nc,
+                    ' ', ncnh[i, j], post_ncnh, ' ', nhc[i, j], post_nhc,
+                    post_nhcb, post_nhca
+                )
                 # sys.exit()
 
         # for i, ir in enumerate(splice_res_c):

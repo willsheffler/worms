@@ -357,19 +357,18 @@ def trim_pose(pose, resid, direction, pad=0):
     return p, lb, ub
 
 
-def fix_bb_h(pose, ires):
-    r = pose.residue(ires)
-    if r.name3() == 'PRO': return
-    ih = r.atom_index('H')
-    crd = r.build_atom_ideal(ih, pose.conformation())
-    pose.set_xyz(ros.core.id.AtomID(ih, ires), crd)
+# def fix_bb_h(pose, ires):
+#     r = pose.residue(ires)
+#     if r.name3() == 'PRO': return
+#     ih = r.atom_index('H')
+#     crd = r.build_atom_ideal(ih, pose.conformation())
+#     pose.set_xyz(ros.core.id.AtomID(ih, ires), crd)
 
-
-def fix_bb_o(pose, ires):
-    r = pose.residue(ires)
-    io = r.atom_index('O')
-    crd = r.build_atom_ideal(io, pose.conformation())
-    pose.set_xyz(ros.core.id.AtomID(io, ires), crd)
+# def fix_bb_o(pose, ires):
+#     r = pose.residue(ires)
+#     io = r.atom_index('O')
+#     crd = r.build_atom_ideal(io, pose.conformation())
+#     pose.set_xyz(ros.core.id.AtomID(io, ires), crd)
 
 
 def symfile_path(name):

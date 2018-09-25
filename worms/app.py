@@ -62,8 +62,10 @@ def parse_args(argv):
         splice_clash_d2=3.5**2,  # ca only
         splice_contact_d2=8.0**2,
         splice_clash_contact_range=40,
-        splice_clash_contact_by_helix=False,
-        splice_ncontact_cut=30,
+        splice_clash_contact_by_helix=1,
+        splice_ncontact_cut=38,
+        splice_ncontact_no_helix_cut=2,
+        splice_nhelix_contacted_cut=3,
         #
         tolerance=1.0,
         lever=25.0,
@@ -111,7 +113,7 @@ def parse_args(argv):
             crit = eval(lines[1])
 
     if args.max_score0 > 9e8:
-        args.max_score0 = 4.0 * len(nc)
+        args.max_score0 = 2.0 * len(nc)
         print('set max_score0 to', args.max_score0)
 
     assert len(nc) == len(bb)

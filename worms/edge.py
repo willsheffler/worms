@@ -72,6 +72,8 @@ def get_allowed_splices(
         splice_rms_range=6,
         splice_clash_contact_range=60,
         splice_clash_contact_by_helix=True,
+        splice_ncontact_no_helix_cut=0,
+        splice_nhelix_contacted_cut=0,
         skip_on_fail=True,
         parallel=False,
         verbosity=1,
@@ -83,10 +85,12 @@ def get_allowed_splices(
 ):
     assert (u.dirn[1] + v.dirn[0]) == 1, 'get_allowed_splices dirn mismatch'
 
-    # note: this is duplicated in edge_batch.py
+    # note: this is duplicated in edge_batch.py and they need to be the same
     params = (
         splice_max_rms, splice_ncontact_cut, splice_clash_d2,
-        splice_contact_d2, splice_rms_range, splice_clash_contact_range
+        splice_contact_d2, splice_rms_range, splice_clash_contact_range,
+        splice_clash_contact_by_helix, splice_ncontact_no_helix_cut,
+        splice_nhelix_contacted_cut
     )
 
     outidx = _get_outidx(u.inout[:, 1])
@@ -174,10 +178,12 @@ def get_allowed_splices(
         for future in future_iter:
             iblk0, iblk1, ofst0, ofst1, ires0, ires1 = future.stash
             result = future.result()
-            if len(result) is 3 and isinstance(result[0], np.ndarray):
-                rms, nclash, ncontact = result
+            if len(result) is 5 and isinstance(result[0], np.ndarray):
+                rms, nclash, ncontact, ncnh, nhc = result
                 ok = ((nclash == 0) * (rms <= splice_max_rms) *
-                      (ncontact >= splice_ncontact_cut))
+                      (ncontact >= splice_ncontact_cut) *
+                      (ncnh >= splice_ncontact_no_helix_cut) *
+                      (nhc >= splice_nhelix_contacted_cut))
                 result = _splice_respairs(ok, ublks[iblk0], vblks[iblk1])
                 if np.sum(ok) == 0:
                     # print(nclash)
@@ -315,7 +321,7 @@ def _helix_range(ss):
     return hrange, helixof
 
 
-# @jit
+@jit
 def _jit_splice_metrics(chains0, chains1,
                         ncac0_3d, ncac1_3d,
                         stubs0, stubs1,
@@ -330,12 +336,16 @@ def _jit_splice_metrics(chains0, chains1,
                         splice_max_rms,
                         skip_on_fail=True):  # yapf: disable
 
+
     aln0s = _ires_from_conn(conn0, 1)
     aln1s = _ires_from_conn(conn1, 0)
 
-    out_rms = np.zeros((len(aln0s), len(aln1s)), dtype=np.float32)
-    out_nclash = -np.ones((len(aln0s), len(aln1s)), dtype=np.float32)
-    out_ncontact = -np.ones((len(aln0s), len(aln1s)), dtype=np.float32)
+    outshape = len(aln0s), len(aln1s)
+    out_rms = np.zeros(outshape, dtype=np.float32)
+    out_nclash = -np.ones(outshape, dtype=np.float32)
+    out_ncontact = -np.ones(outshape, dtype=np.int32)
+    out_ncnh = -np.ones(outshape, dtype=np.int32)
+    out_nhc = -np.ones(outshape, dtype=np.int32)
 
     ncac0 = ncac0_3d.reshape(-1, 4)
     ncac1 = ncac1_3d.reshape(-1, 4)
@@ -368,64 +378,67 @@ def _jit_splice_metrics(chains0, chains1,
                 continue
 
             if splice_clash_contact_by_helix:
-                nclash, ncontact = _clash_contact_by_helix(
+                nclash, ncontact, ncnh, nhc = _clash_contact_by_helix(
                     aln0, aln1, xaln, cb0, cb1, hrange0, hrange1, helixof0,
                     helixof1, splice_clash_d2, splice_contact_d2
                 )
             else:
-                nclash, ncontact = _clash_contact_simple(
+                nclash, ncontact, ncnh, nhc = _clash_contact_simple(
                     aln0, aln1, xaln, ncac0, ncac1, splice_clash_contact_range,
                     splice_clash_d2, splice_contact_d2
                 )
             out_nclash[ialn0, ialn1] = nclash
             out_ncontact[ialn0, ialn1] = ncontact
+            out_ncnh[ialn0, ialn1] = ncnh
+            out_nhc[ialn0, ialn1] = nhc
 
-    return out_rms, out_nclash, out_ncontact
+    return out_rms, out_nclash, out_ncontact, out_ncnh, out_nhc
 
 
-# @jit
-def _mark_contacts(
+@jit
+def _mark_cont_aln(
         ct0, ct1, bnd0, bnd1, cb0, cb1, xaln, mark0, mark1, cld2, ctd2
 ):
-    clash = False
+    clash, contact = False, False
     for jr in range(*bnd1):
         cbjr = xaln @ cb1[jr]
         for ir in range(*bnd0):
             cbir = cb0[ir]
             d2 = np.sum((cbir - cbjr)**2)
             if d2 <= cld2:
-                clash = True
+                return True, False
             if d2 <= ctd2:
+                contact = True
                 if mark0: ct0.add(ir)
                 if mark1: ct1.add(jr)
-    return clash
+    return clash, contact
 
 
-# @jit
-def _mark_contacts_noaln(
-        ct0, ct1, bnd0, bnd1, cb0, cb1, mark0, mark1, cld2, ctd2
-):
-    clash = False
+@jit
+def _mark_cont(ct0, ct1, bnd0, bnd1, cb0, cb1, mark0, mark1, cld2, ctd2):
+    clash, contact = False, False
     for jr in range(*bnd1):
         cbjr = cb1[jr]
         for ir in range(*bnd0):
             cbir = cb0[ir]
             d2 = np.sum((cbir - cbjr)**2)
             if d2 <= cld2:
-                clash = True
+                return True, False
             if d2 <= ctd2:
+                contact = True
                 if mark0: ct0.add(ir)
                 if mark1: ct1.add(jr)
-    return clash
+    return clash, contact
 
 
-# @jit
+@jit
 def _clash_contact_by_helix(
         aln0, aln1, x, cb0, cb1, hrange0, hrange1, helixof0, helixof1, cld2,
         ctd2
 ):
-    assert helixof0[aln0] - 2 >= 0
-    assert helixof1[aln1] + 2 < hrange1.shape[0]
+    # at least two helices befor and after don't exist
+    if helixof0[aln0] < 2 or helixof1[aln1] + 2 >= hrange1.shape[0]:
+        return 0, 0, 0, 0
 
     ct0, ct1 = set([-1]), set([-1])
 
@@ -445,22 +458,41 @@ def _clash_contact_by_helix(
     he = (helix_bounds_e[0], helix_bounds_e[1])
     hf = (helix_bounds_f[0], helix_bounds_f[1])
 
-    c = 0
-    c += _mark_contacts(ct0, ct1, ha, hd, cb0, cb1, x, 1, 0, cld2, ctd2)  #4
-    c += _mark_contacts(ct0, ct1, ha, he, cb0, cb1, x, 1, 1, cld2, ctd2)  #22
-    c += _mark_contacts(ct0, ct1, ha, hf, cb0, cb1, x, 1, 1, cld2, ctd2)  #12
-    c += _mark_contacts(ct0, ct1, hb, hd, cb0, cb1, x, 1, 0, cld2, ctd2)  #0
-    c += _mark_contacts(ct0, ct1, hb, he, cb0, cb1, x, 1, 1, cld2, ctd2)  #24
-    c += _mark_contacts(ct0, ct1, hb, hf, cb0, cb1, x, 1, 1, cld2, ctd2)  #23
-    c += _mark_contacts(ct0, ct1, hc, he, cb0, cb1, x, 0, 1, cld2, ctd2)  #7
-    c += _mark_contacts(ct0, ct1, hc, hf, cb0, cb1, x, 0, 1, cld2, ctd2)  #0
+    c0, t0 = _mark_cont_aln(ct0, ct1, ha, he, cb0, cb1, x, 1, 1, cld2, ctd2)
+    if c0: return 1, 0, 0, 0
+    c1, t1 = _mark_cont_aln(ct0, ct1, ha, hf, cb0, cb1, x, 1, 1, cld2, ctd2)
+    if c1: return 1, 0, 0, 0
+    c2, t2 = _mark_cont_aln(ct0, ct1, hb, he, cb0, cb1, x, 1, 1, cld2, ctd2)
+    if c2: return 1, 0, 0, 0
+    c3, t3 = _mark_cont_aln(ct0, ct1, hb, hf, cb0, cb1, x, 1, 1, cld2, ctd2)
+    if c3: return 1, 0, 0, 0
 
-    c += _mark_contacts_noaln(ct0, ct0, ha, hc, cb0, cb0, 1, 0, cld2, ctd2)  #0
-    c += _mark_contacts_noaln(ct0, ct0, hb, hc, cb0, cb0, 1, 0, cld2, ctd2)  #0
-    c += _mark_contacts_noaln(ct1, ct1, hd, he, cb1, cb1, 0, 1, cld2, ctd2)  #0
-    c += _mark_contacts_noaln(ct1, ct1, hd, hf, cb1, cb1, 0, 1, cld2, ctd2)  #0
+    ncnh = len(ct0) + len(ct1) - 2  # -2 to remove the two -1's
 
-    return c, len(ct0) + len(ct1) - 2  # remove the two -1's
+    c4, t4 = _mark_cont_aln(ct0, ct1, hb, hd, cb0, cb1, x, 1, 0, cld2, ctd2)
+    if c4: return 1, 0, 0, 0
+    c5, t5 = _mark_cont_aln(ct0, ct1, ha, hd, cb0, cb1, x, 1, 0, cld2, ctd2)
+    if c5: return 1, 0, 0, 0
+    c6, t6 = _mark_cont_aln(ct0, ct1, hc, he, cb0, cb1, x, 0, 1, cld2, ctd2)
+    if c6: return 1, 0, 0, 0
+    c7, t7 = _mark_cont_aln(ct0, ct1, hc, hf, cb0, cb1, x, 0, 1, cld2, ctd2)
+    if c7: return 1, 0, 0, 0
+
+    c8, t8 = _mark_cont(ct0, ct0, ha, hc, cb0, cb0, 1, 0, cld2, ctd2)
+    if c8: return 1, 0, 0, 0
+    c9, t9 = _mark_cont(ct0, ct0, hb, hc, cb0, cb0, 1, 0, cld2, ctd2)
+    if c9: return 1, 0, 0, 0
+    ca, ta = _mark_cont(ct1, ct1, hd, he, cb1, cb1, 0, 1, cld2, ctd2)
+    if ca: return 1, 0, 0, 0
+    cb, tb = _mark_cont(ct1, ct1, hd, hf, cb1, cb1, 0, 1, cld2, ctd2)
+    if cb: return 1, 0, 0, 0
+
+    clash = c0 + c1 + c2 + c3 + c4 + c5 + c6 + c7 + c8 + c9 + ca + cb
+    nc = len(ct0) + len(ct1) - 2
+
+    nhc = 1 + (t4 or t9) + (t5 or t8) + (t6 or ta) + (t7 or tb)
+
+    return clash, nc, ncnh, nhc
 
 
 @jit
@@ -482,7 +514,7 @@ def _clash_contact_simple(
                 ncontact += 1
     assert 0 <= np.isnan(nclash) < 99999, 'bad nclash'
     assert 0 <= np.isnan(ncontact) < 99999, 'bad ncontact'
-    return nclash, ncontact
+    return nclash, ncontact, 999, 999
 
 
 @jit
