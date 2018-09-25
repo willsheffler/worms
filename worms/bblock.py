@@ -15,6 +15,7 @@ def BBlock(entry, pdbfile, filehash, pose, ss):
     chains = util.get_chain_bounds(pose)
     ss = np.frombuffer(ss.encode(), dtype='i1')
     ncac = util.get_bb_coords(pose)
+    cb = util.get_cb_coords(pose)
     stubs = _ncac_to_stubs(ncac)
 
     assert len(pose) == len(ncac)
@@ -32,6 +33,7 @@ def BBlock(entry, pdbfile, filehash, pose, ss):
         ncac = tmp
     else:
         assert 0, 'bad ncac'
+    assert cb.shape == (len(pose), 4)
 
     if entry['base'] != '':
         basehash = hash_str_to_int(entry['base'])
@@ -52,6 +54,7 @@ def BBlock(entry, pdbfile, filehash, pose, ss):
         base=npfb(entry['base'].encode(), dtype='i1'),
         basehash=basehash,
         ncac=np.ascontiguousarray(ncac),
+        cb=np.ascontiguousarray(cb),
         chains=np.array(chains, dtype='i4'),
         ss=ss,
         stubs=np.ascontiguousarray(stubs.astype('f8')),
@@ -181,6 +184,7 @@ def _ncac_to_stubs(ncac):
     ('base'       , nt.int8[:]),
     ('basehash'   , nt.int64),
     ('ncac'       , nt.float64[:, :, :]),
+    ('cb'         , nt.float64[:, :]),
     ('chains'     , nt.int32[:,:]),
     ('ss'         , nt.int8[:]),
     ('stubs'      , nt.float64[:, :, :]),
@@ -188,7 +192,8 @@ def _ncac_to_stubs(ncac):
 class _BBlock:
     def __init__(
             self, connections, file, filehash, components, protocol, name,
-            classes, validated, _type, base, basehash, ncac, chains, ss, stubs
+            classes, validated, _type, base, basehash, ncac, cb, chains, ss,
+            stubs
     ):
         self.connections = connections
         self.file = file
@@ -202,10 +207,12 @@ class _BBlock:
         self.base = base
         self.basehash = basehash
         self.ncac = ncac
+        self.cb = cb
         self.chains = chains
         self.ss = ss
         self.stubs = stubs
         assert np.isnan(np.sum(self.ncac)) == False
+        assert np.isnan(np.sum(self.cb)) == False
         assert np.isnan(np.sum(self.stubs)) == False
         assert np.isnan(np.sum(self.ss)) == False
         assert np.isnan(np.sum(self.chains)) == False
@@ -230,7 +237,7 @@ class _BBlock:
         return (
             self.connections, self.file, self.filehash, self.components,
             self.protocol, self.name, self.classes, self.validated, self._type,
-            self.base, self.basehash, self.ncac, self.chains, self.ss,
+            self.base, self.basehash, self.ncac, self.cb, self.chains, self.ss,
             self.stubs
         )
 

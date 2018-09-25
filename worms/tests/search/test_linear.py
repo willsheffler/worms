@@ -38,7 +38,8 @@ def test_linear_search_two(bbdb_fullsize_prots):
         splice_clash_d2=4.0**2,  # ca only
         splice_contact_d2=8.0**2,
         splice_rms_range=6,
-        splice_clash_contact_range=60
+        splice_clash_contact_range=60,
+        splice_clash_contact_by_helix=False
     )
     edges = (Edge(u, bbs, v, bbs, **kw), )
 
@@ -76,7 +77,8 @@ def test_linear_search_three(bbdb_fullsize_prots):
         splice_clash_d2=4.0**2,  # ca only
         splice_contact_d2=8.0**2,
         splice_rms_range=6,
-        splice_clash_contact_range=60
+        splice_clash_contact_range=60,
+        splice_clash_contact_by_helix=False
     )
     e = Edge(u, bbs, v, bbs, **kw)
     f = Edge(v, bbs, w, bbs, **kw)

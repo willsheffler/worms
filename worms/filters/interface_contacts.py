@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+import numpy as np
+
 from pyrosetta import rosetta, init
 from pyrosetta.rosetta.core.pose import Pose
 from pyrosetta.rosetta.core.scoring.dssp import *
@@ -15,14 +17,17 @@ def count_contacts_accross_junction(pose, resN):
     in_helix, before_helix, after_helix, helix_id = identify_helical_segments(
         ss, resN
     )
+    # print('----- before_contact_res -----')
     before_contact_res = get_contacts(
         in_helix, before_helix[-1] + before_helix[-2],
         after_helix[1] + after_helix[2], pose
     )
+    # print('----- after_contact_res -----')
     after_contact_res = get_contacts(
         in_helix, after_helix[1] + after_helix[2],
         before_helix[-1] + before_helix[-2], pose
     )
+    # print('----- contact_res_no_helix -----')
     contact_res_no_helix = get_contacts(
         [],
         before_helix[-1] + before_helix[-2],
@@ -64,13 +69,19 @@ def get_contacts(helix, set1, set2, pose):
         res_selector.append_index(index)
 
     res_indices = res_selector.apply(pose)
+    # print(
+    # 'res_indices',
+    # '+'.join(str(x) for x in (np.where(res_indices)[0] + 1))
+    # )
     nb_selector = NeighborhoodResidueSelector(res_indices, 8, False)
     nb_indices = nb_selector.apply(pose)
     contact_res = [
         index for index in range(1,
                                  len(nb_indices) + 1) if nb_indices[index]
     ]
+    # print('contact_res', '+'.join(str(x) for x in contact_res))
     nearby_contact_res = set(contact_res).intersection(set(set2))
+    # print('nearby_contact_res', '+'.join(str(x) for x in nearby_contact_res))
     return nearby_contact_res
 
 

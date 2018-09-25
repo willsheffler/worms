@@ -62,9 +62,10 @@ def parse_args(argv):
         splice_clash_d2=3.5**2,  # ca only
         splice_contact_d2=8.0**2,
         splice_clash_contact_range=40,
+        splice_clash_contact_by_helix=False,
         splice_ncontact_cut=30,
         #
-        tolernace=1.0,
+        tolerance=1.0,
         lever=25.0,
         min_radius=0.0,
         hash_cart_resl=1.0,

@@ -4,6 +4,9 @@
 		{
 			"name": "util_runtests.py",
 			"shell_cmd": "cd $folder; python util/runtests.py $file &> log/sublime_build.log"
+		},	{
+			"name": "filter_audit.py",
+			"shell_cmd": "cd $folder; PYTHONPATH=. python examples/filter_audit.py &> log/sublime_build.log"
 		},
 		{
 			"name": "worms_prefilter_test",

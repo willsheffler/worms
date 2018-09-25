@@ -37,6 +37,7 @@ def test_get_allowed_splices_fullsize_prots(bbdb_fullsize_prots):
         splice_clash_d2=3.0**2,
         splice_contact_d2=10.0**2,
         splice_clash_contact_range=9,
+        splice_clash_contact_by_helix=False,
     )
     print(rms.shape)
 
@@ -58,7 +59,7 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots):
     u = Vertex(bbs, '_C')
     v = Vertex(bbs, 'N_')
     e = Edge(u, bbs, v, bbs, splice_max_rms=0.7,
-        splice_rms_range=5, splice_ncontact_cut=7, splice_clash_contact_range=9
+        splice_rms_range=5, splice_ncontact_cut=7, splice_clash_contact_range=9, splice_clash_contact_by_helix=False
     ) # yapf: disable
     assert np.all(e.allowed_entries(0) == [1, 4, 26])
     assert np.all(e.allowed_entries(1) == [4, 26])
@@ -79,7 +80,7 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots):
     u = Vertex(bbs, 'NC')
     v = Vertex(bbs, 'NN')
     e = Edge(u, bbs, v, bbs, splice_max_rms=0.7,
-        splice_rms_range=5, splice_ncontact_cut=7, splice_clash_contact_range=9
+        splice_rms_range=5, splice_ncontact_cut=7, splice_clash_contact_range=9,splice_clash_contact_by_helix=False
     ) # yapf: disable
     assert np.all(e.allowed_entries(0) == [1, 4, 26])
     assert np.all(e.allowed_entries(1) == [4, 26])
@@ -100,7 +101,7 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots):
     u = Vertex(bbs, '_N')
     v = Vertex(bbs, 'CN')
     e = Edge(u, bbs, v, bbs, splice_max_rms=0.7,
-        splice_rms_range=5, splice_ncontact_cut=7, splice_clash_contact_range=9
+        splice_rms_range=5, splice_ncontact_cut=7, splice_clash_contact_range=9,splice_clash_contact_by_helix=False
     ) # yapf: disable
     assert np.all(e.allowed_entries(1) == [0, 18, 22])
     assert np.all(e.allowed_entries(4) == [0, 1, 2, 15, 17, 21])
@@ -116,7 +117,7 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots):
     u = Vertex(bbs, '_N')
     v = Vertex(bbs, 'C_')
     e = Edge(u, bbs, v, bbs, splice_max_rms=0.7,
-        splice_rms_range=5, splice_ncontact_cut=7, splice_clash_contact_range=9
+        splice_rms_range=5, splice_ncontact_cut=7, splice_clash_contact_range=9,splice_clash_contact_by_helix=False
     ) # yapf: disable
     assert np.all(e.allowed_entries(1) == [0, 18, 22])
     assert np.all(e.allowed_entries(4) == [0, 1, 2, 15, 17, 21])
@@ -132,7 +133,7 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots):
     u = Vertex(bbs, 'NN')
     v = Vertex(bbs, 'C_')
     e = Edge(u, bbs, v, bbs, splice_max_rms=0.7,
-        splice_rms_range=5, splice_ncontact_cut=7, splice_clash_contact_range=9
+        splice_rms_range=5, splice_ncontact_cut=7, splice_clash_contact_range=9,splice_clash_contact_by_helix=False
     ) # yapf: disable
     assert np.all(e.allowed_entries(5) == [0, 1, 2, 16, 17, 18, 19, 20, 23])
     assert np.all(e.allowed_entries(21) == [0, 18, 22])

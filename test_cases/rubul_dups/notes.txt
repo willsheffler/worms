@@ -1,0 +1,57 @@
+/home/sheffler/tmp/worms_mbb0090__0001_RM20-C6f_6H2LD-8_DHR21_ex101_en395_HFuse_ZCON-103_2_2c_2a_0223_ex113_en178_HFuse_Sh29_3_3c_3a_1980_ex634_en77_HFuse_ZCON-37_2_2c_2a_1391_ex437_en339_HFuse_Sh29_3_3c_3a_1980_ex437_en339_AAAB_43_8_2_sym.pdb
+
+bblocks:
+RM20-C6f_6H2LD-8_DHR21
+HFuse_ZCON-103_2_2c_2a_0223
+HFuse_Sh29_3_3c_3a_1980
+HFuse_ZCON-37_2_2c_2a_1391
+HFuse_Sh29_3_3c_3a_1980
+
+flags:
+
+--geometry Cyclic(6, from_seg=2, origin_seg=0)
+--bbconn
+    _N C6_N
+    CN Het:CNY
+    CC Het:CCN
+    NC Het:NC
+    N_ Het:CCN
+--dbfiles
+    /home/rubul/database/fusion/hb_dhr/master_database_generation2.txt
+    /home/rubul/database/fusion/hb_dhr/c6_database.txt
+    /home/yhsia/helixfuse/asym_sh_combine/processing/database/HFuse_het_3chain_2arm_database.Sh13_3.20180416.txt
+    /home/yhsia/helixfuse/asym_sh_combine/processing/database/HFuse_het_3chain_2arm_database.Sh29_3.20180416.txt
+    /home/yhsia/helixfuse/asym_sh_combine/processing/database/HFuse_het_3chain_2arm_database.Sh34_3.20180416.txt
+    /home/yhsia/helixfuse/asym_sh_combine/processing/database/HFuse_het_3chain_3arm_database.Sh13_3.20180416.txt
+    /home/yhsia/helixfuse/asym_sh_combine/processing/database/HFuse_het_3chain_3arm_database.Sh29_3.20180416.txt
+    /home/yhsia/helixfuse/asym_sh_combine/processing/database/HFuse_het_3chain_3arm_database.Sh34_3.20180416.txt
+    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-103_2.20180416.txt
+    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-112_2.20180416.txt
+    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-127_2.20180416.txt
+    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-13_2.20180416.txt
+    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-15_2.20180416.txt
+    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-34_2.20180416.txt
+    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-37_2.20180416.txt
+    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-39_2.20180416.txt
+    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-9_2.20180416.txt
+    /home/yhsia/helixfuse/sym_r2/processing/database/HFuse_Cx_database.20180416.txt
+    /home/yhsia/helixfuse/2018-07-09_sym/processing/database/HFuse_Cx_database.20180914.txt
+    /home/yhsia/helixfuse/cyc_george/processing/database/HFuse_Gcyc_database.20180817.txt
+    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-103_2.20180516.txt
+    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-112_2.20180516.txt
+    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-127_2.20180516.txt
+    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-131_2.20180516.txt
+    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-13_2.20180516.txt
+    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-15_2.20180516.txt
+    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-34_2.20180516.txt
+    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-37_2.20180516.txt
+    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-39_2.20180516.txt
+    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-9_2.20180516.txt
+    /home/yhsia/helixfuse/asym_sh_combine/processing/database/HFuse_het_3chain_2arm_database.Sh13_3.20180516.txt
+    /home/yhsia/helixfuse/asym_sh_combine/processing/database/HFuse_het_3chain_2arm_database.Sh29_3.20180516.txt
+    /home/yhsia/helixfuse/asym_sh_combine/processing/database/HFuse_het_3chain_2arm_database.Sh34_3.20180516.txt
+    /home/yhsia/helixfuse/asym_sh_combine/processing/database/HFuse_het_3chain_3arm_database.Sh13_3.20180516.txt
+    /home/yhsia/helixfuse/asym_sh_combine/processing/database/HFuse_het_3chain_3arm_database.Sh29_3.20180516.txt
+    /home/yhsia/helixfuse/asym_sh_combine/processing/database/HFuse_het_3chain_3arm_database.Sh34_3.20180516.txt
+    /home/yhsia/helixfuse/2018-09-04_asym_sh_hetc2/combine/processing/database/HFuse_het_2chain_2arm_database.Sh13-5+1-AI_2.20180905.txt
+    /home/yhsia/helixfuse/2018-09-04_asym_sh_hetc2/combine/processing/database/HFuse_het_2chain_2arm_database.Sh29-5+1-CI_2.20180905.txt

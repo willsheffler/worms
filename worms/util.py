@@ -232,6 +232,24 @@ def get_bb_coords(pose, which_resi=None):
     return np.stack(n_ca_c).astype('f8')
 
 
+def get_cb_coords(pose, which_resi=None):
+    if which_resi is None:
+        which_resi = list(range(1, pose.size() + 1))
+    cbs = []
+    for ir in which_resi:
+        r = pose.residue(ir)
+        if not r.is_protein():
+            raise ValueError(
+                'non-protein residue %s at position %i' % (r.name(), ir)
+            )
+        if r.has('CB'):
+            cb = r.xyz('CB')
+        else:
+            cb = r.xyz('CA')
+        cbs.append(np.array([cb.x, cb.y, cb.z, 1]))
+    return np.stack(cbs).astype('f8')
+
+
 def get_chain_bounds(pose):
     ch = np.array([pose.chain(i + 1) for i in range(len(pose))])
     chains = list()

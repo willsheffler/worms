@@ -47,12 +47,14 @@ def splice_metrics_pair(
         splice_contact_d2,
         splice_rms_range,
         splice_clash_contact_range,
+        splice_clash_contact_by_helix,
         skip_on_fail,
 ):
     return _jit_splice_metrics(
         blk0.chains, blk1.chains, blk0.ncac, blk1.ncac, blk0.stubs, blk1.stubs,
-        blk0.connections, blk1.connections, blk0.ss, blk1.ss, splice_clash_d2,
-        splice_contact_d2, splice_rms_range, splice_clash_contact_range,
+        blk0.connections, blk1.connections, blk0.ss, blk1.ss, blk0.cb, blk1.cb,
+        splice_clash_d2, splice_contact_d2, splice_rms_range,
+        splice_clash_contact_range, splice_clash_contact_by_helix,
         splice_max_rms, skip_on_fail
     )
 
@@ -69,6 +71,7 @@ def get_allowed_splices(
         splice_contact_d2=8.0**2,
         splice_rms_range=6,
         splice_clash_contact_range=60,
+        splice_clash_contact_by_helix=True,
         skip_on_fail=True,
         parallel=False,
         verbosity=1,
@@ -146,8 +149,9 @@ def get_allowed_splices(
                         _jit_splice_metrics, blk0.chains, blk1.chains,
                         blk0.ncac, blk1.ncac, blk0.stubs, blk1.stubs,
                         blk0.connections, blk1.connections, blk0.ss, blk1.ss,
-                        splice_clash_d2, splice_contact_d2, splice_rms_range,
-                        splice_clash_contact_range, splice_max_rms,
+                        blk0.cb, blk1.cb, splice_clash_d2, splice_contact_d2,
+                        splice_rms_range, splice_clash_contact_range,
+                        splice_clash_contact_by_helix, splice_max_rms,
                         skip_on_fail
                     )
                 fs = (iblk0, iblk1, ofst0, ofst1, ires0, ires1)
@@ -288,15 +292,41 @@ def _index_of_map(ary, mx):
 
 
 @jit
+def _helix_range(ss):
+    helixof = np.zeros_like(ss, dtype=np.int32) - 1
+    nhelix = 0
+    prevh = 0
+    # 72 is 'H'
+    for i in range(len(ss)):
+        if ss[i] == 72 and prevh == 0:
+            nhelix += 1
+        prevh = ss[i] == 72
+    hrange = np.zeros((nhelix, 2), dtype=np.int32)
+    nhelix = 0
+    for i in range(len(ss)):
+        if ss[i] == 72 and prevh == 0:  # starth
+            hrange[nhelix, 0] = i
+        elif ss[i] != 72 and prevh == 1:  # endh
+            hrange[nhelix, 1] = i
+            nhelix += 1
+        if ss[i] == 72:
+            helixof[i] = nhelix
+        prevh = ss[i] == 72
+    return hrange, helixof
+
+
+# @jit
 def _jit_splice_metrics(chains0, chains1,
                         ncac0_3d, ncac1_3d,
                         stubs0, stubs1,
                         conn0, conn1,
                         ss0, ss1,
+                        cb0, cb1,
                         splice_clash_d2,
                         splice_contact_d2,
                         splice_rms_range,
                         splice_clash_contact_range,
+                        splice_clash_contact_by_helix,
                         splice_max_rms,
                         skip_on_fail=True):  # yapf: disable
 
@@ -309,6 +339,9 @@ def _jit_splice_metrics(chains0, chains1,
 
     ncac0 = ncac0_3d.reshape(-1, 4)
     ncac1 = ncac1_3d.reshape(-1, 4)
+
+    hrange0, helixof0 = _helix_range(ss0)
+    hrange1, helixof1 = _helix_range(ss1)
 
     for ialn1, aln1 in enumerate(aln1s):
         chainb10, chainb11 = _chainbounds_of_ires(chains1, aln1)
@@ -334,24 +367,122 @@ def _jit_splice_metrics(chains0, chains1,
             if skip_on_fail and rms > splice_max_rms:
                 continue
 
-            nclash, ncontact = 0, 0
-            for j in range(4, 3 * splice_clash_contact_range + 3, 3):
-                if 3 * aln1 + j >= len(ncac1): continue
-                b = xaln @ ncac1[3 * aln1 + j]
-                for i in range(-2, -3 * splice_clash_contact_range - 1, -3):
-                    if 3 * aln0 + i < 0: continue
-                    a = ncac0[3 * aln0 + i]
-                    d2 = np.sum((a - b)**2)
-                    if d2 < splice_clash_d2:
-                        nclash += 1
-                    elif i % 3 == 1 and j % 3 == 1 and d2 < splice_contact_d2:
-                        ncontact += 1
-            assert 0 <= np.isnan(nclash) < 99999, 'bad nclash'
-            assert 0 <= np.isnan(ncontact) < 99999, 'bad ncontact'
+            if splice_clash_contact_by_helix:
+                nclash, ncontact = _clash_contact_by_helix(
+                    aln0, aln1, xaln, cb0, cb1, hrange0, hrange1, helixof0,
+                    helixof1, splice_clash_d2, splice_contact_d2
+                )
+            else:
+                nclash, ncontact = _clash_contact_simple(
+                    aln0, aln1, xaln, ncac0, ncac1, splice_clash_contact_range,
+                    splice_clash_d2, splice_contact_d2
+                )
             out_nclash[ialn0, ialn1] = nclash
             out_ncontact[ialn0, ialn1] = ncontact
 
     return out_rms, out_nclash, out_ncontact
+
+
+# @jit
+def _mark_contacts(
+        ct0, ct1, bnd0, bnd1, cb0, cb1, xaln, mark0, mark1, cld2, ctd2
+):
+    clash = False
+    for jr in range(*bnd1):
+        cbjr = xaln @ cb1[jr]
+        for ir in range(*bnd0):
+            cbir = cb0[ir]
+            d2 = np.sum((cbir - cbjr)**2)
+            if d2 <= cld2:
+                clash = True
+            if d2 <= ctd2:
+                if mark0: ct0.add(ir)
+                if mark1: ct1.add(jr)
+    return clash
+
+
+# @jit
+def _mark_contacts_noaln(
+        ct0, ct1, bnd0, bnd1, cb0, cb1, mark0, mark1, cld2, ctd2
+):
+    clash = False
+    for jr in range(*bnd1):
+        cbjr = cb1[jr]
+        for ir in range(*bnd0):
+            cbir = cb0[ir]
+            d2 = np.sum((cbir - cbjr)**2)
+            if d2 <= cld2:
+                clash = True
+            if d2 <= ctd2:
+                if mark0: ct0.add(ir)
+                if mark1: ct1.add(jr)
+    return clash
+
+
+# @jit
+def _clash_contact_by_helix(
+        aln0, aln1, x, cb0, cb1, hrange0, hrange1, helixof0, helixof1, cld2,
+        ctd2
+):
+    assert helixof0[aln0] - 2 >= 0
+    assert helixof1[aln1] + 2 < hrange1.shape[0]
+
+    ct0, ct1 = set([-1]), set([-1])
+
+    helix_bounds_a = hrange0[helixof0[aln0] - 2]
+    helix_bounds_b = hrange0[helixof0[aln0] - 1]
+    helix_bounds_c = hrange0[helixof0[aln0] - 0]
+    helix_bounds_d = hrange1[helixof1[aln1] + 0]
+    helix_bounds_e = hrange1[helixof1[aln1] + 1]
+    helix_bounds_f = hrange1[helixof1[aln1] + 2]
+    helix_bounds_c[1] = aln0 + 1
+    helix_bounds_d[0] = aln1
+
+    ha = (helix_bounds_a[0], helix_bounds_a[1])
+    hb = (helix_bounds_b[0], helix_bounds_b[1])
+    hc = (helix_bounds_c[0], helix_bounds_c[1])
+    hd = (helix_bounds_d[0], helix_bounds_d[1])
+    he = (helix_bounds_e[0], helix_bounds_e[1])
+    hf = (helix_bounds_f[0], helix_bounds_f[1])
+
+    c = 0
+    c += _mark_contacts(ct0, ct1, ha, hd, cb0, cb1, x, 1, 0, cld2, ctd2)  #4
+    c += _mark_contacts(ct0, ct1, ha, he, cb0, cb1, x, 1, 1, cld2, ctd2)  #22
+    c += _mark_contacts(ct0, ct1, ha, hf, cb0, cb1, x, 1, 1, cld2, ctd2)  #12
+    c += _mark_contacts(ct0, ct1, hb, hd, cb0, cb1, x, 1, 0, cld2, ctd2)  #0
+    c += _mark_contacts(ct0, ct1, hb, he, cb0, cb1, x, 1, 1, cld2, ctd2)  #24
+    c += _mark_contacts(ct0, ct1, hb, hf, cb0, cb1, x, 1, 1, cld2, ctd2)  #23
+    c += _mark_contacts(ct0, ct1, hc, he, cb0, cb1, x, 0, 1, cld2, ctd2)  #7
+    c += _mark_contacts(ct0, ct1, hc, hf, cb0, cb1, x, 0, 1, cld2, ctd2)  #0
+
+    c += _mark_contacts_noaln(ct0, ct0, ha, hc, cb0, cb0, 1, 0, cld2, ctd2)  #0
+    c += _mark_contacts_noaln(ct0, ct0, hb, hc, cb0, cb0, 1, 0, cld2, ctd2)  #0
+    c += _mark_contacts_noaln(ct1, ct1, hd, he, cb1, cb1, 0, 1, cld2, ctd2)  #0
+    c += _mark_contacts_noaln(ct1, ct1, hd, hf, cb1, cb1, 0, 1, cld2, ctd2)  #0
+
+    return c, len(ct0) + len(ct1) - 2  # remove the two -1's
+
+
+@jit
+def _clash_contact_simple(
+        aln0, aln1, xaln, ncac0, ncac1, splice_clash_contact_range, clashd2,
+        contactd2
+):
+    nclash, ncontact = 0, 0
+    for j in range(4, 3 * splice_clash_contact_range + 3, 3):
+        if 3 * aln1 + j >= len(ncac1): continue
+        b = xaln @ ncac1[3 * aln1 + j]
+        for i in range(-2, -3 * splice_clash_contact_range - 1, -3):
+            if 3 * aln0 + i < 0: continue
+            a = ncac0[3 * aln0 + i]
+            d2 = np.sum((a - b)**2)
+            if d2 < clashd2:
+                nclash += 1
+            elif i % 3 == 1 and j % 3 == 1 and d2 < contactd2:
+                ncontact += 1
+    assert 0 <= np.isnan(nclash) < 99999, 'bad nclash'
+    assert 0 <= np.isnan(ncontact) < 99999, 'bad ncontact'
+    return nclash, ncontact
 
 
 @jit

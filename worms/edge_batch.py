@@ -17,9 +17,10 @@ def _valid_splice_pairs(bbw0, bbw1, **kw):
     blk1 = bbw1._bblock
     rms, nclash, ncontact = _jit_splice_metrics(
         blk0.chains, blk1.chains, blk0.ncac, blk1.ncac, blk0.stubs, blk1.stubs,
-        blk0.connections, blk1.connections, blk0.ss, blk1.ss,
+        blk0.connections, blk1.connections, blk0.ss, blk1.ss, blk0.cb, blk1.cb,
         kw['splice_clash_d2'], kw['splice_contact_d2'], kw['splice_rms_range'],
-        kw['splice_clash_contact_range'], kw['splice_max_rms'], True
+        kw['splice_clash_contact_range'], kw['splice_clash_contact_by_helix'],
+        kw['splice_max_rms'], True
     )
     ok = ((nclash == 0) * (rms <= kw['splice_max_rms']) *
           (ncontact >= kw['splice_ncontact_cut']))
@@ -82,7 +83,7 @@ def precompute_splicedb(db, bbpairs, **kw):
     params = (
         kw['splice_max_rms'], kw['splice_ncontact_cut'], kw['splice_clash_d2'],
         kw['splice_contact_d2'], kw['splice_rms_range'],
-        kw['splice_clash_contact_range']
+        kw['splice_clash_contact_range'], kw['splice_clash_contact_by_helix']
     )
     bbpairs = _remove_already_cached(spdb, bbpairs, params)
     if not bbpairs: return

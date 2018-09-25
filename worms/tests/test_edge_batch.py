@@ -12,6 +12,7 @@ def test_percomp_splices_1(bbdb_fullsize_prots, spdb):
         splice_contact_d2=64.0,
         splice_rms_range=6,
         splice_clash_contact_range=60,
+        splice_clash_contact_by_helix=False,
         splice_max_rms=0.7,
         splice_ncontact_cut=30,
         skip_on_fail=True,

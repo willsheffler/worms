@@ -19,7 +19,7 @@ from worms.filters.interface_contacts import count_contacts_accross_junction, id
 def filter_audit():
     print('filter_audit')
     print(sys.argv)
-    shutil.rmtree('worms_filter_audit_cache', ignore_errors=1)
+    # shutil.rmtree('worms_filter_audit_cache', ignore_errors=1)
     args = sys.argv[1:]
     if not args:
         args += '--geometry Null()'.split()
@@ -30,6 +30,7 @@ def filter_audit():
 
     crit, kw = parse_args(args)
     bbdb, spdb = kw['db']
+    kw['splice_clash_d2'] = 3.0**2
 
     bbsN = bbdb.query('Het:C')
     bbsC = bbdb.query('Het:N')
@@ -49,6 +50,7 @@ def filter_audit():
             kw['splice_contact_d2'],
             kw['splice_rms_range'],
             kw['splice_clash_contact_range'],
+            splice_clash_contact_by_helix=True,
             skip_on_fail=False
         )
         print('splices shape', rms.shape)
@@ -86,14 +88,18 @@ def filter_audit():
                 pose = splice_poses(pose1, pose2, ir, jr)
 
                 # print('debug:', ir, jr)
-                # pose.dump_pdb('pose_%i_%i.pdb' % (ir, jr))
+                if nclash[i, j]:
+                    pose.dump_pdb('pose_clash_%i_%i.pdb' % (ir, jr))
+                else:
+                    pose.dump_pdb('pose_noclh_%i_%i.pdb' % (ir, jr))
 
                 pose.update_residue_neighbors()
                 nc, ncnh, nhc, nhcb, nhca = count_contacts_accross_junction(
                     pose, ir
                 )
                 post_ncontacts[i, j] = nc
-                print(ncontact[i, j], nc)
+                print(ir, jr, int(nclash[i, j]), ncontact[i, j], nc)
+                # sys.exit()
 
         # for i, ir in enumerate(splice_res_c):
         # for j, jr in enumerate(splice_res_n):
