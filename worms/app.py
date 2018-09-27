@@ -167,6 +167,8 @@ def worms_main(argv):
         for a, b in zip(_shared_ssdag.bbs, kw['bbs']):
             for aa, bb in zip(a, b):
                 assert aa is bb
+        print('memuse for global _shared_ssdag:')
+        _shared_ssdag.report_memory_use()
 
     log = worms_main_each_mergebb(criteria, **kw)
     if kw['pbar']:
@@ -286,6 +288,7 @@ def search_func(criteria, bbs, monte_carlo, **kw):
         # simple_search_dag getting not-to-simple maybe split?
         _____, ssdA, rsltA, logA = results[0]
         critB, ssdB, rsltB, logB = results[1]
+        assert _shared_ssdag
         ssdag = simple_search_dag(
             criteria,
             only_seg=mseg,
@@ -312,6 +315,7 @@ def search_single_stage(criteria, lbl='', **kw):
                 ssdag, result = _pickle.load(inp)
                 return criteria, ssdag, result, ['from run cache ' + lbl]
 
+    assert _shared_ssdag
     ssdag = simple_search_dag(criteria, source=_shared_ssdag, lbl=lbl, **kw)
     # print('number of bblocks:', [len(x) for x in ssdag.bbs])
 
@@ -361,12 +365,8 @@ def filter_and_output_results(
         # do this once per run, at merge_bblock == 0 (or None)
         with open(head + '__HEADER.info', 'w') as info_file:
             info_file.write(
-                'close_err close_rms score0 score0sym filter nc nc_wo_jct n_nb  Name chain_info [exit_pdb exit_resN entrance_resN entrance_pdb]   jct_res \n'
+                'close_err close_rms score0 score0sym filter zheight zradius radius nc nc_wo_jct n_nb  Name chain_info [exit_pdb exit_resN entrance_resN entrance_pdb]   jct_res \n'
             )
-
-    info_file = io.StringIO()
-    nresults = 0
-    for iresult in range(min(max_output, len(result.idx))):
 
         # make json files with bblocks for single result
         # tmp, seenit = list(), set()
@@ -384,7 +384,10 @@ def filter_and_output_results(
         # with open('tmp_%i.json' % iresult, 'w') as out:
         #     json.dump(tmp, out)
 
-        if output_from_pose:
+    if output_from_pose:
+        info_file = None
+        nresults = 0
+        for iresult in range(min(max_output, len(result.idx))):
 
             bases = ssdag.get_bases(result.idx[iresult])
             if no_duplicate_bases:
@@ -463,19 +466,19 @@ def filter_and_output_results(
             mbbstr = 'None'
             if merge_bblock is not None:
                 mbbstr = f'{merge_bblock:4d}'
-            print(
-                f'mbb{mbbstr} {iresult:4d} err {result.err[iresult]:5.2f} rms {rms:5.2f} score0 {score0:7.2f} score0sym {score0sym:7.2f} {grade} {result.height[iresult]:5.1f} {filt} {bases_str} {fname}'
-            )
-            # out_file.write('%-80s %s  %3.2f  %7.2f  %s %s %-8s %5.2f %4d %4d %4d \n'%(junct_str,chain_info,s[top_hit],score0,junct_str1,w.splicepoints(top_hit),filter,result,min_contacts,min_contacts_no_helix,min_helices_contacted))
+
             chains = pose.split_by_chain()
             chain_info = '%4d ' % (len(list(chains)))
             chain_info += '-'.join(str(len(c)) for c in chains)
 
+            if not info_file:
+                info_file = open(f'{output_prefix}{mbb}.info', 'w')
             info_file.write(
-                '%5.2f %5.2f %7.2f %7.2f %-8s %5.1f %4d %4d %4d %s %-80s %s  %s %s \n'
+                '%5.2f %5.2f %7.2f %7.2f %-8s %5.1f %5.1f %5.1f %4d %4d %4d %s %-80s %s  %s %s \n'
                 % (
                     result.err[iresult], rms, score0, score0sym, grade,
-                    result.height[iresult], mc, mcnh, mhc, bases_str, fname,
+                    result.zheight[iresult], result.zradius[iresult],
+                    result.radius[iresult], mc, mcnh, mhc, bases_str, fname,
                     chain_info, jstr1, sp
                 )
             )
@@ -510,9 +513,12 @@ def filter_and_output_results(
                 out.write('Number of chains in ASU: ' + str(nchain) + '\n')
                 out.write('Closure error: ' + str(rms) + '\n')
 
-        else:
-            # if output_symmetric:
-            # raise NotImplementedError('no symmetry w/o poses')
+        if info_file is not None:
+            info_file.close()
+
+    else:
+        nresults = 0
+        for iresult in range(min(max_output, len(result.idx))):
             fname = '%s_%04i' % (head, iresult)
             graph_dump_pdb(
                 fname + '.pdb',
@@ -523,11 +529,6 @@ def filter_and_output_results(
                 trim=True
             )
             nresults += 1
-
-    infostr = info_file.getvalue()
-    if infostr:
-        with open(f'{output_prefix}{mbb}.info', 'w') as out:
-            out.write(infostr)
 
     if nresults:
         return ['nresults output' + str(nresults)]

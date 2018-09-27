@@ -263,6 +263,10 @@ class _Edge:
     def _state(self):
         return (self.splices, self.nout, self.nent)
 
+    @property
+    def memuse(self):
+        return self.splices.size * self.splices.itemsize
+
 
 @jit
 def _chainbounds_of_ires(chains, ires):

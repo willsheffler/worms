@@ -184,9 +184,12 @@ class Cyclic(WormCriteria):
                 if pr[2] is prov[-1][2]:
                     same_as_last.append(i)
             if len(same_as_last) < 2:
-                print('iface_rms ERROR, not 3 merge subs! same_as_last:', same_as_last)
-                for i, (lb, ub, src, slb, sub) in enumerate(prov):
-                    print(i, lb, ub, id(src), len(src), slb, sub)
+                print(
+                    'iface_rms ERROR, not 3 merge subs! same_as_last:',
+                    same_as_last
+                )
+                # for i, (lb, ub, src, slb, sub) in enumerate(prov):
+                # print(i, lb, ub, id(src), len(src), slb, sub)
                 return 9e9
 
             i1, i2 = same_as_last[-2:]

@@ -72,6 +72,12 @@ class SearchSpaceDag:
             bases.append(bb.basehash)
         return bases
 
+    def report_memory_use(self):
+        memvert = [x.memuse // 2**20 for x in self.verts]
+        print(f'    vertex memuse (mb): {sum(memvert):8,}', memvert)
+        memedge = [x.memuse // 2**20 for x in self.edges]
+        print(f'    edge memuse (mb):   {sum(memedge):8,}', memedge)
+
 
 def simple_search_dag(
         criteria,

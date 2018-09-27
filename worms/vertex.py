@@ -85,11 +85,6 @@ class _Vertex:
 
     @property
     def len(self):
-        """Summary
-
-        Returns:
-            TYPE: Description
-        """
         return len(self.ires)
 
     @property
@@ -99,6 +94,21 @@ class _Vertex:
             self.ibblock, self.inout, self.inbreaks, self.dirn,
             self.min_seg_len
         )
+
+    @property
+    def memuse(self):
+        return (
+            self.x2exit.size * self.x2exit.itemsize +
+            self.x2orig.size * self.x2orig.itemsize
+        )
+        # ('inout'   , nt.int32[:, :]),
+        # ('inbreaks', nt.int32[:]),
+        # ('ires'    , nt.int32[:, :]),
+        # ('isite'   , nt.int32[:, :]),
+        # ('ichain'  , nt.int32[:, :]),
+        # ('ibblock' , nt.int32[:]),
+        # ('dirn'    , nt.int32[:]),
+        # ('min_seg_len', nt.int32),
 
 
 @jit
@@ -194,17 +204,6 @@ def _check_bbires_inorder(ibblock, ires):
 
 
 def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0):
-    """Summary
-
-    Args:
-        bbs (TYPE): Description
-        bbids (TYPE): Description
-        dirn (TYPE): Description
-        min_seg_len (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
     dirn_map = {'N': 0, 'C': 1, '_': 2}
     din = dirn_map[dirn[0]]
     dout = dirn_map[dirn[1]]

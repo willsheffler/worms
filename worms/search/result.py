@@ -59,7 +59,7 @@ class ResultTable:
     def add(self, name, val):
         self.table[name] = val
 
-    def reorder(self, order):
+    def update(self, order):
         for k, v in self.table.items():
             self.table[k] = v[order]
 
