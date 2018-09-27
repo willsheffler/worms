@@ -437,7 +437,8 @@ def _clash_contact_by_helix(
         ctd2
 ):
     # at least two helices befor and after don't exist
-    if helixof0[aln0] < 2 or helixof1[aln1] + 2 >= hrange1.shape[0]:
+    if (helixof0[aln0] < 2 or helixof1[aln1] < 0
+            or helixof1[aln1] + 2 >= hrange1.shape[0]):
         return 0, 0, 0, 0
 
     ct0, ct1 = set([-1]), set([-1])

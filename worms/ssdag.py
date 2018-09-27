@@ -2,13 +2,16 @@ import sys
 from time import time
 from collections import Counter
 import concurrent.futures as cf
+import _pickle
+import os
+
 import numpy as np
+
+import worms
 from worms import Vertex, Edge, precompute_splicedb
 from worms.bblock import bblock_dump_pdb, _BBlock
 from worms.vertex import _Vertex
 from worms.edge import _Edge
-import worms
-
 from worms.util import InProcessExecutor
 from pprint import pprint
 from logging import info
@@ -89,6 +92,8 @@ def simple_search_dag(
         print_edge_summary=False,
         no_duplicate_bases=False,
         shuffle_bblocks=False,
+        use_saved_bblocks=False,
+        output_prefix='./worms',
         **kw
 ):
     bbdb, spdb = db
@@ -96,32 +101,37 @@ def simple_search_dag(
     tdb = time()
     if bbs is None:
         bbs = list()
-        bases = list()
-        # exclude_bases = set()
-        for iquery, query in enumerate(queries):
-            msegs = [
-                i + len(queries) if i < 0 else i
-                for i in criteria.which_mergeseg()
-            ]
-            if iquery in msegs[1:]:
-                print('seg', iquery, 'repeating bblocks from', msegs[0])
-                bbs.append(bbs[msegs[0]])
-                bases.append(bases[msegs[0]])
-                continue
-            bbs0 = bbdb.query(
-                query,
-                max_bblocks=nbblocks,
-                shuffle_bblocks=shuffle_bblocks,
-                parallel=parallel,
-            )
-            bbs.append(bbs0)
-            bases.append(Counter(bytes(b.base).decode('utf-8') for b in bbs0))
+        savename = output_prefix + '_bblocks.pickle'
 
-            # too few unique bases to filter here
-            # if False:
-            # new_bases = [bytes(b.base).decode('utf-8') for b in bbs[-1]]
-            # exclude_bases.update(new_bases)
-            # print('N exclude_bases', len(exclude_bases))
+        if os.path.exists(savename):
+            with open(savename, 'rb') as inp:
+                bbnames_list = _pickle.load(inp)
+            for bbnames in bbnames_list:
+                bbs.append([bbdb.bblock(n) for n in bbnames])
+
+        else:
+            for iquery, query in enumerate(queries):
+                msegs = [
+                    i + len(queries) if i < 0 else i
+                    for i in criteria.which_mergeseg()
+                ]
+                if iquery in msegs[1:]:
+                    print('seg', iquery, 'repeating bblocks from', msegs[0])
+                    bbs.append(bbs[msegs[0]])
+                    continue
+                bbs0 = bbdb.query(
+                    query,
+                    max_bblocks=nbblocks,
+                    shuffle_bblocks=shuffle_bblocks,
+                    parallel=parallel,
+                )
+                bbs.append(bbs0)
+
+        bases = [
+            Counter(bytes(b.base).decode('utf-8')
+                    for b in bbs0)
+            for bbs0 in bbs
+        ]
         assert len(bbs) == len(queries)
         for i, v in enumerate(bbs):
             assert len(v) > 0, 'no bblocks for query: "' + queries[i] + '"'
@@ -135,7 +145,16 @@ def simple_search_dag(
             print(f'   {query:10}', counts)
 
         if criteria.is_cyclic:
-            assert bbs[criteria.from_seg] is bbs[criteria.to_seg]
+            for a, b in zip(bbs[criteria.from_seg], bbs[criteria.to_seg]):
+                assert a is b
+            bbs[criteria.to_seg] = bbs[criteria.from_seg]
+
+        if use_saved_bblocks:
+            bbnames = [[bytes(b.file).decode('utf-8')
+                        for b in bb]
+                       for bb in bbs]
+            with open(savename, 'wb') as out:
+                _pickle.dump(bbnames, out)
 
     else:
         bbs = bbs.copy()

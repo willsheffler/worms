@@ -17,6 +17,8 @@ def BBlock(entry, pdbfile, filehash, pose, ss):
     ncac = util.get_bb_coords(pose)
     cb = util.get_cb_coords(pose)
     stubs = _ncac_to_stubs(ncac)
+    com = np.mean(cb, axis=0)
+    rg = np.sqrt(np.sum((cb - com)**2) / len(cb))
 
     assert len(pose) == len(ncac)
     assert len(pose) == len(stubs)
@@ -58,6 +60,8 @@ def BBlock(entry, pdbfile, filehash, pose, ss):
         chains=np.array(chains, dtype='i4'),
         ss=ss,
         stubs=np.ascontiguousarray(stubs.astype('f8')),
+        com=com,
+        rg=rg,
     )
 
     return bblock
@@ -188,12 +192,14 @@ def _ncac_to_stubs(ncac):
     ('chains'     , nt.int32[:,:]),
     ('ss'         , nt.int8[:]),
     ('stubs'      , nt.float64[:, :, :]),
+    ('com'        , nt.float64[:]),
+    ('rg'         , nt.float64),
 ))  # yapf: disable
 class _BBlock:
     def __init__(
             self, connections, file, filehash, components, protocol, name,
             classes, validated, _type, base, basehash, ncac, cb, chains, ss,
-            stubs
+            stubs, com, rg
     ):
         self.connections = connections
         self.file = file
@@ -211,6 +217,8 @@ class _BBlock:
         self.chains = chains
         self.ss = ss
         self.stubs = stubs
+        self.com = com
+        self.rg = rg
         assert np.isnan(np.sum(self.ncac)) == False
         assert np.isnan(np.sum(self.cb)) == False
         assert np.isnan(np.sum(self.stubs)) == False
@@ -229,16 +237,12 @@ class _BBlock:
 
     @property
     def _state(self):
-        """TODO: Summary
-
-        Returns:
-            TYPE: Description
-        """
+        # MUST stay same order as args to __init__!!!!!
         return (
             self.connections, self.file, self.filehash, self.components,
             self.protocol, self.name, self.classes, self.validated, self._type,
             self.base, self.basehash, self.ncac, self.cb, self.chains, self.ss,
-            self.stubs
+            self.stubs, self.com, self.rg
         )
 
 

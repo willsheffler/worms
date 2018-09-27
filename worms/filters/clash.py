@@ -4,7 +4,7 @@ from multiprocessing import cpu_count
 from tqdm import tqdm
 
 from worms.util import jit, InProcessExecutor
-from worms.search.result import SearchResult
+from worms.search.result import ResultJIT
 
 
 def prune_clashes(
@@ -75,7 +75,7 @@ def prune_clashes(
         for f in futures:
             ok[f.index] = f.result()
 
-    return SearchResult(
+    return ResultJIT(
         rslt.pos[:max_clash_check][ok], rslt.idx[:max_clash_check][ok],
         rslt.err[:max_clash_check][ok], rslt.stats
     )

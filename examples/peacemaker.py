@@ -23,7 +23,7 @@ from worms.util import jit
 from worms.app import get_cli_args
 from worms.khash import KHashi8i8
 from worms.khash.khash_cffi import _khash_get
-from worms.search import lossfunc_rand_1_in, subset_result, SearchResult
+from worms.search import lossfunc_rand_1_in, subset_result, ResultJIT
 from worms.bblock import bblock_dump_pdb
 
 logging.getLogger().setLevel(99)
@@ -178,7 +178,7 @@ def merge_results(
 
     n = len(in_rslt.idx)
     nv = len(ssdag.verts)
-    merged = SearchResult(
+    merged = ResultJIT(
         pos=np.empty((n, nv, 4, 4), dtype='f4'),
         idx=np.empty((n, nv), dtype='i4'),
         err=np.empty((n, ), dtype='f8'),

@@ -16,11 +16,12 @@ import homog as hg
 from worms.criteria import *
 from worms.database import BBlockDB, SpliceDB
 from worms.ssdag import simple_search_dag, graph_dump_pdb
-from worms.search import grow_linear, SearchResult, subset_result
+from worms.search import grow_linear, ResultJIT, subset_result
 from worms.ssdag_pose import make_pose_crit
 from worms.util import run_and_time
 from worms import util
 from worms.filters.clash import prune_clashes
+from worms.filters.geometry import check_geometry
 from worms.filters.db_filters import run_db_filters
 from worms.khash import KHashi8i8
 from worms.khash.khash_cffi import _khash_get
@@ -39,6 +40,7 @@ def parse_args(argv):
         bbconn=[''],
         config_file='',
         nbblocks=64,
+        use_saved_bblocks=0,
         monte_carlo=[0.0],
         parallel=1,
         verbosity=2,
@@ -55,6 +57,7 @@ def parse_args(argv):
         merge_bblock=-1,
         no_duplicate_bases=1,
         shuffle_bblocks=1,
+
 
         # splice stuff
         splice_rms_range=4,
@@ -114,7 +117,6 @@ def parse_args(argv):
 
     if args.max_score0 > 9e8:
         args.max_score0 = 2.0 * len(nc)
-        print('set max_score0 to', args.max_score0)
 
     assert len(nc) == len(bb)
     assert crit.from_seg < len(bb)
@@ -165,12 +167,6 @@ def worms_main(argv):
         for a, b in zip(_shared_ssdag.bbs, kw['bbs']):
             for aa, bb in zip(a, b):
                 assert aa is bb
-    if not kw['shuffle_bblocks']:
-        bbnames = [[bytes(b.file).decode('utf-8')
-                    for b in bb]
-                   for bb in kw['bbs']]
-        with open(kw['output_prefix'] + '_bblocks.pickle', 'wb') as out:
-            _pickle.dump(bbnames, out)
 
     log = worms_main_each_mergebb(criteria, **kw)
     if kw['pbar']:
@@ -224,19 +220,23 @@ def worms_main_protocol(criteria, bbs_states=None, **kw):
             kw['bbs'] = [tuple(_BBlock(*s) for s in bb) for bb in bbs_states]
 
         tup, tsearch = run_and_time(search_func, criteria, **kw)
-        ssdag, result, log = tup
+        ssdag, result1, log = tup
 
         result2, tclash = run_and_time(
-            prune_clashes, ssdag, criteria, result, **kw
+            prune_clashes, ssdag, criteria, result1, **kw
+        )
+
+        result, tgeom = run_and_time(
+            check_geometry, ssdag, criteria, result2, **kw
         )
 
         log = []
-        if len(result2.idx) > 0:
-            msg = f'nresults w/o bad clashes {len(result2.idx):,}'
+        if len(result.idx) > 0:
+            msg = f'nresults w/o bad clashes {len(result.idx):,}'
             log.append('    ' + msg)
             print(log[-1])
 
-        log += filter_and_output_results(criteria, ssdag, result2, **kw)
+        log += filter_and_output_results(criteria, ssdag, result, **kw)
 
         if not kw['pbar']:
             print('completed: ' + str(kw['merge_bblock']))
@@ -464,7 +464,7 @@ def filter_and_output_results(
             if merge_bblock is not None:
                 mbbstr = f'{merge_bblock:4d}'
             print(
-                f'mbb{mbbstr} {iresult:4d} err {result.err[iresult]:5.2f} rms {rms:5.2f} score0 {score0:7.2f} score0sym {score0sym:7.2f} {grade} {filt} {bases_str} {fname}'
+                f'mbb{mbbstr} {iresult:4d} err {result.err[iresult]:5.2f} rms {rms:5.2f} score0 {score0:7.2f} score0sym {score0sym:7.2f} {grade} {result.height[iresult]:5.1f} {filt} {bases_str} {fname}'
             )
             # out_file.write('%-80s %s  %3.2f  %7.2f  %s %s %-8s %5.2f %4d %4d %4d \n'%(junct_str,chain_info,s[top_hit],score0,junct_str1,w.splicepoints(top_hit),filter,result,min_contacts,min_contacts_no_helix,min_helices_contacted))
             chains = pose.split_by_chain()
@@ -472,10 +472,11 @@ def filter_and_output_results(
             chain_info += '-'.join(str(len(c)) for c in chains)
 
             info_file.write(
-                '%5.2f %5.2f %7.2f %7.2f %-8s %4d %4d %4d %s %-80s %s  %s %s \n'
+                '%5.2f %5.2f %7.2f %7.2f %-8s %5.1f %4d %4d %4d %s %-80s %s  %s %s \n'
                 % (
-                    result.err[iresult], rms, score0, score0sym, grade, mc,
-                    mcnh, mhc, bases_str, fname, chain_info, jstr1, sp
+                    result.err[iresult], rms, score0, score0sym, grade,
+                    result.height[iresult], mc, mcnh, mhc, bases_str, fname,
+                    chain_info, jstr1, sp
                 )
             )
             info_file.flush()
@@ -566,7 +567,7 @@ def merge_results_concat(
 
     n = len(rsltB.idx)
     nv = len(ssdag.verts)
-    merged = SearchResult(
+    merged = ResultJIT(
         pos=np.empty((n, nv, 4, 4), dtype='f4'),
         idx=np.empty((n, nv), dtype='i4'),
         err=9e9 * np.ones((n, ), dtype='f8'),

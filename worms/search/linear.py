@@ -7,7 +7,7 @@ from worms.vertex import _Vertex, vertex_xform_dtype
 from worms.edge import _Edge
 from random import random
 import concurrent.futures as cf
-from worms.search.result import SearchResult, zero_search_stats, expand_results
+from worms.search.result import ResultJIT, zero_search_stats, expand_results
 from multiprocessing import cpu_count
 from tqdm import tqdm
 from time import time, clock
@@ -120,7 +120,7 @@ def grow_linear(
     tot_stats = zero_search_stats()
     for i in range(len(tot_stats)):
         tot_stats[i][0] += sum([r.stats[i][0] for r in results])
-    result = SearchResult(
+    result = ResultJIT(
         pos=np.concatenate([r.pos for r in results]),
         idx=np.concatenate([r.idx for r in results]),
         err=np.concatenate([r.err for r in results]),
@@ -128,7 +128,7 @@ def grow_linear(
     )
     result = remove_duplicate_results(result)
     order = np.argsort(result.err)
-    return SearchResult(
+    return ResultJIT(
         pos=result.pos[order],
         idx=result.idx[order],
         err=result.err[order],
@@ -143,7 +143,7 @@ def _grow_linear_start(bb_base, verts_pickleable, edges_pickleable, **kwargs):
     idx = np.empty(shape=(1024, len(verts)), dtype=np.int32)
     err = np.empty(shape=(1024, ), dtype=np.float32)
     stats = zero_search_stats()
-    result = SearchResult(pos=pos, idx=idx, err=err, stats=stats)
+    result = ResultJIT(pos=pos, idx=idx, err=err, stats=stats)
     bases = np.zeros(len(verts), dtype=np.int64)
     nresults, result = _grow_linear_recurse(
         result=result,
@@ -153,7 +153,7 @@ def _grow_linear_start(bb_base, verts_pickleable, edges_pickleable, **kwargs):
         bases=bases,
         **kwargs
     )
-    result = SearchResult(
+    result = ResultJIT(
         result.pos[:nresults], result.idx[:nresults], result.err[:nresults],
         result.stats
     )
@@ -196,7 +196,7 @@ def _grow_linear_recurse(
     """Takes a partially built 'worm' of length isplice and extends them by one based on ivertex_range
 
     Args:
-        result (SearchResult): accumulated pos, idx, and err
+        result (ResultJIT): accumulated pos, idx, and err
         verts (tuple(_Vertex)*N): Vertices in the linear 'ssdag', store entry/exit geometry
         edges (tuple(_Edge)*(N-1)): Edges in the linear 'ssdag', store allowed splices
         loss_function (jit function): Arbitrary loss function, must be numba-jitable
@@ -207,7 +207,7 @@ def _grow_linear_recurse(
         splice_position (float32[:4,:4]): rigid body position of splice
 
     Returns:
-        (int, SearchResult): accumulated pos, idx, and err
+        (int, ResultJIT): accumulated pos, idx, and err
     """
 
     current_vertex = verts[isplice]
@@ -277,7 +277,7 @@ def _grow_linear_mc_start(
     idx = np.empty(shape=(1024, len(verts)), dtype=np.int32)
     err = np.empty(shape=(1024, ), dtype=np.float32)
     stats = zero_search_stats()
-    result = SearchResult(pos=pos, idx=idx, err=err, stats=stats)
+    result = ResultJIT(pos=pos, idx=idx, err=err, stats=stats)
     bases = np.zeros(len(verts), dtype=np.int64)
     del kwargs['nresults']
 
@@ -310,7 +310,7 @@ def _grow_linear_mc_start(
         )
     if 'pbar_inst' in vars(): pbar_inst.close()
 
-    result = SearchResult(
+    result = ResultJIT(
         result.pos[:nresults], result.idx[:nresults], result.err[:nresults],
         result.stats
     )
@@ -341,7 +341,7 @@ def _grow_linear_mc_recurse(
     """Takes a partially built 'worm' of length isplice and extends them by one based on ivertex_range
 
     Args:
-        result (SearchResult): accumulated pos, idx, and err
+        result (ResultJIT): accumulated pos, idx, and err
         verts (tuple(_Vertex)*N): Vertices in the linear 'ssdag', store entry/exit geometry
         edges (tuple(_Edge)*(N-1)): Edges in the linear 'ssdag', store allowed splices
         loss_function (jit function): Arbitrary loss function, must be numba-jitable
@@ -352,7 +352,7 @@ def _grow_linear_mc_recurse(
         splice_position (float32[:4,:4]): rigid body position of splice
 
     Returns:
-        (int, SearchResult): accumulated pos, idx, and err
+        (int, ResultJIT): accumulated pos, idx, and err
     """
 
     current_vertex = verts[isplice]

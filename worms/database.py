@@ -105,8 +105,7 @@ class SpliceDB:
                 cachefile = self.cachepath(*key)
                 if os.path.exists(cachefile + '.lock'):
                     continue
-                if not os.path.exists(os.path.dirname(cachefile)):
-                    os.makedirs(os.path.dirname(cachefile))
+                os.makedirs(os.path.dirname(cachefile), exist_ok=True)
                 with open(cachefile + '.lock', 'w'):
                     if os.path.exists(cachefile):
                         with open(cachefile, 'rb') as inp:
@@ -176,7 +175,12 @@ class BBlockDB:
         self._holding_lock = False
         for dbfile in dbfiles:
             with open(dbfile) as f:
-                self._alldb.extend(json.load(f))
+                try:
+                    self._alldb.extend(json.load(f))
+                except json.decoder.JSONDecodeError as e:
+                    print('ERROR on json file:', dbfile)
+                    print(e)
+                    sys.exit()
         for entry in self._alldb:
             if 'name' not in entry:
                 entry['name'] = ''
