@@ -26,7 +26,7 @@ def check_geometry(ssdag, crit, rslt, **kw):
 
         # measure some geometry
         zradius[i] = np.sqrt(np.max([np.sum(c[:2]**2) for c in coms]))
-        radius[i] = np.sqrt(np.max([np.sum(c[:3]**2) for c in coms]))
+        radius[i] = np.sqrt(np.max([np.sum((c - coms[0])**2) for c in coms]))
         comz = [c[2] for c in coms]
         zheight[i] = np.max(comz) - np.min(comz)
 
@@ -45,7 +45,10 @@ def check_geometry(ssdag, crit, rslt, **kw):
     r.add('zradius', zradius)
     r.add('radius', radius)
 
-    print('removing duplicates', np.sum(duplicate != 0), 'of', len(duplicate))
+    print(
+        'removing', np.sum(duplicate != 0), 'duplicates of', len(duplicate),
+        'results'
+    )
     # remove duplicates
     r.update(duplicate == 0)
 

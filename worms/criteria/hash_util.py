@@ -9,7 +9,8 @@ from worms.util import jit
 
 
 def make_hash_table(ssdag, rslt, gubinner):
-    # print(rslt.idx[:5])
+    if len(rslt.idx) is 0:
+        return None, None
     assert np.max(np.abs(rslt.pos[:, -1, 0, 3])) < 512.0
     assert np.max(np.abs(rslt.pos[:, -1, 0, 3])) < 512.0
     assert np.max(np.abs(rslt.pos[:, -1, 0, 3])) < 512.0

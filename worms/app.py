@@ -157,9 +157,28 @@ def worms_main(argv):
     global _shared_ssdag
     if 'bbs' in kw and (len(kw['bbs']) > 2
                         or kw['bbs'][0] is not kw['bbs'][1]):
+
+        ############3
+
+        #
+
+        # _shared_ssdag = simple_search_dag(
+        #    criteria, print_edge_summary=True, **kw
+        # )
+
+        merge_bblock = kw['merge_bblock']
+        del kw['merge_bblock']
         _shared_ssdag = simple_search_dag(
-            criteria, print_edge_summary=True, **kw
+            criteria, merge_bblock=0, print_edge_summary=True, **kw
         )
+        kw['merge_bblock'] = merge_bblock
+        print('memuse for global _shared_ssdag:')
+        _shared_ssdag.report_memory_use()
+
+        ####
+
+        #
+
     if _shared_ssdag:
         if not 'bbs' in kw:
             kw['bbs'] = _shared_ssdag.bbs
@@ -167,8 +186,6 @@ def worms_main(argv):
         for a, b in zip(_shared_ssdag.bbs, kw['bbs']):
             for aa, bb in zip(a, b):
                 assert aa is bb
-        print('memuse for global _shared_ssdag:')
-        _shared_ssdag.report_memory_use()
 
     log = worms_main_each_mergebb(criteria, **kw)
     if kw['pbar']:
@@ -221,24 +238,20 @@ def worms_main_protocol(criteria, bbs_states=None, **kw):
         if bbs_states is not None:
             kw['bbs'] = [tuple(_BBlock(*s) for s in bb) for bb in bbs_states]
 
-        tup, tsearch = run_and_time(search_func, criteria, **kw)
-        ssdag, result1, log = tup
+        ssdag, result1, log = search_func(criteria, **kw)
+        if result1 is None: return []
 
-        result2, tclash = run_and_time(
-            prune_clashes, ssdag, criteria, result1, **kw
-        )
+        result2 = prune_clashes(ssdag, criteria, result1, **kw)
 
-        result, tgeom = run_and_time(
-            check_geometry, ssdag, criteria, result2, **kw
-        )
+        result3 = check_geometry(ssdag, criteria, result2, **kw)
 
         log = []
-        if len(result.idx) > 0:
-            msg = f'nresults w/o bad clashes {len(result.idx):,}'
+        if len(result3.idx) > 0:
+            msg = f'nresults after clash/geom check {len(result3.idx):,}'
             log.append('    ' + msg)
             print(log[-1])
 
-        log += filter_and_output_results(criteria, ssdag, result, **kw)
+        log += filter_and_output_results(criteria, ssdag, result3, **kw)
 
         if not kw['pbar']:
             print('completed: ' + str(kw['merge_bblock']))
@@ -279,6 +292,9 @@ def search_func(criteria, bbs, monte_carlo, **kw):
                 crit, monte_carlo=monte_carlo[i], lbl=lbl, bbs=stage_bbs, **kw
             )
         )
+        if len(results[-1][2].idx) is 0:
+            print('mbb', kw['merge_bblock'], 'no results at stage', i)
+            return None, None, None
 
     if len(results) == 1:
         return results[0][1:]

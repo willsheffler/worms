@@ -31,7 +31,9 @@ class SearchSpaceDag:
         _validate_bbs_verts(bbs, verts)
         assert isinstance(bbs[0][0], _BBlock)
         assert isinstance(verts[0], (_Vertex, type(None)))
-        assert len(edges) == 0 or isinstance(edges[0], _Edge)
+        if not (len(edges) == 0 or isinstance(edges[0], _Edge)):
+            print('SearchSpaceDag', len(edges), type(edges[0]))
+            assert 0
         if bbspec:
             assert len(bbspec) == len(bbs)
         assert len(edges) == 0 or len(edges) + 1 == len(verts)
@@ -73,10 +75,10 @@ class SearchSpaceDag:
         return bases
 
     def report_memory_use(self):
-        memvert = [x.memuse // 2**20 for x in self.verts]
-        print(f'    vertex memuse (mb): {sum(memvert):8,}', memvert)
-        memedge = [x.memuse // 2**20 for x in self.edges]
-        print(f'    edge memuse (mb):   {sum(memedge):8,}', memedge)
+        memvert = [x.memuse // 2**10 for x in self.verts]
+        print(f'    vertex memuse (kb): {sum(memvert):8,}', memvert)
+        memedge = [x.memuse // 2**10 for x in self.edges]
+        print(f'    edge memuse (kb):   {sum(memedge):8,}', memedge)
 
 
 def simple_search_dag(
