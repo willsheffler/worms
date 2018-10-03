@@ -31,9 +31,8 @@ class SearchSpaceDag:
         _validate_bbs_verts(bbs, verts)
         assert isinstance(bbs[0][0], _BBlock)
         assert isinstance(verts[0], (_Vertex, type(None)))
-        if not (len(edges) == 0 or isinstance(edges[0], _Edge)):
-            print('SearchSpaceDag', len(edges), type(edges[0]))
-            assert 0
+        if not (len(edges) == 0 or all(isinstance(e, _Edge) for e in edges)):
+            raise ValueError('Error bad SearchSpaceDag edges')
         if bbspec:
             assert len(bbspec) == len(bbs)
         assert len(edges) == 0 or len(edges) + 1 == len(verts)
@@ -225,13 +224,7 @@ def simple_search_dag(
                 edges[i] = source.edges[isrc]
                 srcedges.append(isrc)
 
-        # print(
-        #     'src', sum(x is not None for x in verts), 'of', len(verts),
-        #     'verts', '\n   ', sum(x is not None for x in edges), 'of',
-        #     len(edges), 'edges', '\n   isrc verts', srcverts,
-        #     '\n   isrc edges', srcedges, '\n   lenbbs', len(bbs)
-        # )
-        # sys.stdout.flush()
+    if not make_edges: edges = []
 
     tvertex = time()
     exe = InProcessExecutor()
