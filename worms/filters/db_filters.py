@@ -257,20 +257,19 @@ def run_db_filters(
         in_helix, before_helix, after_helix, helix_id = identify_helical_segments(
             ss, resN
         )
-        if len(before_helix) is 0:
-            print('bad before helix', final_junction_res)
-        start_helix_list = sorted(before_helix[min(before_helix.keys())])
-        end_helix_list = sorted(after_helix[max(after_helix.keys())])
-        if start_helix_list == []:
-            start_res = 1
-        else:
+        try:
+            start_helix_list = sorted(before_helix[min(before_helix.keys())])
             start_res = start_helix_list[0]
-        if end_helix_list == []:
-            end_res = pose.size()
-        else:
+        except ValueError:
+            start_res = 1
+        try:
+            end_helix_list = sorted(after_helix[max(after_helix.keys())])
             end_res = end_helix_list[-1]
-        close = [i for i in range(start_res, end_res)
-                 ]  # include loop residues also
+        except ValueError:
+            end_res = pose.size()
+
+        # include loop residues also
+        close = [i for i in range(start_res, end_res)]
         # PRINTDBG(
         #     'before helix: %s %s %s %s' % (
         #         resN, before_helix[min(before_helix.keys())],

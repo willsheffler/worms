@@ -38,7 +38,7 @@ def parse_args(argv):
         argv=argv,
         geometry=[''],
         bbconn=[''],
-        config_file='',
+        config_file=[''],
         nbblocks=64,
         use_saved_bblocks=0,
         monte_carlo=[0.0],
@@ -98,32 +98,45 @@ def parse_args(argv):
         postfilt_splice_nhelix_contacted_cut=3,
 
     )
+    if args.config_file == ['']:
+        args.config_file = []
     if not args.config_file:
         crit = eval(''.join(args.geometry))
         bb = args.bbconn[1::2]
         nc = args.bbconn[0::2]
+        crit.bbspec = list(list(x) for x in zip(bb, nc))
+        assert len(nc) == len(bb)
+        assert crit.from_seg < len(bb)
+        assert crit.to_seg < len(bb)
+        if isinstance(crit, Cyclic) and crit.origin_seg is not None:
+            assert crit.origin_seg < len(bb)
+        crit = [crit]
     else:
-        with open(args.config_file) as inp:
-            lines = inp.readlines()
-            assert len(lines) is 2
+        crit = []
+        for cfile in args.config_file:
+            with open(cfile) as inp:
+                lines = inp.readlines()
+                assert len(lines) is 2
 
-            def orient(a, b):
-                return (a or '_') + (b or '_')
+                def orient(a, b):
+                    return (a or '_') + (b or '_')
 
-            bbnc = eval(lines[0])
-            bb = [x[0] for x in bbnc]
-            nc = [x[1] for x in bbnc]
-            crit = eval(lines[1])
+                bbnc = eval(lines[0])
+                bb = [x[0] for x in bbnc]
+                nc = [x[1] for x in bbnc]
+
+                crit0 = eval(lines[1])
+                crit0.bbspec = list(list(x) for x in zip(bb, nc))
+                assert len(nc) == len(bb)
+                assert crit0.from_seg < len(bb)
+                assert crit0.to_seg < len(bb)
+                if isinstance(crit0, Cyclic) and crit0.origin_seg is not None:
+                    assert crit0.origin_seg < len(bb)
+                crit.append(crit0)
 
     if args.max_score0 > 9e8:
-        args.max_score0 = 2.0 * len(nc)
+        args.max_score0 = 2.0 * len(crit[0].bbspec)
 
-    assert len(nc) == len(bb)
-    assert crit.from_seg < len(bb)
-    assert crit.to_seg < len(bb)
-    if isinstance(crit, Cyclic) and crit.origin_seg is not None:
-        assert crit.origin_seg < len(bb)
-    crit.bbspec = list(list(x) for x in zip(bb, nc))
     if args.merge_bblock < 0: args.merge_bblock = None
     kw = vars(args)
     kw['db'] = BBlockDB(**kw), SpliceDB(**kw)
@@ -137,62 +150,76 @@ _shared_ssdag = None
 def worms_main(argv):
 
     # read inputs
-    criteria, kw = parse_args(argv)
-    print('worms_main, args:')
+    criteria_list, kw = parse_args(argv)
+
+    print('worms_main,', len(criteria_list), 'criteria, args:')
     for k, v in kw.items():
         print('   ', k, v)
     pyrosetta.init('-mute all -beta -preserve_crystinfo')
 
-    if kw['precache_splices']:
-        print('precaching splices')
-        merge_bblock = kw['merge_bblock']
-        del kw['merge_bblock']
-        kw['bbs'] = simple_search_dag(
-            criteria, merge_bblock=None, precache_only=True, **kw
-        )
-        kw['merge_bblock'] = merge_bblock
-        if kw['precache_splices_and_quit']:
-            return
+    orig_output_prefix = kw['output_prefix']
 
-    global _shared_ssdag
-    if 'bbs' in kw and (len(kw['bbs']) > 2
-                        or kw['bbs'][0] is not kw['bbs'][1]):
+    for icrit, criteria in enumerate(criteria_list):
+        if len(criteria_list) > 1:
+            assert len(criteria_list) is len(kw['config_file'])
+            name = os.path.basename(kw['config_file'][icrit])
+            name = name.replace('.config', '')
+            kw['output_prefix'] = orig_output_prefix + '_' + name
+        print('================== start job', icrit, '======================')
+        print('output_prefix:', kw['output_prefix'])
+        print('criteria:', criteria)
+        print('bbspec:', criteria.bbspec)
 
-        ############3
+        if kw['precache_splices']:
+            print('precaching splices')
+            merge_bblock = kw['merge_bblock']
+            del kw['merge_bblock']
+            kw['bbs'] = simple_search_dag(
+                criteria, merge_bblock=None, precache_only=True, **kw
+            )
+            kw['merge_bblock'] = merge_bblock
+            if kw['precache_splices_and_quit']:
+                return
 
-        #
+        global _shared_ssdag
+        if 'bbs' in kw and (len(kw['bbs']) > 2
+                            or kw['bbs'][0] is not kw['bbs'][1]):
 
-        # _shared_ssdag = simple_search_dag(
-        #    criteria, print_edge_summary=True, **kw
-        # )
+            ############3
 
-        merge_bblock = kw['merge_bblock']
-        del kw['merge_bblock']
-        _shared_ssdag = simple_search_dag(
-            criteria, merge_bblock=0, print_edge_summary=True, **kw
-        )
-        kw['merge_bblock'] = merge_bblock
-        print('memuse for global _shared_ssdag:')
-        _shared_ssdag.report_memory_use()
+            #
 
-        ####
+            # _shared_ssdag = simple_search_dag(
+            #    criteria, print_edge_summary=True, **kw
+            # )
 
-        #
+            merge_bblock = kw['merge_bblock']
+            del kw['merge_bblock']
+            _shared_ssdag = simple_search_dag(
+                criteria, merge_bblock=0, print_edge_summary=True, **kw
+            )
+            kw['merge_bblock'] = merge_bblock
+            print('memuse for global _shared_ssdag:')
+            _shared_ssdag.report_memory_use()
 
-    if _shared_ssdag:
-        if not 'bbs' in kw:
-            kw['bbs'] = _shared_ssdag.bbs
-        assert len(_shared_ssdag.bbs) == len(kw['bbs'])
-        for a, b in zip(_shared_ssdag.bbs, kw['bbs']):
-            for aa, bb in zip(a, b):
-                assert aa is bb
+            ####
 
-    log = worms_main_each_mergebb(criteria, **kw)
-    if kw['pbar']:
-        print('======================== logs ========================')
-        for msg in log:
-            print(msg)
-        print('======================== done ========================')
+            #
+
+        if _shared_ssdag:
+            if not 'bbs' in kw:
+                kw['bbs'] = _shared_ssdag.bbs
+            assert len(_shared_ssdag.bbs) == len(kw['bbs'])
+            for a, b in zip(_shared_ssdag.bbs, kw['bbs']):
+                for aa, bb in zip(a, b):
+                    assert aa is bb
+
+        log = worms_main_each_mergebb(criteria, **kw)
+        if kw['pbar']:
+            print('======================== logs ========================')
+            for msg in log:
+                print(msg)
+    print('======================== done ========================')
 
 
 def worms_main_each_mergebb(
