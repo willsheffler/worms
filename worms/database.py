@@ -189,7 +189,7 @@ class BBlockDB:
                 os.path.relpath(os.path.dirname(__file__) + '/data')
             )
         self._dictdb = {e['file']: e for e in self._alldb}
-        self.key_to_pdbfile = {
+        self._key_to_pdbfile = {
             hash_str_to_int(e['file']): e['file']
             for e in self._alldb
         }
@@ -276,7 +276,7 @@ class BBlockDB:
         if isinstance(pdbkey, int):
             if not pdbkey in self._bblock_cache:
                 if not self.load_cached_bblock_into_memory(pdbkey):
-                    pdbfile = self.key_to_pdbfile[pdbkey]
+                    pdbfile = self._key_to_pdbfile[pdbkey]
                     raise ValueError(
                         'no bblock data for key', pdbkey, pdbfile, 'in',
                         self.cachedirs
@@ -403,10 +403,21 @@ class BBlockDB:
             return success
         bblockfile = self.bblockfile(pdbkey)
         try:
+            badcache = False
             with open(bblockfile, 'rb') as f:
                 bbstate = list(pickle.load(f))
-                self._bblock_cache[pdbkey] = _BBlock(*bbstate)
-                return True
+                entry = self._dictdb[self._key_to_pdbfile[pdbkey]]
+                newjson = json.dumps(entry).encode()
+                if bytes(bbstate[0]) != newjson:
+                    print('!!! database entry updated for', entry['name'])
+                    print('    removing cachefile', bblockfile)
+                    badcache = True
+                else:
+                    self._bblock_cache[pdbkey] = _BBlock(*bbstate)
+                    return True
+            if badcache:
+                os.remove(bblockfile)
+                return False
         except FileNotFoundError:
             return False
 

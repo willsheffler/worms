@@ -12,7 +12,6 @@ from multiprocessing import cpu_count
 from tqdm import tqdm
 from time import time, clock
 from worms.search.result import remove_duplicate_results
-from worms.bblock import _BBlock
 
 
 @jit

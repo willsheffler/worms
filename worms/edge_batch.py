@@ -8,7 +8,7 @@ from random import shuffle
 
 from worms import Vertex, Edge
 from worms.edge import _jit_splice_metrics, _splice_respairs
-from worms.bblock import _BBlock, BBlockWrap
+from worms.bblock import BBlockWrap
 from worms.util import InProcessExecutor, hash_str_to_int
 
 

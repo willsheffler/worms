@@ -528,11 +528,6 @@ def filter_and_output_results(
             info_file.flush()
 
             mod, new, lost, junct = get_affected_positions(cenpose, prov)
-            # mod, new, lost, junct = get_affected_positions(sympose, prov)
-            # mod = util.map_resis_to_asu(len(cenpose), mod)
-            # new = util.map_resis_to_asu(len(cenpose), new)
-            # lost = util.map_resis_to_asu(len(cenpose), lost)
-            # junct = util.map_resis_to_asu(len(cenpose), junct)
 
             if output_symmetric: sympose.dump_pdb(fname + '_sym.pdb')
             if output_centroid: pose = cenpose
@@ -543,7 +538,7 @@ def filter_and_output_results(
                 for ip, p in enumerate(prov):
                     lb, ub, psrc, lbsrc, ubsrc = p
                     out.write(
-                        f'Segment: {ip:2} resis {lb:4}-{ub:4} come from resis'
+                        f'Segment: {ip:2} resis {lb:4}-{ub:4} come from resis '
                         + f'{lbsrc}-{ubsrc} of {psrc.pdb_info().name()}\n'
                     )
                 nchain = pose.num_chains()

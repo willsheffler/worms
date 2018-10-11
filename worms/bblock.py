@@ -1,4 +1,5 @@
 import string
+from json import dumps
 import numpy as np
 import numba as nb
 from worms import util
@@ -12,6 +13,7 @@ from worms.util import hash_str_to_int
 
 def BBlock(entry, pdbfile, filehash, pose, ss):
 
+    json = dumps(entry)
     chains = util.get_chain_bounds(pose)
     ss = np.frombuffer(ss.encode(), dtype='i1')
     ncac = util.get_bb_coords(pose)
@@ -42,18 +44,21 @@ def BBlock(entry, pdbfile, filehash, pose, ss):
     else:
         basehash = 0
 
-    npfb = np.frombuffer
+    def npfb(s):
+        return np.frombuffer(s.encode(), dtype='i1')
+
     bblock = _BBlock(
+        json=npfb(json),
         connections=conn,
-        file=npfb(entry['file'].encode(), dtype='i1'),
+        file=npfb(entry['file']),
         filehash=filehash,
-        components=npfb(str(entry['components']).encode(), dtype='i1'),
-        protocol=npfb(entry['protocol'].encode(), dtype='i1'),
-        name=npfb(entry['name'].encode(), dtype='i1'),
-        classes=npfb(','.join(entry['class']).encode(), 'i1'),
+        components=npfb(str(entry['components'])),
+        protocol=npfb(entry['protocol']),
+        name=npfb(entry['name']),
+        classes=npfb(','.join(entry['class'])),
         validated=entry['validated'],
-        _type=npfb(entry['type'].encode(), dtype='i1'),
-        base=npfb(entry['base'].encode(), dtype='i1'),
+        _type=npfb(entry['type']),
+        base=npfb(entry['base']),
         basehash=basehash,
         ncac=np.ascontiguousarray(ncac),
         cb=np.ascontiguousarray(cb),
@@ -176,6 +181,7 @@ def _ncac_to_stubs(ncac):
 
 
 @nb.jitclass((
+    ('json'       , nt.int8[:]),
     ('connections', nt.int32[:, :]),
     ('file'       , nt.int8[:]),
     ('filehash'   , nt.int64),
@@ -197,10 +203,11 @@ def _ncac_to_stubs(ncac):
 ))  # yapf: disable
 class _BBlock:
     def __init__(
-            self, connections, file, filehash, components, protocol, name,
-            classes, validated, _type, base, basehash, ncac, cb, chains, ss,
-            stubs, com, rg
+            self, json, connections, file, filehash, components, protocol,
+            name, classes, validated, _type, base, basehash, ncac, cb, chains,
+            ss, stubs, com, rg
     ):
+        self.json = json
         self.connections = connections
         self.file = file
         self.filehash = filehash
@@ -239,10 +246,10 @@ class _BBlock:
     def _state(self):
         # MUST stay same order as args to __init__!!!!!
         return (
-            self.connections, self.file, self.filehash, self.components,
-            self.protocol, self.name, self.classes, self.validated, self._type,
-            self.base, self.basehash, self.ncac, self.cb, self.chains, self.ss,
-            self.stubs, self.com, self.rg
+            self.json, self.connections, self.file, self.filehash,
+            self.components, self.protocol, self.name, self.classes,
+            self.validated, self._type, self.base, self.basehash, self.ncac,
+            self.cb, self.chains, self.ss, self.stubs, self.com, self.rg
         )
 
 
