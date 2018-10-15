@@ -79,9 +79,9 @@ def parse_args(argv):
         rms_err_cut=3.0,
         ca_clash_dis=3.0,
         #
-        max_merge=500000,
-        max_clash_check=500000,
-        max_output=10000,
+        max_merge=100000,
+        max_clash_check=10000,
+        max_output=1000,
         max_score0=9e9,
         #
         output_from_pose=1,
@@ -469,8 +469,6 @@ def filter_and_output_results(
                 print(e)
                 continue
 
-            fname = '%s_%04i_%s_%s' % (head, iresult, jstr[:200], grade)
-
             rms = criteria.iface_rms(pose, prov, **kw)
             # if rms > rms_err_cut: continue
 
@@ -514,6 +512,13 @@ def filter_and_output_results(
             chain_info = '%4d ' % (len(list(chains)))
             chain_info += '-'.join(str(len(c)) for c in chains)
 
+            mod, new, lost, junct = get_affected_positions(cenpose, prov)
+
+            jpos = '-'.join(str(x) for x in junct)
+            fname = '%s_%04i_%s_%s_%s' % (
+                head, iresult, jpos, jstr[:200], grade
+            )
+
             if not info_file:
                 info_file = open(f'{output_prefix}{mbb}.info', 'w')
             info_file.write(
@@ -526,8 +531,6 @@ def filter_and_output_results(
                 )
             )
             info_file.flush()
-
-            mod, new, lost, junct = get_affected_positions(cenpose, prov)
 
             if output_symmetric: sympose.dump_pdb(fname + '_sym.pdb')
             if output_centroid: pose = cenpose
