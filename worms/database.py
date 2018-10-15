@@ -318,7 +318,7 @@ class BBlockDB:
         try:
             return [self.bblock(n) for n in names]
         except ValueError:
-            self.load_pdbs_multiprocess(names, parallel)
+            self.load_pdbs_multiprocess(names, parallel=0)
             return [self.bblock(n) for n in names]
 
     def query_names(self, query, *, useclass=True, exclude_bases=None):
@@ -396,29 +396,32 @@ class BBlockDB:
 
     def load_cached_bblock_into_memory(self, pdbkey):
         assert not isinstance(pdbkey, (str, bytes))
+
         if not isinstance(pdbkey, (int, str)):
             success = True
             for f in pdbkey:
                 success &= self.load_cached_bblock_into_memory(f)
             return success
+
         bblockfile = self.bblockfile(pdbkey)
-        try:
-            badcache = False
-            with open(bblockfile, 'rb') as f:
-                bbstate = list(pickle.load(f))
-                entry = self._dictdb[self._key_to_pdbfile[pdbkey]]
-                newjson = json.dumps(entry).encode()
-                if bytes(bbstate[0]) != newjson:
-                    print('!!! database entry updated for', entry['name'])
-                    print('    removing cachefile', bblockfile)
-                    badcache = True
-                else:
-                    self._bblock_cache[pdbkey] = _BBlock(*bbstate)
-                    return True
-            if badcache:
-                os.remove(bblockfile)
-                return False
-        except FileNotFoundError:
+        if not os.path.exists(bblockfile):
+            print(f'warning: bblock cachefile not found {bblockfile}')
+            return False
+
+        badcache = False
+        with open(bblockfile, 'rb') as f:
+            bbstate = list(pickle.load(f))
+            entry = self._dictdb[self._key_to_pdbfile[pdbkey]]
+            newjson = json.dumps(entry).encode()
+            if bytes(bbstate[0]) != newjson:
+                print('!!! database entry updated for', entry['name'])
+                badcache = True
+            else:
+                self._bblock_cache[pdbkey] = _BBlock(*bbstate)
+                return True
+        if badcache:
+            print('    removing cachefile', bblockfile)
+            os.remove(bblockfile)
             return False
 
     def posefile(self, pdbfile):
@@ -495,7 +498,10 @@ class BBlockDB:
         cachefile = self.bblockfile(pdbkey)
         posefile = self.posefile(pdbfile)
         if os.path.exists(cachefile):
-            assert self.load_cached_bblock_into_memory(pdbkey)
+            if not self.load_cached_bblock_into_memory(pdbkey):
+                raise ValueError(
+                    f'cachefile {cachefile} exists, but cant load data from associated key {pdbkey}'
+                )
             if self.load_poses:
                 if not self.load_cached_pose_into_memory(pdbfile):
                     print('warning, not saved:', pdbfile)
