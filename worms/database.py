@@ -318,7 +318,7 @@ class BBlockDB:
         try:
             return [self.bblock(n) for n in names]
         except ValueError:
-            self.load_pdbs_multiprocess(names, parallel=0)
+            self.load_pdbs_multiprocess(names, parallel)
             return [self.bblock(n) for n in names]
 
     def query_names(self, query, *, useclass=True, exclude_bases=None):
@@ -394,7 +394,7 @@ class BBlockDB:
             self.cachedirs[0], 'bblock', '%016x.pickle' % pdbkey
         )
 
-    def load_cached_bblock_into_memory(self, pdbkey):
+    def load_cached_bblock_into_memory(self, pdbkey, cache_replace=True):
         assert not isinstance(pdbkey, (str, bytes))
 
         if not isinstance(pdbkey, (int, str)):
@@ -408,21 +408,23 @@ class BBlockDB:
             print(f'warning: bblock cachefile not found {bblockfile}')
             return False
 
-        badcache = False
         with open(bblockfile, 'rb') as f:
             bbstate = list(pickle.load(f))
             entry = self._dictdb[self._key_to_pdbfile[pdbkey]]
             newjson = json.dumps(entry).encode()
-            if bytes(bbstate[0]) != newjson:
-                print('!!! database entry updated for', entry['name'])
-                badcache = True
-            else:
+            if bytes(bbstate[0]) == newjson:
                 self._bblock_cache[pdbkey] = _BBlock(*bbstate)
                 return True
-        if badcache:
+            print('!!! database entry updated for key', pdbkey, entry['file'])
+        if cache_replace:
             print('    removing cachefile', bblockfile)
             os.remove(bblockfile)
-            return False
+            print('    reloading info cache', entry['file'])
+            self.load_pdbs_multiprocess([entry['file']], parallel=0)
+            return self.load_cached_bblock_into_memory(
+                pdbkey, cache_replace=False
+            )
+        return False
 
     def posefile(self, pdbfile):
         for d in self.cachedirs:
@@ -434,12 +436,15 @@ class BBlockDB:
     def load_pdbs_multiprocess(self, names, parallel):
         self.read_new_pdbs, tmp = True, self.read_new_pdbs
         data = self.clear_caches()
-        if not self.acquire_cachedir_lock():
-            raise ValueError(
-                'cachedir locked, cant write new entries.\n'
-                'If no other worms jobs are running, you may manually remove:\n'
-                + self.cachedirs[0] + '/lock'
-            )
+        needs_unlock = False
+        if not self._holding_lock:
+            needs_unlock = True
+            if not self.acquire_cachedir_lock():
+                raise ValueError(
+                    'cachedir locked, cant write new entries.\n'
+                    'If no other worms jobs are running, you may manually remove:\n'
+                    + self.cachedirs[0] + '/lock'
+                )
         exe = util.InProcessExecutor()
         if parallel: exe = cf.ProcessPoolExecutor(max_workers=parallel)
         with exe as pool:
@@ -454,7 +459,7 @@ class BBlockDB:
             iter = tqdm(iter, 'loading pdb files', total=len(futures))
             for f in iter:
                 f.result()
-        self.unlock_cachedir()
+        if needs_unlock: self.unlock_cachedir()
         self.restore_caches(data)
         self.read_new_pdbs = tmp
 
@@ -499,8 +504,12 @@ class BBlockDB:
         posefile = self.posefile(pdbfile)
         if os.path.exists(cachefile):
             if not self.load_cached_bblock_into_memory(pdbkey):
+                if os.path.exists(cachefile):
+                    raise ValueError(
+                        f'cachefile {cachefile} exists, but cant load data from associated key {pdbkey}'
+                    )
                 raise ValueError(
-                    f'cachefile {cachefile} exists, but cant load data from associated key {pdbkey}'
+                    f'cachefile {cachefile} was removed, cant load data from associated key {pdbkey}'
                 )
             if self.load_poses:
                 if not self.load_cached_pose_into_memory(pdbfile):
