@@ -40,6 +40,7 @@ def grow_linear(
         pbar=False,
         pbar_interval=10.0,
         no_duplicate_bases=True,
+        max_linear=1000000,
         **kw
 ):
     verts = ssdag.verts
@@ -76,6 +77,7 @@ def grow_linear(
             nresults=0,
             isplice=0,
             splice_position=np.eye(4, dtype=vertex_xform_dtype),
+            max_linear=max_linear,
         )
         futures = list()
         if monte_carlo:
@@ -189,8 +191,8 @@ def _last_bb_mismatch(result, verts, ivertex, nresults, last_bb_same_as):
 @jit
 def _grow_linear_recurse(
         result, bb_base, verts, edges, loss_function, loss_threshold,
-        last_bb_same_as, nresults, isplice, ivertex_range, splice_position,
-        bases
+        last_bb_same_as, nresults, max_linear, isplice, ivertex_range,
+        splice_position, bases
 ):
     """Takes a partially built 'worm' of length isplice and extends them by one based on ivertex_range
 
@@ -231,6 +233,8 @@ def _grow_linear_recurse(
             )
             result.err[nresults] = loss
             if loss <= loss_threshold:
+                if nresults >= max_linear:
+                    return nresults, result
                 nresults += 1
                 result = expand_results(result, nresults)
         else:
@@ -257,6 +261,7 @@ def _grow_linear_recurse(
                     loss_threshold=loss_threshold,
                     last_bb_same_as=last_bb_same_as,
                     nresults=nresults,
+                    max_linear=max_linear,
                     isplice=isplice + 1,
                     ivertex_range=next_ivertex_range,
                     splice_position=next_splicepos,
@@ -307,6 +312,7 @@ def _grow_linear_mc_start(
             nresults=nresults,
             **kwargs
         )
+        if nresults >= kw['max_linear']: break
     if 'pbar_inst' in vars(): pbar_inst.close()
 
     result = ResultJIT(
@@ -334,8 +340,8 @@ def _grow_linear_mc(
 @jit
 def _grow_linear_mc_recurse(
         result, bb_base, verts, edges, loss_function, loss_threshold,
-        last_bb_same_as, nresults, isplice, ivertex_range, splice_position,
-        bases
+        last_bb_same_as, nresults, max_linear, isplice, ivertex_range,
+        splice_position, bases
 ):
     """Takes a partially built 'worm' of length isplice and extends them by one based on ivertex_range
 
@@ -372,6 +378,8 @@ def _grow_linear_mc_recurse(
         loss = loss_function(result.pos[nresults], result.idx[nresults], verts)
         result.err[nresults] = loss
         if loss <= loss_threshold:
+            if nresults >= max_linear:
+                return nresults, result
             nresults += 1
             result = expand_results(result, nresults)
     else:
@@ -403,6 +411,7 @@ def _grow_linear_mc_recurse(
                 loss_threshold=loss_threshold,
                 last_bb_same_as=last_bb_same_as,
                 nresults=nresults,
+                max_linear=max_linear,
                 isplice=isplice + 1,
                 ivertex_range=next_ivertex_range,
                 splice_position=next_splicepos,

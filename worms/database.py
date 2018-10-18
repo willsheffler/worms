@@ -215,6 +215,7 @@ class BBlockDB:
 
     def clear(self):
         self._bblock_cache, self._poses_cache = dict(), dict()
+        if self._holding_lock: self.unlock_cachedir()
 
     def get_json_entry(self, file):
         return self._dictdb[file]
@@ -235,11 +236,15 @@ class BBlockDB:
             "database is locked! if you're sure no other jobs are editing it, remove "
             + self.cachedirs[0] + "/lock"
         )
+        print('locking database', self.cachedirs[0] + '/lock')
+        sys.stdout.flush()
         open(self.cachedirs[0] + '/lock', 'w').close()
         assert os.path.exists(self.cachedirs[0] + '/lock')
         self._holding_lock = True
 
     def unlock_cachedir(self):
+        print('unlocking database', self.cachedirs[0] + '/lock')
+        sys.stdout.flush()
         os.remove(self.cachedirs[0] + '/lock')
         self._holding_lock = False
 

@@ -79,6 +79,7 @@ def parse_args(argv):
         rms_err_cut=3.0,
         ca_clash_dis=3.0,
         #
+        max_linear=1000000,
         max_merge=100000,
         max_clash_check=10000,
         max_output=1000,
@@ -248,7 +249,7 @@ def worms_main_each_mergebb(
                 **kw
             ) for i in range(len(bbs[merge_segment]))
         ]
-        log = ['split job over merge_bblock, n =' + str(len(futures))]
+        log = ['split job over merge_bblock, n = ' + str(len(futures))]
         if not pbar: print(log[-1])
 
         fiter = cf.as_completed(futures)
