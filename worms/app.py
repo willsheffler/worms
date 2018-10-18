@@ -153,6 +153,17 @@ def worms_main(argv):
     # read inputs
     criteria_list, kw = parse_args(argv)
 
+    try:
+        worms_main2(criteria_list, kw)
+    except:
+        bbdb = kw[db][0]
+        bbdb.clear()
+        t, v, tb = sys.exc_info()
+        raise (t, v, tb)
+
+
+def worms_main2(criteria_list, kw):
+
     print('worms_main,', len(criteria_list), 'criteria, args:')
     for k, v in kw.items():
         print('   ', k, v)
