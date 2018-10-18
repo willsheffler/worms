@@ -410,7 +410,7 @@ class BBlockDB:
 
         bblockfile = self.bblockfile(pdbkey)
         if not os.path.exists(bblockfile):
-            print(f'warning: bblock cachefile not found {bblockfile}')
+            # print(f'warning: bblock cachefile not found {bblockfile}')
             return False
 
         with open(bblockfile, 'rb') as f:

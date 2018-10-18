@@ -313,13 +313,24 @@ def _grow_linear_mc_start(
             nresults=nresults,
             **kwargs
         )
-        # remove duplicates every 10th iter
-        iter += 1
-        if iter % 10 == 0:
-            result = remove_duplicate_results(result)
 
-        if nresults >= kw['max_linear']: break
-    print('number of MC iterations', iter)
+        iter += 1
+        # remove duplicates every 10th iter
+        if iter % 10 == 0:
+            uniq_result = ResultJIT(
+                idx=result.idx[:nresults],
+                pos=result.pos[:nresults],
+                err=result.err[:nresults],
+                stats=result.stats
+            )
+            uniq_result = remove_duplicate_results(uniq_result)
+            nresults = len(uniq_result.err)
+            result.idx[:nresults] = uniq_result.idx
+            result.pos[:nresults] = uniq_result.pos
+            result.err[:nresults] = uniq_result.err
+
+        if nresults >= kwargs['max_linear']: break
+
     if 'pbar_inst' in vars(): pbar_inst.close()
 
     result = ResultJIT(
@@ -332,14 +343,14 @@ def _grow_linear_mc_start(
 @jit
 def _grow_linear_mc(
         niter, result, verts, edges, loss_function, loss_threshold,
-        last_bb_same_as, nresults, isplice, ivertex_range, splice_position,
-        bb_base, bases
+        last_bb_same_as, nresults, max_linear, isplice, ivertex_range,
+        splice_position, bb_base, bases
 ):
     for i in range(niter):
         nresults, result = _grow_linear_mc_recurse(
             result, bb_base, verts, edges, loss_function, loss_threshold,
-            last_bb_same_as, nresults, isplice, ivertex_range, splice_position,
-            bases
+            last_bb_same_as, nresults, max_linear, isplice, ivertex_range,
+            splice_position, bases
         )
     return nresults, result
 
