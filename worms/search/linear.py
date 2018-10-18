@@ -299,6 +299,7 @@ def _grow_linear_mc_start(
     nbatch = [1000, 330, 100, 33, 10, 3] + [1] * 99
     nbatch = nbatch[len(edges)] * 10
     nresults = 0
+    iter = 0
     while time() < tstart + seconds:
         if 'pbar_inst' in vars():
             pbar_inst.update(time() - last)
@@ -312,7 +313,13 @@ def _grow_linear_mc_start(
             nresults=nresults,
             **kwargs
         )
+        # remove duplicates every 10th iter
+        iter += 1
+        if iter % 10 == 0:
+            result = remove_duplicate_results(result)
+
         if nresults >= kw['max_linear']: break
+    print('number of MC iterations', iter)
     if 'pbar_inst' in vars(): pbar_inst.close()
 
     result = ResultJIT(

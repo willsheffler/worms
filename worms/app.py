@@ -250,7 +250,7 @@ def worms_main_each_mergebb(
             ) for i in range(len(bbs[merge_segment]))
         ]
         log = ['split job over merge_bblock, n = ' + str(len(futures))]
-        if not pbar: print(log[-1])
+        print(log[-1])
 
         fiter = cf.as_completed(futures)
         for f in fiter:
@@ -382,7 +382,7 @@ def search_single_stage(criteria, lbl='', **kw):
             f'grow_linear {lbl} done, nresults {len(result.idx):,}, ' +
             f'samp/sec {Nsparse_rate:,}, redundant ratio {frac_redundant}'
         ]
-    if not kw['pbar'] and log: print(log[-1])
+    if log: print(log[-1])
 
     if kw['run_cache']:
         with (open(kw['run_cache'] + lbl + '.pickle', 'wb')) as out:
