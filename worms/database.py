@@ -531,6 +531,7 @@ class BBlockDB:
             # print(cachefile)
             with open(cachefile, 'wb') as f:
                 pickle.dump(bblock._state, f)
+            print('saved new bblock cache file', cachefile)
             if not os.path.exists(posefile):
                 try:
                     with open(posefile, 'wb') as f:
