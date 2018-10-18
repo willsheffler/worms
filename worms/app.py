@@ -156,7 +156,7 @@ def worms_main(argv):
     try:
         worms_main2(criteria_list, kw)
     except:
-        bbdb = kw[db][0]
+        bbdb = kw['db'][0]
         bbdb.clear()
         t, v, tb = sys.exc_info()
         raise (t, v, tb)
