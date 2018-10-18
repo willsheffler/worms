@@ -159,7 +159,7 @@ def worms_main(argv):
         bbdb = kw['db'][0]
         bbdb.clear()
         t, v, tb = sys.exc_info()
-        raise (t, v, tb)
+        raise t, v, tb
 
 
 def worms_main2(criteria_list, kw):
