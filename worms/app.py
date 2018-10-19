@@ -67,7 +67,7 @@ def parse_args(argv):
         splice_clash_contact_range=40,
         splice_clash_contact_by_helix=1,
         splice_ncontact_cut=38,
-        splice_ncontact_no_helix_cut=2,
+        splice_ncontact_no_helix_cut=6,
         splice_nhelix_contacted_cut=3,
         #
         tolerance=1.0,
@@ -89,6 +89,7 @@ def parse_args(argv):
         output_symmetric=1,
         output_prefix='./worms',
         output_centroid=0,
+        output_only_AAAA=0,
         #
         cache_sync=0.003,
         #
@@ -404,7 +405,7 @@ def search_single_stage(criteria, lbl='', **kw):
 def filter_and_output_results(
         criteria, ssdag, result, output_from_pose, merge_bblock, db,
         output_symmetric, output_centroid, output_prefix, max_output,
-        max_score0, rms_err_cut, no_duplicate_bases, **kw
+        max_score0, rms_err_cut, no_duplicate_bases, output_only_AAAA, **kw
 ):
     sf = ros.core.scoring.ScoreFunctionFactory.create_score_function('score0')
     sfsym = ros.core.scoring.symmetry.symmetrize_scorefunction(sf)
@@ -479,6 +480,8 @@ def filter_and_output_results(
                 print(traceback.format_exc())
                 print(e)
                 continue
+
+            if output_only_AAAA and grade != 'AAAA': continue
 
             rms = criteria.iface_rms(pose, prov, **kw)
             # if rms > rms_err_cut: continue
