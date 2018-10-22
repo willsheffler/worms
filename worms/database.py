@@ -323,7 +323,7 @@ class BBlockDB:
         try:
             return [self.bblock(n) for n in names]
         except ValueError:
-            self.load_pdbs_multiprocess(names, parallel=0)
+            self.load_pdbs_multiprocess(names, parallel=1)
             return [self.bblock(n) for n in names]
 
     def query_names(self, query, *, useclass=True, exclude_bases=None):

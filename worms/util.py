@@ -17,7 +17,6 @@ from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from concurrent.futures import as_completed as cf_as_completed
 from homog import hrot
-import pandas as pd
 import numba as nb
 
 try:
@@ -512,11 +511,11 @@ def residue_sym_err(p, ang, ir, jr, n=1, axis=[0, 0, 1], verbose=0):
     return np.sqrt(mxdist)
 
 
-def unique_key(a, b=None):
-    if b is None:
-        raise NotImplementedError
-    mi = pd.MultiIndex.from_arrays([a, b]).drop_duplicates()
-    return mi.get_indexer([a, b])
+# def unique_key(a, b=None):
+#     if b is None:
+#         raise NotImplementedError
+#     mi = pd.MultiIndex.from_arrays([a, b]).drop_duplicates()
+#     return mi.get_indexer([a, b])
 
 
 @jit
