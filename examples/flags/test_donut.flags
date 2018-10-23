@@ -1,0 +1,6 @@
+--geometry Cyclic(1)
+--bbconn
+	_C Het:CC
+    NC Het:NC
+    NN Het:NN
+	C_ Het:CC

@@ -7,6 +7,7 @@ dependencies:
  - python >= 3.6
  - pyrosetta
  - numpy
+ - scipy
  - numba
  - xarray
  - pytest
@@ -15,6 +16,7 @@ dependencies:
  - ipython
  - cffi
  - pymol >= 2.1
+ - python-blosc >= 1.5
  - pip:
    - homog >= 0.1.10
    - xbin >= 0.1.5

@@ -1,5 +1,5 @@
 from worms.search.linear import grow_linear
-from worms import Vertex, Edge, BBlockDB, SearchSpaceDag
+from worms import Vertex, Edge, CachingBBlockDB, SearchSpaceDag
 import pytest
 import numpy as np
 import os
@@ -131,7 +131,7 @@ def test_linear_search_three(bbdb_fullsize_prots):
 
 
 if __name__ == '__main__':
-    bbdb_fullsize_prots = BBlockDB(
+    bbdb_fullsize_prots = CachingBBlockDB(
         cachedirs=[str('.worms_pytest_cache')],
         dbfiles=[os.path.join('worms/data/test_fullsize_prots.json')],
         lazy=False,

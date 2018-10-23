@@ -41,7 +41,7 @@ test_db_files = [dirname(__file__) + '/../data/' + f for f in test_db_files]
 
 @only_if_pyrosetta
 def test_database_simple(tmpdir, caplog):
-    pp = BBlockDB(dbfiles=test_db_files)
+    pp = CachingBBlockDB(dbfiles=test_db_files)
     assert len(pp.query_names('C3_N')) == 213
     assert len(pp.query_names('Het_C3_C')) == 30
     assert len(pp.query_names('C2_N')) == 11
@@ -55,7 +55,7 @@ def test_database_simple(tmpdir, caplog):
 
 @only_if_pyrosetta_distributed
 def test_construct_database_from_pdbs(tmpdir, datadir):
-    pp = BBlockDB(
+    pp = CachingBBlockDB(
         cachedirs=str(tmpdir),
         dbfiles=[os.path.join(datadir, 'test_db_file.json')],
         lazy=False,
@@ -65,7 +65,10 @@ def test_construct_database_from_pdbs(tmpdir, datadir):
     # print([len(pp.pose(k)) for k in pp.query_names('all')])
     assert [len(pp.pose(k)) for k in pp.query_names('all')
             ] == [13, 24, 27, 27, 27, 40, 35, 36, 13, 8, 7, 9]
-    keys = sorted(pp._bblock_cache.keys())
+    keys = sorted(
+        pp._bblock_cache.keys(),
+        key=lambda x: pp._key_to_pdbfile[x],
+    )
     assert np.all(pp.bblock(keys[0]).conn_resids(0) == [0])
     assert np.all(pp.bblock(keys[0]).conn_resids(1) == [12])
     assert np.all(pp.bblock(keys[1]).conn_resids(0) == [0])

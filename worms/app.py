@@ -14,7 +14,8 @@ from xbin import gu_xbin_indexer, numba_xbin_indexer
 import homog as hg
 
 from worms.criteria import *
-from worms.database import BBlockDB, SpliceDB
+from worms.database import CachingBBlockDB, CachingSpliceDB
+from worms.database import NoCacheBBlockDB, NoCacheSpliceDB
 from worms.ssdag import simple_search_dag, graph_dump_pdb
 from worms.search import grow_linear, ResultJIT, subset_result
 from worms.ssdag_pose import make_pose_crit
@@ -31,6 +32,7 @@ from worms.bblock import _BBlock
 
 import pyrosetta
 from pyrosetta import rosetta as ros
+import blosc
 
 
 def parse_args(argv):
@@ -50,6 +52,7 @@ def parse_args(argv):
         pbar_interval=10.0,
         #
         cachedirs=[''],
+        disable_cache=0,
         dbfiles=[''],
         load_poses=0,
         read_new_pdbs=0,
@@ -141,7 +144,10 @@ def parse_args(argv):
 
     if args.merge_bblock < 0: args.merge_bblock = None
     kw = vars(args)
-    kw['db'] = BBlockDB(**kw), SpliceDB(**kw)
+    if args.disable_cache:
+        kw['db'] = NoCacheBBlockDB(**kw), NoCacheSpliceDB(**kw)
+    else:
+        kw['db'] = CachingBBlockDB(**kw), CachingSpliceDB(**kw)
 
     return crit, kw
 
@@ -168,6 +174,7 @@ def worms_main2(criteria_list, kw):
     for k, v in kw.items():
         print('   ', k, v)
     pyrosetta.init('-mute all -beta -preserve_crystinfo')
+    blosc.set_releasegil(True)
 
     orig_output_prefix = kw['output_prefix']
 

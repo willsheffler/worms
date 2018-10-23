@@ -4,7 +4,7 @@ import argparse
 import os
 
 from worms.util import get_cli_args
-from worms.database import BBlockDB
+from worms.database import CachingBBlockDB
 
 import pyrosetta
 
@@ -20,7 +20,7 @@ if __name__ == '__main__':
     pyrosetta.init('-mute all -ignore_unrecognized_res')
 
     try:
-        pp = BBlockDB(
+        pp = CachingBBlockDB(
             dbfiles=args.dbfiles,
             nprocs=args.parallel,
             cachedirs=args.cachedirs,

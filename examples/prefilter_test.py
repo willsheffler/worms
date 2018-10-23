@@ -8,7 +8,7 @@ import pytest
 
 from worms import simple_search_dag, Cyclic, grow_linear, NullCriteria
 from worms.util import InProcessExecutor
-from worms.database import BBlockDB, SpliceDB
+from worms.database import CachingBBlockDB, CachingSpliceDB
 from worms.ssdag_pose import make_pose_crit, make_pose
 from worms.ssdag import graph_dump_pdb
 from worms.filters.clash import prune_clashes
@@ -180,7 +180,7 @@ def main():
     )
     args = parser.parse_args()
 
-    bbdb = BBlockDB(
+    bbdb = CachingBBlockDB(
         dbfiles=[
             'worms/data/c6_database.json',
             'worms/data/HBRP_Cx_database.json',
@@ -214,7 +214,7 @@ def main():
         verbosity=args.verbosity
     )
 
-    spdb = SpliceDB()
+    spdb = CachingSpliceDB()
 
     worm_grow_3(
         bbdb,

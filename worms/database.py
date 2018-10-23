@@ -36,25 +36,217 @@ def flatten_path(pdbfile):
     return pdbfile.replace(os.sep, '__') + '.pickle'
 
 
-class SpliceDB:
+def _query_names(bbdb, query, *, useclass=True, exclude_bases=None):
+    """query for names only
+        match name, _type, _class
+        if one match, use it
+        if _type and _class match, check useclass option
+        Het:NNCx/y require exact number or require extra
+    """
+    if query.lower() == "all":
+        return [db['file'] for db in bbdb._alldb]
+    query, subq = query.split(':') if query.count(':') else (query, None)
+    if subq is None:
+        c_hits = [db['file'] for db in bbdb._alldb if query in db['class']]
+        n_hits = [db['file'] for db in bbdb._alldb if query == db['name']]
+        t_hits = [db['file'] for db in bbdb._alldb if query == db['type']]
+        if not c_hits and not n_hits: return t_hits
+        if not c_hits and not t_hits: return n_hits
+        if not t_hits and not n_hits: return c_hits
+        if not n_hits: return c_hits if useclass else t_hits
+        assert False, 'invalid database or query'
+    else:
+        excon = None
+        if subq.endswith('X'): excon = True
+        if subq.endswith('Y'): excon = False
+        hits = list()
+        assert query == 'Het'
+        for db in bbdb._alldb:
+            if not query in db['class']: continue
+            nc = [_ for _ in db['connections'] if _['direction'] == 'C']
+            nn = [_ for _ in db['connections'] if _['direction'] == 'N']
+            nc, tc = len(nc), subq.count('C')
+            nn, tn = len(nn), subq.count('N')
+            if nc >= tc and nn >= tn:
+                if nc + nn == tc + tn and excon is not True:
+                    hits.append(db['file'])
+                elif nc + nn > tc + tn and excon is not False:
+                    hits.append(db['file'])
+    if exclude_bases is not None:
+        hits0, hits = hits, []
+        for h in hits0:
+            base = bbdb._dictdb[h]['base']
+            if base == '' or base not in exclude_bases:
+                hits.append(h)
+        print('exclude_bases', len(hits0), len(hits))
+    return hits
+
+
+def _read_dbfiles(bbdb, dbfiles):
+    bbdb._alldb = []
+    for dbfile in dbfiles:
+        with open(dbfile) as f:
+            try:
+                bbdb._alldb.extend(json.load(f))
+            except json.decoder.JSONDecodeError as e:
+                print('ERROR on json file:', dbfile)
+                print(e)
+                sys.exit()
+    for entry in bbdb._alldb:
+        if 'name' not in entry:
+            entry['name'] = ''
+        entry['file'] = entry['file'].replace(
+            '__DATADIR__',
+            os.path.relpath(os.path.dirname(__file__) + '/data')
+        )
+    bbdb._dictdb = {e['file']: e for e in bbdb._alldb}
+    bbdb._key_to_pdbfile = {
+        hash_str_to_int(e['file']): e['file']
+        for e in bbdb._alldb
+    }
+
+
+def _get_cachedirs(cachedirs):
+    cachedirs = cachedirs or []
+    if not isinstance(cachedirs, str):
+        cachedirs = [x for x in cachedirs if x]
+    if not cachedirs:
+        if 'HOME' in os.environ:
+            cachedirs = [
+                os.environ['HOME'] + os.sep + '.worms/cache',
+                '/databases/worms',
+            ]
+        else:
+            cachedirs = ['.worms/cache', '/databases/worms']
+    if isinstance(cachedirs, str):
+        cachedirs = [cachedirs]
+    return cachedirs
+
+
+class NoCacheSpliceDB:
+    """Stores valid NC splices for bblock pairs"""
+
+    def __init__(self, **kw):
+        self._cache = dict()
+
+    def partial(self, params, pdbkey):
+        assert isinstance(pdbkey, int)
+        if (params, pdbkey) not in self._cache:
+            self._cache[params, pdbkey] = dict()
+        return self._cache[params, pdbkey]
+
+    def has(self, params, pdbkey0, pdbkey1):
+        k = (params, pdbkey0)
+        if k in self._cache:
+            if pdbkey1 in self._cache[k]:
+                return True
+        return False
+
+    def add(self, params, pdbkey0, pdbkey1, val):
+        assert isinstance(pdbkey0, int)
+        assert isinstance(pdbkey1, int)
+        k = (params, pdbkey0)
+        if k not in self._cache: self._cache[k] = dict()
+        self._cache[k][pdbkey1] = val
+
+    def cachepath(self, params, pdbkey):
+        # stock hash ok for tuples of numbers (?)
+        prm = '%016x' % abs(hash(params))
+        key = '%016x.pickle' % pdbkey
+        for d in self.cachedirs:
+            candidate = os.path.join(d, prm, key)
+            if os.path.exists(candidate):
+                return candidate
+        return os.path.join(self.cachedirs[0], prm, key)
+
+    def listpath(self, params, pdbkey):
+        return ''
+
+    def sync_to_disk(self, dirty_only=True):
+        # print('NoCacheSpliceDB not saving')
+        pass
+
+
+class NoCacheBBlockDB:
+    def __init__(self, dbfiles=[], cachedirs=[], **kw):
+        _read_dbfiles(self, dbfiles)
+        self.cachedirs = _get_cachedirs(cachedirs)
+        self._bblock_cache = dict()
+        self._poses_cache = dict()
+
+    def posefile(self, pdbfile):
+        for d in self.cachedirs:
+            candidate = os.path.join(d, 'poses', flatten_path(pdbfile))
+            if os.path.exists(candidate):
+                return candidate
+        return None
+
+    def pose(self, pdbfile):
+        """load pose from _bblock_cache, read from file if not in memory"""
+        if isinstance(pdbfile, bytes):
+            pdbfile = str(pdbfile, 'utf-8')
+        if isinstance(pdbfile, np.ndarray):
+            pdbfile = str(bytes(pdbfile), 'utf-8')
+        if not pdbfile in self._poses_cache:
+            posefile = self.posefile(pdbfile)
+            if posefile:
+                with open(posefile, 'rb') as f:
+                    self._poses_cache[pdbfile] = pickle.load(f)
+            else:
+                print('reading pdb', pdbfile)
+                self._poses_cache[pdbfile] = pose_from_file(pdbfile)
+        return self._poses_cache[pdbfile]
+
+    def bblock(self, pdbkey):
+        if isinstance(pdbkey, list):
+            return [self.bblock(f) for f in pdbkey]
+        if isinstance(pdbkey, (str, bytes)):
+            pdbkey = hash_str_to_int(pdbkey)
+        assert isinstance(pdbkey, int)
+        if not pdbkey in self._bblock_cache:
+            pdbfile = self._key_to_pdbfile[pdbkey]
+            pose = self.pose(pdbfile)
+            entry = self._dictdb[pdbfile]
+            ss = Dssp(pose).get_dssp_secstruct()
+            bblock = BBlock(entry, pdbfile, pdbkey, pose, ss)
+            self._bblock_cache[pdbkey] = bblock
+        return self._bblock_cache[pdbkey]
+
+    def query(
+            self,
+            query,
+            *,
+            useclass=True,
+            max_bblocks=150,
+            shuffle_bblocks=True,
+            **kw
+    ):
+        names = self.query_names(query, useclass=useclass)
+        if len(names) > max_bblocks:
+            if shuffle_bblocks: random.shuffle(names)
+            names = names[:max_bblocks]
+        return [self.bblock(n) for n in names]
+
+    def query_names(self, query, *, useclass=True, exclude_bases=None):
+        return _query_names(
+            self, query, useclass=useclass, exclude_bases=exclude_bases
+        )
+
+    def get_json_entry(self, file):
+        return self._dictdb[file]
+
+    def clear(self):
+        self._bblock_cache.clear()
+        self._poses_cache.clear()
+
+
+class CachingSpliceDB:
     """Stores valid NC splices for bblock pairs"""
 
     def __init__(self, cachedirs=None, **kw):
-        cachedirs = cachedirs or []
-        if not isinstance(cachedirs, str):
-            cachedirs = [x for x in cachedirs if x]
-        if not cachedirs:
-            if 'HOME' in os.environ:
-                cachedirs = [
-                    os.environ['HOME'] + os.sep + '.worms/cache',
-                    '/databases/worms',
-                ]
-            else:
-                cachedirs = ['.worms/cache', '/databases/worms']
-        if isinstance(cachedirs, str):
-            cachedirs = [cachedirs]
+        cachedirs = _get_cachedirs(cachedirs)
         self.cachedirs = [os.path.join(x, 'splices') for x in cachedirs]
-        print('SpliceDB cachedirs:', self.cachedirs)
+        print('CachingSpliceDB cachedirs:', self.cachedirs)
         self._cache = dict()
         self._dirty = set()
 
@@ -124,7 +316,7 @@ class SpliceDB:
             print('warning: some caches unsaved', len(self._dirty))
 
 
-class BBlockDB:
+class CachingBBlockDB:
     """stores Poses and BBlocks in a disk cache"""
 
     def __init__(
@@ -148,21 +340,8 @@ class BBlockDB:
             lazy (bool, optional): Description
             read_new_pdbs (bool, optional): Description
         """
-        cachedirs = cachedirs or []
-        if not isinstance(cachedirs, str):
-            cachedirs = [x for x in cachedirs if x]
-        if not cachedirs:
-            if 'HOME' in os.environ:
-                cachedirs = [
-                    os.environ['HOME'] + os.sep + '.worms/cache',
-                    '/databases/worms',
-                ]
-            else:
-                cachedirs = ['.worms/cache', '/databases/worms']
-        if isinstance(cachedirs, str):
-            cachedirs = [cachedirs]
-        self.cachedirs = cachedirs
-        print('BBlockDB cachedirs:', self.cachedirs)
+        self.cachedirs = _get_cachedirs(cachedirs)
+        print('CachingBBlockDB cachedirs:', self.cachedirs)
         self.load_poses = load_poses
         os.makedirs(self.cachedirs[0] + '/poses', exist_ok=True)
         os.makedirs(self.cachedirs[0] + '/bblock', exist_ok=True)
@@ -173,26 +352,7 @@ class BBlockDB:
         self.verbosity = verbosity
         self._alldb = []
         self._holding_lock = False
-        for dbfile in dbfiles:
-            with open(dbfile) as f:
-                try:
-                    self._alldb.extend(json.load(f))
-                except json.decoder.JSONDecodeError as e:
-                    print('ERROR on json file:', dbfile)
-                    print(e)
-                    sys.exit()
-        for entry in self._alldb:
-            if 'name' not in entry:
-                entry['name'] = ''
-            entry['file'] = entry['file'].replace(
-                '__DATADIR__',
-                os.path.relpath(os.path.dirname(__file__) + '/data')
-            )
-        self._dictdb = {e['file']: e for e in self._alldb}
-        self._key_to_pdbfile = {
-            hash_str_to_int(e['file']): e['file']
-            for e in self._alldb
-        }
+        _read_dbfiles(self, dbfiles)
         if len(self._alldb) != len(self._dictdb):
             warning('!' * 100)
             warning(
@@ -214,7 +374,8 @@ class BBlockDB:
             self._alldb[i] = self._dictdb[k]
 
     def clear(self):
-        self._bblock_cache, self._poses_cache = dict(), dict()
+        self._bblock_cache.clear()
+        self._poses_cache.clear()
         if self._holding_lock: self.unlock_cachedir()
 
     def get_json_entry(self, file):
@@ -302,20 +463,7 @@ class BBlockDB:
             parallel=0,
             **kw
     ):
-        """
-        match name, _type, _class
-        if one match, use it
-        if _type and _class match, check useclass option
-        Het:NNCx/y require exact number or require extra
-
-        Args:
-            query (TYPE): Description
-            useclass (bool, optional): Description
-
-        Returns:
-            TYPE: Description
-        """
-        names = self.query_names(query, useclass=useclass, **kw)
+        names = self.query_names(query, useclass=useclass)
         if len(names) > max_bblocks:
             if shuffle_bblocks: random.shuffle(names)
             names = names[:max_bblocks]
@@ -327,49 +475,14 @@ class BBlockDB:
             return [self.bblock(n) for n in names]
 
     def query_names(self, query, *, useclass=True, exclude_bases=None):
-        """query for names only"""
-        if query.lower() == "all":
-            return [db['file'] for db in self._alldb]
-        query, subq = query.split(':') if query.count(':') else (query, None)
-        if subq is None:
-            c_hits = [db['file'] for db in self._alldb if query in db['class']]
-            n_hits = [db['file'] for db in self._alldb if query == db['name']]
-            t_hits = [db['file'] for db in self._alldb if query == db['type']]
-            if not c_hits and not n_hits: return t_hits
-            if not c_hits and not t_hits: return n_hits
-            if not t_hits and not n_hits: return c_hits
-            if not n_hits: return c_hits if useclass else t_hits
-            assert False, 'invalid database or query'
-        else:
-            excon = None
-            if subq.endswith('X'): excon = True
-            if subq.endswith('Y'): excon = False
-            hits = list()
-            assert query == 'Het'
-            for db in self._alldb:
-                if not query in db['class']: continue
-                nc = [_ for _ in db['connections'] if _['direction'] == 'C']
-                nn = [_ for _ in db['connections'] if _['direction'] == 'N']
-                nc, tc = len(nc), subq.count('C')
-                nn, tn = len(nn), subq.count('N')
-                if nc >= tc and nn >= tn:
-                    if nc + nn == tc + tn and excon is not True:
-                        hits.append(db['file'])
-                    elif nc + nn > tc + tn and excon is not False:
-                        hits.append(db['file'])
-        if exclude_bases is not None:
-            hits0, hits = hits, []
-            for h in hits0:
-                base = self._dictdb[h]['base']
-                if base == '' or base not in exclude_bases:
-                    hits.append(h)
-            print('exclude_bases', len(hits0), len(hits))
-        return hits
+        return _query_names(
+            self, query, useclass=useclass, exclude_bases=exclude_bases
+        )
 
     def clear_caches(self):
         data = self._poses_cache, self._bblock_cache
-        self._poses_cache = dict()
-        self._bblock_cache = dict()
+        self._poses_cache.clear()
+        self._bblock_cache.clear()
         return data
 
     def restore_caches(self, data):
@@ -523,11 +636,11 @@ class BBlockDB:
         elif self.read_new_pdbs:
             if uselock: self.check_lock_cachedir()
             read_pdb = False
-            # info('BBlockDB.build_pdb_data reading %s' % pdbfile)
+            # info('CachingBBlockDB.build_pdb_data reading %s' % pdbfile)
             pose = self.pose(pdbfile)
             ss = Dssp(pose).get_dssp_secstruct()
             bblock = BBlock(entry, pdbfile, pdbkey, pose, ss)
-            self._bblock_cache[pdbfile] = bblock
+            self._bblock_cache[pdbkey] = bblock
             # print(cachefile)
             with open(cachefile, 'wb') as f:
                 pickle.dump(bblock._state, f)

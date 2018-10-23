@@ -4,7 +4,7 @@ import sys
 from os.path import join, dirname, abspath, exists
 
 sys.path.insert(0, os.path.dirname(__file__) + '/../..')
-from worms.database import BBlockDB, SpliceDB
+from worms.database import CachingBBlockDB, CachingSpliceDB
 
 try:
     import pyrosetta
@@ -20,7 +20,7 @@ except ImportError:
 
 @pytest.fixture(scope='session')
 def bbdb(datadir):
-    return BBlockDB(
+    return CachingBBlockDB(
         cachedirs=[str('.worms_pytest_cache')],
         dbfiles=[os.path.join(datadir, 'test_db_file.json')],
         lazy=False,
@@ -30,12 +30,12 @@ def bbdb(datadir):
 
 @pytest.fixture(scope='session')
 def spdb(datadir):
-    return SpliceDB(cachedirs=[str('.worms_pytest_cache')])
+    return CachingSpliceDB(cachedirs=[str('.worms_pytest_cache')])
 
 
 @pytest.fixture(scope='session')
 def bbdb_fullsize_prots(datadir):
-    return BBlockDB(
+    return CachingBBlockDB(
         cachedirs=[str('.worms_pytest_cache')],
         dbfiles=[os.path.join(datadir, 'test_fullsize_prots.json')],
         lazy=False,

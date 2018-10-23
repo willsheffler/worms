@@ -15,7 +15,7 @@ from xbin import gu_xbin_indexer, numba_xbin_indexer
 from homog import hrot, axis_angle_of
 
 from worms import simple_search_dag, Cyclic, grow_linear, util
-from worms.database import BBlockDB, SpliceDB
+from worms.database import CachingBBlockDB, CachingSpliceDB
 from worms.ssdag_pose import make_pose, make_pose_crit
 from worms.ssdag import graph_dump_pdb
 from worms.filters.clash import prune_clashes
@@ -51,7 +51,7 @@ def main():
 
     pyrosetta.init('-mute all -beta')
 
-    db = (BBlockDB(**vars(args)), SpliceDB(**vars(args)))
+    db = (CachingBBlockDB(**vars(args)), CachingSpliceDB(**vars(args)))
 
     spec = (
         [

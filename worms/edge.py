@@ -8,7 +8,6 @@ from collections import defaultdict, namedtuple
 from worms.util import contig_idx_breaks, jit, InProcessExecutor, NonFuture
 import concurrent.futures as cf
 from tqdm import tqdm
-from worms.database import SpliceDB
 
 try:
     # this is such bullshit...

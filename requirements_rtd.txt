@@ -13,6 +13,7 @@ PyYAML
 pytest
 pytest-runner
 numpy
+scipy
 xarray
 numba >= 0.38
 homog >= 0.1.10

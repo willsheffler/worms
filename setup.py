@@ -12,6 +12,7 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     'numpy',
+    'scipy',
     'xarray',
     'numba',
     'homog >= 0.1.10',
@@ -34,6 +35,7 @@ test_requirements = [
     'pytest',
     'pytest-runner',
     'numpy',
+    'scipy',
     'numba',
     'homog >= 0.1.10',
     'xbin >= 0.1.5',
