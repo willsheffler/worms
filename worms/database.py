@@ -10,6 +10,7 @@ import logging
 from logging import info, warning, error
 from random import shuffle
 import time
+from functools import lru_cache
 
 import numpy as np
 from tqdm import tqdm
@@ -172,7 +173,6 @@ class NoCacheBBlockDB:
         _read_dbfiles(self, dbfiles)
         self.cachedirs = _get_cachedirs(cachedirs)
         self._bblock_cache = dict()
-        self._poses_cache = dict()
 
     def posefile(self, pdbfile):
         for d in self.cachedirs:
@@ -181,21 +181,23 @@ class NoCacheBBlockDB:
                 return candidate
         return None
 
+    @lru_cache(128)
+    def _cached_pose(self, pdbfile):
+        posefile = self.posefile(pdbfile)
+        if posefile:
+            with open(posefile, 'rb') as f:
+                return pickle.load(f)
+        else:
+            print('reading pdb', pdbfile)
+            return pose_from_file(pdbfile)
+
     def pose(self, pdbfile):
         """load pose from _bblock_cache, read from file if not in memory"""
         if isinstance(pdbfile, bytes):
             pdbfile = str(pdbfile, 'utf-8')
         if isinstance(pdbfile, np.ndarray):
             pdbfile = str(bytes(pdbfile), 'utf-8')
-        if not pdbfile in self._poses_cache:
-            posefile = self.posefile(pdbfile)
-            if posefile:
-                with open(posefile, 'rb') as f:
-                    self._poses_cache[pdbfile] = pickle.load(f)
-            else:
-                print('reading pdb', pdbfile)
-                self._poses_cache[pdbfile] = pose_from_file(pdbfile)
-        return self._poses_cache[pdbfile]
+        return self._cached_pose(pdbfile)
 
     def bblock(self, pdbkey):
         if isinstance(pdbkey, list):
@@ -237,7 +239,6 @@ class NoCacheBBlockDB:
 
     def clear(self):
         self._bblock_cache.clear()
-        self._poses_cache.clear()
 
 
 class CachingSpliceDB:
