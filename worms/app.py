@@ -9,6 +9,10 @@ from time import time
 import concurrent.futures as cf
 import traceback
 
+import gc
+import psutil
+from pympler.asizeof import asizeof
+
 from tqdm import tqdm
 from xbin import gu_xbin_indexer, numba_xbin_indexer
 import homog as hg
@@ -249,7 +253,7 @@ def worms_main_each_mergebb(
     if parallel:
         exe = cf.ProcessPoolExecutor(max_workers=parallel)
     bbs_states = [[b._state for b in bb] for bb in bbs]
-    kw['db'][0].clear()  # remove cached BBlocks
+    kw['db'][0].clear_bblocks()  # remove cached BBlocks
     with exe as pool:
         merge_segment = criteria.merge_segment(**kw)
         if merge_segment is None:
@@ -449,7 +453,31 @@ def filter_and_output_results(
     if output_from_pose:
         info_file = None
         nresults = 0
-        for iresult in range(min(max_output, len(result.idx))):
+        Ntotal = min(max_output, len(result.idx))
+        for iresult in range(Ntotal):
+
+            if iresult % 100 == 0:
+                process = psutil.Process(os.getpid())
+                gc.collect()
+                mem_before = process.memory_info().rss / float(2**20)
+                pym_before = asizeof(db[0]) / float(2**20)
+                db[0].clear()
+                pym_after = asizeof(db[0]) / float(2**20)
+                gc.collect()
+                mem_after = process.memory_info().rss / float(2**20)
+                print(
+                    'clear db', mem_before, mem_after, mem_before - mem_after,
+                    'pympler', pym_before, pym_after, pym_before - pym_after
+                )
+
+            if iresult % 10 == 0:
+                process = psutil.Process(os.getpid())
+                print(
+                    f'mbb{merge_bblock:04} dumping results {iresult} of {Ntotal}',
+                    'pose_cache', sys.getsizeof(db[0]._poses_cache),
+                    len(db[0]._poses_cache),
+                    f'{process.memory_info().rss / float(2**20):,}mb'
+                )
 
             bases = ssdag.get_bases(result.idx[iresult])
             if no_duplicate_bases:
@@ -477,6 +505,11 @@ def filter_and_output_results(
             # _pickle.dump((ssdag, result, pose, prov), out)
 
             try:
+                # (jstr, jstr1, filt, grade, sp, mc, mcnh, mhc, nc, ncnh,
+                # nhc) = 'jstr', 'jstr1', 'AAAA', 'AAAA', [
+                # 1, 2, 3
+                # ], 1, 1, 1, 1, 1, 1
+
                 (jstr, jstr1, filt, grade, sp, mc, mcnh, mhc, nc, ncnh,
                  nhc) = run_db_filters(
                      db, criteria, ssdag, iresult, result.idx[iresult], pose,
@@ -488,7 +521,9 @@ def filter_and_output_results(
                 print(e)
                 continue
 
-            if output_only_AAAA and grade != 'AAAA': continue
+            if output_only_AAAA and grade != 'AAAA':
+                # print(f'mbb{merge_bblock:04} {iresult:06} bad grade', grade)
+                continue
 
             rms = criteria.iface_rms(pose, prov, **kw)
             # if rms > rms_err_cut: continue
@@ -498,8 +533,9 @@ def filter_and_output_results(
             score0 = sf(cenpose)
             if score0 > max_score0:
                 print(
-                    'score0 fail', merge_bblock, iresult, 'score0', score0,
-                    'rms', rms, 'grade', grade
+                    f'mbb{merge_bblock:04} {iresult:06} score0 fail',
+                    merge_bblock, iresult, 'score0', score0, 'rms', rms,
+                    'grade', grade
                 )
                 continue
 
@@ -520,7 +556,7 @@ def filter_and_output_results(
             score0sym = sfsym(sympose)
             if score0sym >= 2.0 * max_score0:
                 print(
-                    'score0sym fail', merge_bblock, iresult, 'score0sym',
+                    f'mbb{merge_bblock:06} {iresult:04} score0sym fail',
                     score0sym, 'rms', rms, 'grade', grade
                 )
                 continue

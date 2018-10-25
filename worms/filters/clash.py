@@ -26,6 +26,13 @@ def prune_clashes(
         return rslt
     max_clash_check = min(max_clash_check, len(rslt.idx))
     if max_clash_check < 0: max_clash_check = len(rslt.idx)
+
+    if not pbar:
+        print(
+            f'mbb{merge_bblock:04} checking clashes', max_clash_check, 'of',
+            len(rslt.err)
+        )
+
     verts = tuple(ssdag.verts)
     # exe = cf.ProcessPoolExecutor if parallel else InProcessExecutor
     exe = InProcessExecutor

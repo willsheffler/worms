@@ -110,7 +110,7 @@ def simple_search_dag(
         bbs = list()
         savename = output_prefix + '_bblocks.pickle'
 
-        if os.path.exists(savename):
+        if use_saved_bblocks and os.path.exists(savename):
             with open(savename, 'rb') as inp:
                 bbnames_list = _pickle.load(inp)
             for bbnames in bbnames_list:

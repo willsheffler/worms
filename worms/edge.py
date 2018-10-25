@@ -178,6 +178,7 @@ def get_allowed_splices(
             iblk0, iblk1, ofst0, ofst1, ires0, ires1 = future.stash
             result = future.result()
             if len(result) is 5 and isinstance(result[0], np.ndarray):
+                # is newly computed result, not from cache
                 rms, nclash, ncontact, ncnh, nhc = result
                 ok = ((nclash == 0) * (rms <= splice_max_rms) *
                       (ncontact >= splice_ncontact_cut) *
@@ -185,11 +186,8 @@ def get_allowed_splices(
                       (nhc >= splice_nhelix_contacted_cut))
                 result = _splice_respairs(ok, ublks[iblk0], vblks[iblk1])
                 if np.sum(ok) == 0:
-                    # print(nclash)
                     print('N no clash', np.sum(nclash == 0))
-                    # print(rms)
                     print('N rms', np.sum(rms <= splice_max_rms))
-                    # print(ncontact)
                     print('N contact', np.sum(ncontact >= splice_ncontact_cut))
 
                 if splicedb:

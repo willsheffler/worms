@@ -239,6 +239,10 @@ class NoCacheBBlockDB:
 
     def clear(self):
         self._bblock_cache.clear()
+        self._poses_cache.clear()
+
+    def clear_bblocks(self):
+        self._bblock_cache.clear()
 
 
 class CachingSpliceDB:
@@ -377,6 +381,10 @@ class CachingBBlockDB:
     def clear(self):
         self._bblock_cache.clear()
         self._poses_cache.clear()
+        if self._holding_lock: self.unlock_cachedir()
+
+    def clear_bblocks(self):
+        self._bblock_cache.clear()
         if self._holding_lock: self.unlock_cachedir()
 
     def get_json_entry(self, file):

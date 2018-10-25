@@ -46,8 +46,8 @@ def check_geometry(ssdag, crit, rslt, **kw):
     r.add('radius', radius)
 
     print(
-        'removing', np.sum(duplicate != 0), 'duplicates of', len(duplicate),
-        'results'
+        f'mbb{kw["merge_bblock"]:04} removing', np.sum(duplicate != 0),
+        'duplicates of', len(duplicate), 'results'
     )
     # remove duplicates
     r.update(duplicate == 0)
