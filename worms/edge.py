@@ -28,6 +28,7 @@ def Edge(u, ublks, v, vblks, verbosity=0, **kw):
     for i, a in enumerate(splice_ary):
         a[0] = len(splices[i]) + 1
         a[1:a[0]] = sorted(splices[i])
+        assert np.all(a[1:a[0]] >= 0), 'some splices are < 0'
 
     if splice_ary.shape[1] > 1:
         assert np.max(splice_ary[:, 1:]) < len(v.inbreaks), \
@@ -47,6 +48,7 @@ def splice_metrics_pair(
         splice_rms_range,
         splice_clash_contact_range,
         splice_clash_contact_by_helix,
+        splice_max_chain_length,
         skip_on_fail,
 ):
     return _jit_splice_metrics(
@@ -54,7 +56,7 @@ def splice_metrics_pair(
         blk0.connections, blk1.connections, blk0.ss, blk1.ss, blk0.cb, blk1.cb,
         splice_clash_d2, splice_contact_d2, splice_rms_range,
         splice_clash_contact_range, splice_clash_contact_by_helix,
-        splice_max_rms, skip_on_fail
+        splice_max_rms, splice_max_chain_length, skip_on_fail
     )
 
 
@@ -73,6 +75,7 @@ def get_allowed_splices(
         splice_clash_contact_by_helix=True,
         splice_ncontact_no_helix_cut=0,
         splice_nhelix_contacted_cut=0,
+        splice_max_chain_length=999999,
         skip_on_fail=True,
         parallel=False,
         verbosity=1,
@@ -89,7 +92,7 @@ def get_allowed_splices(
         splice_max_rms, splice_ncontact_cut, splice_clash_d2,
         splice_contact_d2, splice_rms_range, splice_clash_contact_range,
         splice_clash_contact_by_helix, splice_ncontact_no_helix_cut,
-        splice_nhelix_contacted_cut
+        splice_nhelix_contacted_cut, splice_max_chain_length
     )
 
     outidx = _get_outidx(u.inout[:, 1])
@@ -155,7 +158,7 @@ def get_allowed_splices(
                         blk0.cb, blk1.cb, splice_clash_d2, splice_contact_d2,
                         splice_rms_range, splice_clash_contact_range,
                         splice_clash_contact_by_helix, splice_max_rms,
-                        skip_on_fail
+                        splice_max_chain_length, skip_on_fail
                     )
                 fs = (iblk0, iblk1, ofst0, ofst1, ires0, ires1)
                 future.stash = fs
@@ -208,8 +211,11 @@ def get_allowed_splices(
                 continue
             index_of_ires0 = _index_of_map(ires0, np.max(result[0]))
             index_of_ires1 = _index_of_map(ires1, np.max(result[1]))
-            irs = index_of_ires0[result[0]] + ofst0
-            jrs = index_of_ires1[result[1]] + ofst1
+            irs = index_of_ires0[result[0]]
+            jrs = index_of_ires1[result[1]]
+            ok = (irs >= 0) * (jrs >= 0)
+            irs = irs[ok] + ofst0
+            jrs = jrs[ok] + ofst1
             for ir, jr in zip(irs, jrs):
                 valid_splices[ir].append(jr)
 
@@ -335,6 +341,7 @@ def _jit_splice_metrics(chains0, chains1,
                         splice_clash_contact_range,
                         splice_clash_contact_by_helix,
                         splice_max_rms,
+                        splice_max_chain_length,
                         skip_on_fail=True):  # yapf: disable
 
 
@@ -358,12 +365,18 @@ def _jit_splice_metrics(chains0, chains1,
         chainb10, chainb11 = _chainbounds_of_ires(chains1, aln1)
         if np.abs(chainb10 - aln1) < splice_rms_range: continue
         if np.abs(chainb11 - aln1) <= splice_rms_range: continue
+        chain_len1 = chainb11 - aln1
         stub1_inv = np.linalg.inv(stubs1[aln1])
 
         for ialn0, aln0 in enumerate(aln0s):
             chainb00, chainb01 = _chainbounds_of_ires(chains0, aln0)
             if np.abs(chainb00 - aln0) < splice_rms_range: continue
             if np.abs(chainb01 - aln0) <= splice_rms_range: continue
+
+            chain_len2 = aln0 - chainb00
+            if chain_len1 + chain_len2 > splice_max_chain_length:
+                continue
+
             xaln = stubs0[aln0] @ stub1_inv
 
             sum_d2, n1b = 0.0, 0

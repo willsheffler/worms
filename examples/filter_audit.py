@@ -50,6 +50,7 @@ def filter_audit():
             kw['splice_contact_d2'],
             kw['splice_rms_range'],
             kw['splice_clash_contact_range'],
+            kw['splice_max_chain_length'],
             splice_clash_contact_by_helix=True,
             skip_on_fail=False
         )

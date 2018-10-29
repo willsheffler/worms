@@ -38,6 +38,7 @@ def test_get_allowed_splices_fullsize_prots(bbdb_fullsize_prots):
         splice_contact_d2=10.0**2,
         splice_clash_contact_range=9,
         splice_clash_contact_by_helix=False,
+        splice_max_chain_length=999999
     )
     print(rms.shape)
 

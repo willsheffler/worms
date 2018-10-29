@@ -39,7 +39,7 @@ def BBlock(entry, pdbfile, filehash, pose, ss):
         assert 0, 'bad ncac'
     assert cb.shape == (len(pose), 4)
 
-    if entry['base'] != '':
+    if entry['base'] not in ('', 'n/a'):
         basehash = hash_str_to_int(entry['base'])
     else:
         basehash = 0

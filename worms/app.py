@@ -76,6 +76,7 @@ def parse_args(argv):
         splice_ncontact_cut=38,
         splice_ncontact_no_helix_cut=6,
         splice_nhelix_contacted_cut=3,
+        splice_max_chain_length=450,
         #
         tolerance=1.0,
         lever=25.0,
@@ -142,6 +143,12 @@ def parse_args(argv):
                 if isinstance(crit0, Cyclic) and crit0.origin_seg is not None:
                     assert crit0.origin_seg < len(bb)
                 crit.append(crit0)
+
+    # oh god... fix these huge assumptions about Criteria
+    for c in crit:
+        c.tolerance = args.tolerance
+        c.lever = args.lever
+        c.rot_tol = args.tolerance / args.lever
 
     if args.max_score0 > 9e8:
         args.max_score0 = 2.0 * len(crit[0].bbspec)
@@ -296,7 +303,7 @@ def worms_main_protocol(criteria, bbs_states=None, **kw):
         result3 = check_geometry(ssdag, criteria, result2, **kw)
 
         log = []
-        if len(result3.idx) > 0:
+        if True:  # len(result3.idx) > 0:
             msg = f'nresults after clash/geom check {len(result3.idx):,}'
             log.append('    ' + msg)
             print(log[-1])
@@ -304,7 +311,7 @@ def worms_main_protocol(criteria, bbs_states=None, **kw):
         log += filter_and_output_results(criteria, ssdag, result3, **kw)
 
         if not kw['pbar']:
-            print('completed: ' + str(kw['merge_bblock']))
+            print(f'completed: mbb{kw["merge_bblock"]:04}')
             sys.stdout.flush()
 
         return log
@@ -480,7 +487,10 @@ def filter_and_output_results(
                 )
 
             bases = ssdag.get_bases(result.idx[iresult])
+            bases_str = ','.join(bases)
             if no_duplicate_bases:
+                if '' in bases: bases.remove('')
+                if 'n/a' in bases: bases.remove('n/a')
                 bases_uniq = set(bases)
                 nbases = len(bases)
                 if criteria.is_cyclic: nbases -= 1
@@ -489,7 +499,6 @@ def filter_and_output_results(
                         bases[-1] = '(' + bases[-1] + ')'
                     print('duplicate bases fail', merge_bblock, iresult, bases)
                     continue
-            bases_str = ','.join(bases)
 
             pose, prov = make_pose_crit(
                 db[0],

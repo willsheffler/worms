@@ -17,6 +17,7 @@ def test_percomp_splices_1(bbdb_fullsize_prots, spdb):
         splice_ncontact_cut=30,
         splice_ncontact_no_helix_cut=0,
         splice_nhelix_contacted_cut=0,
+        splice_max_chain_length=999999,
         skip_on_fail=True,
         pbar=False,
         verbosity=0,

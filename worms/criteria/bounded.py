@@ -232,6 +232,7 @@ class Stack(WormCriteria):
         self.rot_tol = tolerance / lever
         self.is_cyclic = False
         self.symname = 'C' + str(self.sym)
+        self.origin_seg = None
 
     def score(self):
         raise NotImplementedError
@@ -249,7 +250,8 @@ class Stack(WormCriteria):
             cen2[2] = 0.0
             dist2 = np.sum(cen2**2)
             ang2 = np.arccos(np.abs(ax2[2]))**2
-            return np.sqrt(ang2 / rot_tol2 + dist2 / tol2)
+            err = np.sqrt(ang2 / rot_tol2 + dist2 / tol2)
+            return err
 
         return func
 
