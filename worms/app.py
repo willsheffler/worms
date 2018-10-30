@@ -495,12 +495,13 @@ def filter_and_output_results(
 
             if iresult % 10 == 0:
                 process = psutil.Process(os.getpid())
-                print(
-                    f'mbb{merge_bblock:04} dumping results {iresult} of {Ntotal}',
-                    'pose_cache', sys.getsizeof(db[0]._poses_cache),
-                    len(db[0]._poses_cache),
-                    f'{process.memory_info().rss / float(2**20):,}mb'
-                )
+                if hasattr(db[0], '_poses_cache'):
+                    print(
+                        f'mbb{merge_bblock:04} dumping results {iresult} of {Ntotal}',
+                        'pose_cache', sys.getsizeof(db[0]._poses_cache),
+                        len(db[0]._poses_cache),
+                        f'{process.memory_info().rss / float(2**20):,}mb'
+                    )
 
             bases = ssdag.get_bases(result.idx[iresult])
             bases_str = ','.join(bases)

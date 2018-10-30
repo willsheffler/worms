@@ -18,3 +18,4 @@
 --splice_clash_contact_by_helix 0
 --no_duplicate_bases 0
 --output_from_pose 0
+--splice_max_chain_length 999999

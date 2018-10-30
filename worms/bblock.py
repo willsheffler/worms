@@ -45,6 +45,8 @@ def BBlock(entry, pdbfile, filehash, pose, ss):
         basehash = 0
 
     def npfb(s):
+        if isinstance(s, list):
+            s = '[' + ','.join(s) + ']'
         return np.frombuffer(s.encode(), dtype='i1')
 
     bblock = _BBlock(
