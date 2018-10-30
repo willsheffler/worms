@@ -64,7 +64,7 @@ def parse_args(argv):
         merge_bblock=-1,
         no_duplicate_bases=1,
         shuffle_bblocks=1,
-
+        only_merge_bblocks=[-1],
 
         # splice stuff
         splice_rms_range=4,
@@ -154,6 +154,9 @@ def parse_args(argv):
         args.max_score0 = 2.0 * len(crit[0].bbspec)
 
     if args.merge_bblock < 0: args.merge_bblock = None
+    if args.only_merge_bblocks == [-1]:
+        args.only_merge_bblocks = []
+
     kw = vars(args)
     if args.disable_cache:
         kw['db'] = NoCacheBBlockDB(**kw), NoCacheSpliceDB(**kw)
@@ -254,7 +257,7 @@ def worms_main2(criteria_list, kw):
 
 def worms_main_each_mergebb(
         criteria, precache_splices, merge_bblock, parallel, verbosity, bbs,
-        pbar, **kw
+        pbar, only_merge_bblocks, **kw
 ):
     exe = util.InProcessExecutor()
     if parallel:
@@ -265,6 +268,9 @@ def worms_main_each_mergebb(
         merge_segment = criteria.merge_segment(**kw)
         if merge_segment is None:
             merge_segment = 0
+        merge_bblock_list = range(len(bbs[merge_segment]))
+        if only_merge_bblocks:
+            merge_bblock_list = only_merge_bblocks
         futures = [
             pool.submit(
                 worms_main_protocol,
@@ -276,7 +282,7 @@ def worms_main_each_mergebb(
                 precache_splices=precache_splices,
                 pbar=pbar,
                 **kw
-            ) for i in range(len(bbs[merge_segment]))
+            ) for i in merge_bblock_list
         ]
         log = ['split job over merge_bblock, n = ' + str(len(futures))]
         print(log[-1])

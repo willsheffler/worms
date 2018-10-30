@@ -245,7 +245,7 @@ class Stack(WormCriteria):
 
         @jit
         def func(pos, idx, verts):
-            cen2 = pos[to_seg, :, 3]
+            cen2 = pos[to_seg, :, 3].copy()  #  this was a good bug!
             ax2 = pos[to_seg, :, 2]
             cen2[2] = 0.0
             dist2 = np.sum(cen2**2)
