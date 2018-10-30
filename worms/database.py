@@ -239,7 +239,7 @@ class NoCacheBBlockDB:
 
     def clear(self):
         self._bblock_cache.clear()
-        self._poses_cache.clear()
+        # self._poses_cache.clear()
 
     def clear_bblocks(self):
         self._bblock_cache.clear()
