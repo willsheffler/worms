@@ -169,6 +169,7 @@ class NoCacheSpliceDB:
 
     def clear(self):
         # do nothing, as can't reload from cache
+        pass
 
 
 class NoCacheBBlockDB:
