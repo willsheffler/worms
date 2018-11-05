@@ -167,6 +167,9 @@ class NoCacheSpliceDB:
         # print('NoCacheSpliceDB not saving')
         pass
 
+    def clear(self):
+        # do nothing, as can't reload from cache
+
 
 class NoCacheBBlockDB:
     def __init__(self, dbfiles=[], cachedirs=[], **kw):
@@ -319,6 +322,9 @@ class CachingSpliceDB:
         if len(self._dirty):
             print(self._dirty)
             print('warning: some caches unsaved', len(self._dirty))
+
+    def clear(self):
+        self._cache.clear()
 
 
 class CachingBBlockDB:
@@ -653,7 +659,7 @@ class CachingBBlockDB:
             # print(cachefile)
             with open(cachefile, 'wb') as f:
                 pickle.dump(bblock._state, f)
-            print('saved new bblock cache file', cachefile)
+            # print('saved new bblock cache file', cachefile)
             if not os.path.exists(posefile):
                 try:
                     with open(posefile, 'wb') as f:

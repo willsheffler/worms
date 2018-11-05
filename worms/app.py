@@ -263,7 +263,10 @@ def worms_main_each_mergebb(
     if parallel:
         exe = cf.ProcessPoolExecutor(max_workers=parallel)
     bbs_states = [[b._state for b in bb] for bb in bbs]
-    kw['db'][0].clear_bblocks()  # remove cached BBlocks
+    # kw['db'][0].clear_bblocks()  # remove cached BBlocks
+    kw['db'][0].clear()
+    kw['db'][1].clear()
+
     with exe as pool:
         merge_segment = criteria.merge_segment(**kw)
         if merge_segment is None:
@@ -474,10 +477,7 @@ def filter_and_output_results(
         Ntotal = min(max_output, len(result.idx))
         for iresult in range(Ntotal):
 
-            print(
-                getmem(),
-                'MEM ================ top of loop ===================='
-            )
+            # print(getmem(), 'MEM ================ top of loop ===============')
 
             if iresult % 100 == 0:
                 process = psutil.Process(os.getpid())
@@ -517,7 +517,7 @@ def filter_and_output_results(
                     print('duplicate bases fail', merge_bblock, iresult, bases)
                     continue
 
-            print(getmem(), 'MEM make_pose_crit before')
+            # print(getmem(), 'MEM make_pose_crit before')
             pose, prov = make_pose_crit(
                 db[0],
                 ssdag,
@@ -527,9 +527,9 @@ def filter_and_output_results(
                 only_connected='auto',
                 provenance=True,
             )
-            print(getmem(), 'MEM make_pose_crit after')
+            # print(getmem(), 'MEM make_pose_crit after')
 
-            print(getmem(), 'MEM dbfilters before')
+            # print(getmem(), 'MEM dbfilters before')
             try:
                 (jstr, jstr1, filt, grade, sp, mc, mcnh, mhc, nc, ncnh,
                  nhc) = run_db_filters(
@@ -541,22 +541,22 @@ def filter_and_output_results(
                 print(traceback.format_exc())
                 print(e)
                 continue
-            print(getmem(), 'MEM dbfilters after')
+            # print(getmem(), 'MEM dbfilters after')
 
             if output_only_AAAA and grade != 'AAAA':
                 # print(f'mbb{merge_bblock:04} {iresult:06} bad grade', grade)
                 continue
 
-            print(getmem(), 'MEM rms before')
+            # print(getmem(), 'MEM rms before')
             rms = criteria.iface_rms(pose, prov, **kw)
             # if rms > rms_err_cut: continue
-            print(getmem(), 'MEM rms after')
+            # print(getmem(), 'MEM rms after')
 
-            print(getmem(), 'MEM poses and score0 before')
+            # print(getmem(), 'MEM poses and score0 before')
             cenpose = pose.clone()
             ros.core.util.switch_to_residue_type_set(cenpose, 'centroid')
             score0 = sf(cenpose)
-            print(getmem(), 'MEM poses and score0 after')
+            # print(getmem(), 'MEM poses and score0 after')
             if score0 > max_score0:
                 print(
                     f'mbb{merge_bblock:04} {iresult:06} score0 fail',
@@ -573,14 +573,14 @@ def filter_and_output_results(
             else:
                 symdata = util.get_symdata(criteria.symname)
 
-            print(getmem(), 'MEM poses and score0sym before')
+            # print(getmem(), 'MEM poses and score0sym before')
             sympose = cenpose.clone()
             # if pose.pdb_info() and pose.pdb_info().crystinfo().A() > 0:
             #     ros.protocols.cryst.MakeLatticeMover().apply(sympose)
             # else:
             ros.core.pose.symmetry.make_symmetric_pose(sympose, symdata)
             score0sym = sfsym(sympose)
-            print(getmem(), 'MEM poses and score0sym after')
+            # print(getmem(), 'MEM poses and score0sym after')
 
             if score0sym >= 2.0 * max_score0:
                 print(
@@ -593,15 +593,15 @@ def filter_and_output_results(
             if merge_bblock is not None:
                 mbbstr = f'{merge_bblock:4d}'
 
-            print(getmem(), 'MEM chains before')
+            # print(getmem(), 'MEM chains before')
             chains = pose.split_by_chain()
             chain_info = '%4d ' % (len(list(chains)))
             chain_info += '-'.join(str(len(c)) for c in chains)
-            print(getmem(), 'MEM chains after')
+            # print(getmem(), 'MEM chains after')
 
-            print(getmem(), 'MEM get_affected_positions before')
+            # print(getmem(), 'MEM get_affected_positions before')
             mod, new, lost, junct = get_affected_positions(cenpose, prov)
-            print(getmem(), 'MEM get_affected_positions after')
+            # print(getmem(), 'MEM get_affected_positions after')
 
             jpos = '-'.join(str(x) for x in junct)
             fname = '%s_%04i_%s_%s_%s' % (
@@ -621,7 +621,7 @@ def filter_and_output_results(
             )
             info_file.flush()
 
-            print(getmem(), 'MEM dump pdb before')
+            # print(getmem(), 'MEM dump pdb before')
             if output_symmetric: sympose.dump_pdb(fname + '_sym.pdb')
             if output_centroid: pose = cenpose
             pose.dump_pdb(fname + '_asym.pdb')
@@ -643,7 +643,7 @@ def filter_and_output_results(
                 out.write('Length of asymetric unit: ' + str(len(pose)) + '\n')
                 out.write('Number of chains in ASU: ' + str(nchain) + '\n')
                 out.write('Closure error: ' + str(rms) + '\n')
-            print(getmem(), 'MEM dump pdb after')
+            # print(getmem(), 'MEM dump pdb after')
 
         if info_file is not None:
             info_file.close()
