@@ -1,6 +1,6 @@
 from .base import *
 from worms import util
-from worms.criteria import make_hash_table, HashCriteria
+from worms.criteria import make_hash_table
 from homog import numba_axis_angle, hrot
 from xbin import gu_xbin_indexer, numba_xbin_indexer
 from copy import deepcopy
@@ -37,7 +37,7 @@ class Null(WormCriteria):
     def merge_segment(self, **kw):
         return self.from_seg
 
-    def which_mergeseg(self):
+    def cloned_segments(self):
         "which bbs are being merged together"
         return self.from_seg, self.to_seg
 

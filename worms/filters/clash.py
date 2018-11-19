@@ -93,6 +93,7 @@ def _chain_bounds(dirn, ires, chains, spliced_only=False, trim=8):
     "return bounds for only spliced chains, with spliced away sequence removed"
     chains = np.copy(chains)
     bounds = []
+    seenchain = -1
     if dirn[0] < 2:
         ir = ires[0]
         for i in range(len(chains)):
@@ -100,13 +101,22 @@ def _chain_bounds(dirn, ires, chains, spliced_only=False, trim=8):
             if lb <= ir < ub:
                 chains[i, dirn[0]] = ir + trim * (1, -1)[dirn[0]]
                 bounds.append((chains[i, 0], chains[i, 1]))
+                seenchain = i
     if dirn[1] < 2:
         ir = ires[1]
         for i in range(len(chains)):
             lb, ub = chains[i]
             if lb <= ir < ub:
                 chains[i, dirn[1]] = ir + trim * (1, -1)[dirn[1]]
-                bounds.append((chains[i, 0], chains[i, 1]))
+                if seenchain == i:
+                    if dirn[1]:
+                        tmp = bounds[0][0], chains[i, 1]
+                    else:
+                        tmp = chains[i, 0], bounds[0][1]
+                    # bounds[0][dirn[1]] = chains[i, dirn[1]]
+                    bounds[0] = tmp
+                else:
+                    bounds.append((chains[i, 0], chains[i, 1]))
     if spliced_only:
         return np.array(bounds, dtype=np.int32)
     else:

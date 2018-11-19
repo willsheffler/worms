@@ -55,7 +55,7 @@ def _query_names(bbdb, query, *, useclass=True, exclude_bases=None):
         if not c_hits and not t_hits: return n_hits
         if not t_hits and not n_hits: return c_hits
         if not n_hits: return c_hits if useclass else t_hits
-        assert False, 'invalid database or query'
+        assert False, f'invalid database or query'
     else:
         excon = None
         if subq.endswith('X'): excon = True

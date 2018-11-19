@@ -4,3 +4,4 @@ from .cyclic import *
 from .bounded import *
 from .unbounded import *
 from .null import *
+from .bridge import *

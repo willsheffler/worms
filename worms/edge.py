@@ -227,6 +227,9 @@ def get_allowed_splices(
             'pairs with no valid splices: ', pairs_with_no_valid_splices, 'of',
             len(outblk_res) * len(inblk_res)
         )
+        # assert pairs_with_no_valid_splices < len(outblk_res) * len(
+        # inblk_res
+        # ), 'no valid splices'
 
     return valid_splices, nout, nent
 

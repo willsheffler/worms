@@ -1,6 +1,6 @@
 from .base import *
 from worms import util
-from worms.criteria import make_hash_table, HashCriteria
+from worms.criteria import make_hash_table, WheelHashCriteria
 from homog import numba_axis_angle, hrot
 from xbin import gu_xbin_indexer, numba_xbin_indexer
 from copy import deepcopy
@@ -102,6 +102,8 @@ class Cyclic(WormCriteria):
     def alignment(self, segpos, **kw):
         if self.origin_seg is not None:
             return inv(segpos[self.origin_seg])
+        if self.nfold is 1:
+            return np.eye(4)
         x_from = segpos[self.from_seg]
         x_to = segpos[self.to_seg]
         xhat = x_to @ inv(x_from)
@@ -135,6 +137,21 @@ class Cyclic(WormCriteria):
             cart_err_sq = (np.sum(xhat[:, 3] * axis))**2
             return np.sqrt(rot_err_sq + cart_err_sq)
 
+        @util.jit
+        def func1(pos, idx, verts):
+            x_from = pos[from_seg]
+            x_to = pos[to_seg]
+            xhat = x_to @ np.linalg.inv(x_from)
+            cosang = (xhat[0, 0] + xhat[1, 1] + xhat[2, 2] - 1.0) / 2.0
+            rot_err_sq = (1.0 - cosang) * np.pi * lever**2  # hokey, but works
+            # axis, angle = numba_axis_angle(xhat)  # right way, but slower
+            # rot_err_sq = angle**2 * lever**2
+            cart_err_sq = np.sum(xhat[:3, 3]**2)
+            return np.sqrt(rot_err_sq + cart_err_sq)
+
+        if self.nfold is 1:
+            # print('Cyclic func1 lever', lever, from_seg, to_seg)
+            return func1
         return func
 
     def stages(self, hash_cart_resl, hash_ori_resl, bbs, **kw):
@@ -161,7 +178,7 @@ class Cyclic(WormCriteria):
             gubinner = gu_xbin_indexer(hash_cart_resl, hash_ori_resl)
             numba_binner = numba_xbin_indexer(hash_cart_resl, hash_ori_resl)
             keys, hash_table = make_hash_table(ssdagA, resultA, gubinner)
-            critB = HashCriteria(self, numba_binner, hash_table)
+            critB = WheelHashCriteria(self, numba_binner, hash_table)
             critB.bbspec = bbspec
             return critB
 
@@ -170,7 +187,7 @@ class Cyclic(WormCriteria):
     def merge_segment(self, **kw):
         return self.from_seg
 
-    def which_mergeseg(self):
+    def cloned_segments(self):
         "which bbs are being merged together"
         return self.from_seg, self.to_seg
 

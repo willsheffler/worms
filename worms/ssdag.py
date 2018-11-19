@@ -91,6 +91,7 @@ def simple_search_dag(
         modbbs=None,
         make_edges=True,
         merge_bblock=None,
+        merge_segment=None,
         precache_splices=False,
         precache_only=False,
         bbs=None,
@@ -113,14 +114,16 @@ def simple_search_dag(
         if use_saved_bblocks and os.path.exists(savename):
             with open(savename, 'rb') as inp:
                 bbnames_list = _pickle.load(inp)
+            if max(len(l) for l in bbnames_list) < nbblocks:
+                assert 0, f'less that nbblocks in {savename}'
             for bbnames in bbnames_list:
-                bbs.append([bbdb.bblock(n) for n in bbnames])
+                bbs.append([bbdb.bblock(n) for n in bbnames[:nbblocks]])
 
         else:
             for iquery, query in enumerate(queries):
                 msegs = [
                     i + len(queries) if i < 0 else i
-                    for i in criteria.which_mergeseg()
+                    for i in criteria.cloned_segments()
                 ]
                 if iquery in msegs[1:]:
                     print('seg', iquery, 'repeating bblocks from', msegs[0])
@@ -152,11 +155,11 @@ def simple_search_dag(
             print(f'   {query:10}', counts)
 
         if criteria.is_cyclic:
-            for a, b in zip(bbs[criteria.from_seg], bbs[criteria.to_seg]):
-                assert a is b
+            # for a, b in zip(bbs[criteria.from_seg], bbs[criteria.to_seg]):
+            # assert a is b
             bbs[criteria.to_seg] = bbs[criteria.from_seg]
 
-        if use_saved_bblocks:
+        if use_saved_bblocks and not os.path.exists(savename):
             bbnames = [[bytes(b.file).decode('utf-8')
                         for b in bb]
                        for bb in bbs]
@@ -169,9 +172,19 @@ def simple_search_dag(
     assert len(bbs) == len(criteria.bbspec)
     if modbbs: modbbs(bbs)
     if merge_bblock is not None and merge_bblock >= 0:
-        # print('which_mergeseg', criteria.bbspec, criteria.which_mergeseg())
-        for i in criteria.which_mergeseg():
-            bbs[i] = (bbs[i][merge_bblock], )
+        # print('cloned_segments', criteria.bbspec, criteria.cloned_segments())
+        if merge_segment is None:
+            # print('   ', 'merge_segment is None')
+            if hasattr(criteria, 'cloned_segments'):
+                for i in criteria.cloned_segments():
+                    # print('   ', 'merge seg', i, 'merge_bblock', merge_bblock)
+                    bbs[i] = (bbs[i][merge_bblock], )
+        else:
+            # print('   ', 'merge_segment not None')
+            # print('   ', [len(b) for b in bbs])
+            # print('   ', 'merge_segment', merge_segment)
+            # print('   ', 'merge_bblock', merge_bblock, len(bbs[merge_segment]))
+            bbs[merge_segment] = (bbs[merge_segment][merge_bblock], )
 
     tdb = time() - tdb
     # info(

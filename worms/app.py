@@ -18,6 +18,7 @@ from xbin import gu_xbin_indexer, numba_xbin_indexer
 import homog as hg
 
 from worms.criteria import *
+from worms.criteria.bridge import merge_results_bridge
 from worms.database import CachingBBlockDB, CachingSpliceDB
 from worms.database import NoCacheBBlockDB, NoCacheSpliceDB
 from worms.ssdag import simple_search_dag, graph_dump_pdb
@@ -65,6 +66,8 @@ def parse_args(argv):
         no_duplicate_bases=1,
         shuffle_bblocks=1,
         only_merge_bblocks=[-1],
+        merge_segment=-1,
+        min_seg_len=15,
 
         # splice stuff
         splice_rms_range=4,
@@ -86,6 +89,7 @@ def parse_args(argv):
         merged_err_cut=999.0,
         rms_err_cut=3.0,
         ca_clash_dis=3.0,
+        disable_clash_check=0,
         #
         max_linear=1000000,
         max_merge=100000,
@@ -146,9 +150,9 @@ def parse_args(argv):
 
     # oh god... fix these huge assumptions about Criteria
     for c in crit:
-        c.tolerance = args.tolerance
+        # c.tolerance = args.tolerance
         c.lever = args.lever
-        c.rot_tol = args.tolerance / args.lever
+        c.rot_tol = c.tolerance / args.lever
 
     if args.max_score0 > 9e8:
         args.max_score0 = 2.0 * len(crit[0].bbspec)
@@ -156,6 +160,8 @@ def parse_args(argv):
     if args.merge_bblock < 0: args.merge_bblock = None
     if args.only_merge_bblocks == [-1]:
         args.only_merge_bblocks = []
+    if args.merge_segment == -1:
+        args.merge_segment = None
 
     kw = vars(args)
     if args.disable_cache:
@@ -257,7 +263,7 @@ def worms_main2(criteria_list, kw):
 
 def worms_main_each_mergebb(
         criteria, precache_splices, merge_bblock, parallel, verbosity, bbs,
-        pbar, only_merge_bblocks, **kw
+        pbar, only_merge_bblocks, merge_segment, **kw
 ):
     exe = util.InProcessExecutor()
     if parallel:
@@ -268,10 +274,12 @@ def worms_main_each_mergebb(
     kw['db'][1].clear()
 
     with exe as pool:
-        merge_segment = criteria.merge_segment(**kw)
-        if merge_segment is None:
-            merge_segment = 0
-        merge_bblock_list = range(len(bbs[merge_segment]))
+        mseg = merge_segment
+        if mseg is None:
+            mseg = criteria.merge_segment(**kw)
+        if mseg is None:
+            mseg = 0
+        merge_bblock_list = range(len(bbs[mseg]))
         if only_merge_bblocks:
             merge_bblock_list = only_merge_bblocks
         futures = [
@@ -284,10 +292,11 @@ def worms_main_each_mergebb(
                 bbs_states=bbs_states,
                 precache_splices=precache_splices,
                 pbar=pbar,
+                merge_segment=merge_segment,
                 **kw
             ) for i in merge_bblock_list
         ]
-        log = ['split job over merge_bblock, n = ' + str(len(futures))]
+        log = [f'split job over merge_segment={mseg}, n = {len(futures)}']
         print(log[-1])
 
         fiter = cf.as_completed(futures)
@@ -298,7 +307,9 @@ def worms_main_each_mergebb(
         return log
 
 
-def worms_main_protocol(criteria, bbs_states=None, **kw):
+def worms_main_protocol(
+        criteria, bbs_states=None, disable_clash_check=0, **kw
+):
 
     try:
         if bbs_states is not None:
@@ -307,7 +318,10 @@ def worms_main_protocol(criteria, bbs_states=None, **kw):
         ssdag, result1, log = search_func(criteria, **kw)
         if result1 is None: return []
 
-        result2 = prune_clashes(ssdag, criteria, result1, **kw)
+        if disable_clash_check:
+            result2 = result1
+        else:
+            result2 = prune_clashes(ssdag, criteria, result1, **kw)
 
         result3 = check_geometry(ssdag, criteria, result2, **kw)
 
@@ -334,7 +348,7 @@ def worms_main_protocol(criteria, bbs_states=None, **kw):
         return []
 
 
-def search_func(criteria, bbs, monte_carlo, **kw):
+def search_func(criteria, bbs, monte_carlo, merge_segment, **kw):
 
     stages = [criteria]
     if hasattr(criteria, 'stages'):
@@ -355,18 +369,27 @@ def search_func(criteria, bbs, monte_carlo, **kw):
             lbl = f'stage{i}_mbb{kw["merge_bblock"]:04}'
         results.append(
             search_single_stage(
-                crit, monte_carlo=monte_carlo[i], lbl=lbl, bbs=stage_bbs, **kw
+                crit,
+                monte_carlo=monte_carlo[i],
+                lbl=lbl,
+                bbs=stage_bbs,
+                merge_segment=merge_segment,
+                **kw
             )
         )
-        if len(results[-1][2].idx) is 0:
+        if (not hasattr(crit, 'produces_no_results')
+                and len(results[-1][2].idx) is 0):
             print('mbb', kw['merge_bblock'], 'no results at stage', i)
             return None, None, None
 
-    if len(results) == 1:
+    # todo: this whole block is very protocol-specific... needs refactoring
+    if len(results) is 1:
         return results[0][1:]
-    elif len(results) == 2:
-        # todo: this whole block is very protocol-specific... needs refactoring
-        mseg = criteria.merge_segment(**kw)
+    elif len(results) is 2:
+
+        mseg = merge_segment
+        if mseg is None:
+            mseg = criteria.merge_segment(**kw)
         # simple_search_dag getting not-to-simple maybe split?
         _____, ssdA, rsltA, logA = results[0]
         critB, ssdB, rsltB, logB = results[1]
@@ -380,13 +403,44 @@ def search_func(criteria, bbs, monte_carlo, **kw):
             **kw
         )
         ssdag.verts = ssdB.verts[:-1] + (ssdag.verts[mseg], ) + ssdA.verts[1:]
+
         assert len(ssdag.verts) == len(criteria.bbspec)
         rslt = merge_results_concat(
             criteria, ssdag, ssdA, rsltA, critB, ssdB, rsltB, **kw
         )
         return ssdag, rslt, logA + logB
+
+    elif len(results) is 3:
+        # hacky: assume 3stage is brigde protocol
+
+        _____, ____, _____, logA = results[0]
+        _____, ssdB, _____, logB = results[1]
+        critC, ssdC, rsltC, logC = results[2]
+
+        assert _shared_ssdag
+        mseg = merge_segment
+        if mseg is None:
+            mseg = criteria.merge_segment(**kw)
+        ssdag = simple_search_dag(
+            criteria,
+            only_seg=mseg,
+            make_edges=False,
+            source=_shared_ssdag,
+            bbs=bbs,
+            **kw
+        )
+        ssdag.verts = ssdC.verts[:-1] + (ssdag.verts[mseg], ) + ssdB.verts[1:]
+        assert len(ssdag.verts) == len(criteria.bbspec)
+
+        rslt = merge_results_bridge(
+            criteria, critC, ssdag, ssdB, ssdC, rsltC, **kw
+        )
+
+        return ssdag, rslt, logA + logB + logC
+
     else:
-        raise NotImplementedError('dunno more than two stages!')
+
+        assert 0, 'unknown 3+ stage protcol'
 
 
 def search_single_stage(criteria, lbl='', **kw):
@@ -506,11 +560,12 @@ def filter_and_output_results(
             bases = ssdag.get_bases(result.idx[iresult])
             bases_str = ','.join(bases)
             if no_duplicate_bases:
+                if criteria.is_cyclic: bases = bases[:-1]
                 if '' in bases: bases.remove('')
+                if '?' in bases: bases.remove('?')
                 if 'n/a' in bases: bases.remove('n/a')
                 bases_uniq = set(bases)
                 nbases = len(bases)
-                if criteria.is_cyclic: nbases -= 1
                 if len(bases_uniq) != nbases:
                     if criteria.is_cyclic:
                         bases[-1] = '(' + bases[-1] + ')'
@@ -574,20 +629,23 @@ def filter_and_output_results(
                 symdata = util.get_symdata(criteria.symname)
 
             # print(getmem(), 'MEM poses and score0sym before')
-            sympose = cenpose.clone()
-            # if pose.pdb_info() and pose.pdb_info().crystinfo().A() > 0:
-            #     ros.protocols.cryst.MakeLatticeMover().apply(sympose)
-            # else:
-            ros.core.pose.symmetry.make_symmetric_pose(sympose, symdata)
-            score0sym = sfsym(sympose)
-            # print(getmem(), 'MEM poses and score0sym after')
+            if symdata:
+                sympose = cenpose.clone()
+                # if pose.pdb_info() and pose.pdb_info().crystinfo().A() > 0:
+                #     ros.protocols.cryst.MakeLatticeMover().apply(sympose)
+                # else:
+                ros.core.pose.symmetry.make_symmetric_pose(sympose, symdata)
+                score0sym = sfsym(sympose)
+                # print(getmem(), 'MEM poses and score0sym after')
 
-            if score0sym >= 2.0 * max_score0:
-                print(
-                    f'mbb{merge_bblock:06} {iresult:04} score0sym fail',
-                    score0sym, 'rms', rms, 'grade', grade
-                )
-                continue
+                if score0sym >= 2.0 * max_score0:
+                    print(
+                        f'mbb{merge_bblock:06} {iresult:04} score0sym fail',
+                        score0sym, 'rms', rms, 'grade', grade
+                    )
+                    continue
+            else:
+                score0sym = -1
 
             mbbstr = 'None'
             if merge_bblock is not None:
@@ -622,7 +680,8 @@ def filter_and_output_results(
             info_file.flush()
 
             # print(getmem(), 'MEM dump pdb before')
-            if output_symmetric: sympose.dump_pdb(fname + '_sym.pdb')
+            if symdata and output_symmetric:
+                sympose.dump_pdb(fname + '_sym.pdb')
             if output_centroid: pose = cenpose
             pose.dump_pdb(fname + '_asym.pdb')
             nresults += 1
@@ -652,6 +711,7 @@ def filter_and_output_results(
         nresults = 0
         for iresult in range(min(max_output, len(result.idx))):
             fname = '%s_%04i' % (head, iresult)
+            print(result.err[iresult], fname)
             graph_dump_pdb(
                 fname + '.pdb',
                 ssdag,

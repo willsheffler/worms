@@ -144,7 +144,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
         "return spearate criteria for each search stage"
         return [(self, bbs)]
 
-    def which_mergeseg(self):
+    def cloned_segments(self):
         "which bbs are being merged together"
         return (self.from_seg, )
 
@@ -346,7 +346,7 @@ class DihedralLattice(WormCriteria):
         "return spearate criteria for each search stage"
         return [(self, bbs)]
 
-    def which_mergeseg(self):
+    def cloned_segments(self):
         "which bbs are being merged together"
         return (self.from_seg, )
 

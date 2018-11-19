@@ -30,7 +30,7 @@ def lossfunc_rand_1_in(n):
 def grow_linear(
         ssdag,
         loss_function=null_lossfunc,
-        loss_threshold=2.0,
+        tolerance=1.0,
         last_bb_same_as=-1,
         parallel=0,
         monte_carlo=0,
@@ -45,6 +45,7 @@ def grow_linear(
 ):
     verts = ssdag.verts
     edges = ssdag.edges
+    loss_threshold = tolerance
     if last_bb_same_as is None: last_bb_same_as = -1
     assert len(verts) > 1
     assert len(verts) == len(edges) + 1

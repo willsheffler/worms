@@ -8,6 +8,27 @@ from worms.khash.khash_cffi import _khash_get
 from worms.util import jit
 
 
+@jit
+def encode_indices(sizes, indices):
+    prod = 1
+    index = 0
+    for i in range(len(sizes)):
+        index += prod * indices[i]
+        prod *= sizes[i]
+    return index
+
+
+@jit
+def decode_indices(sizes, index):
+    indices = np.zeros(sizes.shape, dtype=np.int64)
+    for i, size in enumerate(sizes):
+        indices[i] = index % size
+        index -= (index % size)
+        index /= size
+    assert index == 0
+    return indices
+
+
 def make_hash_table(ssdag, rslt, gubinner):
     if len(rslt.idx) is 0:
         return None, None
@@ -38,14 +59,14 @@ def make_hash_table(ssdag, rslt, gubinner):
     return keys, hash_table
 
 
-class HashCriteria(WormCriteria):
+class WheelHashCriteria(WormCriteria):
     def __init__(self, orig_criteria, binner, hash_table):
         self.orig_criteria = orig_criteria
         self.binner = binner
         self.hash_table = hash_table
         self.is_cyclic = False
 
-    def which_mergeseg(self):
+    def cloned_segments(self):
         return (-1, )
 
     def score(self, *args):

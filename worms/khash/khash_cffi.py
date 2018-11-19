@@ -18,6 +18,7 @@ static inline void *khash_int2int_init(void);
 static void khash_int2int_destroy(void *);
 static inline khint64_t khash_int2int_get(void *, khint64_t, khint64_t);
 static inline int khash_int2int_set(void *, khint64_t, khint64_t);
+static inline int khash_int2int_size(void *);
 """
 )
 
@@ -34,6 +35,7 @@ if not 'READTHEDOCS' in os.environ:
     _khash_init = _khash_ffi.lib.khash_int2int_init
     _khash_get = _khash_ffi.lib.khash_int2int_get
     _khash_set = _khash_ffi.lib.khash_int2int_set
+    _khash_size = _khash_ffi.lib.khash_int2int_size
     _khash_destroy = _khash_ffi.lib.khash_int2int_destroy
 
     # cffi_support.register_type(
@@ -62,6 +64,9 @@ class KHashi8i8:
 
     def set(self, i, v):
         return _khash_set(self.hash, i, v)
+
+    def size(self):
+        return _khash_size(self.hash)
 
     def __del__(self):
         _khash_destroy(self.hash)

@@ -20,6 +20,7 @@ def test_khash_jitclass():
     assert use_khash_jitclass(h, 13) == 14
     assert h.get(-2345) == -9223372036854775808
     assert h.get(926347) == -9223372036854775808
+    assert h.size() == 3
 
 
 @jit

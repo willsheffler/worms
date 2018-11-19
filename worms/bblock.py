@@ -105,7 +105,8 @@ def bblock_dump_pdb(
             if np.all(sponly[0] == c) or np.all(sponly[-1] == c):
                 continue
             chains.append(c)
-        chains.append(sponly[-1] if dirn[1] < 2 else None)
+        if len(sponly) > 1 or chains[0] is None:
+            chains.append(sponly[-1] if dirn[1] < 2 else None)
 
     aname = [' N  ', ' CA ', ' C  ']
     for ic, lbub in enumerate(chains):
