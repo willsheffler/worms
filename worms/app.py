@@ -34,6 +34,7 @@ from worms.khash.khash_cffi import _khash_get
 from worms.criteria.hash_util import _get_hash_val
 from worms.filters.db_filters import get_affected_positions
 from worms.bblock import _BBlock
+from worms.clashgrid import ClashGrid
 
 import pyrosetta
 from pyrosetta import rosetta as ros
@@ -56,6 +57,8 @@ def parse_args(argv):
         pbar=0,
         pbar_interval=10.0,
         #
+        context_structure='',
+        #
         cachedirs=[''],
         disable_cache=0,
         dbfiles=[''],
@@ -66,6 +69,7 @@ def parse_args(argv):
         no_duplicate_bases=1,
         shuffle_bblocks=1,
         only_merge_bblocks=[-1],
+        only_bblocks=[-1],
         merge_segment=-1,
         min_seg_len=15,
 
@@ -160,6 +164,8 @@ def parse_args(argv):
     if args.merge_bblock < 0: args.merge_bblock = None
     if args.only_merge_bblocks == [-1]:
         args.only_merge_bblocks = []
+    if args.only_bblocks == [-1]:
+        args.only_bblocks = []
     if args.merge_segment == -1:
         args.merge_segment = None
 
@@ -193,8 +199,13 @@ def worms_main2(criteria_list, kw):
     print('worms_main,', len(criteria_list), 'criteria, args:')
     for k, v in kw.items():
         print('   ', k, v)
-    pyrosetta.init('-mute all -beta -preserve_crystinfo')
+    pyrosetta.init('-mute all -beta -preserve_crystinfo --prevent_repacking')
     blosc.set_releasegil(True)
+
+    if kw['context_structure']:
+        kw['context_structure'] = ClashGrid(kw['context_structure'], **kw)
+    else:
+        kw['context_structure'] = None
 
     orig_output_prefix = kw['output_prefix']
 
@@ -216,6 +227,12 @@ def worms_main2(criteria_list, kw):
             kw['bbs'] = simple_search_dag(
                 criteria, merge_bblock=None, precache_only=True, **kw
             )
+            if kw['only_bblocks']:
+                assert len(kw['bbs']) is len(kw['only_bblocks'])
+                for i, bb in enumerate(kw['bbs']):
+                    kw['bbs'][i] = [bb[kw['only_bblocks'][i]]]
+                print('modified bblock numbers (--only_bblocks)')
+                print('   ', [len(b) for b in kw['bbs']])
             kw['merge_bblock'] = merge_bblock
             if kw['precache_splices_and_quit']:
                 return
@@ -666,15 +683,25 @@ def filter_and_output_results(
                 head, iresult, jpos, jstr[:200], grade
             )
 
+            # report bblock ids, taking into account merge_bblock shenani
+            ibblock_list = [
+                str(v.ibblock[i])
+                for i, v in zip(result.idx[iresult], ssdag.verts)
+            ]
+            mseg = kw['merge_segment']
+            mseg = criteria.merge_segment(**kw) if mseg is None else mseg
+            mseg = mseg or 0  # 0 if None
+            ibblock_list[mseg] = str(merge_bblock)
+
             if not info_file:
                 info_file = open(f'{output_prefix}{mbb}.info', 'w')
             info_file.write(
-                '%5.2f %5.2f %7.2f %7.2f %-8s %5.1f %5.1f %5.1f %4d %4d %4d %s %-80s %s  %s %s \n'
+                '%5.2f %5.2f %7.2f %7.2f %-8s %5.1f %5.1f %5.1f %4d %4d %4d %s %-80s %s  %s %s %s\n'
                 % (
                     result.err[iresult], rms, score0, score0sym, grade,
                     result.zheight[iresult], result.zradius[iresult],
                     result.radius[iresult], mc, mcnh, mhc, bases_str, fname,
-                    chain_info, jstr1, sp
+                    chain_info, jstr1, sp, '-'.join(ibblock_list)
                 )
             )
             info_file.flush()

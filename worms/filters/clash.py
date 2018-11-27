@@ -19,6 +19,7 @@ def prune_clashes(
         merge_bblock=None,
         pbar=False,
         pbar_interval=10.0,
+        context_structure=None,
         **kw
 ):
     # print('todo: clash check should handle symmetry')
@@ -49,6 +50,15 @@ def prune_clashes(
                 ssdag.bbs[k][verts[k].ibblock[rslt.idx[i, k]]].ncac
                 for k in range(len(ssdag.verts))
             ])
+            if context_structure:
+                clash = False
+                for pos, ncac in zip(rslt.pos[i], ncacs):
+                    xyz = pos @ ncac[..., None]
+                    if context_structure.clashcheck(xyz.squeeze()):
+                        clash = True
+                        break
+                if clash: continue
+
             futures.append(
                 pool.submit(
                     _check_all_chain_clashes,

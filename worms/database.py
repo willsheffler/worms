@@ -124,6 +124,14 @@ def _get_cachedirs(cachedirs):
     return cachedirs
 
 
+def sanitize_pdbfile(pdbfile):
+    if isinstance(pdbfile, bytes):
+        pdbfile = str(pdbfile, 'utf-8')
+    if isinstance(pdbfile, np.ndarray):
+        pdbfile = str(bytes(pdbfile), 'utf-8')
+    return pdbfile
+
+
 class NoCacheSpliceDB:
     """Stores valid NC splices for bblock pairs"""
 
@@ -443,14 +451,19 @@ class CachingBBlockDB:
 
     def pose(self, pdbfile):
         """load pose from _bblock_cache, read from file if not in memory"""
-        if isinstance(pdbfile, bytes):
-            pdbfile = str(pdbfile, 'utf-8')
-        if isinstance(pdbfile, np.ndarray):
-            pdbfile = str(bytes(pdbfile), 'utf-8')
+        pdbfile = sanitize_pdbfile(pdbfile)
         if not pdbfile in self._poses_cache:
             if not self.load_cached_pose_into_memory(pdbfile):
                 self._poses_cache[pdbfile] = pose_from_file(pdbfile)
         return self._poses_cache[pdbfile]
+
+    def savepose(self, pdbfile):
+        pdbfile = sanitize_pdbfile(pdbfile)
+        assert pdbfile in self._poses_cache
+        fname = self.posefile(pdbfile)
+        if not os.path.exists(fname):
+            with open(fname, 'wb') as out:
+                pickle.dump(self._poses_cache[pdbfile], out)
 
     def bblock(self, pdbkey):
         if isinstance(pdbkey, (str, bytes)):
@@ -567,7 +580,7 @@ class CachingBBlockDB:
                 return candidate
         return os.path.join(self.cachedirs[0], 'poses', flatten_path(pdbfile))
 
-    def load_pdbs_multiprocess(self, names, parallel):
+    def load_pdbs_multiprocess(self, names, parallel=0):
         self.read_new_pdbs, tmp = True, self.read_new_pdbs
         data = self.clear_caches()
         needs_unlock = False
