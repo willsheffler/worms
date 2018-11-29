@@ -10,12 +10,13 @@ class ClashGrid:
         self.clashdis = clashdis
         self.spacing = spacing
         bbdb = kw['db'][0]
-        # print('reading pose from bbdb')
-        self.pose = bbdb.pose(pdbfile)
+        print('ClashGrid: reading pose from bbdb', pdbfile)
+        # pose takes too much mem and too hard to serialize, dont store
+        pose = bbdb.pose(pdbfile)
+        assert pose is not None
         bbdb.savepose(pdbfile)
-        assert self.pose is not None
         # print('extracting coords')
-        self.ncac = util.get_bb_coords(self.pose).reshape(-1, 4)[:, :3]
+        self.ncac = util.get_bb_coords(pose).reshape(-1, 4)[:, :3]
         # print(self.ncac.shape)
         mn = self.ncac.min(axis=0) - self.clashdis
         mx = self.ncac.max(axis=0) + self.clashdis

@@ -182,6 +182,7 @@ class NoCacheSpliceDB:
 
 class NoCacheBBlockDB:
     def __init__(self, dbfiles=[], cachedirs=[], **kw):
+        self.dbfiles = dbfiles
         _read_dbfiles(self, dbfiles)
         self.cachedirs = _get_cachedirs(cachedirs)
         self._bblock_cache = dict()
@@ -255,6 +256,9 @@ class NoCacheBBlockDB:
 
     def clear_bblocks(self):
         self._bblock_cache.clear()
+
+    def report(self):
+        print('NoCacheBBlockDB nentries:', len(self._alldb))
 
 
 class CachingSpliceDB:
@@ -372,6 +376,7 @@ class CachingBBlockDB:
         self.verbosity = verbosity
         self._alldb = []
         self._holding_lock = False
+        self.dbfiles = dbfiles
         _read_dbfiles(self, dbfiles)
         if len(self._alldb) != len(self._dictdb):
             warning('!' * 100)
@@ -392,6 +397,10 @@ class CachingBBlockDB:
                 self.load_from_pdbs()
         for i, k in enumerate(sorted(self._dictdb)):
             self._alldb[i] = self._dictdb[k]
+
+    def report(self):
+        print('CachingBBlockDB nentries:', len(self._alldb))
+        print('    dbfiles:', '        \n'.join(self.dbfiles))
 
     def clear(self):
         self._bblock_cache.clear()

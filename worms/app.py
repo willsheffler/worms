@@ -90,6 +90,8 @@ def parse_args(argv):
         min_radius=0.0,
         hash_cart_resl=1.0,
         hash_ori_resl=5.0,
+        loose_hash_cart_resl=10.0,
+        loose_hash_ori_resl=20.0,
         merged_err_cut=999.0,
         rms_err_cut=3.0,
         ca_clash_dis=3.0,
@@ -175,6 +177,13 @@ def parse_args(argv):
     else:
         kw['db'] = CachingBBlockDB(**kw), CachingSpliceDB(**kw)
 
+    print('-------------- args ---------------')
+    for k, v in kw.items():
+        print('   ', k, v)
+    print('-----------------------------------')
+
+    kw['db'][0].report()
+
     return crit, kw
 
 
@@ -197,15 +206,8 @@ def worms_main(argv):
 def worms_main2(criteria_list, kw):
 
     print('worms_main,', len(criteria_list), 'criteria, args:')
-    for k, v in kw.items():
-        print('   ', k, v)
     pyrosetta.init('-mute all -beta -preserve_crystinfo --prevent_repacking')
     blosc.set_releasegil(True)
-
-    if kw['context_structure']:
-        kw['context_structure'] = ClashGrid(kw['context_structure'], **kw)
-    else:
-        kw['context_structure'] = None
 
     orig_output_prefix = kw['output_prefix']
 
@@ -269,6 +271,11 @@ def worms_main2(criteria_list, kw):
             for a, b in zip(_shared_ssdag.bbs, kw['bbs']):
                 for aa, bb in zip(a, b):
                     assert aa is bb
+
+        if kw['context_structure']:
+            kw['context_structure'] = ClashGrid(kw['context_structure'], **kw)
+        else:
+            kw['context_structure'] = None
 
         log = worms_main_each_mergebb(criteria, **kw)
         if kw['pbar']:

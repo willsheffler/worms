@@ -116,14 +116,7 @@ class HashCriteria(WormCriteria):
 
 
 class Bridge(WormCriteria):
-    def __init__(
-            self,
-            from_seg=0,
-            to_seg=-1,
-            *,
-            tolerance=1.0,
-            lever=25,
-    ):
+    def __init__(self, from_seg=0, to_seg=-1, *, tolerance=1.0, lever=25):
         self.from_seg = from_seg
         self.to_seg = to_seg
         self.tolerance = tolerance
@@ -151,7 +144,10 @@ class Bridge(WormCriteria):
     def alignment(self, pos, **kw):
         return np.eye(4)
 
-    def stages(self, hash_cart_resl, hash_ori_resl, bbs, **kw):
+    def stages(
+            self, bbs, hash_cart_resl, hash_ori_resl, loose_hash_cart_resl,
+            loose_hash_ori_resl, **kw
+    ):
         """Bridge grows a cyclic system in an A->B->A fashion
 
         Because growing A->...->A cycle is inefficient, split into
@@ -167,8 +163,8 @@ class Bridge(WormCriteria):
             to_seg=-1,
             # hash_cart_resl=6,
             # hash_ori_resl=25,
-            hash_cart_resl=10,
-            hash_ori_resl=20,
+            hash_cart_resl=loose_hash_cart_resl,
+            hash_ori_resl=loose_hash_ori_resl,
             merge_seg=self.merge_segment()
         )
         assert len(self.bbspec) == len(bbs)
@@ -186,10 +182,11 @@ class Bridge(WormCriteria):
         # print('   ', bbspecB)
 
         def critB(prevcrit, prevssdag, prevresult):
-            print(f'hash size from A {prevcrit.hash_table.size():,}    ')
             print(
-                f'ntotal    from A {prevresult.stats.total_samples[0]:,}    '
+                f'stageA hash: {prevcrit.hash_table.size():,},',
+                f' ntotal: {prevresult.stats.total_samples[0]:,}    '
             )
+
             critB = HashCriteria(
                 from_seg=-1,  # note: backwards! coming from other end
                 to_seg=0,  # in stage B, to_seg becomes origin here
@@ -205,12 +202,8 @@ class Bridge(WormCriteria):
             return critB
 
         def critC(prevcrit, prevssdag, prevresult):
-            print('')
-            print(f'hash size from B {prevcrit.hash_table.size():,}    ')
-            print(
-                f'ntotal    from B {prevresult.stats.total_samples[0]:,}    '
-            )
-            print('')
+            # print(f'stageB hash: {prevcrit.hash_table.size():,},',
+            # f'ntotal: {prevresult.stats.total_samples[0]:,}    ')
             critC = HashCriteria(
                 from_seg=0,
                 to_seg=-1,
