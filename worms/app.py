@@ -103,7 +103,7 @@ def parse_args(argv):
         #
         output_from_pose=1,
         output_symmetric=1,
-        output_prefix='./worms',
+        output_prefix='./',
         output_centroid=0,
         output_only_AAAA=0,
         #

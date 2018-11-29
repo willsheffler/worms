@@ -88,7 +88,7 @@ def prune_clashes(
                 position=merge_bblock + 1,
             )
 
-        ok = np.empty(len(futures), dtype='?')
+        ok = np.zeros(max_clash_check, dtype='?')
         for f in futures:
             ok[f.index] = f.result()
 
