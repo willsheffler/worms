@@ -169,6 +169,7 @@ class Bridge(WormCriteria):
         )
         assert len(self.bbspec) == len(bbs)
 
+        mbb = kw['merge_bblock']
         mseg = self.merge_segment()
         critA.bbspec = deepcopy(self.bbspec[:mseg + 1])
         critA.bbspec[-1][1] = critA.bbspec[-1][1][0] + '_'
@@ -183,8 +184,8 @@ class Bridge(WormCriteria):
 
         def critB(prevcrit, prevssdag, prevresult):
             print(
-                f'stageA hash: {prevcrit.hash_table.size():,},',
-                f' ntotal: {prevresult.stats.total_samples[0]:,}    '
+                f'mbb {mbb:3}A hash: {prevcrit.hash_table.size():8,},',
+                f' ntotal: {prevresult.stats.total_samples[0]:10,}    '
             )
 
             critB = HashCriteria(
@@ -202,8 +203,10 @@ class Bridge(WormCriteria):
             return critB
 
         def critC(prevcrit, prevssdag, prevresult):
-            # print(f'stageB hash: {prevcrit.hash_table.size():,},',
-            # f'ntotal: {prevresult.stats.total_samples[0]:,}    ')
+            print(
+                f'mbb {mbb:3}B hash: {prevcrit.hash_table.size():8,},',
+                f'ntotal: {prevresult.stats.total_samples[0]:10,}    '
+            )
             critC = HashCriteria(
                 from_seg=0,
                 to_seg=-1,

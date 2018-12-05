@@ -245,8 +245,14 @@ def worms_main2(criteria_list, kw):
             print('precaching splices')
             merge_bblock = kw['merge_bblock']
             del kw['merge_bblock']
+            pbar = kw['pbar']
+            del kw['pbar']
             kw['bbs'] = simple_search_dag(
-                criteria, merge_bblock=None, precache_only=True, **kw
+                criteria,
+                merge_bblock=None,
+                precache_only=True,
+                pbar=True,
+                **kw
             )
             if kw['only_bblocks']:
                 assert len(kw['bbs']) is len(kw['only_bblocks'])
@@ -255,6 +261,7 @@ def worms_main2(criteria_list, kw):
                 print('modified bblock numbers (--only_bblocks)')
                 print('   ', [len(b) for b in kw['bbs']])
             kw['merge_bblock'] = merge_bblock
+            kw['pbar'] = pbar
             if kw['precache_splices_and_quit']:
                 return
 
@@ -370,7 +377,7 @@ def worms_main_protocol(
 
         log = []
         if True:  # len(result3.idx) > 0:
-            msg = f'nresults after clash/geom check {len(result3.idx):,}'
+            msg = f'mbb{kw["merge_bblock"]:4} nresults after clash/geom check {len(result3.idx):,}'
             log.append('    ' + msg)
             print(log[-1])
 
@@ -494,9 +501,7 @@ def search_single_stage(criteria, lbl='', **kw):
                 ssdag, result = _pickle.load(inp)
                 return criteria, ssdag, result, ['from run cache ' + lbl]
 
-    assert _shared_ssdag
     ssdag = simple_search_dag(criteria, source=_shared_ssdag, lbl=lbl, **kw)
-    # print('number of bblocks:', [len(x) for x in ssdag.bbs])
 
     result, tsearch = run_and_time(
         grow_linear,

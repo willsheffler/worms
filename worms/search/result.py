@@ -9,7 +9,10 @@ SearchStats = namedtuple(
 
 
 def zero_search_stats():
-    return SearchStats(np.zeros(1), np.zeros(1), np.zeros(1))
+    return SearchStats(
+        np.zeros(1, dtype='i8'), np.zeros(1, dtype='i8'),
+        np.zeros(1, dtype='i8')
+    )
 
 
 ResultJIT = namedtuple('ResultJIT', ['pos', 'idx', 'err', 'stats'])

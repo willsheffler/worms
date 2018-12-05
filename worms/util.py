@@ -580,7 +580,12 @@ def get_cli_args(argv=None, **kw):
     for a in atfiles:
         argv.remove(a)
         with open(a[1:]) as inp:
-            argv = list(inp.read().split()) + argv
+            newargs = []
+            for l in inp:
+                # last char in l is newline, so [:-1] ok
+                newargs.extend(l[:l.find('#')].split())
+            argv = newargs + argv
+
     p = argparse.ArgumentParser()
     for k, v in kw.items():
         nargs = None
