@@ -41,6 +41,20 @@ from pyrosetta import rosetta as ros
 import blosc
 
 
+def check_nc(nc):
+    assert len(nc[0]
+               ) is 2, 'all connections should have two characters N C or _'
+    assert nc[0][0] is '_', 'first connection should begin with _'
+    assert nc[-1][1] is '_', 'last connection should end with _'
+    for i in range(1, len(nc)):
+        assert len(nc[i]) is 2
+        prev = nc[i - 1][1]
+        curr = nc[i][0]
+        check = ((prev is 'N' and curr is 'C')
+                 or (prev is 'C' and curr is 'N'))
+        assert check, 'all connections must go CN or NC'
+
+
 def parse_args(argv):
     args = util.get_cli_args(
         argv=argv,
@@ -105,7 +119,7 @@ def parse_args(argv):
         #
         output_from_pose=1,
         output_symmetric=1,
-        output_prefix='./',
+        output_prefix='./worms',
         output_centroid=0,
         output_only_AAAA=0,
         #
@@ -124,6 +138,7 @@ def parse_args(argv):
         crit = eval(''.join(args.geometry))
         bb = args.bbconn[1::2]
         nc = args.bbconn[0::2]
+        check_nc(nc)
         crit.bbspec = list(list(x) for x in zip(bb, nc))
         assert len(nc) == len(bb)
         assert crit.from_seg < len(bb)
@@ -144,6 +159,7 @@ def parse_args(argv):
                 bbnc = eval(lines[0])
                 bb = [x[0] for x in bbnc]
                 nc = [x[1] for x in bbnc]
+                check_nc(nc)
 
                 crit0 = eval(lines[1])
                 crit0.bbspec = list(list(x) for x in zip(bb, nc))
@@ -170,6 +186,9 @@ def parse_args(argv):
         args.only_bblocks = []
     if args.merge_segment == -1:
         args.merge_segment = None
+
+    if args.dbfiles == ['']:
+        assert 0, 'no --dbfiles specified'
 
     kw = vars(args)
     if args.disable_cache:
@@ -530,8 +549,17 @@ def filter_and_output_results(
         # do this once per run, at merge_bblock == 0 (or None)
         with open(head + '__HEADER.info', 'w') as info_file:
             info_file.write(
-                'close_err close_rms score0 score0sym filter zheight zradius radius nc nc_wo_jct n_nb  Name chain_info [exit_pdb exit_resN entrance_resN entrance_pdb]   jct_res \n'
+                'close_err close_rms score0 score0sym filter zheight zradius ' +
+                'radius nc nc_wo_jct n_nb bases_str fname nchain chain_len ' +
+                'splicepoints ibblocks'
             )
+            N = len(ssdag.verts)
+            info_file.write(' seg0_pdb_0 seg0_exit')
+            for i in range(1, N - 1):
+                info_file.write(
+                    ' seg%i_enter seg%i_pdb seg%i_exit' % (i, i, i)
+                )
+            info_file.write(' seg%i_enter seg%i_pdb' % (N - 1, N - 1))
 
         # make json files with bblocks for single result
         # tmp, seenit = list(), set()
@@ -705,10 +733,23 @@ def filter_and_output_results(
             info_file.write(
                 '%5.2f %5.2f %7.2f %7.2f %-8s %5.1f %5.1f %5.1f %4d %4d %4d %s %-80s %s  %s %s %s\n'
                 % (
-                    result.err[iresult], rms, score0, score0sym, grade,
-                    result.zheight[iresult], result.zradius[iresult],
-                    result.radius[iresult], mc, mcnh, mhc, bases_str, fname,
-                    chain_info, jstr1, sp, '-'.join(ibblock_list)
+                    result.err[iresult],
+                    rms,
+                    score0,
+                    score0sym,
+                    grade,
+                    result.zheight[iresult],
+                    result.zradius[iresult],
+                    result.radius[iresult],
+                    mc,
+                    mcnh,
+                    mhc,
+                    bases_str,
+                    fname,
+                    chain_info,
+                    '-'.join([str(x) for x in sp]),
+                    '-'.join(ibblock_list),
+                    jstr1,
                 )
             )
             info_file.flush()

@@ -85,7 +85,8 @@ def get_allowed_splices(
         pbar_interval=10.0,
         **kw
 ):
-    assert (u.dirn[1] + v.dirn[0]) == 1, 'get_allowed_splices dirn mismatch'
+    assert ((u.dirn[1] + v.dirn[0]) == 1,
+            'get_allowed_splices dirn mismatch (must be N->C or C->N)')
 
     # note: this is duplicated in edge_batch.py and they need to be the same
     params = (
