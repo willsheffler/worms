@@ -104,6 +104,12 @@ def simple_search_dag(
         output_prefix='./worms',
         **kw
 ):
+
+    print(
+        'simple_search_dag precache_only:', precache_only, ', make_edges:',
+        make_edges
+    )
+
     bbdb, spdb = db
     queries, directions = zip(*criteria.bbspec)
     tdb = time()

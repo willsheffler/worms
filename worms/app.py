@@ -50,6 +50,7 @@ def check_nc(nc):
         assert len(nc[i]) is 2
         prev = nc[i - 1][1]
         curr = nc[i][0]
+        if prev == '_' or curr == '_': continue
         check = ((prev is 'N' and curr is 'C')
                  or (prev is 'C' and curr is 'N'))
         assert check, 'all connections must go CN or NC'
@@ -86,6 +87,7 @@ def parse_args(argv):
         only_bblocks=[-1],
         merge_segment=-1,
         min_seg_len=15,
+        topology=[-1],
 
         # splice stuff
         splice_rms_range=4,
@@ -116,6 +118,7 @@ def parse_args(argv):
         max_clash_check=10000,
         max_output=1000,
         max_score0=9e9,
+        max_porosity=1.0,
         #
         output_from_pose=1,
         output_symmetric=1,
@@ -134,12 +137,15 @@ def parse_args(argv):
     )
     if args.config_file == ['']:
         args.config_file = []
+    if args.topology == [-1]:
+        args.topology = None
     if not args.config_file:
         crit = eval(''.join(args.geometry))
         bb = args.bbconn[1::2]
         nc = args.bbconn[0::2]
         check_nc(nc)
         crit.bbspec = list(list(x) for x in zip(bb, nc))
+        crit.topology = args.topology
         assert len(nc) == len(bb)
         assert crit.from_seg < len(bb)
         assert crit.to_seg < len(bb)
@@ -163,6 +169,7 @@ def parse_args(argv):
 
                 crit0 = eval(lines[1])
                 crit0.bbspec = list(list(x) for x in zip(bb, nc))
+                crit0.topology = args.topology
                 assert len(nc) == len(bb)
                 assert crit0.from_seg < len(bb)
                 assert crit0.to_seg < len(bb)
@@ -594,14 +601,11 @@ def filter_and_output_results(
                 process = psutil.Process(os.getpid())
                 gc.collect()
                 mem_before = process.memory_info().rss / float(2**20)
-                pym_before = asizeof(db[0]) / float(2**20)
                 db[0].clear()
-                pym_after = asizeof(db[0]) / float(2**20)
                 gc.collect()
                 mem_after = process.memory_info().rss / float(2**20)
                 print(
-                    'clear db', mem_before, mem_after, mem_before - mem_after,
-                    'pympler', pym_before, pym_after, pym_before - pym_after
+                    'clear db', mem_before, mem_after, mem_before - mem_after
                 )
 
             if iresult % 10 == 0:

@@ -116,6 +116,16 @@ class HashCriteria(WormCriteria):
 
 
 class Bridge(WormCriteria):
+    """
+    Bridge grows a cyclic system in an A->B->A fashion
+    Because growing A->...->A cycle is inefficient, split into
+    A->B and B->A then match via hashing. Hash table built this
+    would be inconveniently large, so this is done in three stages:
+    stage1: grow A->B and produce coarse_hash of all B positions
+    stage2: grow B->A if B is in coarse_hash, put in fine_hash
+    stage3: grow A->B if B is in fine_hash, record result
+    """
+
     def __init__(self, from_seg=0, to_seg=-1, *, tolerance=1.0, lever=25):
         self.from_seg = from_seg
         self.to_seg = to_seg
@@ -148,11 +158,7 @@ class Bridge(WormCriteria):
             self, bbs, hash_cart_resl, hash_ori_resl, loose_hash_cart_resl,
             loose_hash_ori_resl, **kw
     ):
-        """Bridge grows a cyclic system in an A->B->A fashion
-
-        Because growing A->...->A cycle is inefficient, split into
-        A->B and B->A then match via hashing. Hash table built this
-        would be inconveniently large, so this is done in three stages:
+        """
         stage1: grow A->B and produce coarse_hash of all B positions
         stage2: grow B->A if B is in coarse_hash, put in fine_hash
         stage3: grow A->B if B is in fine_hash, record result
