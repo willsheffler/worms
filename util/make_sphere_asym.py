@@ -24,8 +24,8 @@ def prune_to_asu(pts, frames):
     asu = pts[closest == 0]
     plot3d(asu)
 
-    test = r[:, None] @ pts[None, ..., None]
-    plot3d(test.reshape(-1, 3))
+    # test = r[:, None] @ pts[None, ..., None]
+    # plot3d(test.reshape(-1, 3))
 
     return asu
 
@@ -44,6 +44,7 @@ def main():
     # s_asym_ics = prune_to_asu(s, sym.icosahedral_frames)
     # with open('sphere_ics_asu.pickle', 'wb') as out:
     #     _pickle.dump(s_asym_ics, out)
+
     # return
 
     t = get_sphere_samples(sym='T')
@@ -51,9 +52,15 @@ def main():
     i = get_sphere_samples(sym='I')
     print('t', len(t), 'o', len(o), 'i', len(i))
     print('t', len(t) * 12, 'o', len(o) * 24, 'i', len(i) * 60)
-    plot3d(t)
-    plot3d(o)
-    plot3d(i)
+    plot3d(t, norm=0)
+    plot3d(o, norm=0)
+    plot3d(i, norm=0)
+    print(np.linalg.norm(t, axis=1).min())
+    print(np.linalg.norm(t, axis=1).max())
+    print(np.linalg.norm(o, axis=1).min())
+    print(np.linalg.norm(o, axis=1).max())
+    print(np.linalg.norm(i, axis=1).min())
+    print(np.linalg.norm(i, axis=1).max())
 
 
 if __name__ == '__main__':

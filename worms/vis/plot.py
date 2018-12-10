@@ -2,18 +2,38 @@ import numpy as np
 
 import homog as hg
 
-from glumpy.api.matplotlib import *
-from glumpy.transforms import *
+try:
+    from glumpy.api.matplotlib import *
+    from glumpy.transforms import *
+    _have_glumpy = True
+except ImportError:
+    _have_glumpy = False
+
+try:
+    import matplotlib.pyplot as plt
+    _have_matplotlib = True
+except ImportError:
+    _have_matplotlib = False
 
 
-def plot3d(data):
+def scatter(*args, **kwargs):
+    plt.scatter(*args, **kwargs)
+    plt.show()
 
-    com = data.mean(axis=0)
-    data -= com
-    rg = np.sqrt(np.sum(data**2) / len(data))
-    print(com)
-    print(rg)
-    data /= rg
+
+def plot3d(data, norm=True):
+    if not _have_glumpy:
+        print('plot3d: glumpy not available, no 3d plotting')
+        return
+
+    if norm:
+        data = data.copy()
+        com = data.mean(axis=0)
+        data -= com
+        rg = np.sqrt(np.sum(data**2) / len(data))
+        print('plot3d com', com)
+        print('plot3d rg', rg)
+        data /= rg
 
     figure = Figure((24, 12))
     # use shared Trackball iface

@@ -562,8 +562,8 @@ def filter_and_output_results(
         with open(head + '__HEADER.info', 'w') as info_file:
             info_file.write(
                 'close_err close_rms score0 score0sym filter zheight zradius ' +
-                'radius nc nc_wo_jct n_nb bases_str fname nchain chain_len ' +
-                'splicepoints ibblocks'
+                'radius porosity nc nc_wo_jct n_nb bases_str fname nchain chain_len '
+                + 'splicepoints ibblocks'
             )
             N = len(ssdag.verts)
             info_file.write(' seg0_pdb_0 seg0_exit')
@@ -740,7 +740,7 @@ def filter_and_output_results(
             if not info_file:
                 info_file = open(f'{output_prefix}{mbb}.info', 'w')
             info_file.write(
-                '%5.2f %5.2f %7.2f %7.2f %-8s %5.1f %5.1f %5.1f %4d %4d %4d %s %-80s %s  %s %s %s\n'
+                '%5.2f %5.2f %7.2f %7.2f %-8s %5.1f %5.1f %5.1f %5.3f %4d %4d %4d %s %-80s %s  %s %s %s\n'
                 % (
                     result.err[iresult],
                     rms,
@@ -750,6 +750,7 @@ def filter_and_output_results(
                     result.zheight[iresult],
                     result.zradius[iresult],
                     result.radius[iresult],
+                    result.porosity[iresult],
                     mc,
                     mcnh,
                     mhc,

@@ -6,6 +6,9 @@ from tqdm import tqdm
 import homog.sym as sym
 from worms.util import jit, InProcessExecutor
 from worms.search.result import ResultTable
+from worms.data.sphere import get_sphere_samples
+from worms.filters.clash import _chain_bounds
+from worms.vis.plot import plot3d, scatter
 
 
 def check_geometry(ssdag, crit, rslt, max_porosity=1.0, **kw):
@@ -15,6 +18,15 @@ def check_geometry(ssdag, crit, rslt, max_porosity=1.0, **kw):
     porosity = -np.ones_like(rslt.err)
     remove_me = np.ones_like(rslt.err, dtype=np.int32)
     verts = ssdag.verts
+
+    if max_porosity < 1.0 and crit.symname not in ('T', 'O', 'I'):
+        print('check_geometry: max_porosity only supported with sym T, O, I')
+    symframes = dict(
+        T=sym.tetrahedral_frames,
+        O=sym.octahedral_frames,
+        I=sym.icosahedral_frames
+    )
+
     selection = dict()
     for i, idx in enumerate(rslt.idx):
 
@@ -48,22 +60,47 @@ def check_geometry(ssdag, crit, rslt, max_porosity=1.0, **kw):
         if max_porosity >= 1.0: continue
         if crit.symname not in ('T', 'O', 'I'): continue
 
-        print('compute porosity', max_porosity)
+        # build ca coords
+        ca = list()
+        for iseg, bblock in enumerate(bb):
+            chains = _chain_bounds(
+                dirn=ssdag.verts[iseg].dirn,
+                ires=ssdag.verts[iseg].ires[idx[iseg]],
+                chains=bblock.chains,
+                spliced_only=iseg in (crit.from_seg, crit.to_seg),
+                trim=0
+            )
+            for lb, ub in chains:
+                # print('ca', iseg, lb, ub)
+                ca.append(rslt.pos[i, iseg] @ bblock.ncac[lb:ub, 1, :, None])
+        ca = np.concatenate(ca)
+        ca = xaln @ ca
 
-        porosity[i] = 0
+        # porosity check
 
-        if porosity[i] <= max_porosity:
+        frames = symframes[crit.symname]
+        symca = frames[:, None] @ ca
+        symca = symca[:, :, :3].squeeze().reshape(-1, 3)
+        normca = symca / np.linalg.norm(symca, axis=1)[:, None]
+
+        # compute fraction of sph points overlapped by protein
+        # sph is ~1degree covering radius grid
+        sph = get_sphere_samples(sym=crit.symname)
+        d2 = np.sum((sph[:, None] - normca)**2, axis=2)
+        md2 = np.min(d2, axis=1)
+        porosity[i] = sum(md2 > 0.002) / len(sph)
+        if porosity[i] > max_porosity:
             remove_me[i] = 1
 
     r = ResultTable(rslt)
     r.add('zheight', zheight)
     r.add('zradius', zradius)
     r.add('radius', radius)
-    r.add('radius', porosity)
+    r.add('porosity', porosity)
 
     print(
-        f'mbb{kw["merge_bblock"]:04} removing', np.sum(remove_me != 0),
-        'duplicates of', len(remove_me), 'results'
+        f'mbb{kw["merge_bblock"]:04} geometry: removing',
+        np.sum(remove_me != 0), ' of', len(remove_me), 'results'
     )
     # remove duplicates
     r.update(remove_me == 0)
