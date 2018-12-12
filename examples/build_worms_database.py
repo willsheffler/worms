@@ -3,7 +3,7 @@ import argparse
 
 import os
 
-from worms.util import get_cli_args
+from worms.cli import get_cli_args
 from worms.database import CachingBBlockDB
 
 import pyrosetta

@@ -32,7 +32,7 @@ class Null(WormCriteria):
         return func
 
     def stages(self, hash_cart_resl, hash_ori_resl, bbs, **kw):
-        return [(self, bbs)]
+        return [(self, bbs)], None
 
     def merge_segment(self, **kw):
         return self.from_seg

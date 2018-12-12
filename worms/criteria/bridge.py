@@ -225,7 +225,9 @@ class Bridge(WormCriteria):
             critC.bbspec = critA.bbspec
             return critC
 
-        return [(critA, bbsA), (critB, bbsB), (critC, bbsA)]
+        return [(critA, bbsA),
+                (critB, bbsB),
+                (critC, bbsA)], merge_results_bridge
 
     def iface_rms(self, pose, prov, **kw):
         return -1

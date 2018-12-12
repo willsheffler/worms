@@ -49,7 +49,7 @@ class Stack(WormCriteria):
 
     def stages(self, hash_cart_resl, hash_ori_resl, bbs, **kw):
         "return spearate criteria for each search stage"
-        return [(self, bbs)]
+        return [(self, bbs)], None
 
     def cloned_segments(self):
         "which bbs are being merged together"

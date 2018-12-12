@@ -15,7 +15,6 @@ class AxesIntersect(WormCriteria):
             tgtaxis2,
             from_seg=0,
             origin_seg=None,
-            y_seg=None,
             *,
             tolerance=1.0,
             lever=50,
@@ -57,7 +56,7 @@ class AxesIntersect(WormCriteria):
         self.sym_axes = [self.tgtaxis1, self.tgtaxis2]
         self.is_cyclic = False
         self.origin_seg = None
-        self.y_seg = None
+        self.segs = segs
 
     def score(self, segpos, verbosity=False, **kw):
         cen1 = segpos[self.from_seg][..., :, 3]
@@ -147,14 +146,41 @@ class AxesIntersect(WormCriteria):
             return None
         return self.from_seg
 
-    def stages(self, hash_cart_resl, hash_ori_resl, bbs, **kw):
+    def stages(self, hash_cart_resl, hash_ori_resl, bbs, topology, **kw):
         "return spearate criteria for each search stage"
-        if self.topology is None:
-            return [(self, bbs)]
+        if topology is None:
+            return [(self, bbs)], None
+
         # 3 component cage
-        print('foo')
-        import sys
-        sys.exit()
+        paths = topology.paths()
+        assert len(paths) == 2
+        segmap = {s: i for i, s in enumerate(self.segs)}
+        axes = [self.tgtaxis1, self.tgtaxis2, self.tgtaxis3]
+        from_seg = paths[0][0]
+        to_segA = paths[0][-1]
+        to_segB = paths[1][-1]
+
+        critA = AxesIntersect(
+            symname=self.symname,
+            from_seg=from_seg,
+            to_seg=to_segA,
+            tgtaxis1=axes[segmap[from_seg]],
+            tgtaxis2=axes[segmap[to_segA]]
+        )
+        critA.bbspec = [self.bbspec[i] for i in paths[0]]
+        bbsA = [bbs[i] for i in paths[0]]
+
+        critB = AxesIntersect(
+            symname=self.symname,
+            from_seg=from_seg,
+            to_seg=to_segB,
+            tgtaxis1=axes[segmap[from_seg]],
+            tgtaxis2=axes[segmap[to_segB]]
+        )
+        critB.bbspec = [self.bbspec[i] for i in paths[1]]
+        bbsB = [bbs[i] for i in paths[1]]
+
+        return [(critA, bbsA), (critB, bbsB)], None
 
     def cloned_segments(self):
         "which bbs are being merged together"

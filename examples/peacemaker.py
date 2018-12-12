@@ -20,7 +20,7 @@ from worms.ssdag_pose import make_pose, make_pose_crit
 from worms.ssdag import graph_dump_pdb
 from worms.filters.clash import prune_clashes
 from worms.util import jit
-from worms.app import get_cli_args
+from worms.cli import get_cli_args
 from worms.khash import KHashi8i8
 from worms.khash.khash_cffi import _khash_get
 from worms.search import lossfunc_rand_1_in, subset_result, ResultJIT

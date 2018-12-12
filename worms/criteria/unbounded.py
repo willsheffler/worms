@@ -142,7 +142,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
 
     def stages(self, hash_cart_resl, hash_ori_resl, bbs, **kw):
         "return spearate criteria for each search stage"
-        return [(self, bbs)]
+        return [(self, bbs)], None
 
     def cloned_segments(self):
         "which bbs are being merged together"
@@ -160,9 +160,8 @@ def Sheet_P321(c3=None, c2=None, **kw):
     )  ##this is currently identical to the D3 format...how do we change it to make it an array?
 
 
-def Sheet_P4212(
-        c4=None, c2=None, **kw
-):  ##should there be options for multiple C2's?
+def Sheet_P4212(c4=None, c2=None, **kw):
+    ##should there be options for multiple C2's?
     if c4 is None or c2 is None:
         raise ValueError('must specify ...?')  #one or two of c4, c2
     return AxesAngle(
@@ -170,23 +169,11 @@ def Sheet_P4212(
     )
 
 
-def Sheet_P6(
-        c6=None, c2=None, **kw
-):  ##should there be options for multiple C2's?
+def Sheet_P6(c6=None, c2=None, **kw):
     if c6 is None or c2 is None:
         raise ValueError('must specify ...?')  #one or two of c6, c2
     return AxesAngle(
         'Sheet_P6_C6_C2_depth3_1comp', Uz, Uz, from_seg=c6, to_seg=c2, **kw
-    )
-
-
-def Sheet_P4(
-        c4=None, c2=None, **kw
-):  ##should there be options for multiple C2's?
-    if c4 is None or c2 is None:
-        raise ValueError('must specify ...?')  #one or two of c6, c2
-    return AxesAngle(
-        'Sheet_P4_C4_C2_depth3_1comp', Uz, Uz, from_seg=c4, to_seg=c2, **kw
     )
 
 
@@ -344,7 +331,7 @@ class DihedralLattice(WormCriteria):
 
     def stages(self, hash_cart_resl, hash_ori_resl, bbs, **kw):
         "return spearate criteria for each search stage"
-        return [(self, bbs)]
+        return [(self, bbs)], None
 
     def cloned_segments(self):
         "which bbs are being merged together"
