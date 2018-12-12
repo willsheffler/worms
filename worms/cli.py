@@ -1,6 +1,7 @@
 import sys
 import argparse
 
+from worms import util
 from worms.criteria import *
 from worms.topology import Topology
 from worms.database import CachingBBlockDB, CachingSpliceDB
@@ -38,7 +39,7 @@ def get_cli_args(argv=None, **kw):
         # print('arg', k, type_, nargs, v)
     args = p.parse_args(argv)
     if hasattr(args, 'parallel') and args.parallel < 0:
-        args.parallel = cpu_count()
+        args.parallel = util.cpu_count()
     return args
 
 
