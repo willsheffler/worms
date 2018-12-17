@@ -22,7 +22,8 @@ def getmem():
 def filter_and_output_results(
         criteria, ssdag, result, output_from_pose, merge_bblock, db,
         output_symmetric, output_centroid, output_prefix, max_output,
-        max_score0, rms_err_cut, no_duplicate_bases, output_only_AAAA, **kw
+        max_score0, rms_err_cut, no_duplicate_bases, output_only_AAAA,
+        full_score0sym, **kw
 ):
     sf = ros.core.scoring.ScoreFunctionFactory.create_score_function('score0')
     sfsym = ros.core.scoring.symmetry.symmetrize_scorefunction(sf)
@@ -174,7 +175,12 @@ def filter_and_output_results(
                 #     ros.protocols.cryst.MakeLatticeMover().apply(sympose)
                 # else:
                 ros.core.pose.symmetry.make_symmetric_pose(sympose, symdata)
-                score0sym = sfsym(sympose)
+                if full_score0sym:
+                    sym_asym_pose = sympose.clone()
+                    ros.core.pose.symmetry.make_asymmetric_pose(sym_asym_pose)
+                    score0sym = sf(sym_asym_pose)
+                else:
+                    score0sym = sfsym(sympose)
                 # print(getmem(), 'MEM poses and score0sym after')
 
                 if score0sym >= 2.0 * max_score0:

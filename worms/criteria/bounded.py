@@ -2,6 +2,7 @@ from .base import WormCriteria, Ux, Uy, Uz
 import numpy as np
 import homog as hm
 from worms.util import jit
+from worms.merge.wye import wye_merge
 
 
 class AxesIntersect(WormCriteria):
@@ -180,7 +181,9 @@ class AxesIntersect(WormCriteria):
         critB.bbspec = [self.bbspec[i] for i in paths[1]]
         bbsB = [bbs[i] for i in paths[1]]
 
-        return [(critA, bbsA), (critB, bbsB)], None
+        print('3 comp cage stages!')
+
+        return [(critA, bbsA), (critB, bbsB)], wye_merge
 
     def cloned_segments(self):
         "which bbs are being merged together"

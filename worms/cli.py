@@ -106,6 +106,7 @@ def build_worms_setup_from_cli_args(argv):
         max_output=1000,
         max_score0=9e9,
         max_porosity=1.0,
+        full_score0sym=0,
         #
         output_from_pose=1,
         output_symmetric=1,
