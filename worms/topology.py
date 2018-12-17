@@ -39,6 +39,9 @@ class Topology:
     def paths(self):
         return enum_paths(self.forward, [0])
 
+    def is_linear(self):
+        return len(self.paths()) is 1
+
     def common_prefix(self):
         paths = self.paths()
         minlen = min(len(p) for p in paths)

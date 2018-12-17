@@ -149,7 +149,7 @@ class AxesIntersect(WormCriteria):
 
     def stages(self, hash_cart_resl, hash_ori_resl, bbs, topology, **kw):
         "return spearate criteria for each search stage"
-        if topology is None:
+        if topology.is_linear():
             return [(self, bbs)], None
 
         # 3 component cage
