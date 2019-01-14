@@ -88,7 +88,8 @@ def check_geometry(ssdag, crit, rslt, max_porosity=1.0, **kw):
         sph = get_sphere_samples(sym=crit.symname)
         d2 = np.sum((sph[:, None] - normca)**2, axis=2)
         md2 = np.min(d2, axis=1)
-        porosity[i] = sum(md2 > 0.002) / len(sph)
+        sphere_surface = 4 * np.pi * radius[i]**2
+        porosity[i] = sum(md2 > 0.002) / len(sph) * sphere_surface
         if porosity[i] > max_porosity:
             remove_me[i] = 1
 

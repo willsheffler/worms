@@ -175,12 +175,11 @@ def filter_and_output_results(
                 #     ros.protocols.cryst.MakeLatticeMover().apply(sympose)
                 # else:
                 ros.core.pose.symmetry.make_symmetric_pose(sympose, symdata)
+                score0sym = sfsym(sympose)
                 if full_score0sym:
                     sym_asym_pose = sympose.clone()
                     ros.core.pose.symmetry.make_asymmetric_pose(sym_asym_pose)
                     score0sym = sf(sym_asym_pose)
-                else:
-                    score0sym = sfsym(sympose)
                 # print(getmem(), 'MEM poses and score0sym after')
 
                 if score0sym >= 2.0 * max_score0:
