@@ -107,8 +107,8 @@ def test_linear_search_three(bbdb_fullsize_prots):
     idx = idx[isort, :]
     assert len(idx) == _num_splices(e) * _num_splices(f)
 
-    np.set_printoptions(threshold=np.nan)
-    print(repr(idx))
+    # np.set_printoptions(threshold=np.nan)
+    # print(repr(idx))
 
     assert np.all(
         idx ==
