@@ -27,6 +27,9 @@ def _validate_bbs_verts(bbs, verts):
 
 
 class SearchSpaceDag:
+    """represents search space
+    """
+
     def __init__(self, bbspec, bbs, verts, edges):
         _validate_bbs_verts(bbs, verts)
         assert isinstance(bbs[0][0], _BBlock)
@@ -104,12 +107,6 @@ def simple_search_dag(
         output_prefix='./worms',
         **kw
 ):
-
-    print(
-        'simple_search_dag precache_only:', precache_only, ', make_edges:',
-        make_edges
-    )
-
     bbdb, spdb = db
     queries, directions = zip(*criteria.bbspec)
     tdb = time()

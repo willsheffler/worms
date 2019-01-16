@@ -11,7 +11,7 @@ from worms.filters.clash import _chain_bounds
 from worms.vis.plot import plot3d, scatter
 
 
-def check_geometry(ssdag, crit, rslt, max_porosity=9e9, **kw):
+def check_geometry(ssdag, crit, rslt, max_porosity, max_com_redundancy, **kw):
     zheight = np.zeros_like(rslt.err)
     zradius = np.zeros_like(rslt.err)
     radius = np.zeros_like(rslt.err)
@@ -52,7 +52,7 @@ def check_geometry(ssdag, crit, rslt, max_porosity=9e9, **kw):
         mindist2 = 9e9
         for scoms in selcoms:
             mindist2 = min(mindist2, np.sum((scoms - coms)**2))
-        if mindist2 > 1.0:
+        if mindist2 > max_com_redundancy**2:
             selcoms.append(coms)
             remove_me[i] = 0
 

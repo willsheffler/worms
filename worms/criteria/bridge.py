@@ -190,7 +190,7 @@ class Bridge(WormCriteria):
 
         def critB(prevcrit, prevssdag, prevresult):
             print(
-                f'mbb {mbb:3}A hash: {prevcrit.hash_table.size():8,},',
+                f'mbb {mbb:4}a hash: {prevcrit.hash_table.size():8,},',
                 f' ntotal: {prevresult.stats.total_samples[0]:10,}    '
             )
 
@@ -210,7 +210,7 @@ class Bridge(WormCriteria):
 
         def critC(prevcrit, prevssdag, prevresult):
             print(
-                f'mbb {mbb:3}B hash: {prevcrit.hash_table.size():8,},',
+                f'mbb {mbb:4}b hash: {prevcrit.hash_table.size():8,},',
                 f'ntotal: {prevresult.stats.total_samples[0]:10,}    '
             )
             critC = HashCriteria(
