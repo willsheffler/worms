@@ -11,7 +11,7 @@ from worms.filters.clash import _chain_bounds
 from worms.vis.plot import plot3d, scatter
 
 
-def check_geometry(ssdag, crit, rslt, max_porosity=1.0, **kw):
+def check_geometry(ssdag, crit, rslt, max_porosity=9e9, **kw):
     zheight = np.zeros_like(rslt.err)
     zradius = np.zeros_like(rslt.err)
     radius = np.zeros_like(rslt.err)
@@ -19,7 +19,7 @@ def check_geometry(ssdag, crit, rslt, max_porosity=1.0, **kw):
     remove_me = np.ones_like(rslt.err, dtype=np.int32)
     verts = ssdag.verts
 
-    if max_porosity < 1.0 and crit.symname not in ('T', 'O', 'I'):
+    if max_porosity < 9e8 and crit.symname not in ('T', 'O', 'I'):
         print('check_geometry: max_porosity only supported with sym T, O, I')
     symframes = dict(
         T=sym.tetrahedral_frames,
@@ -57,7 +57,7 @@ def check_geometry(ssdag, crit, rslt, max_porosity=1.0, **kw):
             remove_me[i] = 0
 
         if remove_me[i]: continue
-        if max_porosity >= 1.0: continue
+        if max_porosity >= 9e8: continue
         if crit.symname not in ('T', 'O', 'I'): continue
 
         # build ca coords

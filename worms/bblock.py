@@ -49,6 +49,10 @@ def BBlock(entry, pdbfile, filehash, pose, ss):
             s = '[' + ','.join(s) + ']'
         return np.frombuffer(s.encode(), dtype='i1')
 
+    validated = entry['validated']
+    if validated in ('na', 'NA'):
+        validated = False
+
     bblock = _BBlock(
         json=npfb(json),
         connections=conn,
@@ -58,7 +62,7 @@ def BBlock(entry, pdbfile, filehash, pose, ss):
         protocol=npfb(entry['protocol']),
         name=npfb(entry['name']),
         classes=npfb(','.join(entry['class'])),
-        validated=entry['validated'],
+        validated=validated,
         _type=npfb(entry['type']),
         base=npfb(entry['base']),
         basehash=basehash,
@@ -72,6 +76,80 @@ def BBlock(entry, pdbfile, filehash, pose, ss):
     )
 
     return bblock
+
+
+
+@nb.jitclass((
+    ('json'       , nt.int8[:]),
+    ('connections', nt.int32[:, :]),
+    ('file'       , nt.int8[:]),
+    ('filehash'   , nt.int64),
+    ('components' , nt.int8[:]),
+    ('protocol'   , nt.int8[:]),
+    ('name'       , nt.int8[:]),
+    ('classes'    , nt.int8[:]),
+    ('validated'  , nt.boolean),
+    ('_type'      , nt.int8[:]),
+    ('base'       , nt.int8[:]),
+    ('basehash'   , nt.int64),
+    ('ncac'       , nt.float64[:, :, :]),
+    ('cb'         , nt.float64[:, :]),
+    ('chains'     , nt.int32[:,:]),
+    ('ss'         , nt.int8[:]),
+    ('stubs'      , nt.float64[:, :, :]),
+    ('com'        , nt.float64[:]),
+    ('rg'         , nt.float64),
+))  # yapf: disable
+class _BBlock:
+    def __init__(
+            self, json, connections, file, filehash, components, protocol,
+            name, classes, validated, _type, base, basehash, ncac, cb, chains,
+            ss, stubs, com, rg
+    ):
+        self.json = json
+        self.connections = connections
+        self.file = file
+        self.filehash = filehash
+        self.components = components
+        self.protocol = protocol
+        self.name = name
+        self.classes = classes
+        self.validated = validated
+        self._type = _type
+        self.base = base
+        self.basehash = basehash
+        self.ncac = ncac
+        self.cb = cb
+        self.chains = chains
+        self.ss = ss
+        self.stubs = stubs
+        self.com = com
+        self.rg = rg
+        assert np.isnan(np.sum(self.ncac)) == False
+        assert np.isnan(np.sum(self.cb)) == False
+        assert np.isnan(np.sum(self.stubs)) == False
+        assert np.isnan(np.sum(self.ss)) == False
+        assert np.isnan(np.sum(self.chains)) == False
+
+    @property
+    def n_connections(self):
+        return len(self.connections)
+
+    def conn_dirn(self, i):
+        return self.connections[i, 0]
+
+    def conn_resids(self, i):
+        return self.connections[i, 2:self.connections[i, 1]]
+
+    @property
+    def _state(self):
+        # MUST stay same order as args to __init__!!!!!
+        return (
+            self.json, self.connections, self.file, self.filehash,
+            self.components, self.protocol, self.name, self.classes,
+            self.validated, self._type, self.base, self.basehash, self.ncac,
+            self.cb, self.chains, self.ss, self.stubs, self.com, self.rg
+        )
 
 
 def bblock_dump_pdb(
@@ -181,79 +259,6 @@ def _ncac_to_stubs(ncac):
     stubs[:, :3, 3] = ncac[:, 1, :3]
     stubs[:, 3, 3] = 1
     return stubs
-
-
-@nb.jitclass((
-    ('json'       , nt.int8[:]),
-    ('connections', nt.int32[:, :]),
-    ('file'       , nt.int8[:]),
-    ('filehash'   , nt.int64),
-    ('components' , nt.int8[:]),
-    ('protocol'   , nt.int8[:]),
-    ('name'       , nt.int8[:]),
-    ('classes'    , nt.int8[:]),
-    ('validated'  , nt.boolean),
-    ('_type'      , nt.int8[:]),
-    ('base'       , nt.int8[:]),
-    ('basehash'   , nt.int64),
-    ('ncac'       , nt.float64[:, :, :]),
-    ('cb'         , nt.float64[:, :]),
-    ('chains'     , nt.int32[:,:]),
-    ('ss'         , nt.int8[:]),
-    ('stubs'      , nt.float64[:, :, :]),
-    ('com'        , nt.float64[:]),
-    ('rg'         , nt.float64),
-))  # yapf: disable
-class _BBlock:
-    def __init__(
-            self, json, connections, file, filehash, components, protocol,
-            name, classes, validated, _type, base, basehash, ncac, cb, chains,
-            ss, stubs, com, rg
-    ):
-        self.json = json
-        self.connections = connections
-        self.file = file
-        self.filehash = filehash
-        self.components = components
-        self.protocol = protocol
-        self.name = name
-        self.classes = classes
-        self.validated = validated
-        self._type = _type
-        self.base = base
-        self.basehash = basehash
-        self.ncac = ncac
-        self.cb = cb
-        self.chains = chains
-        self.ss = ss
-        self.stubs = stubs
-        self.com = com
-        self.rg = rg
-        assert np.isnan(np.sum(self.ncac)) == False
-        assert np.isnan(np.sum(self.cb)) == False
-        assert np.isnan(np.sum(self.stubs)) == False
-        assert np.isnan(np.sum(self.ss)) == False
-        assert np.isnan(np.sum(self.chains)) == False
-
-    @property
-    def n_connections(self):
-        return len(self.connections)
-
-    def conn_dirn(self, i):
-        return self.connections[i, 0]
-
-    def conn_resids(self, i):
-        return self.connections[i, 2:self.connections[i, 1]]
-
-    @property
-    def _state(self):
-        # MUST stay same order as args to __init__!!!!!
-        return (
-            self.json, self.connections, self.file, self.filehash,
-            self.components, self.protocol, self.name, self.classes,
-            self.validated, self._type, self.base, self.basehash, self.ncac,
-            self.cb, self.chains, self.ss, self.stubs, self.com, self.rg
-        )
 
 
 def bb_splice_res(bb, dirn):

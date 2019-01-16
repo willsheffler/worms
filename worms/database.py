@@ -106,6 +106,13 @@ def _read_dbfiles(bbdb, dbfiles):
         for e in bbdb._alldb
     }
 
+    pdb_files_missing = False
+    for entry in bbdb._alldb:
+        if not os.path.exists(entry['file']):
+            pdb_files_missing = True
+            print('pdb file pdb_files_missing:', entry['file'])
+    assert not pdb_files_missing
+
 
 def _get_cachedirs(cachedirs):
     cachedirs = cachedirs or []
@@ -202,6 +209,7 @@ class NoCacheBBlockDB:
                 return pickle.load(f)
         else:
             print('reading pdb', pdbfile)
+            assert os.path.exists(pdbfile)
             return pose_from_file(pdbfile)
 
     def pose(self, pdbfile):
@@ -463,6 +471,7 @@ class CachingBBlockDB:
         pdbfile = sanitize_pdbfile(pdbfile)
         if not pdbfile in self._poses_cache:
             if not self.load_cached_pose_into_memory(pdbfile):
+                assert os.path.exists(pdbfile)
                 self._poses_cache[pdbfile] = pose_from_file(pdbfile)
         return self._poses_cache[pdbfile]
 

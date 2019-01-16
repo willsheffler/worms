@@ -54,6 +54,8 @@ class Topology:
         if len(self.forward) is 0:
             return self.check_nc_linear(nc)
 
+        print('check_nc:', nc)
+
         for i in range(len(nc)):
             assert i in self.forward or i in self.backward
             if i not in self.forward:
@@ -74,9 +76,9 @@ class Topology:
                 assert nc[a][0] != nc[b][1]
 
     def check_nc_linear(self, nc):
-        assert len(
-            nc[0]
-        ) is 2, 'all connections should have two characters N C or _'
+        print('check_nc_linear:', nc)
+        for x in nc:
+            assert len(x) is 2, 'all conns should have two chars N C or _'
         assert nc[0][0] is '_', 'first connection should begin with _'
         assert nc[-1][1] is '_', 'last connection should end with _'
         for i in range(1, len(nc)):
