@@ -114,6 +114,7 @@ def build_worms_setup_from_cli_args(argv):
         output_prefix='./worms',
         output_centroid=0,
         output_only_AAAA=0,
+        output_short_fnames=0,
         #
         cache_sync=0.003,
         #

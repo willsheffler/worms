@@ -23,7 +23,7 @@ def filter_and_output_results(
         criteria, ssdag, result, output_from_pose, merge_bblock, db,
         output_symmetric, output_centroid, output_prefix, max_output,
         max_score0, rms_err_cut, no_duplicate_bases, output_only_AAAA,
-        full_score0sym, **kw
+        full_score0sym, output_short_fnames, **kw
 ):
     sf = ros.core.scoring.ScoreFunctionFactory.create_score_function('score0')
     sfsym = ros.core.scoring.symmetry.symmetrize_scorefunction(sf)
@@ -205,10 +205,13 @@ def filter_and_output_results(
             mod, new, lost, junct = get_affected_positions(cenpose, prov)
             # print(getmem(), 'MEM get_affected_positions after')
 
-            jpos = '-'.join(str(x) for x in junct)
-            fname = '%s_%04i_%s_%s_%s' % (
-                head, iresult, jpos, jstr[:200], grade
-            )
+            if output_short_fnames:
+                fname = '%s_%04i' % iresult
+            else:
+                jpos = '-'.join(str(x) for x in junct)
+                fname = '%s_%04i_%s_%s_%s' % (
+                    head, iresult, jpos, jstr[:200], grade
+                )
 
             # report bblock ids, taking into account merge_bblock shenani
             ibblock_list = [
