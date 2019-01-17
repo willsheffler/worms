@@ -221,6 +221,9 @@ def filter_and_output_results(
             ibblock_list[mseg] = str(merge_bblock)
 
             if not info_file:
+                d = os.path.dirname(output_prefix)
+                if d != '' and not os.path.exists(d):
+                    os.makedirs(d)
                 info_file = open(f'{output_prefix}{mbb}.info', 'w')
             info_file.write(
                 '%5.2f %5.2f %7.2f %7.2f %-8s %5.1f %5.1f %5.1f %5.3f %4d %4d %4d %s %-80s %s  %s %s %s\n'
