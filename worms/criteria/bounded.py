@@ -5,6 +5,24 @@ from worms.util import jit
 from worms.merge.wye import wye_merge
 
 
+@jit
+def numba_line_line_closest_points_pa(pt1, ax1, pt2, ax2):
+    C21 = pt2 - pt1
+    M = hm.numba_cross(ax1, ax2)
+    m2 = np.sum(M**2)
+    R = hm.numba_cross(C21, M / m2)
+    t1 = np.sum(R * ax2)
+    t2 = np.sum(R * ax1)
+    Q1 = pt1 - t1 * ax1
+    Q2 = pt2 - t2 * ax2
+    return Q1, Q2
+
+
+@jit
+def numba_normalized(v):
+    return v / hm.numba_norm(v)
+
+
 class AxesIntersect(WormCriteria):
     """
     """
@@ -82,11 +100,10 @@ class AxesIntersect(WormCriteria):
     def jit_lossfunc(self):
         from_seg = self.from_seg
         to_seg = self.to_seg
-        if self.distinct_axes:
-            raise NotImplementedError('T33 not supported yet')
         tgtangle = self.tgtangle
         tolerance = self.tolerance
         rot_tol = self.rot_tol
+        distinct_axes = self.distinct_axes
 
         @jit
         def func(pos, idx, verts):
@@ -94,8 +111,22 @@ class AxesIntersect(WormCriteria):
             cen2 = pos[to_seg][:, 3]
             ax1 = pos[from_seg][:, 2]
             ax2 = pos[to_seg][:, 2]
-            dist = hm.numba_line_line_distance_pa(cen1, ax1, cen2, ax2)
-            ang = np.arccos(np.abs(hm.numba_dot(ax1, ax2)))
+            if distinct_axes:
+                cen1 = cen1[:3]
+                cen2 = cen2[:3]
+                ax1 = ax1[:3]
+                ax2 = ax2[:3]
+                p, q = numba_line_line_closest_points_pa(cen1, ax1, cen2, ax2)
+                dist = np.sqrt(np.sum((p - q)**2))
+                cen = (p + q) / 2
+                ax1c = numba_normalized(cen1 - cen)
+                ax2c = numba_normalized(cen2 - cen)
+                if np.sum(ax1 * ax1c) < 0: ax1 = -ax1
+                if np.sum(ax2 * ax2c) < 0: ax2 = -ax2
+                ang = np.arccos(np.sum(ax1 * ax2))
+            else:
+                dist = hm.numba_line_line_distance_pa(cen1, ax1, cen2, ax2)
+                ang = np.arccos(np.abs(hm.numba_dot(ax1, ax2)))
             roterr2 = (ang - tgtangle)**2
             return np.sqrt(roterr2 / rot_tol**2 + (dist / tolerance)**2)
 
@@ -223,8 +254,8 @@ def Tetrahedral(c3=None, c2=None, c3b=None, **kw):
         'T',
         from_seg=from_seg,
         to_seg=to_seg,
-        tgtaxis1=(max(3, nf1), hm.sym.tetrahedral_axes[nf1]),
-        tgtaxis2=(max(3, nf2), hm.sym.tetrahedral_axes[nf2]),
+        tgtaxis1=(min(3, nf1), hm.sym.tetrahedral_axes[nf1]),
+        tgtaxis2=(min(3, nf2), hm.sym.tetrahedral_axes[nf2]),
         distinct_axes=(nf1 == 7),
         **kw
     )
