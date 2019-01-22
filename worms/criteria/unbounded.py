@@ -16,7 +16,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
             lever=50,
             to_seg=-1,
             space_group_str=None,
-            cell_dist_scale=1.0
+            cell_dist_scale=1.0,
     ):
         """ Worms criteria for non-intersecting axes re: unbounded things
 
@@ -347,3 +347,169 @@ class DihedralLattice(WormCriteria):
 
     def iface_rms(self, pose0, prov, **kw):
         return -1
+
+
+class Crystal_F23_T_C2(AxesAngle):
+    def __init__(self, t=None, c2=None, **kw):
+        if t is None or c2 is None:
+            raise ValueError('must specify ...?')
+        super().__init__(
+            'F23_T_C2_depth2_1comp',
+            tgtaxis1=[0, 0, 1, 0],
+            tgtaxis2=[0, 0, 1, 0],
+            from_seg=t,
+            to_seg=c2,
+            space_group_str="F 2 3",
+            cell_dist_scale=4.0,
+            **kw
+        )
+
+    def jit_lossfunc(self):
+        from_seg = self.from_seg
+        to_seg = self.to_seg
+        target_angle = self.target_angle
+        tolerance = self.tolerance
+        lever = self.lever
+
+        @jit
+        def func(pos, idx, verts):
+
+            cen2x = pos[to_seg, 0, 3]
+            cen2y = pos[to_seg, 1, 3]
+            dis_err2 = (cen2x - cen2y)**2
+
+            ax1 = pos[from_seg, :3, 2]
+            ax2 = pos[to_seg, :3, 2]
+            angle = np.arccos(np.abs(np.sum(ax1 * ax2)))
+            ang_err2 = (angle - target_angle)**2
+
+            return np.sqrt(ang_err2 * lever**2 + dis_err2) / tolerance
+
+        return func
+
+    def alignment(self, segpos, out_cell_spacing=False, **kw):
+        Xalign = np.eye(4)
+        cell_dist = segpos[-1][0, 3]  # x-coord
+
+        if out_cell_spacing:
+            return Xalign, cell_dist
+        else:
+            return Xalign
+
+
+class Crystal_F23_T_C3(AxesAngle):
+    def __init__(self, t=None, c3=None, **kw):
+        if t is None or c3 is None:
+            raise ValueError('must specify ...?')
+        super().__init__(
+            'F23_T_C3_depth2_1comp',
+            tgtaxis1=[0, 0, 1, 0],
+            tgtaxis2=[0, 0, 1, 0],
+            from_seg=t,
+            to_seg=c3,
+            space_group_str="F 2 3",
+            cell_dist_scale=1.0,
+            **kw
+        )
+
+    def jit_lossfunc(self):
+        from_seg = self.from_seg
+        to_seg = self.to_seg
+        target_angle = self.target_angle
+        tolerance = self.tolerance
+        lever = self.lever
+        centgt1 = np.array([2, 1, 1]) / np.sqrt(6)
+        centgt2 = np.array([1, 2, 1]) / np.sqrt(6)
+        centgt3 = np.array([1, 1, 2]) / np.sqrt(6)
+        axstgt1 = np.array([-1, +1, +1]) / np.sqrt(3)
+        axstgt2 = np.array([+1, -1, +1]) / np.sqrt(3)
+        axstgt3 = np.array([+1, +1, -1]) / np.sqrt(3)
+
+        @jit
+        def func(pos, idx, verts):
+            cen = pos[to_seg, :3, 3]
+            axs = pos[to_seg, :3, 2]
+
+            # axis ~= -1,1,1
+            # cen along 2,1,1
+
+            # axs norm already 1
+            cenperp = cen - np.sum(axs * cen) * axs
+            cenperp /= np.sqrt(np.sum(cenperp * cenperp))
+            assert cenperp.shape == (3, )
+
+            err1 = 1.0 - np.abs(np.sum(centgt1 * cenperp))
+            err1 += 1.0 - np.abs(np.sum(axstgt1 * axs))
+            # err2 = 1.0 - np.abs(np.sum(centgt2 * cenperp))
+            # err2 += 1.0 - np.abs(np.sum(axstgt2 * axs))
+            # err3 = 1.0 - np.abs(np.sum(centgt3 * cenperp))
+            # err3 += 1.0 - np.abs(np.sum(axstgt3 * axs))
+            # err = np.min(np.array([err1, err2, err3]))
+
+            return np.sqrt(err1) * lever
+
+        return func
+
+    def alignment(self, segpos, out_cell_spacing=False, **kw):
+        Xalign = np.eye(4)
+
+        cen = segpos[-1][:3, 3]
+        axs = segpos[-1][:3, 2]
+        cenperp = cen - np.sum(axs * cen) * axs
+        cell_dist = cenperp[0] * 3
+
+        if out_cell_spacing:
+            return Xalign, cell_dist
+        else:
+            return Xalign
+
+
+class Crystal_F23_T_T(AxesAngle):
+    def __init__(self, t=None, tb=None, **kw):
+        if t is None or tb is None:
+            raise ValueError('must specify ...?')
+        super().__init__(
+            'F23_T_T_depth2_1comp',
+            tgtaxis1=[0, 0, 1, 0],
+            tgtaxis2=[0, 0, 1, 0],
+            from_seg=t,
+            to_seg=tb,
+            space_group_str="F 2 3",
+            cell_dist_scale=2.0,
+            **kw
+        )
+
+    def jit_lossfunc(self):
+        from_seg = self.from_seg
+        to_seg = self.to_seg
+        target_angle = self.target_angle
+        tolerance = self.tolerance
+        lever = self.lever
+
+        @jit
+        def func(pos, idx, verts):
+
+            cen2x = pos[to_seg, 0, 3]
+            cen2y = pos[to_seg, 1, 3]
+            cen2z = pos[to_seg, 2, 3]
+            dis_err2 = (cen2x - cen2y)**2
+            dis_err2 += (cen2x - cen2z)**2
+            dis_err2 += (cen2y - cen2z)**2
+
+            ax1 = pos[from_seg, :3, 2]
+            ax2 = pos[to_seg, :3, 2]
+            angle = np.arccos(np.abs(np.sum(ax1 * ax2)))
+            ang_err2 = (angle - target_angle)**2
+
+            return np.sqrt(ang_err2 * lever**2 + dis_err2) / tolerance
+
+        return func
+
+    def alignment(self, segpos, out_cell_spacing=False, **kw):
+        Xalign = np.eye(4)
+        cell_dist = segpos[-1][0, 3]  # x-coord
+
+        if out_cell_spacing:
+            return Xalign, cell_dist
+        else:
+            return Xalign

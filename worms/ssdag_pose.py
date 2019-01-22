@@ -13,6 +13,7 @@ def make_pose_crit(
         only_connected='auto',
         provenance=False,
         join=True,
+        full_output_segs=[],
 ):
     cryst_info = None
     if hasattr(criteria, 'crystinfo'):
@@ -32,6 +33,7 @@ def make_pose_crit(
         is_cyclic=criteria.is_cyclic,
         position=criteria.alignment(positions),
         cryst_info=cryst_info,
+        full_output_segs=full_output_segs,
     )
 
 
@@ -49,6 +51,7 @@ def make_pose(
         is_cyclic=False,
         position=np.eye(4),
         cryst_info=None,
+        full_output_segs=[],
 ):
     cyclic_info = [None] * 5
     if is_cyclic:
@@ -100,7 +103,8 @@ def make_pose(
         cyclic_permute=is_cyclic,
         cyclictrim=cyclic_info[0],
         provenance=provenance,
-        make_chain_list=False
+        make_chain_list=False,
+        full_output_segs=full_output_segs,
     )
 
     if not provenance:

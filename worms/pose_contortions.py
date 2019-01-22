@@ -337,7 +337,8 @@ def make_contorted_pose(
         cyclic_permute,
         cyclictrim,
         provenance,
-        make_chain_list
+        make_chain_list,
+        full_output_segs,
 ):  # yapf: disable
     """there be dragons here"""
     nseg = len(entryexits)
@@ -367,6 +368,7 @@ def make_contorted_pose(
                 and (end or chains is not chainslist[-1])):
             skipsegs = ((to_seg, from_seg) if not is_cyclic else [])
             skipsegs = [nseg - 1 if x is -1 else x for x in skipsegs]
+            skipsegs = [s for s in skipsegs if s not in full_output_segs]
             if origin_seg is not None:
                 skipsegs.append(origin_seg)
             if ((only_connected == 'auto' and sources[0][0] in skipsegs)

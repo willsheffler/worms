@@ -120,6 +120,7 @@ def filter_and_output_results(
                 result.pos[iresult],
                 only_connected='auto',
                 provenance=True,
+                # full_output_segs=[0],
             )
             # print(getmem(), 'MEM make_pose_crit after')
 

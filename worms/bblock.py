@@ -28,6 +28,7 @@ def BBlock(entry, pdbfile, filehash, pose, ss):
     conn = _make_connections_array(entry['connections'], chains)
     if len(conn) is 0:
         print('bad conn info!', pdbfile)
+        assert 0
         return None, pdbfile  # new, missing
     if ncac.shape[-1] is 4:
         ncac = ncac.astype(np.float64)
