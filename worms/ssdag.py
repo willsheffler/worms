@@ -82,6 +82,13 @@ class SearchSpaceDag:
         memedge = [x.memuse // 2**10 for x in self.edges]
         print(f'    edge memuse (kb):   {sum(memedge):8,}', memedge)
 
+    def report_size(self):
+        sizevert = [x.memuse for x in self.verts]
+        sizeedge = [x.memuse for x in self.edges]
+        print('SearchSpaceDag sizes:')
+        print(f'    vertex sizes: {sum(sizevert):8,}', sizevert)
+        print(f'    edge sizes:   {sum(sizeedge):8,}', sizeedge)
+
 
 def simple_search_dag(
         criteria,

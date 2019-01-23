@@ -387,12 +387,11 @@ class CachingBBlockDB:
         self.dbfiles = dbfiles
         _read_dbfiles(self, dbfiles)
         if len(self._alldb) != len(self._dictdb):
+            dups = len(self._alldb) - len(self._dictdb)
             warning('!' * 100)
-            warning(
-                '!' * 23, 'DIRE WARNING: %6i duplicate pdb files in database' %
-                (len(self._alldb) - len(self._dictdb)), '!' * 23
-            )
+            warning('DIRE WARNING: %6i duplicate pdb files in database' % dups)
             warning('!' * 100)
+            assert 0
         info('loading %i db entries' % len(self._alldb))
         self.n_new_entries = 0
         self.n_missing_entries = len(self._alldb)

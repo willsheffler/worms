@@ -2,6 +2,8 @@ from .base import WormCriteria
 
 import numpy as np
 
+from worms.util import jit
+
 
 class Stack(WormCriteria):
     """

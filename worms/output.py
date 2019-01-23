@@ -207,7 +207,7 @@ def filter_and_output_results(
             # print(getmem(), 'MEM get_affected_positions after')
 
             if output_short_fnames:
-                fname = '%s_%04i' % iresult
+                fname = '%s_%04i' % (head, iresult)
             else:
                 jpos = '-'.join(str(x) for x in junct)
                 fname = '%s_%04i_%s_%s_%s' % (
