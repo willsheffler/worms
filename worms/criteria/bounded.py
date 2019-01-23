@@ -216,9 +216,9 @@ class AxesIntersect(WormCriteria):
 
         return [(critA, bbsA), (critB, bbsB)], wye_merge
 
-    def cloned_segments(self):
-        "which bbs are being merged together"
-        return (self.from_seg, )
+    # def cloned_segments(self):
+    # "which bbs are being merged together"
+    # return (self.from_seg, )
 
     def iface_rms(self, pose0, prov, **kw):
         return -1

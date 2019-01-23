@@ -131,14 +131,17 @@ def simple_search_dag(
 
         else:
             for iquery, query in enumerate(queries):
-                msegs = [
-                    i + len(queries) if i < 0 else i
-                    for i in criteria.cloned_segments()
-                ]
-                if iquery in msegs[1:]:
-                    print('seg', iquery, 'repeating bblocks from', msegs[0])
-                    bbs.append(bbs[msegs[0]])
-                    continue
+                if hasattr(criteria, 'cloned_segments'):
+                    msegs = [
+                        i + len(queries) if i < 0 else i
+                        for i in criteria.cloned_segments()
+                    ]
+                    if iquery in msegs[1:]:
+                        print(
+                            'seg', iquery, 'repeating bblocks from', msegs[0]
+                        )
+                        bbs.append(bbs[msegs[0]])
+                        continue
                 bbs0 = bbdb.query(
                     query,
                     max_bblocks=nbblocks,
@@ -181,6 +184,7 @@ def simple_search_dag(
 
     assert len(bbs) == len(criteria.bbspec)
     if modbbs: modbbs(bbs)
+
     if merge_bblock is not None and merge_bblock >= 0:
         # print('cloned_segments', criteria.bbspec, criteria.cloned_segments())
         if merge_segment is None:

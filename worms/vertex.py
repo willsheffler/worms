@@ -264,8 +264,6 @@ def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0):
     assert inbreaks.dtype == np.int32
     assert np.all(inbreaks <= len(inout))
 
-    print('Vertex bbs:', len(bbs), 'x2exit.shape:', tup[0].shape)
-
     return _Vertex(
         *tup, inout, inbreaks, np.array([din, dout], dtype='i4'), min_seg_len
     )
