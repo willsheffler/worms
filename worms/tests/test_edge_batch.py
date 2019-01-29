@@ -3,7 +3,7 @@ from worms.edge_batch import compute_splices
 
 
 def test_percomp_splices_1(bbdb_fullsize_prots, spdb):
-    names = bbdb_fullsize_prots.query_names('all')
+    names = bbdb_fullsize_prots.query_names("all")
     pairs = [(a, b) for a in names for b in names]
     splices = compute_splices(
         bbdb_fullsize_prots,
@@ -21,12 +21,12 @@ def test_percomp_splices_1(bbdb_fullsize_prots, spdb):
         skip_on_fail=True,
         pbar=False,
         verbosity=0,
-        parallel=0
+        parallel=0,
     )
-    k0 = ('worms/data/fullsize1.pdb', 'worms/data/fullsize1.pdb')
-    k1 = ('worms/data/fullsize1.pdb', 'worms/data/fullsize2.pdb')
-    k2 = ('worms/data/fullsize2.pdb', 'worms/data/fullsize1.pdb')
-    k3 = ('worms/data/fullsize2.pdb', 'worms/data/fullsize2.pdb')
+    k0 = ("worms/data/fullsize1.pdb", "worms/data/fullsize1.pdb")
+    k1 = ("worms/data/fullsize1.pdb", "worms/data/fullsize2.pdb")
+    k2 = ("worms/data/fullsize2.pdb", "worms/data/fullsize1.pdb")
+    k3 = ("worms/data/fullsize2.pdb", "worms/data/fullsize2.pdb")
 
     # print(repr(list(splices[k2][0])))
     # print(repr(list(splices[k2][1])))
@@ -38,26 +38,81 @@ def test_percomp_splices_1(bbdb_fullsize_prots, spdb):
     assert np.all(splices[k1][0] == [])
     assert np.all(splices[k1][1] == [])
     assert np.all(
-        splices[k2][0] == [
-            537, 537, 538, 538, 553, 553, 553, 554, 554, 554, 555, 555, 556,
-            557, 559, 559, 559, 559, 560, 560, 560
+        splices[k2][0]
+        == [
+            537,
+            537,
+            538,
+            538,
+            553,
+            553,
+            553,
+            554,
+            554,
+            554,
+            555,
+            555,
+            556,
+            557,
+            559,
+            559,
+            559,
+            559,
+            560,
+            560,
+            560,
         ]
     )
     assert np.all(
-        splices[k2][1] == [
-            15, 332, 330, 333, 15, 347, 348, 12, 330, 348, 331, 346, 332, 30,
-            32, 331, 346, 347, 332, 347, 348
+        splices[k2][1]
+        == [
+            15,
+            332,
+            330,
+            333,
+            15,
+            347,
+            348,
+            12,
+            330,
+            348,
+            331,
+            346,
+            332,
+            30,
+            32,
+            331,
+            346,
+            347,
+            332,
+            347,
+            348,
         ]
     )
     assert np.all(
-        splices[k3][0] == [
-            537, 537, 553, 553, 554, 554, 555, 555, 556, 556, 556, 557, 558,
-            559, 559, 560, 560, 560
+        splices[k3][0]
+        == [
+            537,
+            537,
+            553,
+            553,
+            554,
+            554,
+            555,
+            555,
+            556,
+            556,
+            556,
+            557,
+            558,
+            559,
+            559,
+            560,
+            560,
+            560,
         ]
     )
     assert np.all(
-        splices[k3][1] == [
-            15, 34, 31, 34, 29, 32, 29, 33, 15, 30, 34, 31, 32, 33, 34, 15, 28,
-            34
-        ]
+        splices[k3][1]
+        == [15, 34, 31, 34, 29, 32, 29, 33, 15, 30, 34, 31, 32, 33, 34, 15, 28, 34]
     )

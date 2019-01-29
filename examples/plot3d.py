@@ -15,11 +15,7 @@ figure = Figure((24, 12))
 tball = Trackball(name="trackball")
 
 # Create a subplot on left, using trackball interface (3d)
-left = figure.add_axes(
-    [0.0, 0.0, 0.5, 1.0],
-    interface=tball,
-    facecolor=(1, 1, 1, 0.25),
-)
+left = figure.add_axes([0.0, 0.0, 0.5, 1.0], interface=tball, facecolor=(1, 1, 1, 0.25))
 
 # Create a subplot on right, using panzoom interface (2d)
 right = figure.add_axes(

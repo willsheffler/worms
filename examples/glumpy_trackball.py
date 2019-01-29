@@ -38,14 +38,14 @@ def on_draw(dt):
     gl.glDisable(gl.GL_BLEND)
     gl.glEnable(gl.GL_DEPTH_TEST)
     gl.glEnable(gl.GL_POLYGON_OFFSET_FILL)
-    cube['u_color'] = 1, 1, 1, 1
+    cube["u_color"] = 1, 1, 1, 1
     cube.draw(gl.GL_TRIANGLES, faces)
 
     # Outlined cube
     gl.glDisable(gl.GL_POLYGON_OFFSET_FILL)
     gl.glEnable(gl.GL_BLEND)
     gl.glDepthMask(gl.GL_FALSE)
-    cube['u_color'] = 0, 0, 0, 1
+    cube["u_color"] = 0, 0, 0, 1
     cube.draw(gl.GL_LINES, outline)
     gl.glDepthMask(gl.GL_TRUE)
 
@@ -58,8 +58,8 @@ outline = O.view(gloo.IndexBuffer)
 
 cube = gloo.Program(vertex, fragment)
 cube.bind(vertices)
-cube['transform'] = Trackball(Position("position"))
-window.attach(cube['transform'])
+cube["transform"] = Trackball(Position("position"))
+window.attach(cube["transform"])
 
 # OpenGL initalization
 gl.glEnable(gl.GL_DEPTH_TEST)

@@ -16,27 +16,44 @@ def _valid_splice_pairs(bbw0, bbw1, **kw):
     blk0 = bbw0._bblock
     blk1 = bbw1._bblock
     rms, nclash, ncontact, ncnh, nhc = _jit_splice_metrics(
-        blk0.chains, blk1.chains, blk0.ncac, blk1.ncac, blk0.stubs, blk1.stubs,
-        blk0.connections, blk1.connections, blk0.ss, blk1.ss, blk0.cb, blk1.cb,
-        kw['splice_clash_d2'], kw['splice_contact_d2'], kw['splice_rms_range'],
-        kw['splice_clash_contact_range'], kw['splice_clash_contact_by_helix'],
-        kw['splice_max_rms'], kw['splice_max_chain_length'], True
+        blk0.chains,
+        blk1.chains,
+        blk0.ncac,
+        blk1.ncac,
+        blk0.stubs,
+        blk1.stubs,
+        blk0.connections,
+        blk1.connections,
+        blk0.ss,
+        blk1.ss,
+        blk0.cb,
+        blk1.cb,
+        kw["splice_clash_d2"],
+        kw["splice_contact_d2"],
+        kw["splice_rms_range"],
+        kw["splice_clash_contact_range"],
+        kw["splice_clash_contact_by_helix"],
+        kw["splice_max_rms"],
+        kw["splice_max_chain_length"],
+        True,
     )
-    ok = ((nclash == 0) * (rms <= kw['splice_max_rms']) *
-          (ncontact >= kw['splice_ncontact_cut']) *
-          (ncnh >= kw['splice_ncontact_no_helix_cut']) *
-          (nhc >= kw['splice_nhelix_contacted_cut']))
+    ok = (
+        (nclash == 0)
+        * (rms <= kw["splice_max_rms"])
+        * (ncontact >= kw["splice_ncontact_cut"])
+        * (ncnh >= kw["splice_ncontact_no_helix_cut"])
+        * (nhc >= kw["splice_nhelix_contacted_cut"])
+    )
 
     return _splice_respairs(ok, blk0, blk1)
 
 
-def compute_splices(
-        bbdb, bbpairs, verbosity, parallel, pbar, pbar_interval=10.0, **kw
-):
+def compute_splices(bbdb, bbpairs, verbosity, parallel, pbar, pbar_interval=10.0, **kw):
     bbpairs_shuf = bbpairs.copy()
     shuffle(bbpairs_shuf)
     exe = InProcessExecutor()
-    if parallel: exe = cf.ProcessPoolExecutor(max_workers=parallel)
+    if parallel:
+        exe = cf.ProcessPoolExecutor(max_workers=parallel)
     with exe as pool:
         futures = list()
         for bbpair in bbpairs_shuf:
@@ -45,14 +62,11 @@ def compute_splices(
             f = pool.submit(_valid_splice_pairs, bbw0, bbw1, **kw)
             f.bbpair = bbpair
             futures.append(f)
-        print('batch compute_splices, npairs:', len(futures))
+        print("batch compute_splices, npairs:", len(futures))
         fiter = cf.as_completed(futures)
         if pbar:
             fiter = tqdm(
-                fiter,
-                'precache splices',
-                mininterval=pbar_interval,
-                total=len(futures)
+                fiter, "precache splices", mininterval=pbar_interval, total=len(futures)
             )
         res = {f.bbpair: f.result() for f in fiter}
     return {bbpair: res[bbpair] for bbpair in bbpairs}
@@ -70,7 +84,7 @@ def _remove_already_cached(spdb, bbpairs, params):
         listpath = spdb.listpath(params, pdbkey0)
         haveit = set()
         if os.path.exists(listpath):
-            with open(listpath, 'rb') as inp:
+            with open(listpath, "rb") as inp:
                 haveit = _pickle.load(inp)
         for pdb1 in pdb1s:
             pdbkey1 = hash_str_to_int(pdb1)
@@ -84,14 +98,20 @@ def precompute_splicedb(db, bbpairs, **kw):
 
     # note: this is duplicated in edge.py and they need to be the same
     params = (
-        kw['splice_max_rms'], kw['splice_ncontact_cut'], kw['splice_clash_d2'],
-        kw['splice_contact_d2'], kw['splice_rms_range'],
-        kw['splice_clash_contact_range'], kw['splice_clash_contact_by_helix'],
-        kw['splice_ncontact_no_helix_cut'], kw['splice_nhelix_contacted_cut'],
-        kw['splice_max_chain_length']
+        kw["splice_max_rms"],
+        kw["splice_ncontact_cut"],
+        kw["splice_clash_d2"],
+        kw["splice_contact_d2"],
+        kw["splice_rms_range"],
+        kw["splice_clash_contact_range"],
+        kw["splice_clash_contact_by_helix"],
+        kw["splice_ncontact_no_helix_cut"],
+        kw["splice_nhelix_contacted_cut"],
+        kw["splice_max_chain_length"],
     )
     bbpairs = _remove_already_cached(spdb, bbpairs, params)
-    if not bbpairs: return
+    if not bbpairs:
+        return
 
     splices = compute_splices(bbdb, bbpairs, **kw)
     for key, val in splices.items():
@@ -100,5 +120,5 @@ def precompute_splicedb(db, bbpairs, **kw):
         spdb.add(params, pdbkey0, pdbkey1, val)
 
     spdb.sync_to_disk()
-    print('precompute_splicedb done')
+    print("precompute_splicedb done")
     sys.stdout.flush()

@@ -22,6 +22,7 @@ try:
     # god, I'm so tired of this crap....
     from pyrosetta import rosetta as ros
     import pyrosetta.rosetta as ros
+
     HAVE_PYROSETTA = True
 except ImportError:
     ros = None
@@ -54,9 +55,9 @@ def binary_search_pair(is_sorted, tgt, ret=0):
 def expand_array_if_needed(ary, i):
     if len(ary) > i:
         return ary
-    newshape = (ary.shape[0] * 2, ) + ary.shape[1:]
+    newshape = (ary.shape[0] * 2,) + ary.shape[1:]
     new = np.zeros(newshape, dtype=ary.dtype) - ary.dtype.type(1)
-    new[:len(ary)] = ary
+    new[: len(ary)] = ary
     return new
 
 
@@ -85,7 +86,7 @@ class NonFuture:
         self.args = args
         self.kw = kw
         self._condition = threading.Condition()
-        self._state = 'FINISHED'
+        self._state = "FINISHED"
         self._waiters = []
 
     def result(self):
@@ -96,17 +97,15 @@ class NonFuture:
 
 def cpu_count():
     try:
-        return int(os.environ['SLURM_CPUS_ON_NODE'])
+        return int(os.environ["SLURM_CPUS_ON_NODE"])
     except:
         return multiprocessing.cpu_count()
 
 
-def parallel_batch_map(
-        pool, function, accumulator, batch_size, map_func_args, **kw
-):
-    os.environ['OMP_NUM_THREADS'] = '1'
-    os.environ['MKL_NUM_THREADS'] = '1'
-    os.environ['NUMEXPR_NUM_THREADS'] = '1'
+def parallel_batch_map(pool, function, accumulator, batch_size, map_func_args, **kw):
+    os.environ["OMP_NUM_THREADS"] = "1"
+    os.environ["MKL_NUM_THREADS"] = "1"
+    os.environ["NUMEXPR_NUM_THREADS"] = "1"
     njobs = len(map_func_args[0])
     args = list(zip(*map_func_args))
     for ibatch in range(0, njobs, batch_size):
@@ -120,18 +119,17 @@ def parallel_batch_map(
             as_completed = lambda x: x
         else:
             from dask.distributed import as_completed as dd_as_completed
+
             as_completed = dd_as_completed
         for _ in accumulator.accumulate(as_completed(futures)):
             yield None
         accumulator.checkpoint()
 
 
-def parallel_nobatch_map(
-        pool, function, accumulator, batch_size, map_func_args, **kw
-):
-    os.environ['OMP_NUM_THREADS'] = '1'
-    os.environ['MKL_NUM_THREADS'] = '1'
-    os.environ['NUMEXPR_NUM_THREADS'] = '1'
+def parallel_nobatch_map(pool, function, accumulator, batch_size, map_func_args, **kw):
+    os.environ["OMP_NUM_THREADS"] = "1"
+    os.environ["MKL_NUM_THREADS"] = "1"
+    os.environ["NUMEXPR_NUM_THREADS"] = "1"
     njobs = len(map_func_args[0])
     args = list(zip(*map_func_args))
     futures = [pool.submit(function, *a) for a in args]
@@ -144,12 +142,14 @@ def parallel_nobatch_map(
     accumulator.checkpoint()
 
 
-def tqdm_parallel_map(
-        pool, function, accumulator, map_func_args, batch_size, **kw
-):
-    for _ in tqdm(parallel_batch_map(pool, function, accumulator, batch_size,
-                                     map_func_args=map_func_args, **kw),
-                  total=len(map_func_args[0]), **kw):
+def tqdm_parallel_map(pool, function, accumulator, map_func_args, batch_size, **kw):
+    for _ in tqdm(
+        parallel_batch_map(
+            pool, function, accumulator, batch_size, map_func_args=map_func_args, **kw
+        ),
+        total=len(map_func_args[0]),
+        **kw
+    ):
         pass
 
 
@@ -195,18 +195,12 @@ def get_bb_stubs(pose, which_resi=None):
     for ir in which_resi:
         r = pose.residue(ir)
         if not r.is_protein():
-            raise ValueError(
-                'non-protein residue %s at position %i' % (r.name(), ir)
-            )
-        n, ca, c = r.xyz('N'), r.xyz('CA'), r.xyz('C')
+            raise ValueError("non-protein residue %s at position %i" % (r.name(), ir))
+        n, ca, c = r.xyz("N"), r.xyz("CA"), r.xyz("C")
         ros_stub = ros.core.kinematics.Stub(ca, n, ca, c)
         npstubs.append(numpy_stub_from_rosetta_stub(ros_stub))
-        n_ca_c.append(
-            np.array([[n.x, n.y, n.z],
-                      [ca.x, ca.y, ca.z],
-                      [c.x, c.y, c.z]])
-        )
-    return np.stack(npstubs).astype('f8'), np.stack(n_ca_c).astype('f8')
+        n_ca_c.append(np.array([[n.x, n.y, n.z], [ca.x, ca.y, ca.z], [c.x, c.y, c.z]]))
+    return np.stack(npstubs).astype("f8"), np.stack(n_ca_c).astype("f8")
 
 
 def get_bb_coords(pose, which_resi=None):
@@ -216,18 +210,12 @@ def get_bb_coords(pose, which_resi=None):
     for ir in which_resi:
         r = pose.residue(ir)
         if not r.is_protein():
-            raise ValueError(
-                'non-protein residue %s at position %i' % (r.name(), ir)
-            )
-        n, ca, c = r.xyz('N'), r.xyz('CA'), r.xyz('C')
+            raise ValueError("non-protein residue %s at position %i" % (r.name(), ir))
+        n, ca, c = r.xyz("N"), r.xyz("CA"), r.xyz("C")
         n_ca_c.append(
-            np.array([
-                [n.x, n.y, n.z, 1],
-                [ca.x, ca.y, ca.z, 1],
-                [c.x, c.y, c.z, 1],
-            ])
+            np.array([[n.x, n.y, n.z, 1], [ca.x, ca.y, ca.z, 1], [c.x, c.y, c.z, 1]])
         )
-    return np.stack(n_ca_c).astype('f8')
+    return np.stack(n_ca_c).astype("f8")
 
 
 def get_cb_coords(pose, which_resi=None):
@@ -237,15 +225,13 @@ def get_cb_coords(pose, which_resi=None):
     for ir in which_resi:
         r = pose.residue(ir)
         if not r.is_protein():
-            raise ValueError(
-                'non-protein residue %s at position %i' % (r.name(), ir)
-            )
-        if r.has('CB'):
-            cb = r.xyz('CB')
+            raise ValueError("non-protein residue %s at position %i" % (r.name(), ir))
+        if r.has("CB"):
+            cb = r.xyz("CB")
         else:
-            cb = r.xyz('CA')
+            cb = r.xyz("CA")
         cbs.append(np.array([cb.x, cb.y, cb.z, 1]))
-    return np.stack(cbs).astype('f8')
+    return np.stack(cbs).astype("f8")
 
 
 def get_chain_bounds(pose):
@@ -259,11 +245,16 @@ def get_chain_bounds(pose):
 
 
 def pose_bounds(pose, lb, ub):
-    if ub < 0: ub = len(pose) + 1 + ub
+    if ub < 0:
+        ub = len(pose) + 1 + ub
     if lb < 1 or ub > len(pose):
         raise ValueError(
-            'lb/ub ' + str(lb) + '/' + str(ub) +
-            ' out of bounds for pose with len ' + str(len(pose))
+            "lb/ub "
+            + str(lb)
+            + "/"
+            + str(ub)
+            + " out of bounds for pose with len "
+            + str(len(pose))
         )
     return lb, ub
 
@@ -296,21 +287,25 @@ def splice_poses(pose_c, pose_n, ires_c, ires_n):
 def worst_CN_connect(p):
     for ir in range(1, len(p)):
         worst = 0
-        if (p.residue(ir).is_protein() and p.residue(ir + 1).is_protein()
-                and not (ros.core.pose.is_upper_terminus(p, ir)
-                         or ros.core.pose.is_lower_terminus(p, ir + 1))):
-            dist = p.residue(ir).xyz('C').distance(p.residue(ir + 1).xyz('N'))
+        if (
+            p.residue(ir).is_protein()
+            and p.residue(ir + 1).is_protein()
+            and not (
+                ros.core.pose.is_upper_terminus(p, ir)
+                or ros.core.pose.is_lower_terminus(p, ir + 1)
+            )
+        ):
+            dist = p.residue(ir).xyz("C").distance(p.residue(ir + 1).xyz("N"))
             worst = max(abs(dist - 1.32), worst)
     return worst
 
 
 def no_overlapping_adjacent_residues(p):
     for ir in range(1, len(p)):
-        if (p.residue(ir).is_protein() and p.residue(ir + 1).is_protein()):
-            dist = p.residue(ir).xyz('CA').distance(
-                p.residue(ir + 1).xyz('CA')
-            )
-            if dist < 0.1: return False
+        if p.residue(ir).is_protein() and p.residue(ir + 1).is_protein():
+            dist = p.residue(ir).xyz("CA").distance(p.residue(ir + 1).xyz("CA"))
+            if dist < 0.1:
+                return False
     return True
 
 
@@ -321,8 +316,9 @@ def no_overlapping_residues(p):
         for jr in range(1, ir):
             if not p.residue(jr).is_protein():
                 continue
-            dist = p.residue(ir).xyz('CA').distance(p.residue(jr).xyz('CA'))
-            if dist < 0.5: return False
+            dist = p.residue(ir).xyz("CA").distance(p.residue(jr).xyz("CA"))
+            if dist < 0.5:
+                return False
     return True
 
 
@@ -346,9 +342,9 @@ def trim_pose(pose, resid, direction, pad=0):
     if not 0 < resid <= len(pose):
         raise ValueError("resid %i out of bounds %i" % (resid, len(pose)))
     p = ros.core.pose.Pose()
-    if direction == 'N':
+    if direction == "N":
         lb, ub = max(resid - pad, 1), len(pose)
-    elif direction == 'C':
+    elif direction == "C":
         lb, ub = 1, min(resid + pad, len(pose))
     # print('_trim_pose lbub', lb, ub, 'len', len(pose), 'resid', resid)
     ros.core.pose.append_subpose_to_pose(p, pose, lb, ub)
@@ -371,7 +367,7 @@ def trim_pose(pose, resid, direction, pad=0):
 
 def symfile_path(name):
     path, _ = os.path.split(__file__)
-    return os.path.join(path, 'rosetta_symdef', name + '.sym')
+    return os.path.join(path, "rosetta_symdef", name + ".sym")
 
 
 @ft.lru_cache()
@@ -382,26 +378,27 @@ def get_symfile_contents(name):
 
 @ft.lru_cache()
 def get_symdata(name):
-    if name is None: return None
+    if name is None:
+        return None
     ss = ros.std.stringstream(get_symfile_contents(name))
     d = ros.core.conformation.symmetry.SymmData()
     d.read_symmetry_data_from_stream(ss)
     return d
 
 
-def get_symdata_modified(
-        name, string_substitutions=None, scale_positions=None
-):
-    if name is None: return None
+def get_symdata_modified(name, string_substitutions=None, scale_positions=None):
+    if name is None:
+        return None
     symfilestr = get_symfile_contents(name)
     if scale_positions is not None:
         if string_substitutions is None:
             string_substitutions = dict()
         for line in symfilestr.splitlines():
-            if not line.startswith('xyz'): continue
-            posstr = re.split('\s+', line)[-1]
-            x, y, z = [float(x) * scale_positions for x in posstr.split(',')]
-            string_substitutions[posstr] = '%f,%f,%f' % (x, y, z)
+            if not line.startswith("xyz"):
+                continue
+            posstr = re.split("\s+", line)[-1]
+            x, y, z = [float(x) * scale_positions for x in posstr.split(",")]
+            string_substitutions[posstr] = "%f,%f,%f" % (x, y, z)
     if string_substitutions is not None:
         for k, v in string_substitutions.items():
             symfilestr = symfilestr.replace(k, v)
@@ -426,12 +423,10 @@ class MultiRange:
         Args:
             nside (TYPE): Description
         """
-        self.nside = np.array(nside, dtype='i')
-        self.psum = np.concatenate([
-            np.cumprod(self.nside[1:][::-1])[::-1], [1]
-        ])
+        self.nside = np.array(nside, dtype="i")
+        self.psum = np.concatenate([np.cumprod(self.nside[1:][::-1])[::-1], [1]])
         assert np.all(self.psum > 0)
-        assert bigprod(self.nside[1:]) < 2**63
+        assert bigprod(self.nside[1:]) < 2 ** 63
         self.len = bigprod(self.nside)
 
     def __getitem__(self, idx):
@@ -474,8 +469,7 @@ def items_to_dicts(inp):
     Returns:
         TYPE: Description
     """
-    if (isinstance(inp, list) and isinstance(inp[0], tuple)
-            and len(inp[0]) is 2):
+    if isinstance(inp, list) and isinstance(inp[0], tuple) and len(inp[0]) is 2:
         return {k: items_to_dicts(v) for k, v in inp}
     elif isinstance(inp, list):
         return [items_to_dicts(x) for x in inp]
@@ -503,9 +497,9 @@ def residue_sym_err(p, ang, ir, jr, n=1, axis=[0, 0, 1], verbose=0):
         mxdist = max(
             mxdist,
             min(
-                np.max(np.sum((xyz0 - xyz3.T)**2, axis=1)),
-                np.max(np.sum((xyz0 - xyz4.T)**2, axis=1))
-            )
+                np.max(np.sum((xyz0 - xyz3.T) ** 2, axis=1)),
+                np.max(np.sum((xyz0 - xyz4.T) ** 2, axis=1)),
+            ),
         )
     return np.sqrt(mxdist)
 
@@ -535,15 +529,15 @@ def unique_key_int32s(a, b):
     if b[0] == -1:
         assert np.all(b == -1)
         return a
-    a = a.astype('i8')
-    b = b.astype('i8')
+    a = a.astype("i8")
+    b = b.astype("i8")
     m = np.max(a) + 1
     k = b * m + a
     assert np.all(k >= 0)
     return _unique_key_int32s(k)
 
 
-@nb.njit('int32[:](int32[:])', nogil=1)
+@nb.njit("int32[:](int32[:])", nogil=1)
 def contig_idx_breaks(idx):
     breaks = np.empty(idx[-1] + 2, dtype=np.int32)
     breaks[0] = 0
@@ -554,19 +548,20 @@ def contig_idx_breaks(idx):
             breaks[n] = i
             n += 1
     breaks[n] = len(idx)
-    breaks = np.ascontiguousarray(breaks[:n + 1])
+    breaks = np.ascontiguousarray(breaks[: n + 1])
     if __debug__:
         for i in range(breaks.size - 1):
-            vals = idx[breaks[i]:breaks[i + 1]]
+            vals = idx[breaks[i] : breaks[i + 1]]
             assert len(vals)
             assert np.all(vals == vals[0])
     return breaks
 
 
 def hash_str_to_int(s):
-    if isinstance(s, str): s = s.encode()
+    if isinstance(s, str):
+        s = s.encode()
     buf = sha1(s).digest()[:8]
-    return int(abs(np.frombuffer(buf, dtype='i8')[0]))
+    return int(abs(np.frombuffer(buf, dtype="i8")[0]))
 
 
 def map_resis_to_asu(n, resis):

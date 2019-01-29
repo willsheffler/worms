@@ -3,8 +3,10 @@ import json
 import itertools as it
 import pytest
 import numpy as np
+
 try:
     import pyrosetta
+
     HAVE_PYROSETTA = True
 except ImportError:
     HAVE_PYROSETTA = False
@@ -43,7 +45,7 @@ def test_remove_dicts():
 
 
 def test_contig_idx_breaks():
-    tst = np.array([1, 1, 1, 1, 3, 3, 3, 3], dtype='i4')
+    tst = np.array([1, 1, 1, 1, 3, 3, 3, 3], dtype="i4")
     assert np.all(util.contig_idx_breaks(tst) == [0, 4, 8])
 
 
@@ -56,8 +58,8 @@ def test_numba_expand_array_if_needed_1d():
         ary = util.expand_array_if_needed(ary, i)
     assert len(ary.shape) == 1
     assert ary.shape[0] >= 100
-    assert np.all(ary[:len(ary0)] == ary0)
-    assert np.all(ary[len(ary0):] == -1)
+    assert np.all(ary[: len(ary0)] == ary0)
+    assert np.all(ary[len(ary0) :] == -1)
 
 
 def test_numba_expand_array_if_needed_2d1():
@@ -70,8 +72,8 @@ def test_numba_expand_array_if_needed_2d1():
     assert len(ary.shape) == 2
     assert ary.shape[0] >= 100
     assert ary.shape[1] == 1
-    assert np.all(ary[:len(ary0)] == ary0)
-    assert np.all(ary[len(ary0):] == -1)
+    assert np.all(ary[: len(ary0)] == ary0)
+    assert np.all(ary[len(ary0) :] == -1)
 
 
 def test_numba_expand_array_if_needed_2d():
@@ -84,8 +86,8 @@ def test_numba_expand_array_if_needed_2d():
     assert len(ary.shape) == 2
     assert ary.shape[0] >= 100
     assert ary.shape[1] == 2
-    assert np.all(ary[:len(ary0)] == ary0)
-    assert np.all(ary[len(ary0):] == -1)
+    assert np.all(ary[: len(ary0)] == ary0)
+    assert np.all(ary[len(ary0) :] == -1)
 
 
 def test_numba_expand_array_if_needed_7d():
@@ -98,8 +100,8 @@ def test_numba_expand_array_if_needed_7d():
     assert len(ary.shape) == 2
     assert ary.shape[0] >= 100
     assert ary.shape[1] == 7
-    assert np.all(ary[:len(ary0)] == ary0)
-    assert np.all(ary[len(ary0):] == -1)
+    assert np.all(ary[: len(ary0)] == ary0)
+    assert np.all(ary[len(ary0) :] == -1)
 
 
 def test_numba_expand_array_if_needed_int32():
@@ -111,5 +113,5 @@ def test_numba_expand_array_if_needed_int32():
         ary = util.expand_array_if_needed(ary, i)
     assert len(ary.shape) == 1
     assert ary.shape[0] >= 100
-    assert np.all(ary[:len(ary0)] == ary0)
-    assert np.all(ary[len(ary0):] == -1)
+    assert np.all(ary[: len(ary0)] == ary0)
+    assert np.all(ary[len(ary0) :] == -1)

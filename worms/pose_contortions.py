@@ -13,6 +13,7 @@ try:
     import pyrosetta
     from pyrosetta import rosetta as ros
     from pyrosetta import rosetta as ros
+
     rm_lower_t = ros.core.pose.remove_lower_terminus_type_from_pose_residue
     rm_upper_t = ros.core.pose.remove_upper_terminus_type_from_pose_residue
 except ImportError:
@@ -64,8 +65,10 @@ class AnnoPose:
         Args:
             i (TYPE): Description
         """
-        if i is 0: return self.pose
-        if i is 1: return (self.iseg, self.srcpose, self.src_lb, self.src_ub)
+        if i is 0:
+            return self.pose
+        if i is 1:
+            return (self.iseg, self.srcpose, self.src_lb, self.src_ub)
 
     def seq(self):
         """TODO: Summary
@@ -81,30 +84,30 @@ class AnnoPose:
         Returns:
             TYPE: Description
         """
-        return self.srcpose.sequence()[self.src_lb - 1:self.src_ub]
+        return self.srcpose.sequence()[self.src_lb - 1 : self.src_ub]
 
 
-CyclicTrim = namedtuple('CyclicTrim', 'sym_seg_from sym_seg_to'.split())
+CyclicTrim = namedtuple("CyclicTrim", "sym_seg_from sym_seg_to".split())
 
 
 def contort_pose_chains(
-        pose,
-        chains,
-        nseg,
-        ir_en,
-        ir_ex,
-        pl_en,
-        pl_ex,
-        chain_start,
-        chain_end,
-        position=None,
-        pad=(0, 0),
-        iseg=None,
-        cyclictrim=None,
-        last_seg_entrypol=None,
-        first_seg_exitpol=None,
-        sym_ir=None,
-        sym_pol=None,
+    pose,
+    chains,
+    nseg,
+    ir_en,
+    ir_ex,
+    pl_en,
+    pl_ex,
+    chain_start,
+    chain_end,
+    position=None,
+    pad=(0, 0),
+    iseg=None,
+    cyclictrim=None,
+    last_seg_entrypol=None,
+    first_seg_exitpol=None,
+    sym_ir=None,
+    sym_pol=None,
 ):
     """make pose chains from 'segment' info
 
@@ -142,7 +145,8 @@ def contort_pose_chains(
         assert iseg + 1 == nseg
         i = ir_en
         p = util.subpose(pose, i, i)
-        if position is not None: util.xform_pose(position, p)
+        if position is not None:
+            util.xform_pose(position, p)
         return [AnnoPose(p, iseg, pose, i, i, None)], []
 
     ch_en = pose.chain(ir_en) if ir_en > 0 else None
@@ -151,10 +155,12 @@ def contort_pose_chains(
     if cyclictrim and iseg == 0:
         pl_en = last_seg_entrypol
     if cyclictrim and iseg + 1 == nseg:
-        assert 0, 'last segment not returned as single entry residue?!?'
+        assert 0, "last segment not returned as single entry residue?!?"
         pl_ex = first_seg_exitpol
-    if ch_en: ir_en -= chain_start[ch_en]
-    if ch_ex: ir_ex -= chain_start[ch_ex]
+    if ch_en:
+        ir_en -= chain_start[ch_en]
+    if ch_ex:
+        ir_ex -= chain_start[ch_ex]
     assert ch_en or ch_ex
 
     rest = OrderedDict()
@@ -175,24 +181,28 @@ def contort_pose_chains(
     if cyclictrim and iseg == cyclictrim[0]:
         if cyclictrim_in_rest != did_cyclictrim_in_rest:
             print(
-                'cyclictrim_in_rest', cyclictrim_in_rest,
-                'did_cyclictrim_in_rest', did_cyclictrim_in_rest
+                "cyclictrim_in_rest",
+                cyclictrim_in_rest,
+                "did_cyclictrim_in_rest",
+                did_cyclictrim_in_rest,
             )
-            print('iseg', iseg, 'len(chains)', len(chains))
+            print("iseg", iseg, "len(chains)", len(chains))
             assert cyclictrim_in_rest == did_cyclictrim_in_rest
-    if ch_en: del rest[chains[ch_en]]
+    if ch_en:
+        del rest[chains[ch_en]]
     if ch_en == ch_ex:
         assert len(rest) + 1 == len(chains)
         p, l1, u1 = util.trim_pose(chains[ch_en], ir_en, pl_en, pad[0])
-        iexit1 = ir_ex - (pl_ex == 'C') * (len(chains[ch_en]) - len(p))
+        iexit1 = ir_ex - (pl_ex == "C") * (len(chains[ch_en]) - len(p))
         p, l2, u2 = util.trim_pose(p, iexit1, pl_ex, pad[1] - 1)
         lb = l1 + l2 - 1 + chain_start[ch_en]
         ub = l1 + u2 - 1 + chain_start[ch_en]
         enex = [AnnoPose(p, iseg, pose, lb, ub, cyclic_entry[ch_en])]
-        assert p.sequence() == pose.sequence()[lb - 1:ub]
+        assert p.sequence() == pose.sequence()[lb - 1 : ub]
         rest = list(rest.values())
     else:
-        if ch_ex: del rest[chains[ch_ex]]
+        if ch_ex:
+            del rest[chains[ch_ex]]
         p_en = [chains[ch_en]] if ch_en else []
         p_ex = [chains[ch_ex]] if ch_ex else []
         if p_en:
@@ -200,22 +210,22 @@ def contort_pose_chains(
             lb = lben + chain_start[ch_en]
             ub = uben + chain_start[ch_en]
             p_en = [AnnoPose(p, iseg, pose, lb, ub, cyclic_entry[ch_en])]
-            assert p.sequence() == pose.sequence()[lb - 1:ub]
+            assert p.sequence() == pose.sequence()[lb - 1 : ub]
         if p_ex:
             p, lbex, ubex = util.trim_pose(p_ex[0], ir_ex, pl_ex, pad[1] - 1)
             lb = lbex + chain_start[ch_ex]
             ub = ubex + chain_start[ch_ex]
             p_ex = [AnnoPose(p, iseg, pose, lb, ub, cyclic_entry[ch_ex])]
-            assert p.sequence() == pose.sequence()[lb - 1:ub]
+            assert p.sequence() == pose.sequence()[lb - 1 : ub]
         enex = p_en + list(rest.values()) + p_ex
         rest = []
     for ap in rest:
         s1 = str(ap.pose.sequence())
-        s2 = str(ap.srcpose.sequence()[ap.src_lb - 1:ap.src_ub])
+        s2 = str(ap.srcpose.sequence()[ap.src_lb - 1 : ap.src_ub])
         if s1 != s2:
             print(
                 'WARNING: sequence mismatch in "rest", maybe OK, but '
-                'proceed with caution and tell will to fix!'
+                "proceed with caution and tell will to fix!"
             )
             # print(s1)
             # print(s2)
@@ -256,23 +266,25 @@ def reorder_spliced_as_N_to_C(body_chains, polarities):
         ValueError: Description
     """
     if len(body_chains) != len(polarities) + 1:
-        raise ValueError('must be one more body_chains than polarities')
+        raise ValueError("must be one more body_chains than polarities")
     chains, pol = [[]], {}
     if not all(0 < len(dg) for dg in body_chains):
         raise ValueError(
-            'body_chains values must be [enterexit], '
-            '[enter,exit], or [enter, ..., exit'
+            "body_chains values must be [enterexit], "
+            "[enter,exit], or [enter, ..., exit"
         )
     for i in range(1, len(polarities)):
         if len(body_chains[i]) == 1:
             if polarities[i - 1] != polarities[i]:
-                raise ValueError('polarity mismatch on single chain connect')
+                raise ValueError("polarity mismatch on single chain connect")
     for i, dg in enumerate(body_chains):
         chains[-1].append(dg[0])
-        if i != 0: pol[len(chains) - 1] = polarities[i - 1]
-        if len(dg) > 1: chains.extend([x] for x in dg[1:])
+        if i != 0:
+            pol[len(chains) - 1] = polarities[i - 1]
+        if len(dg) > 1:
+            chains.extend([x] for x in dg[1:])
     for i, chain in enumerate(chains):
-        if i in pol and pol[i] == 'C':
+        if i in pol and pol[i] == "C":
             chains[i] = chains[i][::-1]
     return chains
 
@@ -292,7 +304,7 @@ def _cyclic_permute_chains(chainslist, polarity):
     beg, end = chainslist[chainslist_beg], chainslist[-1]
     # if chainslist_beg != 0:
     # raise NotImplementedError('peace sign not working yet')
-    n2c = (polarity == 'N')
+    n2c = polarity == "N"
     if n2c:
         stub1 = util.get_bb_stubs(beg[0][0], [1])
         stub2 = util.get_bb_stubs(end[-1][0], [1])
@@ -311,34 +323,35 @@ def _cyclic_permute_chains(chainslist, polarity):
     # print(xalign.shape)
     for p in end:
         util.xform_pose(xalign, p[0])
-    if n2c: chainslist[chainslist_beg] = end + beg
-    else: chainslist[chainslist_beg] = beg + end
+    if n2c:
+        chainslist[chainslist_beg] = end + beg
+    else:
+        chainslist[chainslist_beg] = beg + end
     chainslist[-1] = []
 
 
 def make_contorted_pose(
-        *,
-        entryexits,
-        entrypol,
-        exitpol,
-        indices,
-        from_seg,
-        to_seg,
-        origin_seg,
-        seg_pos,
-        position,
-        is_cyclic,
-        align,
-        cryst_info,
-        end,
-        iend,
-        only_connected,
-        join,
-        cyclic_permute,
-        cyclictrim,
-        provenance,
-        make_chain_list,
-        full_output_segs,
+    entryexits,
+    entrypol,
+    exitpol,
+    indices,
+    from_seg,
+    to_seg,
+    origin_seg,
+    seg_pos,
+    position,
+    is_cyclic,
+    align,
+    cryst_info,
+    end,
+    iend,
+    only_connected,
+    join,
+    cyclic_permute,
+    cyclictrim,
+    provenance,
+    make_chain_list,
+    full_output_segs=[],
 ):  # yapf: disable
     """there be dragons here"""
     nseg = len(entryexits)
@@ -352,7 +365,7 @@ def make_contorted_pose(
     if cyclic_permute and len(chainslist) > 1:
         cyclic_entry_count = 0
         for ap in it.chain(*entryexits, *rest):
-            cyclic_entry_count += (ap.cyclic_entry is not None)
+            cyclic_entry_count += ap.cyclic_entry is not None
         assert cyclic_entry_count == 1
         _cyclic_permute_chains(chainslist, entrypol[-1])
         assert len(chainslist[-1]) == 0
@@ -364,17 +377,22 @@ def make_contorted_pose(
     prov0 = []
     splicepoints = []
     for chains, sources in zip(chainslist, sourcelist):
-        if (only_connected and len(chains) is 1
-                and (end or chains is not chainslist[-1])):
-            skipsegs = ((to_seg, from_seg) if not is_cyclic else [])
+        if (
+            only_connected
+            and len(chains) is 1
+            and (end or chains is not chainslist[-1])
+        ):
+            skipsegs = (to_seg, from_seg) if not is_cyclic else []
             skipsegs = [nseg - 1 if x is -1 else x for x in skipsegs]
             skipsegs = [s for s in skipsegs if s not in full_output_segs]
             if origin_seg is not None:
                 skipsegs.append(origin_seg)
-            if ((only_connected == 'auto' and sources[0][0] in skipsegs)
-                    or only_connected != 'auto'):
+            if (
+                only_connected == "auto" and sources[0][0] in skipsegs
+            ) or only_connected != "auto":
                 continue
-        if make_chain_list: ret_chain_list.append(chains[0])
+        if make_chain_list:
+            ret_chain_list.append(chains[0])
         ros.core.pose.append_pose_to_pose(pose, chains[0], True)
         prov0.append(sources[0])
         for chain, source in zip(chains[1:], sources[1:]):
@@ -382,17 +400,19 @@ def make_contorted_pose(
             rm_upper_t(pose, len(pose))
             rm_lower_t(chain, 1)
             splicepoints.append(len(pose))
-            if make_chain_list: ret_chain_list.append(chain)
+            if make_chain_list:
+                ret_chain_list.append(chain)
             fixres = len(pose)
             ros.core.pose.append_pose_to_pose(pose, chain, not join)
             # this dosen't work correctly
             # util.fix_bb_o(pose, fixres)
             # util.fix_bb_h(pose, fixres + 1)
             prov0.append(source)
-    if not only_connected or only_connected == 'auto':
+    if not only_connected or only_connected == "auto":
         for chain, source in it.chain(*rest):
             assert isinstance(chain, ros.core.pose.Pose)
-            if make_chain_list: ret_chain_list.append(chain)
+            if make_chain_list:
+                ret_chain_list.append(chain)
             ros.core.pose.append_pose_to_pose(pose, chain, True)
             prov0.append(source)
     assert util.worst_CN_connect(pose) < 0.5
@@ -400,19 +420,21 @@ def make_contorted_pose(
 
     if cryst_info:
         ci = pyrosetta.rosetta.core.io.CrystInfo()
-        ci.A(cryst_info[0])  #cell dimensions
+        ci.A(cryst_info[0])  # cell dimensions
         ci.B(cryst_info[1])
         ci.C(cryst_info[2])
-        ci.alpha(cryst_info[3])  #cell angles
+        ci.alpha(cryst_info[3])  # cell angles
         ci.beta(cryst_info[4])
         ci.gamma(cryst_info[5])
-        ci.spacegroup(cryst_info[6])  #sace group
+        ci.spacegroup(cryst_info[6])  # sace group
         pi = pyrosetta.rosetta.core.pose.PDBInfo(pose)
         pi.set_crystinfo(ci)
         pose.pdb_info(pi)
 
-    if not provenance and make_chain_list: return pose, ret_chain_list
-    if not provenance: return pose, splicepoints
+    if not provenance and make_chain_list:
+        return pose, ret_chain_list
+    if not provenance:
+        return pose, splicepoints
     prov = []
     for i, pr in enumerate(prov0):
         iseg, psrc, lb0, ub0 = pr
@@ -426,7 +448,7 @@ def make_contorted_pose(
         assert 0 < lb1 <= len(pose) and 0 < ub1 <= len(pose)
         # if psrc.sequence()[lb0 - 1:ub0] != pose.sequence()[lb1 - 1:ub1]:
         # print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        assert psrc.sequence()[lb0 - 1:ub0] == pose.sequence()[lb1 - 1:ub1]
+        assert psrc.sequence()[lb0 - 1 : ub0] == pose.sequence()[lb1 - 1 : ub1]
         prov.append((lb1, ub1, psrc, lb0, ub0))
     if make_chain_list:
         return pose, prov, ret_chain_list

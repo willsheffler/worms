@@ -3,8 +3,8 @@
 """
 
 __author__ = """Will Sheffler"""
-__email__ = 'willsheffler@gmail.com'
-__version__ = '0.1.26'
+__email__ = "willsheffler@gmail.com"
+__version__ = "0.1.26"
 
 from .search import *
 from .criteria import *

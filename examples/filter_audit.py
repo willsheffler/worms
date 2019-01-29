@@ -13,48 +13,51 @@ from pyrosetta.rosetta.core.pose import append_subpose_to_pose
 
 from worms.filters.alignment_validator import AlignmentValidator, PoseInfo
 from worms.filters.contact_analyzer import ContactAnalyzer, PoseMap
-from worms.filters.interface_contacts import count_contacts_accross_junction, identify_helical_segments
+from worms.filters.interface_contacts import (
+    count_contacts_accross_junction,
+    identify_helical_segments,
+)
 
 
 def filter_audit():
-    print('filter_audit')
+    print("filter_audit")
     print(sys.argv)
     # shutil.rmtree('worms_filter_audit_cache', ignore_errors=1)
     args = sys.argv[1:]
     if not args:
-        args += '--geometry Null()'.split()
-        args += '--bbconn _N het C_ het'.split()
-        args += '--cachedirs worms_filter_audit_cache'.split()
-        args += '--dbfiles worms/data/repeat_1_2.json'.split()
+        args += "--geometry Null()".split()
+        args += "--bbconn _N het C_ het".split()
+        args += "--cachedirs worms_filter_audit_cache".split()
+        args += "--dbfiles worms/data/repeat_1_2.json".split()
         # args += '--dbfiles worms/data/master_database_generation2.json'.split()
 
     crit, kw = parse_args(args)
-    bbdb, spdb = kw['db']
-    kw['splice_clash_d2'] = 3.0**2
+    bbdb, spdb = kw["db"]
+    kw["splice_clash_d2"] = 3.0 ** 2
 
-    bbsN = bbdb.query('Het:C')
-    bbsC = bbdb.query('Het:N')
-    print('len(bbsN)', len(bbsN), 'len(bbsC)', len(bbsC))
+    bbsN = bbdb.query("Het:C")
+    bbsC = bbdb.query("Het:N")
+    print("len(bbsN)", len(bbsN), "len(bbsC)", len(bbsC))
 
     av = AlignmentValidator(
-        superimpose_rmsd=kw['splice_max_rms'],
-        superimpose_length=kw['splice_rms_range'] * 2 + 1
+        superimpose_rmsd=kw["splice_max_rms"],
+        superimpose_length=kw["splice_rms_range"] * 2 + 1,
     )
 
     for bb1, bb2 in it.product(bbsN, bbsC):
         rms, nclash, ncontact, ncnh, nhc = splice_metrics_pair(
             bb1,
             bb2,
-            kw['splice_max_rms'],
-            kw['splice_clash_d2'],
-            kw['splice_contact_d2'],
-            kw['splice_rms_range'],
-            kw['splice_clash_contact_range'],
-            kw['splice_max_chain_length'],
+            kw["splice_max_rms"],
+            kw["splice_clash_d2"],
+            kw["splice_contact_d2"],
+            kw["splice_rms_range"],
+            kw["splice_clash_contact_range"],
+            kw["splice_max_chain_length"],
             splice_clash_contact_by_helix=True,
-            skip_on_fail=False
+            skip_on_fail=False,
         )
-        print('splices shape', rms.shape)
+        print("splices shape", rms.shape)
         splice_res_c = bb_splice_res(bb1, dirn=1)
         splice_res_n = bb_splice_res(bb2, dirn=0)
         assert np.all(_ires_from_conn(bb1.connections, 1) == splice_res_c)
@@ -69,11 +72,13 @@ def filter_audit():
 
         # silly sanity check
         assert np.allclose(
-            bb1.ncac[splice_res_n[0], 0], [
-                pose1.residue(splice_res_n[0] + 1).xyz('N').x,
-                pose1.residue(splice_res_n[0] + 1).xyz('N').y,
-                pose1.residue(splice_res_n[0] + 1).xyz('N').z, 1
-            ]
+            bb1.ncac[splice_res_n[0], 0],
+            [
+                pose1.residue(splice_res_n[0] + 1).xyz("N").x,
+                pose1.residue(splice_res_n[0] + 1).xyz("N").y,
+                pose1.residue(splice_res_n[0] + 1).xyz("N").z,
+                1,
+            ],
         )
 
         post_rms = np.zeros_like(rms)
@@ -100,9 +105,21 @@ def filter_audit():
                 )
                 post_ncontacts[i, j] = nc
                 print(
-                    ir, jr, ' ', int(nclash[i, j]), ' ', ncontact[i, j], nc,
-                    ' ', ncnh[i, j], post_ncnh, ' ', nhc[i, j], post_nhc,
-                    post_nhcb, post_nhca
+                    ir,
+                    jr,
+                    " ",
+                    int(nclash[i, j]),
+                    " ",
+                    ncontact[i, j],
+                    nc,
+                    " ",
+                    ncnh[i, j],
+                    post_ncnh,
+                    " ",
+                    nhc[i, j],
+                    post_nhc,
+                    post_nhcb,
+                    post_nhca,
                 )
                 # sys.exit()
 

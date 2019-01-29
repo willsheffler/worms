@@ -6,17 +6,17 @@ from worms.util import jit
 
 class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
     def __init__(
-            self,
-            symname,
-            tgtaxis1,
-            tgtaxis2,
-            from_seg,
-            *,
-            tolerance=1.0,
-            lever=50,
-            to_seg=-1,
-            space_group_str=None,
-            cell_dist_scale=1.0,
+        self,
+        symname,
+        tgtaxis1,
+        tgtaxis2,
+        from_seg,
+        *,
+        tolerance=1.0,
+        lever=50,
+        to_seg=-1,
+        space_group_str=None,
+        cell_dist_scale=1.0,
     ):
         """ Worms criteria for non-intersecting axes re: unbounded things
 
@@ -35,14 +35,12 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
         self.symname = symname
         self.cell_dist_scale = cell_dist_scale
         self.tgtaxis1 = np.asarray(
-            tgtaxis1, dtype='f8'
+            tgtaxis1, dtype="f8"
         )  ## we are treating these as vectors for now, make it an array if it isn't yet, set array type to 8-type float
-        self.tgtaxis2 = np.asarray(tgtaxis2, dtype='f8')
+        self.tgtaxis2 = np.asarray(tgtaxis2, dtype="f8")
         # print(self.tgtaxis1.shape)
         # print(np.linalg.norm(tgtaxis1))
-        self.tgtaxis1 /= np.linalg.norm(
-            self.tgtaxis1
-        )  #normalize target axes to 1,1,1
+        self.tgtaxis1 /= np.linalg.norm(self.tgtaxis1)  # normalize target axes to 1,1,1
         self.tgtaxis2 /= np.linalg.norm(self.tgtaxis2)
         if hm.angle(self.tgtaxis1, self.tgtaxis2) > np.pi / 2:
             self.tgtaxis2 = -self.tgtaxis2
@@ -64,8 +62,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
         ax1 = segpos[self.from_seg][..., :, 2]
         ax2 = segpos[self.to_seg][..., :, 2]
         angle = np.arccos(np.abs(hm.hdot(ax1, ax2)))
-        return np.abs((angle - self.target_angle)
-                      ) / self.tolerance * self.lever
+        return np.abs((angle - self.target_angle)) / self.tolerance * self.lever
 
     def jit_lossfunc(self):
         from_seg = self.from_seg
@@ -99,34 +96,33 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
         if hm.angle(ax1, ax2) > np.pi / 2:
             ax2 = -ax2
         if abs(hm.angle(self.tgtaxis1, self.tgtaxis2)) < 0.1:
-            #vector delta between cen2 and cen1
+            # vector delta between cen2 and cen1
             d = hm.proj_perp(ax1, cen2 - cen1)
-            Xalign = hm.align_vectors(ax1, d, self.tgtaxis1,
-                                      [0, 1, 0, 0])  #align d to Y axis
+            Xalign = hm.align_vectors(
+                ax1, d, self.tgtaxis1, [0, 1, 0, 0]
+            )  # align d to Y axis
             Xalign[..., :, 3] = -Xalign @ cen1
             cell_dist = (Xalign @ cen2)[..., 1]
         else:
             try:
-                Xalign = hm.align_vectors(
-                    ax1, ax2, self.tgtaxis1, self.tgtaxis2
-                )
+                Xalign = hm.align_vectors(ax1, ax2, self.tgtaxis1, self.tgtaxis2)
             except AssertionError as e:
-                print('align_vectors error')
-                print('   ', ax1)
-                print('   ', ax2)
-                print('   ', self.tgtaxis1)
-                print('   ', self.tgtaxis2)
+                print("align_vectors error")
+                print("   ", ax1)
+                print("   ", ax2)
+                print("   ", self.tgtaxis1)
+                print("   ", self.tgtaxis2)
                 raise e
             Xalign[..., :, 3] = -Xalign @ cen1  ## move from_seg cen1 to origin
-            cen2_0 = Xalign @ cen2  #moving cen2 by Xalign
+            cen2_0 = Xalign @ cen2  # moving cen2 by Xalign
             D = np.stack([self.tgtaxis1[:3], [0, 1, 0], self.tgtaxis2[:3]]).T
-            #matrix where the columns are the things in the list
-            #CHANGE Uy to an ARGUMENT SOON!!!!
-            #print("D: ", D)
+            # matrix where the columns are the things in the list
+            # CHANGE Uy to an ARGUMENT SOON!!!!
+            # print("D: ", D)
             A1offset, cell_dist, _ = np.linalg.inv(D) @ cen2_0[:3]
-            #transform of A1 offest, cell distance (offset along other axis), and A2 offset (<-- we are ignoring this)
+            # transform of A1 offest, cell distance (offset along other axis), and A2 offset (<-- we are ignoring this)
             Xalign[..., :, 3] = Xalign[..., :, 3] - (A1offset * self.tgtaxis1)
-            #Xalign[..., :, 3] = Xalign[..., :, 3] + [0,cell_dist,0,0]
+            # Xalign[..., :, 3] = Xalign[..., :, 3] + [0,cell_dist,0,0]
         if out_cell_spacing:
             return Xalign, cell_dist
         else:
@@ -137,10 +133,10 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
         return dict(scale_positions=cell_dist * self.cell_dist_scale)
 
     def crystinfo(self, segpos):
-        #CRYST1   85.001   85.001   85.001  90.00  90.00  90.00 P 21 3
+        # CRYST1   85.001   85.001   85.001  90.00  90.00  90.00 P 21 3
         if self.space_group_str is None:
             return None
-        #print("hi")
+        # print("hi")
         x, cell_dist = self.alignment(segpos, out_cell_spacing=True)
         cell_dist = abs(cell_dist * self.cell_dist_scale)
         return cell_dist, cell_dist, cell_dist, 90, 90, 90, self.space_group_str
@@ -154,7 +150,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
 
     def cloned_segments(self):
         "which bbs are being merged together"
-        return (self.from_seg, )
+        return (self.from_seg,)
 
     def iface_rms(self, pose0, prov, **kw):
         return -1
@@ -162,137 +158,147 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
 
 def Sheet_P321(c3=None, c2=None, **kw):
     if c3 is None or c2 is None:
-        raise ValueError('must specify ...?')  #one or two of c3, c2
+        raise ValueError("must specify ...?")  # one or two of c3, c2
     return AxesAngle(
-        'Sheet_P321_C3_C2_depth3_1comp', Uz, Ux, from_seg=c3, to_seg=c2, **kw
+        "Sheet_P321_C3_C2_depth3_1comp", Uz, Ux, from_seg=c3, to_seg=c2, **kw
     )  ##this is currently identical to the D3 format...how do we change it to make it an array?
 
 
 def Sheet_P4212(c4=None, c2=None, **kw):
     ##should there be options for multiple C2's?
     if c4 is None or c2 is None:
-        raise ValueError('must specify ...?')  #one or two of c4, c2
+        raise ValueError("must specify ...?")  # one or two of c4, c2
     return AxesAngle(
-        'Sheet_P4212_C4_C2_depth3_1comp', Uz, Ux, from_seg=c4, to_seg=c2, **kw
+        "Sheet_P4212_C4_C2_depth3_1comp", Uz, Ux, from_seg=c4, to_seg=c2, **kw
     )
 
 
 def Sheet_P6(c6=None, c2=None, **kw):
     if c6 is None or c2 is None:
-        raise ValueError('must specify ...?')  #one or two of c6, c2
+        raise ValueError("must specify ...?")  # one or two of c6, c2
     return AxesAngle(
-        'Sheet_P6_C6_C2_depth3_1comp', Uz, Uz, from_seg=c6, to_seg=c2, **kw
+        "Sheet_P6_C6_C2_depth3_1comp", Uz, Uz, from_seg=c6, to_seg=c2, **kw
     )
 
 
 #### WORKING ####
 def Crystal_P213_C3_C3(c3a=None, c3b=None, **kw):
     if c3a is None or c3b is None:
-        raise ValueError('must specify ...?')  #one or two of c6, c2
-    #return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
+        raise ValueError("must specify ...?")  # one or two of c6, c2
+    # return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
     return AxesAngle(
-        'Crystal_P213_C3_C3_depth3_1comp',
+        "Crystal_P213_C3_C3_depth3_1comp",
         [1, 1, 1, 0],
         [-1, -1, 1, 0],
         from_seg=c3a,
         to_seg=c3b,
         space_group_str="P 21 3",
         cell_dist_scale=2.0,  # for some reason, this one needs this
-        **kw
+        **kw,
     )
-    #dihedral angle = 70.5288
+    # dihedral angle = 70.5288
 
 
 #### IN PROGRESS ####
 # I just normalized all the angles, but I don't think you can do this...might need to check the angle between them. Print and check that it is correct.
 def Crystal_P4132_C2_C3(c2a=None, c3b=None, **kw):
     if c3a is None or c3b is None:
-        raise ValueError('must specify ...?')  #one or two of c6, c2
-    #return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
+        raise ValueError("must specify ...?")  # one or two of c6, c2
+    # return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
     return AxesAngle(
-        'Crystal_P4132_C2_C3_depth3_1comp', [0, -1, 1, 0], [-1, -1, 0, 0],
+        "Crystal_P4132_C2_C3_depth3_1comp",
+        [0, -1, 1, 0],
+        [-1, -1, 0, 0],
         from_seg=c2a,
         to_seg=c3b,
         space_group_str="P 41 3 2",
-        **kw
+        **kw,
     )
-    #dihedral angle = 35.2644
+    # dihedral angle = 35.2644
 
 
 def Crystal_I213_C2_C3(c2a=None, c3b=None, **kw):
     if c3a is None or c3b is None:
-        raise ValueError('must specify ...?')  #one or two of c6, c2
-    #return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
+        raise ValueError("must specify ...?")  # one or two of c6, c2
+    # return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
     return AxesAngle(
-        'Crystal_I213_C2_C3_depth3_1comp', [0, 0, 1, 0], [-1, 1, 1, 0],
+        "Crystal_I213_C2_C3_depth3_1comp",
+        [0, 0, 1, 0],
+        [-1, 1, 1, 0],
         from_seg=c2a,
         to_seg=c3b,
         space_group_str="I 21 3",
-        **kw
+        **kw,
     )
-    #dihedral angle = 54.7356
+    # dihedral angle = 54.7356
 
 
 def Crystal_I432_C2_C4(c2a=None, c4b=None, **kw):
     if c3a is None or c3b is None:
-        raise ValueError('must specify ...?')  #one or two of c6, c2
-    #return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
+        raise ValueError("must specify ...?")  # one or two of c6, c2
+    # return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
     return AxesAngle(
-        'Crystal_I432_C2_C4_depth3_1comp', [-1, 0, 1, 0], [0, 0, 1, 0],
+        "Crystal_I432_C2_C4_depth3_1comp",
+        [-1, 0, 1, 0],
+        [0, 0, 1, 0],
         from_seg=c2a,
         to_seg=c4b,
         space_group_str="I 4 3 2",
-        **kw
+        **kw,
     )
-    #dihedral angle = 45
+    # dihedral angle = 45
 
 
 def Crystal_F432_C3_C4(c3a=None, c4b=None, **kw):
     if c3a is None or c3b is None:
-        raise ValueError('must specify ...?')  #one or two of c6, c2
-    #return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
+        raise ValueError("must specify ...?")  # one or two of c6, c2
+    # return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
     return AxesAngle(
-        'Crystal_F432_C3_C4_depth3_1comp', [-1, 1, 1, 0], [0, 1, 0, 0],
+        "Crystal_F432_C3_C4_depth3_1comp",
+        [-1, 1, 1, 0],
+        [0, 1, 0, 0],
         from_seg=c3a,
         to_seg=c4b,
         space_group_str="F 4 3 2",
-        **kw
+        **kw,
     )
-    #dihedral angle = 54.7356
+    # dihedral angle = 54.7356
 
 
 def Crystal_P432_C4_C4(c4a=None, c4b=None, **kw):
     if c3a is None or c3b is None:
-        raise ValueError('must specify ...?')  #one or two of c6, c2
-    #return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
+        raise ValueError("must specify ...?")  # one or two of c6, c2
+    # return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
     return AxesAngle(
-        'Crystal_P432_C4_C4_depth3_1comp', [0, 0, 1, 0], [0, 1, 0, 0],
+        "Crystal_P432_C4_C4_depth3_1comp",
+        [0, 0, 1, 0],
+        [0, 1, 0, 0],
         from_seg=c4a,
         to_seg=c4b,
         space_group_str="P 4 3 2",
-        **kw
+        **kw,
     )
-    #dihedral angle = 90
+    # dihedral angle = 90
 
 
 class DihedralLattice(WormCriteria):
     def __init__(
-            self,
-            symname,
-            tgtaxis1,
-            tgtaxis2,
-            from_seg,
-            *,
-            tolerance=1.0,
-            lever=50,
-            to_seg=-1,
-            space_group_str=None,
-            cell_dist_scale=1.0
+        self,
+        symname,
+        tgtaxis1,
+        tgtaxis2,
+        from_seg,
+        *,
+        tolerance=1.0,
+        lever=50,
+        to_seg=-1,
+        space_group_str=None,
+        cell_dist_scale=1.0,
     ):
         self.symname = symname
         self.cell_dist_scale = cell_dist_scale
-        self.tgtaxis1 = np.asarray(tgtaxis1, dtype='f8')
-        self.tgtaxis2 = np.asarray(tgtaxis2, dtype='f8')
+        self.tgtaxis1 = np.asarray(tgtaxis1, dtype="f8")
+        self.tgtaxis2 = np.asarray(tgtaxis2, dtype="f8")
         # print(self.tgtaxis1.shape)
         # print(np.linalg.norm(tgtaxis1))
         self.tgtaxis1 /= np.linalg.norm(self.tgtaxis1)
@@ -320,9 +326,9 @@ class DihedralLattice(WormCriteria):
         def func(pos, idx, verts):
             ax2 = pos[to_seg, :3, 2]
             cn2 = pos[to_seg, :3, 2]
-            ang2 = np.arccos(np.sum(ax2 * tgt1))**2
+            ang2 = np.arccos(np.sum(ax2 * tgt1)) ** 2
             cn2_T_tgt1 = cn2 - np.sum(tgt1 * cn2) / np.sum(tgt1 * tgt1) * tgt1
-            angb2 = np.arccos(np.sum(cen2_T_tgt1 * tgt2))**2
+            angb2 = np.arccos(np.sum(cen2_T_tgt1 * tgt2)) ** 2
             return np.sqrt(ang2 + angb2) / tolerance * lever
 
         return func
@@ -343,7 +349,7 @@ class DihedralLattice(WormCriteria):
 
     def cloned_segments(self):
         "which bbs are being merged together"
-        return (self.from_seg, )
+        return (self.from_seg,)
 
     def iface_rms(self, pose0, prov, **kw):
         return -1
@@ -352,16 +358,16 @@ class DihedralLattice(WormCriteria):
 class Crystal_F23_T_C2(AxesAngle):
     def __init__(self, t=None, c2=None, **kw):
         if t is None or c2 is None:
-            raise ValueError('must specify ...?')
+            raise ValueError("must specify ...?")
         super().__init__(
-            'F23_T_C2_depth2_1comp',
+            "F23_T_C2_depth2_1comp",
             tgtaxis1=[0, 0, 1, 0],
             tgtaxis2=[0, 0, 1, 0],
             from_seg=t,
             to_seg=c2,
             space_group_str="F 2 3",
             cell_dist_scale=4.0,
-            **kw
+            **kw,
         )
 
     def jit_lossfunc(self):
@@ -376,14 +382,14 @@ class Crystal_F23_T_C2(AxesAngle):
 
             cen2x = pos[to_seg, 0, 3]
             cen2y = pos[to_seg, 1, 3]
-            dis_err2 = (cen2x - cen2y)**2
+            dis_err2 = (cen2x - cen2y) ** 2
 
             ax1 = pos[from_seg, :3, 2]
             ax2 = pos[to_seg, :3, 2]
             angle = np.arccos(np.abs(np.sum(ax1 * ax2)))
-            ang_err2 = (angle - target_angle)**2
+            ang_err2 = (angle - target_angle) ** 2
 
-            return np.sqrt(ang_err2 * lever**2 + dis_err2) / tolerance
+            return np.sqrt(ang_err2 * lever ** 2 + dis_err2) / tolerance
 
         return func
 
@@ -400,16 +406,16 @@ class Crystal_F23_T_C2(AxesAngle):
 class Crystal_F23_T_C3(AxesAngle):
     def __init__(self, t=None, c3=None, **kw):
         if t is None or c3 is None:
-            raise ValueError('must specify ...?')
+            raise ValueError("must specify ...?")
         super().__init__(
-            'F23_T_C3_depth2_1comp',
+            "F23_T_C3_depth2_1comp",
             tgtaxis1=[0, 0, 1, 0],
             tgtaxis2=[0, 0, 1, 0],
             from_seg=t,
             to_seg=c3,
             space_group_str="F 2 3",
             cell_dist_scale=1.0,
-            **kw
+            **kw,
         )
 
     def jit_lossfunc(self):
@@ -436,7 +442,7 @@ class Crystal_F23_T_C3(AxesAngle):
             # axs norm already 1
             cenperp = cen - np.sum(axs * cen) * axs
             cenperp /= np.sqrt(np.sum(cenperp * cenperp))
-            assert cenperp.shape == (3, )
+            assert cenperp.shape == (3,)
 
             err1 = 1.0 - np.abs(np.sum(centgt1 * cenperp))
             err1 += 1.0 - np.abs(np.sum(axstgt1 * axs))
@@ -467,16 +473,16 @@ class Crystal_F23_T_C3(AxesAngle):
 class Crystal_F23_T_T(AxesAngle):
     def __init__(self, t=None, tb=None, **kw):
         if t is None or tb is None:
-            raise ValueError('must specify ...?')
+            raise ValueError("must specify ...?")
         super().__init__(
-            'F23_T_T_depth2_1comp',
+            "F23_T_T_depth2_1comp",
             tgtaxis1=[0, 0, 1, 0],
             tgtaxis2=[0, 0, 1, 0],
             from_seg=t,
             to_seg=tb,
             space_group_str="F 2 3",
             cell_dist_scale=2.0,
-            **kw
+            **kw,
         )
 
     def jit_lossfunc(self):
@@ -492,16 +498,16 @@ class Crystal_F23_T_T(AxesAngle):
             cen2x = pos[to_seg, 0, 3]
             cen2y = pos[to_seg, 1, 3]
             cen2z = pos[to_seg, 2, 3]
-            dis_err2 = (cen2x - cen2y)**2
-            dis_err2 += (cen2x - cen2z)**2
-            dis_err2 += (cen2y - cen2z)**2
+            dis_err2 = (cen2x - cen2y) ** 2
+            dis_err2 += (cen2x - cen2z) ** 2
+            dis_err2 += (cen2y - cen2z) ** 2
 
             ax1 = pos[from_seg, :3, 2]
             ax2 = pos[to_seg, :3, 2]
             angle = np.arccos(np.abs(np.sum(ax1 * ax2)))
-            ang_err2 = (angle - target_angle)**2
+            ang_err2 = (angle - target_angle) ** 2
 
-            return np.sqrt(ang_err2 * lever**2 + dis_err2) / tolerance
+            return np.sqrt(ang_err2 * lever ** 2 + dis_err2) / tolerance
 
         return func
 

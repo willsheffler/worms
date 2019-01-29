@@ -4,7 +4,8 @@ import itertools as it
 
 
 def check_cycles(d, k, seenit):
-    if k in seenit: return False
+    if k in seenit:
+        return False
     seenit.add(k)
     if k in d:
         for k2 in d[k]:
@@ -14,7 +15,8 @@ def check_cycles(d, k, seenit):
 
 
 def enum_paths(d, path0):
-    if path0[-1] not in d: return [path0]
+    if path0[-1] not in d:
+        return [path0]
     paths = list()
     for k in d[path0[-1]]:
         paths.extend(enum_paths(d, path0 + [k]))
@@ -23,7 +25,8 @@ def enum_paths(d, path0):
 
 class Topology:
     def __init__(self, topolist):
-        if topolist == [-1]: topolist = []
+        if topolist == [-1]:
+            topolist = []
         self.topolist = topolist
         if topolist != [-1]:
             self.forward = defaultdict(list)
@@ -50,11 +53,11 @@ class Topology:
                 return i
         return minlen
 
-    def check_nc(self, nc, vals='NC', nullval='_'):
+    def check_nc(self, nc, vals="NC", nullval="_"):
         if len(self.forward) is 0:
             return self.check_nc_linear(nc)
 
-        print('check_nc:', nc)
+        print("check_nc:", nc)
 
         for i in range(len(nc)):
             assert i in self.forward or i in self.backward
@@ -76,15 +79,14 @@ class Topology:
                 assert nc[a][0] != nc[b][1]
 
     def check_nc_linear(self, nc):
-        print('check_nc_linear:', nc)
+        print("check_nc_linear:", nc)
         for x in nc:
-            assert len(x) is 2, 'all conns should have two chars N C or _'
-        assert nc[0][0] is '_', 'first connection should begin with _'
-        assert nc[-1][1] is '_', 'last connection should end with _'
+            assert len(x) is 2, "all conns should have two chars N C or _"
+        assert nc[0][0] is "_", "first connection should begin with _"
+        assert nc[-1][1] is "_", "last connection should end with _"
         for i in range(1, len(nc)):
             assert len(nc[i]) is 2
             prev = nc[i - 1][1]
             curr = nc[i][0]
-            check = ((prev is 'N' and curr is 'C')
-                     or (prev is 'C' and curr is 'N'))
-            assert check, 'all connections must go CN or NC'
+            check = (prev is "N" and curr is "C") or (prev is "C" and curr is "N")
+            assert check, "all connections must go CN or NC"

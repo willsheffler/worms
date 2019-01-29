@@ -10,23 +10,24 @@ from worms.merge.concat import merge_results_concat
 
 class Cyclic(WormCriteria):
     def __init__(
-            self,
-            symmetry=1,
-            from_seg=0,
-            *,
-            tolerance=1.0,
-            origin_seg=None,
-            lever=50.0,
-            to_seg=-1,
-            min_radius=0,
+        self,
+        symmetry=1,
+        from_seg=0,
+        *,
+        tolerance=1.0,
+        origin_seg=None,
+        lever=50.0,
+        to_seg=-1,
+        min_radius=0,
     ):
         if from_seg == to_seg:
-            raise ValueError('from_seg should not be same as to_seg')
+            raise ValueError("from_seg should not be same as to_seg")
         if from_seg == origin_seg:
-            raise ValueError('from_seg should not be same as origin_seg')
+            raise ValueError("from_seg should not be same as origin_seg")
         if to_seg == origin_seg:
-            raise ValueError('to_seg should not be same as origin_seg')
-        if isinstance(symmetry, int): symmetry = 'C' + str(symmetry)
+            raise ValueError("to_seg should not be same as origin_seg")
+        if isinstance(symmetry, int):
+            symmetry = "C" + str(symmetry)
         self.symmetry = symmetry
         self.tolerance = tolerance
         self.from_seg = from_seg
@@ -35,19 +36,20 @@ class Cyclic(WormCriteria):
         self.to_seg = to_seg
         self.rot_tol = tolerance / lever
         # self.relweight = relweight if abs(relweight) > 0.001 else None
-        if self.symmetry[0] in 'cC':
+        if self.symmetry[0] in "cC":
             self.nfold = int(self.symmetry[1:])
             if self.nfold <= 0:
-                raise ValueError('invalid symmetry: ' + symmetry)
+                raise ValueError("invalid symmetry: " + symmetry)
             self.symangle = np.pi * 2.0 / self.nfold
         else:
-            raise ValueError('can only do Cx symmetry for now')
-        if self.tolerance <= 0: raise ValueError('tolerance should be > 0')
+            raise ValueError("can only do Cx symmetry for now")
+        if self.tolerance <= 0:
+            raise ValueError("tolerance should be > 0")
         self.last_body_same_as = self.from_seg
         self.is_cyclic = True
         self.symname = None
         if self.nfold > 1:
-            self.symname = 'C' + str(self.nfold)
+            self.symname = "C" + str(self.nfold)
         self.sym_axes = [(self.nfold, Uz, [0, 0, 0, 1])]
         a = self.symangle
 
@@ -58,7 +60,7 @@ class Cyclic(WormCriteria):
             self.min_sep2 = 2.0 * min_radius
         else:
             self.min_sep2 = min_radius * np.sin(a) / np.sin((np.pi - a) / 2)
-        self.min_sep2 = self.min_sep2**2
+        self.min_sep2 = self.min_sep2 ** 2
 
     def score(self, segpos, *, verbosity=False, **kw):
         x_from = segpos[self.from_seg]
@@ -67,8 +69,8 @@ class Cyclic(WormCriteria):
         trans = xhat[..., :, 3]
         if self.nfold is 1:
             angle = hm.angle_of(xhat)
-            carterrsq = np.sum(trans[..., :3]**2, axis=-1)
-            roterrsq = angle**2
+            carterrsq = np.sum(trans[..., :3] ** 2, axis=-1)
+            roterrsq = angle ** 2
         else:
             if self.origin_seg is not None:
                 tgtaxis = segpos[self.origin_seg] @ [0, 0, 1, 0]
@@ -79,9 +81,9 @@ class Cyclic(WormCriteria):
             else:  # much cheaper if cen not needed
                 axis, angle = hm.axis_angle_of(xhat)
                 carterrsq = roterrsq = 0
-            carterrsq = carterrsq + hm.hdot(trans, axis)**2
-            roterrsq = roterrsq + (angle - self.symangle)**2
-            carterrsq[np.sum(trans[..., :3]**2, axis=-1) < self.min_sep2] = 9e9
+            carterrsq = carterrsq + hm.hdot(trans, axis) ** 2
+            roterrsq = roterrsq + (angle - self.symangle) ** 2
+            carterrsq[np.sum(trans[..., :3] ** 2, axis=-1) < self.min_sep2] = 9e9
 
             # if self.relweight is not None:
             #     # penalize 'relative' error
@@ -91,14 +93,12 @@ class Cyclic(WormCriteria):
             #     # too much of a hack??
             #     carterrsq += self.relweight * relerrsq
             if verbosity > 0:
-                print('axis', axis[0])
-                print('trans', trans[0])
-                print('dot trans', hm.hdot(trans, axis)[0])
-                print('angle', angle[0] * 180 / np.pi)
+                print("axis", axis[0])
+                print("trans", trans[0])
+                print("dot trans", hm.hdot(trans, axis)[0])
+                print("angle", angle[0] * 180 / np.pi)
 
-        return np.sqrt(
-            carterrsq / self.tolerance**2 + roterrsq / self.rot_tol**2
-        )
+        return np.sqrt(carterrsq / self.tolerance ** 2 + roterrsq / self.rot_tol ** 2)
 
     def alignment(self, segpos, **kw):
         if self.origin_seg is not None:
@@ -131,11 +131,11 @@ class Cyclic(WormCriteria):
             x_from = pos[from_seg]
             x_to = pos[to_seg]
             xhat = x_to @ np.linalg.inv(x_from)
-            if np.sum(xhat[:3, 3]**2) < min_sep2:
+            if np.sum(xhat[:3, 3] ** 2) < min_sep2:
                 return 9e9
             axis, angle = numba_axis_angle(xhat)
-            rot_err_sq = lever**2 * (angle - tgt_ang)**2
-            cart_err_sq = (np.sum(xhat[:, 3] * axis))**2
+            rot_err_sq = lever ** 2 * (angle - tgt_ang) ** 2
+            cart_err_sq = (np.sum(xhat[:, 3] * axis)) ** 2
             return np.sqrt(rot_err_sq + cart_err_sq)
 
         @util.jit
@@ -144,10 +144,10 @@ class Cyclic(WormCriteria):
             x_to = pos[to_seg]
             xhat = x_to @ np.linalg.inv(x_from)
             cosang = (xhat[0, 0] + xhat[1, 1] + xhat[2, 2] - 1.0) / 2.0
-            rot_err_sq = (1.0 - cosang) * np.pi * lever**2  # hokey, but works
+            rot_err_sq = (1.0 - cosang) * np.pi * lever ** 2  # hokey, but works
             # axis, angle = numba_axis_angle(xhat)  # right way, but slower
             # rot_err_sq = angle**2 * lever**2
-            cart_err_sq = np.sum(xhat[:3, 3]**2)
+            cart_err_sq = np.sum(xhat[:3, 3] ** 2)
             return np.sqrt(rot_err_sq + cart_err_sq)
 
         if self.nfold is 1:
@@ -161,21 +161,21 @@ class Cyclic(WormCriteria):
             return [(self, bbs)], None
 
         assert self.origin_seg == 0
-        bbspec = deepcopy(self.bbspec[self.from_seg:])
-        bbspec[0][1] = '_' + bbspec[0][1][1]
+        bbspec = deepcopy(self.bbspec[self.from_seg :])
+        bbspec[0][1] = "_" + bbspec[0][1][1]
         critA = Cyclic(
             self.nfold,
             min_radius=self.min_radius,
             lever=self.lever,
-            tolerance=self.tolerance * 2.0
+            tolerance=self.tolerance * 2.0,
         )
         critA.bbspec = bbspec
-        bbsA = bbs[self.from_seg:] if bbs else None
-        bbsB = bbs[:self.from_seg + 1] if bbs else None
+        bbsA = bbs[self.from_seg :] if bbs else None
+        bbsB = bbs[: self.from_seg + 1] if bbs else None
 
         def stageB(critA, ssdagA, resultA):
-            bbspec = deepcopy(self.bbspec[:self.from_seg + 1])
-            bbspec[-1][1] = bbspec[-1][1][0] + '_'
+            bbspec = deepcopy(self.bbspec[: self.from_seg + 1])
+            bbspec[-1][1] = bbspec[-1][1][0] + "_"
             gubinner = gu_xbin_indexer(hash_cart_resl, hash_ori_resl)
             numba_binner = numba_xbin_indexer(hash_cart_resl, hash_ori_resl)
             keys, hash_table = make_hash_table(ssdagA, resultA, gubinner)
@@ -202,10 +202,7 @@ class Cyclic(WormCriteria):
                 if pr[2] is prov[-1][2]:
                     same_as_last.append(i)
             if len(same_as_last) < 2:
-                print(
-                    'iface_rms ERROR, not 3 merge subs! same_as_last:',
-                    same_as_last
-                )
+                print("iface_rms ERROR, not 3 merge subs! same_as_last:", same_as_last)
                 # for i, (lb, ub, src, slb, sub) in enumerate(prov):
                 # print(i, lb, ub, id(src), len(src), slb, sub)
                 return 9e9

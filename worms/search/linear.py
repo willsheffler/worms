@@ -28,25 +28,26 @@ def lossfunc_rand_1_in(n):
 
 
 def grow_linear(
-        ssdag,
-        loss_function=null_lossfunc,
-        tolerance=1.0,
-        last_bb_same_as=-1,
-        parallel=0,
-        monte_carlo=0,
-        verbosity=0,
-        merge_bblock=None,
-        lbl='',
-        pbar=False,
-        pbar_interval=10.0,
-        no_duplicate_bases=True,
-        max_linear=1000000,
-        **kw
+    ssdag,
+    loss_function=null_lossfunc,
+    tolerance=1.0,
+    last_bb_same_as=-1,
+    parallel=0,
+    monte_carlo=0,
+    verbosity=0,
+    merge_bblock=None,
+    lbl="",
+    pbar=False,
+    pbar_interval=10.0,
+    no_duplicate_bases=True,
+    max_linear=1000000,
+    **kw
 ):
     verts = ssdag.verts
     edges = ssdag.edges
     loss_threshold = tolerance
-    if last_bb_same_as is None: last_bb_same_as = -1
+    if last_bb_same_as is None:
+        last_bb_same_as = -1
     assert len(verts) > 1
     assert len(verts) == len(edges) + 1
     assert verts[0].dirn[0] == 2
@@ -58,14 +59,20 @@ def grow_linear(
     #     if not 'NUMBA_DISABLE_JIT' in os.environ:
     #         loss_function = nb.njit(nogil=1, fastmath=1)
 
-    exe = cf.ThreadPoolExecutor(max_workers=parallel
-                                ) if parallel else InProcessExecutor()
+    exe = (
+        cf.ThreadPoolExecutor(max_workers=parallel) if parallel else InProcessExecutor()
+    )
     # exe = cf.ProcessPoolExecutor(max_workers=parallel) if parallel else InProcessExecutor()
     with exe as pool:
-        bb_base = tuple([
-            np.array([b.basehash if no_duplicate_bases else 0 for b in bb],
-                     dtype=np.int64) for bb in ssdag.bbs
-        ])
+        bb_base = tuple(
+            [
+                np.array(
+                    [b.basehash if no_duplicate_bases else 0 for b in bb],
+                    dtype=np.int64,
+                )
+                for bb in ssdag.bbs
+            ]
+        )
         verts_pickleable = [v._state for v in verts]
         edges_pickleable = [e._state for e in edges]
         kwargs = dict(
@@ -82,32 +89,33 @@ def grow_linear(
         )
         futures = list()
         if monte_carlo:
-            kwargs['fn'] = _grow_linear_mc_start
-            kwargs['seconds'] = monte_carlo
-            kwargs['ivertex_range'] = (0, verts[0].len)
-            kwargs['merge_bblock'] = merge_bblock
-            kwargs['lbl'] = lbl
-            kwargs['verbosity'] = verbosity
-            kwargs['pbar'] = pbar
-            kwargs['pbar_interval'] = pbar_interval
+            kwargs["fn"] = _grow_linear_mc_start
+            kwargs["seconds"] = monte_carlo
+            kwargs["ivertex_range"] = (0, verts[0].len)
+            kwargs["merge_bblock"] = merge_bblock
+            kwargs["lbl"] = lbl
+            kwargs["verbosity"] = verbosity
+            kwargs["pbar"] = pbar
+            kwargs["pbar_interval"] = pbar_interval
             njob = cpu_count() if parallel else 1
             for ivert in range(njob):
-                kwargs['threadno'] = ivert
+                kwargs["threadno"] = ivert
                 futures.append(pool.submit(**kwargs))
         else:
-            kwargs['fn'] = _grow_linear_start
+            kwargs["fn"] = _grow_linear_start
             nbatch = max(1, int(verts[0].len / 64 / cpu_count()))
             for ivert in range(0, verts[0].len, nbatch):
                 ivert_end = min(verts[0].len, ivert + nbatch)
-                kwargs['ivertex_range'] = ivert, ivert_end
+                kwargs["ivertex_range"] = ivert, ivert_end
                 futures.append(pool.submit(**kwargs))
         results = list()
         if monte_carlo:
             for f in cf.as_completed(futures):
                 results.append(f.result())
         else:
-            desc = 'linear search ' + str(lbl)
-            if merge_bblock is None: merge_bblock = 0
+            desc = "linear search " + str(lbl)
+            if merge_bblock is None:
+                merge_bblock = 0
             fiter = cf.as_completed(futures)
             if pbar:
                 fiter = tqdm(
@@ -115,7 +123,7 @@ def grow_linear(
                     desc=desc,
                     position=merge_bblock + 1,
                     mininterval=pbar_interval,
-                    total=len(futures)
+                    total=len(futures),
                 )
             for f in fiter:
                 results.append(f.result())
@@ -126,7 +134,7 @@ def grow_linear(
         pos=np.concatenate([r.pos for r in results]),
         idx=np.concatenate([r.idx for r in results]),
         err=np.concatenate([r.err for r in results]),
-        stats=tot_stats
+        stats=tot_stats,
     )
     result = remove_duplicate_results(result)
     order = np.argsort(result.err)
@@ -134,7 +142,7 @@ def grow_linear(
         pos=result.pos[order],
         idx=result.idx[order],
         err=result.err[order],
-        stats=result.stats
+        stats=result.stats,
     )
 
 
@@ -143,21 +151,18 @@ def _grow_linear_start(bb_base, verts_pickleable, edges_pickleable, **kwargs):
     edges = tuple([_Edge(*ep) for ep in edges_pickleable])
     pos = np.empty(shape=(1024, len(verts), 4, 4), dtype=np.float32)
     idx = np.empty(shape=(1024, len(verts)), dtype=np.int32)
-    err = np.empty(shape=(1024, ), dtype=np.float32)
+    err = np.empty(shape=(1024,), dtype=np.float32)
     stats = zero_search_stats()
     result = ResultJIT(pos=pos, idx=idx, err=err, stats=stats)
     bases = np.zeros(len(verts), dtype=np.int64)
     nresults, result = _grow_linear_recurse(
-        result=result,
-        bb_base=bb_base,
-        verts=verts,
-        edges=edges,
-        bases=bases,
-        **kwargs
+        result=result, bb_base=bb_base, verts=verts, edges=edges, bases=bases, **kwargs
     )
     result = ResultJIT(
-        result.pos[:nresults], result.idx[:nresults], result.err[:nresults],
-        result.stats
+        result.pos[:nresults],
+        result.idx[:nresults],
+        result.err[:nresults],
+        result.stats,
     )
     return result
 
@@ -171,8 +176,10 @@ def _site_overlap(result, verts, ivertex, nresults, last_bb_same_as):
     isite_last_same_in = verts[last_bb_same_as].isite[i_last_same, 0]
     isite_last_same_out = verts[last_bb_same_as].isite[i_last_same, 1]
     # can't reuse same site
-    if verts[-1].isite[ivertex, 0] == isite_last_same_in: return True
-    if verts[-1].isite[ivertex, 0] == isite_last_same_out: return True
+    if verts[-1].isite[ivertex, 0] == isite_last_same_in:
+        return True
+    if verts[-1].isite[ivertex, 0] == isite_last_same_out:
+        return True
     return False
 
 
@@ -191,9 +198,19 @@ def _last_bb_mismatch(result, verts, ivertex, nresults, last_bb_same_as):
 
 @jit
 def _grow_linear_recurse(
-        result, bb_base, verts, edges, loss_function, loss_threshold,
-        last_bb_same_as, nresults, max_linear, isplice, ivertex_range,
-        splice_position, bases
+    result,
+    bb_base,
+    verts,
+    edges,
+    loss_function,
+    loss_threshold,
+    last_bb_same_as,
+    nresults,
+    max_linear,
+    isplice,
+    ivertex_range,
+    splice_position,
+    bases,
 ):
     """Takes a partially built 'worm' of length isplice and extends them by one based on ivertex_range
 
@@ -216,7 +233,8 @@ def _grow_linear_recurse(
     for ivertex in range(*ivertex_range):
         if not (last_bb_same_as >= 0 and isplice == len(edges)):
             basehash = bb_base[isplice][current_vertex.ibblock[ivertex]]
-            if basehash != 0 and np.any(basehash == bases[:isplice]): continue
+            if basehash != 0 and np.any(basehash == bases[:isplice]):
+                continue
             bases[isplice] = basehash
         result.idx[nresults, isplice] = ivertex
         # assert splice_position.dtype is np.float32, 'splice_position not 32'
@@ -225,13 +243,10 @@ def _grow_linear_recurse(
         result.pos[nresults, isplice] = vertex_position
         if isplice == len(edges):
             result.stats.total_samples[0] += 1
-            if _site_overlap(result, verts, ivertex, nresults,
-                             last_bb_same_as):
+            if _site_overlap(result, verts, ivertex, nresults, last_bb_same_as):
                 continue
             result.stats.n_last_bb_same_as[0] += 1
-            loss = loss_function(
-                result.pos[nresults], result.idx[nresults], verts
-            )
+            loss = loss_function(result.pos[nresults], result.idx[nresults], verts)
             result.err[nresults] = loss
             if loss <= loss_threshold:
                 if nresults >= max_linear:
@@ -246,13 +261,14 @@ def _grow_linear_recurse(
             for ienter in allowed_entries:
                 next_ivertex_range = next_vertex.entry_range(ienter)
                 if isplice + 1 == len(edges):
-                    if _last_bb_mismatch(result, verts, next_ivertex_range[0],
-                                         nresults, last_bb_same_as):
+                    if _last_bb_mismatch(
+                        result, verts, next_ivertex_range[0], nresults, last_bb_same_as
+                    ):
                         continue
-                assert next_ivertex_range[0] >= 0, 'ivrt rng err'
-                assert next_ivertex_range[1] >= 0, 'ivrt rng err'
-                assert next_ivertex_range[0] <= next_vertex.len, 'ivrt rng err'
-                assert next_ivertex_range[1] <= next_vertex.len, 'ivrt rng err'
+                assert next_ivertex_range[0] >= 0, "ivrt rng err"
+                assert next_ivertex_range[1] >= 0, "ivrt rng err"
+                assert next_ivertex_range[0] <= next_vertex.len, "ivrt rng err"
+                assert next_ivertex_range[1] <= next_vertex.len, "ivrt rng err"
                 nresults, result = _grow_linear_recurse(
                     result=result,
                     bb_base=bb_base,
@@ -272,28 +288,37 @@ def _grow_linear_recurse(
 
 
 def _grow_linear_mc_start(
-        seconds, verts_pickleable, edges_pickleable, threadno, pbar, lbl,
-        verbosity, merge_bblock, pbar_interval, **kwargs
+    seconds,
+    verts_pickleable,
+    edges_pickleable,
+    threadno,
+    pbar,
+    lbl,
+    verbosity,
+    merge_bblock,
+    pbar_interval,
+    **kwargs
 ):
     tstart = time()
     verts = tuple([_Vertex(*vp) for vp in verts_pickleable])
     edges = tuple([_Edge(*ep) for ep in edges_pickleable])
     pos = np.empty(shape=(1024, len(verts), 4, 4), dtype=np.float32)
     idx = np.empty(shape=(1024, len(verts)), dtype=np.int32)
-    err = np.empty(shape=(1024, ), dtype=np.float32)
+    err = np.empty(shape=(1024,), dtype=np.float32)
     stats = zero_search_stats()
     result = ResultJIT(pos=pos, idx=idx, err=err, stats=stats)
     bases = np.zeros(len(verts), dtype=np.int64)
-    del kwargs['nresults']
+    del kwargs["nresults"]
 
     if threadno == 0 and pbar:
-        desc = 'linear search ' + str(lbl)
-        if merge_bblock is None: merge_bblock = 0
+        desc = "linear search " + str(lbl)
+        if merge_bblock is None:
+            merge_bblock = 0
         pbar_inst = tqdm(
             desc=desc,
             position=merge_bblock + 1,
             total=seconds,
-            mininterval=pbar_interval
+            mininterval=pbar_interval,
         )
         last = tstart
 
@@ -303,17 +328,11 @@ def _grow_linear_mc_start(
     iter = 0
     ndups = 0
     while time() < tstart + seconds:
-        if 'pbar_inst' in vars():
+        if "pbar_inst" in vars():
             pbar_inst.update(time() - last)
             last = time()
         nresults, result = _grow_linear_mc(
-            nbatch,
-            result,
-            verts,
-            edges,
-            bases=bases,
-            nresults=nresults,
-            **kwargs
+            nbatch, result, verts, edges, bases=bases, nresults=nresults, **kwargs
         )
 
         iter += 1
@@ -324,7 +343,7 @@ def _grow_linear_mc_start(
                 idx=result.idx[:nresults],
                 pos=result.pos[:nresults],
                 err=result.err[:nresults],
-                stats=result.stats
+                stats=result.stats,
             )
             uniq_result = remove_duplicate_results(uniq_result)
             nresults = len(uniq_result.err)
@@ -334,37 +353,72 @@ def _grow_linear_mc_start(
             ndups += nresults_with_dups - nresults
             # print(ndups / nresults)
 
-        if nresults >= kwargs['max_linear']: break
+        if nresults >= kwargs["max_linear"]:
+            break
 
-    if 'pbar_inst' in vars(): pbar_inst.close()
+    if "pbar_inst" in vars():
+        pbar_inst.close()
 
     result = ResultJIT(
-        result.pos[:nresults], result.idx[:nresults], result.err[:nresults],
-        result.stats
+        result.pos[:nresults],
+        result.idx[:nresults],
+        result.err[:nresults],
+        result.stats,
     )
     return result
 
 
 @jit
 def _grow_linear_mc(
-        niter, result, verts, edges, loss_function, loss_threshold,
-        last_bb_same_as, nresults, max_linear, isplice, ivertex_range,
-        splice_position, bb_base, bases
+    niter,
+    result,
+    verts,
+    edges,
+    loss_function,
+    loss_threshold,
+    last_bb_same_as,
+    nresults,
+    max_linear,
+    isplice,
+    ivertex_range,
+    splice_position,
+    bb_base,
+    bases,
 ):
     for i in range(niter):
         nresults, result = _grow_linear_mc_recurse(
-            result, bb_base, verts, edges, loss_function, loss_threshold,
-            last_bb_same_as, nresults, max_linear, isplice, ivertex_range,
-            splice_position, bases
+            result,
+            bb_base,
+            verts,
+            edges,
+            loss_function,
+            loss_threshold,
+            last_bb_same_as,
+            nresults,
+            max_linear,
+            isplice,
+            ivertex_range,
+            splice_position,
+            bases,
         )
     return nresults, result
 
 
 @jit
 def _grow_linear_mc_recurse(
-        result, bb_base, verts, edges, loss_function, loss_threshold,
-        last_bb_same_as, nresults, max_linear, isplice, ivertex_range,
-        splice_position, bases
+    result,
+    bb_base,
+    verts,
+    edges,
+    loss_function,
+    loss_threshold,
+    last_bb_same_as,
+    nresults,
+    max_linear,
+    isplice,
+    ivertex_range,
+    splice_position,
+    bases,
 ):
     """Takes a partially built 'worm' of length isplice and extends them by one based on ivertex_range
 
@@ -418,13 +472,14 @@ def _grow_linear_mc_recurse(
             # for ienter in allowed_entries:
             next_ivertex_range = next_vertex.entry_range(ienter)
             if isplice + 1 == len(edges):
-                if _last_bb_mismatch(result, verts, next_ivertex_range[0],
-                                     nresults, last_bb_same_as):
+                if _last_bb_mismatch(
+                    result, verts, next_ivertex_range[0], nresults, last_bb_same_as
+                ):
                     continue
-            assert next_ivertex_range[0] >= 0, 'ivrt rng err'
-            assert next_ivertex_range[1] >= 0, 'ivrt rng err'
-            assert next_ivertex_range[0] <= next_vertex.len, 'ivrt rng err'
-            assert next_ivertex_range[1] <= next_vertex.len, 'ivrt rng err'
+            assert next_ivertex_range[0] >= 0, "ivrt rng err"
+            assert next_ivertex_range[1] >= 0, "ivrt rng err"
+            assert next_ivertex_range[0] <= next_vertex.len, "ivrt rng err"
+            assert next_ivertex_range[1] <= next_vertex.len, "ivrt rng err"
             nresults, result = _grow_linear_mc_recurse(
                 result=result,
                 bb_base=bb_base,

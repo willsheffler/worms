@@ -14,18 +14,21 @@ from worms.criteria import cyclic
 
 vertex_xform_dtype = np.float32
 
-@nb.jitclass((
-    ('x2exit'  , nb.typeof(vertex_xform_dtype(0))[:, :, :]),
-    ('x2orig'  , nb.typeof(vertex_xform_dtype(0))[:, :, :]),
-    ('inout'   , nt.int32[:, :]),
-    ('inbreaks', nt.int32[:]),
-    ('ires'    , nt.int32[:, :]),
-    ('isite'   , nt.int32[:, :]),
-    ('ichain'  , nt.int32[:, :]),
-    ('ibblock' , nt.int32[:]),
-    ('dirn'    , nt.int32[:]),
-    ('min_seg_len', nt.int32),
-))  # yapf: disable
+
+@nb.jitclass(
+    (
+        ("x2exit", nb.typeof(vertex_xform_dtype(0))[:, :, :]),
+        ("x2orig", nb.typeof(vertex_xform_dtype(0))[:, :, :]),
+        ("inout", nt.int32[:, :]),
+        ("inbreaks", nt.int32[:]),
+        ("ires", nt.int32[:, :]),
+        ("isite", nt.int32[:, :]),
+        ("ichain", nt.int32[:, :]),
+        ("ibblock", nt.int32[:]),
+        ("dirn", nt.int32[:]),
+        ("min_seg_len", nt.int32),
+    )
+)  # yapf: disable
 class _Vertex:
     """contains data for one topological vertex in the topological ssdag
 
@@ -41,8 +44,17 @@ class _Vertex:
     """
 
     def __init__(
-            self, x2exit, x2orig, ires, isite, ichain, ibblock, inout,
-            inbreaks, dirn, min_seg_len
+        self,
+        x2exit,
+        x2orig,
+        ires,
+        isite,
+        ichain,
+        ibblock,
+        inout,
+        inbreaks,
+        dirn,
+        min_seg_len,
     ):
         """TODO: Summary
 
@@ -79,8 +91,8 @@ class _Vertex:
         return self.inout[:, 1]
 
     def entry_range(self, ienter):
-        assert ienter >= 0, 'vertex.py bad ienter, < 0'
-        assert ienter <= len(self.inbreaks), 'vertex.py bad ienter'
+        assert ienter >= 0, "vertex.py bad ienter, < 0"
+        assert ienter <= len(self.inbreaks), "vertex.py bad ienter"
         return self.inbreaks[ienter], self.inbreaks[ienter + 1]
 
     @property
@@ -90,16 +102,23 @@ class _Vertex:
     @property
     def _state(self):
         return (
-            self.x2exit, self.x2orig, self.ires, self.isite, self.ichain,
-            self.ibblock, self.inout, self.inbreaks, self.dirn,
-            self.min_seg_len
+            self.x2exit,
+            self.x2orig,
+            self.ires,
+            self.isite,
+            self.ichain,
+            self.ibblock,
+            self.inout,
+            self.inbreaks,
+            self.dirn,
+            self.min_seg_len,
         )
 
     @property
     def memuse(self):
         return (
-            self.x2exit.size * self.x2exit.itemsize +
-            self.x2orig.size * self.x2orig.itemsize
+            self.x2exit.size * self.x2exit.itemsize
+            + self.x2orig.size * self.x2orig.itemsize
         )
         # ('inout'   , nt.int32[:, :]),
         # ('inbreaks', nt.int32[:]),
@@ -132,13 +151,13 @@ def vertex_single(bbstate, bbid, din, dout, min_seg_len, verbosity=0):
         if bb.conn_dirn(i) == dout:
             ires1.append(ires)
             isite1.append(np.repeat(i, len(ires)))
-    dirn = 'NC_' [din] + 'NC_' [dout]
-    if (din < 2 and not ires0 or dout < 2 and not ires1):
+    dirn = "NC_"[din] + "NC_"[dout]
+    if din < 2 and not ires0 or dout < 2 and not ires1:
         if verbosity > 0:
-            warning('invalid vertex ' + dirn + ' ' + bytes(bb.file).decode())
+            warning("invalid vertex " + dirn + " " + bytes(bb.file).decode())
         return None
 
-    dummy = [np.array([-1], dtype='i4')]
+    dummy = [np.array([-1], dtype="i4")]
     ires0 = np.concatenate(ires0 or dummy)
     ires1 = np.concatenate(ires1 or dummy)
     isite0 = np.concatenate(isite0 or dummy)
@@ -146,15 +165,23 @@ def vertex_single(bbstate, bbid, din, dout, min_seg_len, verbosity=0):
     chain0 = chain_of_ires(bb, ires0)
     chain1 = chain_of_ires(bb, ires1)
 
-    if ires0[0] == -1: assert len(ires0) is 1
-    else: assert np.all(ires0 >= 0)
-    if ires1[0] == -1: assert len(ires1) is 1
-    else: assert np.all(ires1 >= 0)
+    if ires0[0] == -1:
+        assert len(ires0) is 1
+    else:
+        assert np.all(ires0 >= 0)
+    if ires1[0] == -1:
+        assert len(ires1) is 1
+    else:
+        assert np.all(ires1 >= 0)
 
-    if ires0[0] == -1: stub0inv = np.eye(4).reshape(1, 4, 4)
-    else: stub0inv = np.linalg.inv(bb.stubs[ires0])
-    if ires1[0] == -1: stub1 = np.eye(4).reshape(1, 4, 4)
-    else: stub1 = bb.stubs[ires1]
+    if ires0[0] == -1:
+        stub0inv = np.eye(4).reshape(1, 4, 4)
+    else:
+        stub0inv = np.linalg.inv(bb.stubs[ires0])
+    if ires1[0] == -1:
+        stub1 = np.eye(4).reshape(1, 4, 4)
+    else:
+        stub1 = bb.stubs[ires1]
 
     assert _check_inorder(ires0)
     assert _check_inorder(ires1)
@@ -176,18 +203,19 @@ def vertex_single(bbstate, bbid, din, dout, min_seg_len, verbosity=0):
 
     # remove invalid in/out pairs (+ is or, * is and)
     valid = not_same_site
-    valid *= (not_same_chain + (seqsep >= min_seg_len))
+    valid *= not_same_chain + (seqsep >= min_seg_len)
     valid = valid.reshape(-1)
 
-    if np.sum(valid) == 0: return None
+    if np.sum(valid) == 0:
+        return None
 
     return (
         x2exit.reshape(-1, 4, 4)[valid],
         x2orig.reshape(-1, 4, 4)[valid],
-        ires.reshape(-1, 2)[valid].astype('i4'),
-        isite.reshape(-1, 2)[valid].astype('i4'),
-        chain.reshape(-1, 2)[valid].astype('i4'),
-        np.repeat(bbid, np.sum(valid)).astype('i4'),
+        ires.reshape(-1, 2)[valid].astype("i4"),
+        isite.reshape(-1, 2)[valid].astype("i4"),
+        chain.reshape(-1, 2)[valid].astype("i4"),
+        np.repeat(bbid, np.sum(valid)).astype("i4"),
     )
 
 
@@ -204,7 +232,7 @@ def _check_bbires_inorder(ibblock, ires):
 
 
 def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0):
-    dirn_map = {'N': 0, 'C': 1, '_': 2}
+    dirn_map = {"N": 0, "C": 1, "_": 2}
     din = dirn_map[dirn[0]]
     dout = dirn_map[dirn[1]]
     if bbids is None:
@@ -220,14 +248,13 @@ def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0):
     #         )
     #     verts = [f.result() for f in futures]
     verts = [
-        vertex_single(
-            bb._state, bid, din, dout, min_seg_len, verbosity=verbosity
-        ) for bb, bid in zip(bbs, bbids)
+        vertex_single(bb._state, bid, din, dout, min_seg_len, verbosity=verbosity)
+        for bb, bid in zip(bbs, bbids)
     ]
     verts = [v for v in verts if v is not None]
 
     if not verts:
-        raise ValueError('no way to make vertex: \'' + dirn + '\'')
+        raise ValueError("no way to make vertex: '" + dirn + "'")
     tup = tuple(np.concatenate(_) for _ in zip(*verts))
     assert len({x.shape[0] for x in tup}) == 1
     ibblock, ires = tup[5], tup[2]
@@ -238,10 +265,15 @@ def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0):
     # not true as some pruned from validity checks
     # assert _check_bbires_inorder(ibblock, ires[:, 1])
 
-    inout = np.stack([
-        util.unique_key_int32s(ibblock, ires[:, 0]),
-        util.unique_key_int32s(ibblock, ires[:, 1])
-    ], axis=-1).astype('i4') # yapf: disable
+    inout = np.stack(
+        [
+            util.unique_key_int32s(ibblock, ires[:, 0]),
+            util.unique_key_int32s(ibblock, ires[:, 1]),
+        ],
+        axis=-1,
+    ).astype(
+        "i4"
+    )  # yapf: disable
 
     # inout2 = np.stack([
     #     util.unique_key(ibblock, ires[:, 0]),
@@ -265,5 +297,5 @@ def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0):
     assert np.all(inbreaks <= len(inout))
 
     return _Vertex(
-        *tup, inout, inbreaks, np.array([din, dout], dtype='i4'), min_seg_len
+        *tup, inout, inbreaks, np.array([din, dout], dtype="i4"), min_seg_len
     )

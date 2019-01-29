@@ -11,7 +11,7 @@ from worms.khash.khash_cffi import _khash_init, _khash_set, _khash_get, _khash_d
 from worms.util import jit
 from worms.tests import only_if_jit
 
-T = namedtuple('T', 'a b c d'.split())
+T = namedtuple("T", "a b c d".split())
 
 
 @only_if_jit
@@ -50,8 +50,8 @@ def test_numba_reshape():
             tmp[i] = m44 @ tmp[i]
         return tmp.reshape(-1, 3, 4)
 
-    m44 = np.eye(4, dtype='f4')
-    ncac = np.arange(120, dtype='f4').reshape(-1, 3, 4)
+    m44 = np.eye(4, dtype="f4")
+    ncac = np.arange(120, dtype="f4").reshape(-1, 3, 4)
     ncac[..., 3] = 1
     assert numba_reshape(m44, ncac).shape == (10, 3, 4)
 
@@ -59,10 +59,9 @@ def test_numba_reshape():
 @jit
 def numba_named_tuple(t):
     s = T(0, 1, 2, 3)
-    return (t.a * s.a +
-            t.b * s.b +
-            t.c * s.c +
-            t.d * s.d )  # yapf: disable
+    return t.a * s.a + t.b * s.b + t.c * s.c + t.d * s.d  # yapf: disable
+
+
 @only_if_jit
 def test_numba_named_tuple():
     t = T(1, 2, 3, 4)
@@ -113,10 +112,10 @@ def disabled_test_khash():
     np.random.shuffle(_fids)
     fids = np.empty(n_fids, dtype=np.int64)
     fids[-1] = max_fid
-    fids[:-1] = np.sort(_fids[:n_fids - 1])
+    fids[:-1] = np.sort(_fids[: n_fids - 1])
 
     values = np.random.normal(size=(n_fids))
-    fetch_ids = np.random.choice(fids, size=(n_fetch, ), replace=True)
+    fetch_ids = np.random.choice(fids, size=(n_fetch,), replace=True)
 
     s1 = without_khash(fids, values, fetch_ids)
     s2 = with_khash_numba(fids, values, fetch_ids)
@@ -132,13 +131,14 @@ def test_many_specs():
         return u[0] + u[1] + u[2] + u[3] + u[4] + u[5] + u[6] + u[7]
 
     import itertools as it
+
     n = 8
-    binary = np.right_shift(np.arange(2**n)[:, None], np.arange(n)[None]) % 2
-    tups = [tuple([(1, 1.)[i] for i in x]) for x in binary]
+    binary = np.right_shift(np.arange(2 ** n)[:, None], np.arange(n)[None]) % 2
+    tups = [tuple([(1, 1.0)[i] for i in x]) for x in binary]
     for x in tups:
         add(x)
 
-    print('num sigs', len(add.nopython_signatures))
+    print("num sigs", len(add.nopython_signatures))
 
     assert 0
 
@@ -169,7 +169,7 @@ def test_many_specs():
 def test_numba_tuple_of_arrays():
     @jit
     def expand_tuples_of_arrays(tup):
-        new = tup + (tup[0][:], )
+        new = tup + (tup[0][:],)
         return new
         # return expand_tuples_of_arrays(new) # crashes...
 
@@ -295,7 +295,7 @@ def test_numba_chain_funcs_common_arg():
 def test_numba_chain_funcs_args_per():
     @nb.njit
     def ident(x, _):
-        print('ident')
+        print("ident")
         return x
 
     def chain(fs, inner=ident):
@@ -303,27 +303,32 @@ def test_numba_chain_funcs_args_per():
 
         @nb.njit
         def wrap(x, argstack):
-            return head(
-                inner(x, argstack[:-1]),
-                argstack[-1],
-            )  # why order different?!?
+            return head(inner(x, argstack[:-1]), argstack[-1])  # why order different?!?
 
         return chain(tail, wrap) if tail else wrap
 
     @nb.njit
     def add(x, arg):
-        if arg is 1: print('add 1')
-        elif arg is 2: print('add 2')
-        elif arg is 3: print('add 3')
-        else: print('add ?')
+        if arg is 1:
+            print("add 1")
+        elif arg is 2:
+            print("add 2")
+        elif arg is 3:
+            print("add 3")
+        else:
+            print("add ?")
         return x + arg
 
     @nb.njit
     def mul(x, arg):
-        if arg is 1: print('mul 1')
-        elif arg is 2: print('mul 2')
-        elif arg is 3: print('mul 3')
-        else: print('mul ?')
+        if arg is 1:
+            print("mul 1")
+        elif arg is 2:
+            print("mul 2")
+        elif arg is 3:
+            print("mul 3")
+        else:
+            print("mul ?")
         return x * arg
 
     # must be used outside of the jit
@@ -332,12 +337,12 @@ def test_numba_chain_funcs_args_per():
 
     @nb.njit
     def jit_with_chain_funcs():
-        x = np.array([3., 4.])
-        print('addmul')
+        x = np.array([3.0, 4.0])
+        print("addmul")
         a = addmul(x, argstack=(1.1, 1))
-        print('addmuladd')
+        print("addmuladd")
         b = addmuladd(x, argstack=(3, 1.2, 1))
-        print('done')
+        print("done")
         return (a, b)
 
     tup = jit_with_chain_funcs()
@@ -349,7 +354,7 @@ def test_numba_chain_funcs_args_per():
 
 @only_if_jit
 def test_numba_cannot_chain_jitclass():
-    @nb.jitclass((('member', nt.int32), ))
+    @nb.jitclass((("member", nt.int32),))
     class Ident:
         def __init__(self):
             pass
@@ -360,7 +365,7 @@ def test_numba_cannot_chain_jitclass():
     def chain(fs, inner=Ident()):
         head, tail = fs[-1], fs[:-1]
 
-        @nb.jitclass((('dummy', nt.int32), ))
+        @nb.jitclass((("dummy", nt.int32),))
         class Wrap:
             def __init__(self):
                 pass
@@ -370,7 +375,7 @@ def test_numba_cannot_chain_jitclass():
 
         return chain(tail, Wrap()) if tail else Wrap()
 
-    @nb.jitclass((('member', nt.int32), ))
+    @nb.jitclass((("member", nt.int32),))
     class Foo:
         def __init__(self):
             pass
@@ -378,7 +383,7 @@ def test_numba_cannot_chain_jitclass():
         def call(self, x):
             return x + 1.2
 
-    @nb.jitclass((('member', nt.int32), ))
+    @nb.jitclass((("member", nt.int32),))
     class Bar:
         def __init__(self):
             pass

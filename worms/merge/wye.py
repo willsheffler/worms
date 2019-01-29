@@ -5,4 +5,4 @@ from worms import util
 
 
 def wye_merge(**kw):
-    print('wye_merge')
+    print("wye_merge")

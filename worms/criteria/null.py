@@ -8,12 +8,7 @@ from worms.util import ros
 
 
 class Null(WormCriteria):
-    def __init__(
-            self,
-            from_seg=0,
-            origin_seg=None,
-            to_seg=-1,
-    ):
+    def __init__(self, from_seg=0, origin_seg=None, to_seg=-1):
         self.from_seg = from_seg
         self.to_seg = to_seg
         self.origin_seg = origin_seg

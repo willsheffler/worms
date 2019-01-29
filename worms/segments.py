@@ -7,19 +7,19 @@ from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from numpy.linalg import inv
+
 try:
     import pyrosetta
     from pyrosetta import rosetta as ros
     from pyrosetta.rosetta.core import scoring
 except ImportError:
-    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-    print('pyrosetta not available, worms won\'t work')
-    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    print("pyrosetta not available, worms won't work")
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 from worms import util
 import inspect
 
-from worms.pose_contortions import (make_contorted_pose, contort_pose_chains,
-                                    AnnoPose)
+from worms.pose_contortions import make_contorted_pose, contort_pose_chains, AnnoPose
 
 
 class SpliceSite:
@@ -42,7 +42,7 @@ class SpliceSite:
         if isinstance(sele, str) or isinstance(sele, int):
             sele = [sele]
         self.selections = list(sele)
-        assert polarity in ('N', 'C', None)
+        assert polarity in ("N", "C", None)
         self.polarity = polarity
         self.chain = chain
 
@@ -61,8 +61,9 @@ class SpliceSite:
         """
         resid = id if id >= 0 else len(pose) + 1 + id
         if not 0 < resid <= len(pose):
-            raise ValueError('resid ' + str(resid) +
-                             ' invalid for pose of size ' + str(len(pose)))
+            raise ValueError(
+                "resid " + str(resid) + " invalid for pose of size " + str(len(pose))
+            )
         return resid
 
     def _resids_impl(self, sele, spliceable):
@@ -86,8 +87,8 @@ class SpliceSite:
                 ir += spliceable.start_of_chain[self.chain]
                 return set([ir])
         elif isinstance(sele, str):
-            x = sele.split(',')
-            s = x[-1].split(':')
+            x = sele.split(",")
+            s = x[-1].split(":")
             chain = int(x[0]) if len(x) == 2 else None
             pose = spliceable.chains[chain] if chain else spliceable.body
             start = self.resid(int(s[0] or 1), pose)
@@ -102,7 +103,7 @@ class SpliceSite:
         elif sele is None:
             return set([None])
         else:
-            raise ValueError('selection must be int, str, or None')
+            raise ValueError("selection must be int, str, or None")
 
     def _resids(self, spliceabe):
         """TODO: Summary
@@ -121,11 +122,10 @@ class SpliceSite:
             try:
                 resids |= self._resids_impl(sele, spliceabe)
             except ValueError as e:
-                raise ValueError(
-                    'Error with selection ' + str(sele) + ': ' + str(e))
+                raise ValueError("Error with selection " + str(sele) + ": " + str(e))
         resids = sorted(resids)
         if not resids:
-            raise ValueError('empty SpliceSite')
+            raise ValueError("empty SpliceSite")
         return resids
 
     def __repr__(self):
@@ -134,9 +134,8 @@ class SpliceSite:
         Returns:
             TYPE: Description
         """
-        c = '' if self.chain is None else ', chain=' + str(self.chain)
-        return 'SpliceSite(' + str(self.selections) + \
-            ', ' + self.polarity + c + ')'
+        c = "" if self.chain is None else ", chain=" + str(self.chain)
+        return "SpliceSite(" + str(self.selections) + ", " + self.polarity + c + ")"
 
 
 class Spliceable:
@@ -154,13 +153,7 @@ class Spliceable:
         start_of_chain (TYPE): Description
     """
 
-    def __init__(self,
-                 body,
-                 sites,
-                 *,
-                 bodyid=None,
-                 min_seg_len=1,
-                 allowed_pairs=None):
+    def __init__(self, body, sites, *, bodyid=None, min_seg_len=1, allowed_pairs=None):
         """TODO: Summary
 
         Args:
@@ -176,12 +169,10 @@ class Spliceable:
         self.body = body
         chains = list(body.split_by_chain())
         self.start_of_chain = {
-            i + 1: sum(len(c) for c in chains[:i])
-            for i in range(len(chains))
+            i + 1: sum(len(c) for c in chains[:i]) for i in range(len(chains))
         }
         self.end_of_chain = {
-            i + 1: sum(len(c) for c in chains[:i + 1])
-            for i in range(len(chains))
+            i + 1: sum(len(c) for c in chains[: i + 1]) for i in range(len(chains))
         }
         self.start_of_chain[None] = 0
         self.chains = {i + 1: c for i, c in enumerate(chains)}
@@ -193,13 +184,13 @@ class Spliceable:
         self.sites = list(sites)
         for i, site in enumerate(self.sites):
             if isinstance(site, str):
-                raise ValueError('site currently must be (sele, polarity)')
+                raise ValueError("site currently must be (sele, polarity)")
             if not isinstance(site, SpliceSite):
                 if isinstance(site, dict):
                     self.sites[i] = SpliceSite(**site)
                 else:
                     if not isinstance(site, Iterable):
-                        self.sites[i] = (site, )
+                        self.sites[i] = (site,)
                     self.sites[i] = SpliceSite(*site)
         self.nsite = dict(N=0, C=0)
         for s in self.sites:
@@ -219,7 +210,8 @@ class Spliceable:
         Returns:
             TYPE: Description
         """
-        if isite < 0: return [None]
+        if isite < 0:
+            return [None]
         return self._resids_list[isite]
 
     def spliceable_positions(self):
@@ -234,8 +226,9 @@ class Spliceable:
         resid_subset = np.array(list(resid_subset))
         # really? must be an easier way to 'invert' a mapping in numpy?
         N = self._len_body + 1
-        val, idx = np.where(0 == (
-            np.arange(N)[np.newaxis, :] - resid_subset[:, np.newaxis]))
+        val, idx = np.where(
+            0 == (np.arange(N)[np.newaxis, :] - resid_subset[:, np.newaxis])
+        )
         to_subset = np.array(N * [-1])
         to_subset[idx] = val
         assert np.all(to_subset[resid_subset] == np.arange(len(resid_subset)))
@@ -253,16 +246,21 @@ class Spliceable:
         Returns:
             TYPE: Description
         """
-        if ires < 0 or jres < 0: return True
+        if ires < 0 or jres < 0:
+            return True
         assert 0 < ires <= self._len_body and 0 < jres <= self._len_body
         ichain, jchain = self._chains[ires - 1], self._chains[jres - 1]
         if ichain == jchain:
             ipol = self.sites[isite].polarity
             jpol = self.sites[jsite].polarity
-            if ipol == jpol: return False
-            if ipol == 'N': seglen = jres - ires + 1
-            else: seglen = ires - jres + 1
-            if seglen < self.min_seg_len: return False
+            if ipol == jpol:
+                return False
+            if ipol == "N":
+                seglen = jres - ires + 1
+            else:
+                seglen = ires - jres + 1
+            if seglen < self.min_seg_len:
+                return False
         return True
 
     def sitepair_allowed(self, isite, jsite):
@@ -279,8 +277,7 @@ class Spliceable:
             return False
         if isite < 0 or jsite < 0:
             return True
-        if (self.allowed_pairs is not None
-                and (isite, jsite) not in self.allowed_pairs):
+        if self.allowed_pairs is not None and (isite, jsite) not in self.allowed_pairs:
             return False
         return True
 
@@ -292,9 +289,15 @@ class Spliceable:
         """
         sites = str([(s._resids(self), s.polarity) for s in self.sites])
         if len(sites) > 30:
-            sites = sites[:30] + '...'
-        return ('Spliceable: body=(' + str(self._len_body) + ',' + str(
-            self.body).splitlines()[0].split('/')[-1] + '), sites=' + sites)
+            sites = sites[:30] + "..."
+        return (
+            "Spliceable: body=("
+            + str(self._len_body)
+            + ","
+            + str(self.body).splitlines()[0].split("/")[-1]
+            + "), sites="
+            + sites
+        )
 
     # def __getstate__(self):
     # pdbfname = self.body.pdb_info().name() if self.body else None
@@ -348,33 +351,38 @@ class Segment:
         """
         if entry and len(entry) is 2:
             entry, exit = entry
-            if entry == '_': entry = None
-            if exit == '_': exit = None
+            if entry == "_":
+                entry = None
+            if exit == "_":
+                exit = None
         self.entrypol = entry
         self.exitpol = exit
         self.expert = expert
-        if entry not in ('C', 'N', None):
+        if entry not in ("C", "N", None):
             raise ValueError('bad entry: "%s" type %s' % (entry, type(entry)))
-        if exit not in ('C', 'N', None):
+        if exit not in ("C", "N", None):
             raise ValueError('bad exit: "%s" type %s' % (exit, type(exit)))
         self.min_sites = dict(C=9e9, N=9e9)
         self.max_sites = dict(C=0, N=0)
         if not spliceables:
-            raise ValueError('spliceables must not be empty, spliceables =' +
-                             str(spliceables))
+            raise ValueError(
+                "spliceables must not be empty, spliceables =" + str(spliceables)
+            )
         for s in spliceables:
             if not isinstance(s, Spliceable):
-                raise ValueError('Segment only accepts list of Spliceable')
+                raise ValueError("Segment only accepts list of Spliceable")
         self.spliceables = list(spliceables)
         self.nchains = len(spliceables[0].chains)
         for s in spliceables:
             if not expert and len(s.chains) is not self.nchains:
-                raise ValueError('different number of chains for spliceables',
-                                 ' in segment (pass expert=True to ignore)')
+                raise ValueError(
+                    "different number of chains for spliceables",
+                    " in segment (pass expert=True to ignore)",
+                )
             self.nchains = max(self.nchains, len(s.chains))
         self.resid_subset, self.to_subset, self.stubs = [], [], []
         for ibody, spliceable in enumerate(self.spliceables):
-            for p in 'NC':
+            for p in "NC":
                 self.min_sites[p] = min(self.min_sites[p], spliceable.nsite[p])
                 self.max_sites[p] = max(self.max_sites[p], spliceable.nsite[p])
             resid_subset, to_subset = spliceable.spliceable_positions()
@@ -392,10 +400,8 @@ class Segment:
         """
         assert not (self.entrypol is None or self.exitpol is None)
         return Segment(
-            self.spliceables,
-            entry=self.entrypol,
-            exit=None,
-            expert=self.expert)
+            self.spliceables, entry=self.entrypol, exit=None, expert=self.expert
+        )
 
     def make_tail(self):
         """TODO: Summary
@@ -405,10 +411,8 @@ class Segment:
         """
         assert not (self.entrypol is None or self.exitpol is None)
         return Segment(
-            self.spliceables,
-            entry=None,
-            exit=self.exitpol,
-            expert=self.expert)
+            self.spliceables, entry=None, exit=self.exitpol, expert=self.expert
+        )
 
     def merge_idx_slow(self, head, head_idx, tail, tail_idx):
         """TODO: Summary
@@ -433,12 +437,13 @@ class Segment:
 
         for i in range(len(idx)):
             tmp = np.where(
-                (self.bodyid == head.bodyid[head_idx[i]]) *
-                (self.entryresid == head.entryresid[head_idx[i]]) *
-                (self.entrysiteid == head.entrysiteid[head_idx[i]]) *
-                (self.bodyid == tail.bodyid[tail_idx[i]]) *
-                (self.exitresid == tail.exitresid[tail_idx[i]]) *
-                (self.exitsiteid == tail.exitsiteid[tail_idx[i]]))[0]
+                (self.bodyid == head.bodyid[head_idx[i]])
+                * (self.entryresid == head.entryresid[head_idx[i]])
+                * (self.entrysiteid == head.entrysiteid[head_idx[i]])
+                * (self.bodyid == tail.bodyid[tail_idx[i]])
+                * (self.exitresid == tail.exitresid[tail_idx[i]])
+                * (self.exitsiteid == tail.exitsiteid[tail_idx[i]])
+            )[0]
             assert len(tmp) <= 1
             if len(tmp) is 1:
                 idx[i] = tmp[0]
@@ -456,8 +461,8 @@ class Segment:
         Returns:
             TYPE: Description
         """
-        ok1 = (head.bodyid[head_idx] == tail.bodyid[tail_idx])
-        ok2 = (head.entrysiteid[head_idx] != tail.exitsiteid[tail_idx])
+        ok1 = head.bodyid[head_idx] == tail.bodyid[tail_idx]
+        ok2 = head.entrysiteid[head_idx] != tail.exitsiteid[tail_idx]
         ok = np.logical_and(ok1, ok2)
         return self.merge_idx_slow(head, head_idx[ok], tail, tail_idx[ok]), ok
 
@@ -479,13 +484,15 @@ class Segment:
         tail_idx = np.zeros_like(idx) - 1
         for i in range(len(idx)):
             head_tmp = np.where(
-                (self.bodyid[idx[i]] == head.bodyid) *
-                (self.entryresid[idx[i]] == head.entryresid) *
-                (self.entrysiteid[idx[i]] == head.entrysiteid))[0]
+                (self.bodyid[idx[i]] == head.bodyid)
+                * (self.entryresid[idx[i]] == head.entryresid)
+                * (self.entrysiteid[idx[i]] == head.entrysiteid)
+            )[0]
             tail_tmp = np.where(
-                (self.bodyid[idx[i]] == tail.bodyid) *
-                (self.exitresid[idx[i]] == tail.exitresid) *
-                (self.exitsiteid[idx[i]] == tail.exitsiteid))[0]
+                (self.bodyid[idx[i]] == tail.bodyid)
+                * (self.exitresid[idx[i]] == tail.exitresid)
+                * (self.exitsiteid[idx[i]] == tail.exitsiteid)
+            )[0]
             assert len(head_tmp) <= 1 and len(tail_tmp) <= 1
             # print(i, head_tmp, tail_tmp)
             if len(head_tmp) == 1 and len(tail_tmp) == 1:
@@ -515,7 +522,7 @@ class Segment:
         # this whole loop is pretty inefficient, but that probably
         # doesn't matter much given the cost subsequent operations (?)
         for ibody, spliceable in enumerate(self.spliceables):
-            for p in 'NC':
+            for p in "NC":
                 self.min_sites[p] = min(self.min_sites[p], spliceable.nsite[p])
                 self.max_sites[p] = max(self.max_sites[p], spliceable.nsite[p])
             # resid_subset, to_subset = spliceable.spliceable_positions()
@@ -532,33 +539,33 @@ class Segment:
             if len(resid_subset) != stubs.shape[0]:
                 raise ValueError("no funny residues supported")
             stubs_inv = inv(stubs)
-            entry_sites = (list(enumerate(spliceable.sites)) if self.entrypol
-                           else [(-1,
-                                  SpliceSite(
-                                      sele=[None], polarity=self.entrypol))])
-            exit_sites = (list(enumerate(spliceable.sites))
-                          if self.exitpol else [(-1,
-                                                 SpliceSite(
-                                                     sele=[None],
-                                                     polarity=self.exitpol))])
+            entry_sites = (
+                list(enumerate(spliceable.sites))
+                if self.entrypol
+                else [(-1, SpliceSite(sele=[None], polarity=self.entrypol))]
+            )
+            exit_sites = (
+                list(enumerate(spliceable.sites))
+                if self.exitpol
+                else [(-1, SpliceSite(sele=[None], polarity=self.exitpol))]
+            )
             for isite, entry_site in entry_sites:
                 if entry_site.polarity != self.entrypol:
                     continue
                 for ires in spliceable.resids(isite):
-                    istub_inv = (np.eye(4)
-                                 if not ires else stubs_inv[to_subset[ires]])
+                    istub_inv = np.eye(4) if not ires else stubs_inv[to_subset[ires]]
                     ires = ires or -1
                     for jsite, exit_site in exit_sites:
-                        if (not spliceable.sitepair_allowed(isite, jsite)
-                                or exit_site.polarity != self.exitpol):
+                        if (
+                            not spliceable.sitepair_allowed(isite, jsite)
+                            or exit_site.polarity != self.exitpol
+                        ):
                             continue
                         # print('pass')
                         for jres in spliceable.resids(jsite):
-                            jstub = (np.eye(4)
-                                     if not jres else stubs[to_subset[jres]])
+                            jstub = np.eye(4) if not jres else stubs[to_subset[jres]]
                             jres = jres or -1
-                            if not spliceable.is_compatible(
-                                    isite, ires, jsite, jres):
+                            if not spliceable.is_compatible(isite, ires, jsite, jres):
                                 continue
                             self.x2exit.append(istub_inv @ jstub)
                             self.x2orgn.append(istub_inv)
@@ -568,7 +575,7 @@ class Segment:
                             self.exitresid.append(jres)
                             self.bodyid.append(bodyid)
         if len(self.x2exit) is 0:
-            raise ValueError('no valid splices found')
+            raise ValueError("no valid splices found")
         self.x2exit = np.stack(self.x2exit)
         self.x2orgn = np.stack(self.x2orgn)
         self.entrysiteid = np.stack(self.entrysiteid)
@@ -591,13 +598,13 @@ class Segment:
         return bodies1 == bodies2
 
     def make_pose_chains(
-            self,
-            indices,
-            position=None,
-            pad=(0, 0),
-            iseg=None,
-            segments=None,
-            cyclictrim=None,
+        self,
+        indices,
+        position=None,
+        pad=(0, 0),
+        iseg=None,
+        segments=None,
+        cyclictrim=None,
     ):
         """what a monster this has become. returns (segchains, rest)
         segchains elems are [enterexitchain] or, [enterchain, ..., exitchain]
@@ -735,7 +742,7 @@ class Segments:
         Returns:
             TYPE: Description
         """
-        tail, head = self[:idx + 1], self[idx:]
+        tail, head = self[: idx + 1], self[idx:]
         tail[-1] = tail[-1].make_head()
         head[0] = head[0].make_tail()
         return tail, head
@@ -773,34 +780,37 @@ class Worms:
         self.positions = positions
         self.criteria = criteria
         self.detail = detail
-        self.score0 = scoring.ScoreFunctionFactory.create_score_function(
-            'score0')
+        self.score0 = scoring.ScoreFunctionFactory.create_score_function("score0")
         self.score0sym = scoring.symmetry.symmetrize_scorefunction(self.score0)
         self.splicepoint_cache = {}
 
     def pose(
-            self,
-            which,
-            *,
-            align=True,
-            end=None,
-            only_connected='auto',
-            join=True,
-            cyclic_permute=None,
-            cyclictrim=None,
-            provenance=False,
-            make_chain_list=False,
-            **kw
+        self,
+        which,
+        *,
+        align=True,
+        end=None,
+        only_connected="auto",
+        join=True,
+        cyclic_permute=None,
+        cyclictrim=None,
+        provenance=False,
+        make_chain_list=False,
+        **kw
     ):  # yapf: disable
         """makes a pose for the ith worm"""
         if isinstance(which, Iterable):
-            return (self.pose(
-                w,
-                align=align,
-                end=end,
-                join=join,
-                only_connected=only_connected,
-                **kw) for w in which)
+            return (
+                self.pose(
+                    w,
+                    align=align,
+                    end=end,
+                    join=join,
+                    only_connected=only_connected,
+                    **kw
+                )
+                for w in which
+            )
 
         is_cyclic = self.criteria.is_cyclic
         from_seg, to_seg = self.criteria.from_seg, self.criteria.to_seg
@@ -822,7 +832,7 @@ class Worms:
         if cyclic_permute is None:
             cyclic_permute = not end
         elif cyclic_permute and not is_cyclic:
-            raise ValueError('cyclic_permute should only be used for Cyclic')
+            raise ValueError("cyclic_permute should only be used for Cyclic")
         if cyclictrim is None:
             cyclictrim = cyclic_permute
         if cyclictrim:
@@ -840,7 +850,8 @@ class Worms:
                 seg_pos[iseg],
                 iseg=iseg,
                 segments=self.segments,
-                cyclictrim=cyclictrim)
+                cyclictrim=cyclictrim,
+            )
             for iseg, seg in enumerate(self.segments[:iend])
         ]
         stupid_variable_return_type = make_contorted_pose(
@@ -894,15 +905,15 @@ class Worms:
         self.splicepoint_cache = {}
 
     def sympose(
-            self,
-            which,
-            score=False,
-            provenance=False,
-            fullatom=False,
-            asym_score_thresh=50,
-            min_cell_spacing=130,
-            *,
-            parallel=False
+        self,
+        which,
+        score=False,
+        provenance=False,
+        fullatom=False,
+        asym_score_thresh=50,
+        min_cell_spacing=130,
+        *,
+        parallel=False
     ):  # yapf: disable
         """TODO: Summary
 
@@ -923,7 +934,7 @@ class Worms:
         if isinstance(which, Iterable):
             which = list(which)
             if not all(0 <= i < len(self) for i in which):
-                raise IndexError('invalid worm index')
+                raise IndexError("invalid worm index")
             args = (
                 self.sympose,
                 which,
@@ -940,20 +951,22 @@ class Worms:
             else:
                 return list(map(*args))
         if not 0 <= which < len(self):
-            raise IndexError('invalid worm index')
+            raise IndexError("invalid worm index")
         posecall = self.pose(which, provenance=True)
-        if not posecall: return None
+        if not posecall:
+            return None
         p, prov = posecall
-        if fullatom: pfull = p.clone()
+        if fullatom:
+            pfull = p.clone()
         pcen = p
-        ros.core.util.switch_to_residue_type_set(pcen, 'centroid')
+        ros.core.util.switch_to_residue_type_set(pcen, "centroid")
         if self.score0(pcen) > asym_score_thresh:
             return None
         if self.criteria.symfile_modifiers:
             symdata = util.get_symdata_modified(
                 self.criteria.symname,
-                **self.criteria.symfile_modifiers(
-                    segpos=self.positions[which]))
+                **self.criteria.symfile_modifiers(segpos=self.positions[which])
+            )
         else:
             symdata = util.get_symdata(self.criteria.symname)
         sfxn = self.score0sym
@@ -972,7 +985,7 @@ class Worms:
             ros.core.pose.symmetry.make_symmetric_pose(pcen, symdata)
         if fullatom:
             pfull = pcen.clone()
-            ros.core.util.switch_to_residue_type_set(pfull, 'fa_standard')
+            ros.core.util.switch_to_residue_type_set(pfull, "fa_standard")
             p = pfull
         else:
             p = pcen
@@ -993,7 +1006,8 @@ class Worms:
         Returns:
             TYPE: Description
         """
-        if isinstance(which, Iterable): return (self.splices(w) for w in which)
+        if isinstance(which, Iterable):
+            return (self.splices(w) for w in which)
         splices = []
         for i in range(len(self.segments) - 1):
             seg1 = self.segments[i]
@@ -1011,8 +1025,9 @@ class Worms:
             ichain2 = spliceable2.body.chain(resid2)
             chainresid2 = resid2 - spliceable2.start_of_chain[ichain2]
             drn = self.segments[i].exitpol + self.segments[i + 1].entrypol
-            splices.append((ibody1, ichain1, chainresid1, ibody2, ichain2,
-                            chainresid2, drn))
+            splices.append(
+                (ibody1, ichain1, chainresid1, ibody2, ichain2, chainresid2, drn)
+            )
         return splices
 
     def __len__(self):
@@ -1032,8 +1047,4 @@ class Worms:
         Returns:
             TYPE: Description
         """
-        return (
-            i,
-            self.scores[i],
-        ) + self.sympose(
-            i, score=True)
+        return (i, self.scores[i]) + self.sympose(i, score=True)

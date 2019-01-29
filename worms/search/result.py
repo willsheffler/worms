@@ -3,19 +3,17 @@ import numpy as np
 from worms.util import jit, expand_array_if_needed
 
 SearchStats = namedtuple(
-    'SearchStats',
-    ['total_samples', 'n_last_bb_same_as', 'n_redundant_results']
+    "SearchStats", ["total_samples", "n_last_bb_same_as", "n_redundant_results"]
 )
 
 
 def zero_search_stats():
     return SearchStats(
-        np.zeros(1, dtype='i8'), np.zeros(1, dtype='i8'),
-        np.zeros(1, dtype='i8')
+        np.zeros(1, dtype="i8"), np.zeros(1, dtype="i8"), np.zeros(1, dtype="i8")
     )
 
 
-ResultJIT = namedtuple('ResultJIT', ['pos', 'idx', 'err', 'stats'])
+ResultJIT = namedtuple("ResultJIT", ["pos", "idx", "err", "stats"])
 
 
 @jit
@@ -47,16 +45,16 @@ def subset_result(results, ok):
         idx=results.idx[ok],
         pos=results.pos[ok],
         err=results.err[ok],
-        stats=results.stats
+        stats=results.stats,
     )
 
 
 class ResultTable:
     def __init__(self, other):
         self.table = dict()
-        self.table['idx'] = other.idx
-        self.table['pos'] = other.pos
-        self.table['err'] = other.err
+        self.table["idx"] = other.idx
+        self.table["pos"] = other.pos
+        self.table["err"] = other.err
         self.stats = other.stats
 
     def add(self, name, val):

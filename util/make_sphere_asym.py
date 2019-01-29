@@ -10,17 +10,14 @@ from worms.data.sphere import get_sphere_samples
 def prune_to_asu(pts, frames):
     r = frames[..., :3, :3]
     x = r[:, None] @ pts[None, ..., None]
-    d2 = np.sum((x.squeeze() - (1, 2, 3))**2, axis=2)
+    d2 = np.sum((x.squeeze() - (1, 2, 3)) ** 2, axis=2)
     # print(frames.shape, pts.shape, x.shape, d2.shape)
     # print(np.min(d2), np.max(d2))
     closest = np.argmin(d2, axis=0)
     # print(np.sum(closest == 0), len(pts) / np.sum(closest == 0))
 
     for i in range(len(frames)):
-        print(
-            'prune_to_asu', i, np.sum(closest == i),
-            len(pts) / np.sum(closest == i)
-        )
+        print("prune_to_asu", i, np.sum(closest == i), len(pts) / np.sum(closest == i))
     asu = pts[closest == 0]
     plot3d(asu)
 
@@ -47,11 +44,11 @@ def main():
 
     # return
 
-    t = get_sphere_samples(sym='T')
-    o = get_sphere_samples(sym='O')
-    i = get_sphere_samples(sym='I')
-    print('t', len(t), 'o', len(o), 'i', len(i))
-    print('t', len(t) * 12, 'o', len(o) * 24, 'i', len(i) * 60)
+    t = get_sphere_samples(sym="T")
+    o = get_sphere_samples(sym="O")
+    i = get_sphere_samples(sym="I")
+    print("t", len(t), "o", len(o), "i", len(i))
+    print("t", len(t) * 12, "o", len(o) * 24, "i", len(i) * 60)
     plot3d(t, norm=0)
     plot3d(o, norm=0)
     plot3d(i, norm=0)
@@ -63,5 +60,5 @@ def main():
     print(np.linalg.norm(i, axis=1).max())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

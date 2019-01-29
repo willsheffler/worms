@@ -15,16 +15,18 @@ import homog
 from worms import util
 from logging import info
 from functools import singledispatch
+
 try:
     from pymol import cmd
     from pymol import cgo
 except ImportError:
-    info('pymol not available!')
+    info("pymol not available!")
 
 try:
     from pyrosetta.rosetta.core.pose import Pose
 except ImportError:
     from unittest.mock import MagicMock
+
     Pose = MagicMock()
 
 _atom_record_format = (
@@ -34,18 +36,18 @@ _atom_record_format = (
 
 
 def format_atom(
-        atomi=0,
-        atomn='ATOM',
-        idx=' ',
-        resn='RES',
-        chain='A',
-        resi=0,
-        insert=' ',
-        x=0,
-        y=0,
-        z=0,
-        occ=0,
-        b=0
+    atomi=0,
+    atomn="ATOM",
+    idx=" ",
+    resn="RES",
+    chain="A",
+    resi=0,
+    insert=" ",
+    x=0,
+    y=0,
+    z=0,
+    occ=0,
+    b=0,
 ):
     return _atom_record_format.format(**locals())
 
@@ -56,14 +58,16 @@ def is_rosetta_pose(to_show):
 
 def pymol_load_pose(pose, name):
     from pymol import cmd
+
     tmpdir = tempfile.mkdtemp()
-    fname = tmpdir + '/' + name + '.pdb'
+    fname = tmpdir + "/" + name + ".pdb"
     pose.dump_pdb(fname)
     cmd.load(fname)
 
 
 def pymol_xform(name, xform):
     from pymol import cmd
+
     assert name in cmd.get_object_list()
     cmd.transform_object(name, xform.flatten())
 
@@ -77,19 +81,19 @@ def pymol_load(to_show, state=None, name=None, **kw):
 
 @pymol_load.register(Pose)
 def _(to_show, state=None, name=None, **kw):
-    name = name or 'rif_thing'
-    state['seenit'][name] += 1
-    name += '_%i' % state['seenit'][name]
+    name = name or "rif_thing"
+    state["seenit"][name] += 1
+    name += "_%i" % state["seenit"][name]
     pymol_load_pose(to_show, name)
-    state['last_obj'] = name
+    state["last_obj"] = name
     return state
 
 
 @pymol_load.register(dict)
 def _(to_show, state=None, name=None, **kw):
-    assert 'pose' in to_show
-    state = pymol_load(to_show['pose'], state)
-    pymol_xform(to_show['position'], state['last_obj'])
+    assert "pose" in to_show
+    state = pymol_load(to_show["pose"], state)
+    pymol_xform(to_show["position"], state["last_obj"])
     return state
 
 
@@ -102,21 +106,22 @@ def _(to_show, state=None, name=None, **kw):
 
 @pymol_load.register(np.ndarray)
 def _(to_show, state=None, name=None, **kw):
-    name = name or 'worms_thing'
-    state['seenit'][name] += 1
-    name += '_%i' % state['seenit'][name]
+    name = name or "worms_thing"
+    state["seenit"][name] += 1
+    name += "_%i" % state["seenit"][name]
     from pymol import cmd
+
     tmpdir = tempfile.mkdtemp()
-    fname = tmpdir + '/' + name + '.pdb'
+    fname = tmpdir + "/" + name + ".pdb"
     assert to_show.shape[-2:] == (3, 4)
-    with open(fname, 'w') as out:
+    with open(fname, "w") as out:
         for i, a1 in enumerate(to_show.reshape(-1, 3, 4)):
             for j, a in enumerate(a1):
                 line = format_atom(
                     atomi=3 * i + j,
-                    resn='GLY',
+                    resn="GLY",
                     resi=i,
-                    atomn=(' N  ', ' CA ', ' C  ')[j],
+                    atomn=(" N  ", " CA ", " C  ")[j],
                     x=a[0],
                     y=a[1],
                     z=a[2],
@@ -178,22 +183,25 @@ def showme_pymol(what, headless=False, block=False, **kw):
         TYPE: Description
     """
     import pymol
-    pymol.pymol_argv = ['pymol']
+
+    pymol.pymol_argv = ["pymol"]
     if headless:
-        pymol.pymol_argv = ['pymol', '-c']
-    if not showme_state['launched']:
+        pymol.pymol_argv = ["pymol", "-c"]
+    if not showme_state["launched"]:
         pymol.finish_launching()
-        showme_state['launched'] = 1
+        showme_state["launched"] = 1
     from pymol import cmd
+
     r = pymol_load(what, showme_state, **kw)
     # cmd.set('internal_gui_width', '20')
     import time
+
     while block:
         time.sleep(1)
     return r
 
 
-def showme(*args, how='pymol', **kw):
+def showme(*args, how="pymol", **kw):
     """TODO: Summary
 
     Args:
@@ -206,7 +214,7 @@ def showme(*args, how='pymol', **kw):
     Raises:
         NotImplementedError: Description
     """
-    if how == 'pymol':
+    if how == "pymol":
         return showme_pymol(*args, **kw)
     else:
         raise NotImplementedError('showme how="%s" not implemented' % how)
@@ -228,8 +236,17 @@ def showcom(sel="all"):
     global numcom
     c = com(sel)
     print("Center of mass: ", c)
-    cgo = [pymol.cgo.COLOR, 1.0, 1.0, 1.0, cgo.SPHERE, c[0], c[1], c[2],
-           1.0]  # white sphere with 3A radius
+    cgo = [
+        pymol.cgo.COLOR,
+        1.0,
+        1.0,
+        1.0,
+        cgo.SPHERE,
+        c[0],
+        c[1],
+        c[2],
+        1.0,
+    ]  # white sphere with 3A radius
     cmd.load_cgo(cgo, "com%i" % numcom)
     numcom += 1
 
@@ -249,7 +266,7 @@ def cgo_sphere(c, r=1, col=(1, 1, 1)):
     return [cgo.COLOR, col[0], col[1], col[2], cgo.SPHERE, c[0], c[1], c[2], r]
 
 
-def showsphere(c, r=1, col=(1, 1, 1), lbl=''):
+def showsphere(c, r=1, col=(1, 1, 1), lbl=""):
     """TODO: Summary
 
     Args:
@@ -268,7 +285,7 @@ def showsphere(c, r=1, col=(1, 1, 1), lbl=''):
     cmd.set_view(v)
 
 
-def showvecfrompoint(a, c, col=(1, 1, 1), lbl=''):
+def showvecfrompoint(a, c, col=(1, 1, 1), lbl=""):
     """TODO: Summary
 
     Args:
@@ -284,9 +301,21 @@ def showvecfrompoint(a, c, col=(1, 1, 1), lbl=''):
     cmd.delete(lbl)
     v = cmd.get_view()
     OBJ = [
-        cgo.BEGIN, cgo.LINES, cgo.COLOR, col[0], col[1], col[2], cgo.VERTEX,
-        c[0], c[1], c[2], cgo.VERTEX, c[0] + a[0], c[1] + a[1], c[2] + a[2],
-        cgo.END
+        cgo.BEGIN,
+        cgo.LINES,
+        cgo.COLOR,
+        col[0],
+        col[1],
+        col[2],
+        cgo.VERTEX,
+        c[0],
+        c[1],
+        c[2],
+        cgo.VERTEX,
+        c[0] + a[0],
+        c[1] + a[1],
+        c[2] + a[2],
+        cgo.END,
     ]
     cmd.load_cgo(OBJ, lbl)
     # cmd.load_cgo([cgo.COLOR, col[0],col[1],col[2],
@@ -309,8 +338,21 @@ def cgo_segment(c1, c2, col=(1, 1, 1)):
         TYPE: Description
     """
     OBJ = [
-        cgo.BEGIN, cgo.LINES, cgo.COLOR, col[0], col[1], col[2], cgo.VERTEX,
-        c1[0], c1[1], c1[2], cgo.VERTEX, c2[0], c2[1], c2[2], cgo.END
+        cgo.BEGIN,
+        cgo.LINES,
+        cgo.COLOR,
+        col[0],
+        col[1],
+        col[2],
+        cgo.VERTEX,
+        c1[0],
+        c1[1],
+        c1[2],
+        cgo.VERTEX,
+        c2[0],
+        c2[1],
+        c2[2],
+        cgo.END,
     ]
     # cmd.load_cgo([cgo.COLOR, col[0],col[1],col[2],
     #             cgo.CYLINDER, c1[0],     c1[1],     c1[2],
@@ -319,7 +361,7 @@ def cgo_segment(c1, c2, col=(1, 1, 1)):
     return OBJ
 
 
-def showsegment(c1, c2, col=(1, 1, 1), lbl=''):
+def showsegment(c1, c2, col=(1, 1, 1), lbl=""):
     """TODO: Summary
 
     Args:
@@ -375,7 +417,7 @@ def cgo_cyl(c1, c2, r, col=(1, 1, 1), col2=None):
     ]
 
 
-def showcyl(c1, c2, r, col=(1, 1, 1), col2=None, lbl=''):
+def showcyl(c1, c2, r, col=(1, 1, 1), col2=None, lbl=""):
     """TODO: Summary
 
     Args:
@@ -396,7 +438,7 @@ def showcyl(c1, c2, r, col=(1, 1, 1), col2=None, lbl=''):
     cmd.set_view(v)
 
 
-def showline(a, c, col=(1, 1, 1), lbl=''):
+def showline(a, c, col=(1, 1, 1), lbl=""):
     """TODO: Summary
 
     Args:
@@ -412,9 +454,21 @@ def showline(a, c, col=(1, 1, 1), lbl=''):
     cmd.delete(lbl)
     v = cmd.get_view()
     OBJ = [
-        cgo.BEGIN, cgo.LINES, cgo.COLOR, col[0], col[1], col[2], cgo.VERTEX,
-        c[0] - a[0], c[1] - a[1], c[2] - a[2], cgo.VERTEX, c[0] + a[0],
-        c[1] + a[1], c[2] + a[2], cgo.END
+        cgo.BEGIN,
+        cgo.LINES,
+        cgo.COLOR,
+        col[0],
+        col[1],
+        col[2],
+        cgo.VERTEX,
+        c[0] - a[0],
+        c[1] - a[1],
+        c[2] - a[2],
+        cgo.VERTEX,
+        c[0] + a[0],
+        c[1] + a[1],
+        c[2] + a[2],
+        cgo.END,
     ]
     cmd.load_cgo(OBJ, lbl)
     cmd.set_view(v)
@@ -432,12 +486,25 @@ def cgo_lineabs(a, c, col=(1, 1, 1)):
         TYPE: Description
     """
     return [
-        cgo.BEGIN, cgo.LINES, cgo.COLOR, col[0], col[1], col[2], cgo.VERTEX,
-        c[0], c[1], c[2], cgo.VERTEX, a[0], a[1], a[2], cgo.END
+        cgo.BEGIN,
+        cgo.LINES,
+        cgo.COLOR,
+        col[0],
+        col[1],
+        col[2],
+        cgo.VERTEX,
+        c[0],
+        c[1],
+        c[2],
+        cgo.VERTEX,
+        a[0],
+        a[1],
+        a[2],
+        cgo.END,
     ]
 
 
-def showlineabs(a, c, col=(1, 1, 1), lbl=''):
+def showlineabs(a, c, col=(1, 1, 1), lbl=""):
     """TODO: Summary
 
     Args:
@@ -475,11 +542,11 @@ def show_with_axis(worms, idx=0):
     print(ang)
     print(cen)
     axis *= 100
-    showme(pose, name='unit')
+    showme(pose, name="unit")
     util.xform_pose(x, pose)
-    showme(pose, name='sym1')
+    showme(pose, name="sym1")
     util.xform_pose(x, pose)
-    showme(pose, name='sym2')
+    showme(pose, name="sym2")
     showline(axis, cen)
     showsphere(cen)
 
@@ -501,6 +568,7 @@ def show_with_z_axes(worms, idx=0, only_connected=0, **kw):
     axis2 = x_to[..., :, 2] * 100
     showme(pose)
     import pymol
+
     pymol.finish_launching()
     showline(axis1, cen1)
     showsphere(cen1)

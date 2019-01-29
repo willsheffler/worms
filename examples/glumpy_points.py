@@ -87,17 +87,17 @@ program = gloo.Program(vertex, fragment, count=n)
 view = np.eye(4, dtype=np.float32)
 glm.translate(view, 0, 0, -5)
 
-program['position'] = 0.35 * np.random.randn(n, 3)
-program['radius'] = np.random.uniform(5, 10, n)
-program['fg_color'] = 0, 0, 0, 1
+program["position"] = 0.35 * np.random.randn(n, 3)
+program["radius"] = np.random.uniform(5, 10, n)
+program["fg_color"] = 0, 0, 0, 1
 colors = np.random.uniform(0.75, 1.00, (n, 4))
 colors[:, 3] = 1
-program['bg_color'] = colors
-program['linewidth'] = 1.0
-program['antialias'] = 1.0
-program['model'] = np.eye(4, dtype=np.float32)
-program['projection'] = np.eye(4, dtype=np.float32)
-program['view'] = view
+program["bg_color"] = colors
+program["linewidth"] = 1.0
+program["antialias"] = 1.0
+program["model"] = np.eye(4, dtype=np.float32)
+program["projection"] = np.eye(4, dtype=np.float32)
+program["view"] = view
 
 
 @window.event
@@ -105,19 +105,17 @@ def on_draw(dt):
     global theta, phi, translate
     window.clear()
     program.draw(gl.GL_POINTS)
-    theta += .5
-    phi += .5
+    theta += 0.5
+    phi += 0.5
     model = np.eye(4, dtype=np.float32)
     glm.rotate(model, theta, 0, 0, 1)
     glm.rotate(model, phi, 0, 1, 0)
-    program['model'] = model
+    program["model"] = model
 
 
 @window.event
 def on_resize(width, height):
-    program['projection'] = glm.perspective(
-        45.0, width / float(height), 1.0, 1000.0
-    )
+    program["projection"] = glm.perspective(45.0, width / float(height), 1.0, 1000.0)
 
 
 gl.glEnable(gl.GL_DEPTH_TEST)

@@ -8,30 +8,33 @@ from worms.search.result import ResultJIT
 
 
 def prune_clashes(
-        ssdag,
-        crit,
-        rslt,
-        max_clash_check=-1,
-        ca_clash_dis=4.0,
-        parallel=False,
-        approx=0,
-        verbosity=0,
-        merge_bblock=None,
-        pbar=False,
-        pbar_interval=10.0,
-        context_structure=None,
-        **kw
+    ssdag,
+    crit,
+    rslt,
+    max_clash_check=-1,
+    ca_clash_dis=4.0,
+    parallel=False,
+    approx=0,
+    verbosity=0,
+    merge_bblock=None,
+    pbar=False,
+    pbar_interval=10.0,
+    context_structure=None,
+    **kw,
 ):
     # print('todo: clash check should handle symmetry')
     if max_clash_check == 0:
         return rslt
     max_clash_check = min(max_clash_check, len(rslt.idx))
-    if max_clash_check < 0: max_clash_check = len(rslt.idx)
+    if max_clash_check < 0:
+        max_clash_check = len(rslt.idx)
 
     if not pbar:
         print(
-            f'mbb{merge_bblock:04} checking clashes', max_clash_check, 'of',
-            len(rslt.err)
+            f"mbb{merge_bblock:04} checking clashes",
+            max_clash_check,
+            "of",
+            len(rslt.err),
         )
 
     verts = tuple(ssdag.verts)
@@ -42,14 +45,18 @@ def prune_clashes(
         for i in range(max_clash_check):
             dirns = tuple([v.dirn for v in verts])
             iress = tuple([v.ires for v in verts])
-            chains = tuple([
-                ssdag.bbs[k][verts[k].ibblock[rslt.idx[i, k]]].chains
-                for k in range(len(ssdag.verts))
-            ])
-            ncacs = tuple([
-                ssdag.bbs[k][verts[k].ibblock[rslt.idx[i, k]]].ncac
-                for k in range(len(ssdag.verts))
-            ])
+            chains = tuple(
+                [
+                    ssdag.bbs[k][verts[k].ibblock[rslt.idx[i, k]]].chains
+                    for k in range(len(ssdag.verts))
+                ]
+            )
+            ncacs = tuple(
+                [
+                    ssdag.bbs[k][verts[k].ibblock[rslt.idx[i, k]]].ncac
+                    for k in range(len(ssdag.verts))
+                ]
+            )
             if context_structure:
                 clash = False
                 for pos, ncac in zip(rslt.pos[i], ncacs):
@@ -57,7 +64,8 @@ def prune_clashes(
                     if context_structure.clashcheck(xyz.squeeze()):
                         clash = True
                         break
-                if clash: continue
+                if clash:
+                    continue
 
             futures.append(
                 pool.submit(
@@ -69,15 +77,15 @@ def prune_clashes(
                     chn=chains,
                     ncacs=ncacs,
                     thresh=ca_clash_dis * ca_clash_dis,
-                    approx=approx
+                    approx=approx,
                 )
             )
             futures[-1].index = i
 
         if pbar:
-            desc = 'checking clashes '
+            desc = "checking clashes "
             if merge_bblock is not None and merge_bblock >= 0:
-                desc = f'{desc}    mbb{merge_bblock:04d}'
+                desc = f"{desc}    mbb{merge_bblock:04d}"
             if merge_bblock is None:
                 merge_bblock = 0
             futures = tqdm(
@@ -88,13 +96,15 @@ def prune_clashes(
                 position=merge_bblock + 1,
             )
 
-        ok = np.zeros(max_clash_check, dtype='?')
+        ok = np.zeros(max_clash_check, dtype="?")
         for f in futures:
             ok[f.index] = f.result()
 
     return ResultJIT(
-        rslt.pos[:max_clash_check][ok], rslt.idx[:max_clash_check][ok],
-        rslt.err[:max_clash_check][ok], rslt.stats
+        rslt.pos[:max_clash_check][ok],
+        rslt.idx[:max_clash_check][ok],
+        rslt.err[:max_clash_check][ok],
+        rslt.stats,
     )
 
 
@@ -143,16 +153,14 @@ def _has_ca_clash(position, ncacs, i, ichntrm, j, jchntrm, thresh, step=1):
                 ica = position[i] @ ncacs[i][ir, 1]
                 for jr in range(jlb, jub, step):
                     jca = position[j] @ ncacs[j][jr, 1]
-                    d2 = np.sum((ica - jca)**2)
+                    d2 = np.sum((ica - jca) ** 2)
                     if d2 < thresh:
                         return True
     return False
 
 
 @jit
-def _check_all_chain_clashes(
-        dirns, iress, idx, pos, chn, ncacs, thresh, approx
-):
+def _check_all_chain_clashes(dirns, iress, idx, pos, chn, ncacs, thresh, approx):
     pos = pos.astype(np.float64)
 
     for step in (3, 1):  # 20% speedup.... ug... need BVH...
@@ -164,7 +172,8 @@ def _check_all_chain_clashes(
                 jchn = _chain_bounds(dirns[j], iress[j][idx[j]], chn[j], 1, 8)
                 if _has_ca_clash(pos, ncacs, i, ichn, j, jchn, thresh, step):
                     return False
-        if step == 1 and approx == 2: return True
+        if step == 1 and approx == 2:
+            return True
 
         # only adjacent verts, all chains
         for i in range(len(dirns) - 1):
@@ -173,7 +182,8 @@ def _check_all_chain_clashes(
                 jchn = _chain_bounds(dirns[j], iress[j][idx[j]], chn[j], 0, 8)
                 if _has_ca_clash(pos, ncacs, i, ichn, j, jchn, thresh, step):
                     return False
-        if step == 1 and approx == 1: return True
+        if step == 1 and approx == 1:
+            return True
 
         # all verts, all chains
         for i in range(len(dirns) - 1):

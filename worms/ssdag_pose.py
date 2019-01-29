@@ -5,18 +5,18 @@ import numpy as np
 
 
 def make_pose_crit(
-        bbdb,
-        ssdag,
-        criteria,
-        indices,
-        positions,
-        only_connected='auto',
-        provenance=False,
-        join=True,
-        full_output_segs=[],
+    bbdb,
+    ssdag,
+    criteria,
+    indices,
+    positions,
+    only_connected="auto",
+    provenance=False,
+    join=True,
+    full_output_segs=[],
 ):
     cryst_info = None
-    if hasattr(criteria, 'crystinfo'):
+    if hasattr(criteria, "crystinfo"):
         cryst_info = criteria.crystinfo(segpos=positions)
 
     return make_pose(
@@ -38,20 +38,20 @@ def make_pose_crit(
 
 
 def make_pose(
-        bbdb,
-        ssdag,
-        indices,
-        positions,
-        only_connected='auto',
-        provenance=False,
-        join=True,
-        from_seg=0,
-        to_seg=-1,
-        origin_seg=None,
-        is_cyclic=False,
-        position=np.eye(4),
-        cryst_info=None,
-        full_output_segs=[],
+    bbdb,
+    ssdag,
+    indices,
+    positions,
+    only_connected="auto",
+    provenance=False,
+    join=True,
+    from_seg=0,
+    to_seg=-1,
+    origin_seg=None,
+    is_cyclic=False,
+    position=np.eye(4),
+    cryst_info=None,
+    full_output_segs=[],
 ):
     cyclic_info = [None] * 5
     if is_cyclic:
@@ -73,7 +73,7 @@ def make_pose(
                 positions[ivert],
                 nverts=len(indices),
                 ivert=ivert,
-                cyclic_info=cyclic_info
+                cyclic_info=cyclic_info,
             )
         )
 
@@ -97,7 +97,7 @@ def make_pose(
         align=True,
         cryst_info=cryst_info,
         end=(not is_cyclic),
-        iend=None,  #(-1 if is_cyclic else None),
+        iend=None,  # (-1 if is_cyclic else None),
         only_connected=only_connected,
         join=join,
         cyclic_permute=is_cyclic,
@@ -129,18 +129,16 @@ def _get_pose_chains(pose):
 def _dirn_to_polarity(dirn):
     if isinstance(dirn, Iterable):
         return [_dirn_to_polarity(x) for x in dirn]
-    return ['N', 'C', '_'][dirn]
+    return ["N", "C", "_"][dirn]
 
 
 def _make_pose_single(pose, vert, idx, positions, nverts, ivert, cyclic_info):
     chains0 = _get_pose_chains(pose)
     start_of_chain = {
-        i + 1: sum(len(c) for c in chains0[:i])
-        for i in range(len(chains0))
+        i + 1: sum(len(c) for c in chains0[:i]) for i in range(len(chains0))
     }
     end_of_chain = {
-        i + 1: sum(len(c) for c in chains0[:i + 1])
-        for i in range(len(chains0))
+        i + 1: sum(len(c) for c in chains0[: i + 1]) for i in range(len(chains0))
     }
     start_of_chain[None] = 0
     chains = {i + 1: c for i, c in enumerate(chains0)}

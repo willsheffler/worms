@@ -21,7 +21,8 @@ import string
 def _validate_bbs_verts(bbs, verts):
     assert len(bbs) == len(verts)
     for bb, vert in zip(bbs, verts):
-        if vert is None: continue
+        if vert is None:
+            continue
         assert 0 <= np.min(vert.ibblock)
         assert np.max(vert.ibblock) < len(bb)
 
@@ -35,7 +36,7 @@ class SearchSpaceDag:
         assert isinstance(bbs[0][0], _BBlock)
         assert isinstance(verts[0], (_Vertex, type(None)))
         if not (len(edges) == 0 or all(isinstance(e, _Edge) for e in edges)):
-            raise ValueError('Error bad SearchSpaceDag edges')
+            raise ValueError("Error bad SearchSpaceDag edges")
         if bbspec:
             assert len(bbspec) == len(bbs)
         assert len(edges) == 0 or len(edges) + 1 == len(verts)
@@ -49,7 +50,7 @@ class SearchSpaceDag:
             self.bbspec,
             [[x._state for x in bb] for bb in self.bbs],
             [x._state for x in self.verts],
-            [x._state for x in self.edges]
+            [x._state for x in self.edges],
         )
 
     def __setstate__(self, state):
@@ -65,7 +66,7 @@ class SearchSpaceDag:
         bases = list()
         for i in range(len(idx)):
             bb = self.bbs[i][self.verts[i].ibblock[idx[i]]]
-            bases.append(bytes(bb.base).decode('utf-8'))
+            bases.append(bytes(bb.base).decode("utf-8"))
         return bases
 
     def get_base_hashes(self, idx):
@@ -77,69 +78,67 @@ class SearchSpaceDag:
         return bases
 
     def report_memory_use(self):
-        memvert = [x.memuse // 2**10 for x in self.verts]
-        print(f'    vertex memuse (kb): {sum(memvert):8,}', memvert)
-        memedge = [x.memuse // 2**10 for x in self.edges]
-        print(f'    edge memuse (kb):   {sum(memedge):8,}', memedge)
+        memvert = [x.memuse // 2 ** 10 for x in self.verts]
+        print(f"    vertex memuse (kb): {sum(memvert):8,}", memvert)
+        memedge = [x.memuse // 2 ** 10 for x in self.edges]
+        print(f"    edge memuse (kb):   {sum(memedge):8,}", memedge)
 
     def report_size(self):
         sizevert = [x.memuse for x in self.verts]
         sizeedge = [x.memuse for x in self.edges]
-        print('SearchSpaceDag sizes:')
-        print(f'    vertex sizes: {sum(sizevert):8,}', sizevert)
-        print(f'    edge sizes:   {sum(sizeedge):8,}', sizeedge)
+        print("SearchSpaceDag sizes:")
+        print(f"    vertex sizes: {sum(sizevert):8,}", sizevert)
+        print(f"    edge sizes:   {sum(sizeedge):8,}", sizeedge)
 
 
 def simple_search_dag(
-        criteria,
-        db=None,
-        nbblocks=100,
-        min_seg_len=15,
-        parallel=False,
-        verbosity=0,
-        timing=0,
-        modbbs=None,
-        make_edges=True,
-        merge_bblock=None,
-        merge_segment=None,
-        precache_splices=False,
-        precache_only=False,
-        bbs=None,
-        only_seg=None,
-        source=None,
-        print_edge_summary=False,
-        no_duplicate_bases=False,
-        shuffle_bblocks=False,
-        use_saved_bblocks=False,
-        output_prefix='./worms',
-        **kw
+    criteria,
+    db=None,
+    nbblocks=100,
+    min_seg_len=15,
+    parallel=False,
+    verbosity=0,
+    timing=0,
+    modbbs=None,
+    make_edges=True,
+    merge_bblock=None,
+    merge_segment=None,
+    precache_splices=False,
+    precache_only=False,
+    bbs=None,
+    only_seg=None,
+    source=None,
+    print_edge_summary=False,
+    no_duplicate_bases=False,
+    shuffle_bblocks=False,
+    use_saved_bblocks=False,
+    output_prefix="./worms",
+    **kw,
 ):
     bbdb, spdb = db
     queries, directions = zip(*criteria.bbspec)
     tdb = time()
     if bbs is None:
         bbs = list()
-        savename = output_prefix + '_bblocks.pickle'
+        savename = output_prefix + "_bblocks.pickle"
 
         if use_saved_bblocks and os.path.exists(savename):
-            with open(savename, 'rb') as inp:
+            with open(savename, "rb") as inp:
                 bbnames_list = _pickle.load(inp)
             if max(len(l) for l in bbnames_list) < nbblocks:
-                assert 0, f'less that nbblocks in {savename}'
+                assert 0, f"less that nbblocks in {savename}"
             for bbnames in bbnames_list:
                 bbs.append([bbdb.bblock(n) for n in bbnames[:nbblocks]])
 
         else:
             for iquery, query in enumerate(queries):
-                if hasattr(criteria, 'cloned_segments'):
+                if hasattr(criteria, "cloned_segments"):
                     msegs = [
                         i + len(queries) if i < 0 else i
                         for i in criteria.cloned_segments()
                     ]
                     if iquery in msegs[1:]:
-                        print(
-                            'seg', iquery, 'repeating bblocks from', msegs[0]
-                        )
+                        print("seg", iquery, "repeating bblocks from", msegs[0])
                         bbs.append(bbs[msegs[0]])
                         continue
                 bbs0 = bbdb.query(
@@ -150,22 +149,18 @@ def simple_search_dag(
                 )
                 bbs.append(bbs0)
 
-        bases = [
-            Counter(bytes(b.base).decode('utf-8')
-                    for b in bbs0)
-            for bbs0 in bbs
-        ]
+        bases = [Counter(bytes(b.base).decode("utf-8") for b in bbs0) for bbs0 in bbs]
         assert len(bbs) == len(queries)
         for i, v in enumerate(bbs):
             assert len(v) > 0, 'no bblocks for query: "' + queries[i] + '"'
-        print('bblock queries:', str(queries))
-        print('bblock numbers:', [len(b) for b in bbs])
-        print('bblocks id:', [id(b) for b in bbs])
-        print('bblock0 id ', [id(b[0]) for b in bbs])
-        print('base_counts:')
+        print("bblock queries:", str(queries))
+        print("bblock numbers:", [len(b) for b in bbs])
+        print("bblocks id:", [id(b) for b in bbs])
+        print("bblock0 id ", [id(b[0]) for b in bbs])
+        print("base_counts:")
         for query, basecount in zip(queries, bases):
-            counts = ' '.join(f'{k}: {c}' for k, c in basecount.items())
-            print(f'   {query:10}', counts)
+            counts = " ".join(f"{k}: {c}" for k, c in basecount.items())
+            print(f"   {query:10}", counts)
 
         if criteria.is_cyclic:
             # for a, b in zip(bbs[criteria.from_seg], bbs[criteria.to_seg]):
@@ -173,32 +168,31 @@ def simple_search_dag(
             bbs[criteria.to_seg] = bbs[criteria.from_seg]
 
         if use_saved_bblocks and not os.path.exists(savename):
-            bbnames = [[bytes(b.file).decode('utf-8')
-                        for b in bb]
-                       for bb in bbs]
-            with open(savename, 'wb') as out:
+            bbnames = [[bytes(b.file).decode("utf-8") for b in bb] for bb in bbs]
+            with open(savename, "wb") as out:
                 _pickle.dump(bbnames, out)
 
     else:
         bbs = bbs.copy()
 
     assert len(bbs) == len(criteria.bbspec)
-    if modbbs: modbbs(bbs)
+    if modbbs:
+        modbbs(bbs)
 
     if merge_bblock is not None and merge_bblock >= 0:
         # print('cloned_segments', criteria.bbspec, criteria.cloned_segments())
         if merge_segment is None:
             # print('   ', 'merge_segment is None')
-            if hasattr(criteria, 'cloned_segments'):
+            if hasattr(criteria, "cloned_segments"):
                 for i in criteria.cloned_segments():
                     # print('   ', 'merge seg', i, 'merge_bblock', merge_bblock)
-                    bbs[i] = (bbs[i][merge_bblock], )
+                    bbs[i] = (bbs[i][merge_bblock],)
         else:
             # print('   ', 'merge_segment not None')
             # print('   ', [len(b) for b in bbs])
             # print('   ', 'merge_segment', merge_segment)
             # print('   ', 'merge_bblock', merge_bblock, len(bbs[merge_segment]))
-            bbs[merge_segment] = (bbs[merge_segment][merge_bblock], )
+            bbs[merge_segment] = (bbs[merge_segment][merge_bblock],)
 
     tdb = time() - tdb
     # info(
@@ -214,28 +208,27 @@ def simple_search_dag(
             bb1 = bbnames[i]
             bb2 = bbnames[i + 1]
             dirn1 = directions[i]
-            rev = dirn1[1] == 'N'
+            rev = dirn1[1] == "N"
             if bbs[i] is bbs[i + 1]:
                 bbpairs.update((a, a) for a in bb1)
             else:
-                bbpairs.update((b, a) if rev else (a, b)
-                               for a in bb1
-                               for b in bb2)
-        precompute_splicedb(
-            db, bbpairs, verbosity=verbosity, parallel=parallel, **kw
-        )
+                bbpairs.update((b, a) if rev else (a, b) for a in bb1 for b in bb2)
+        precompute_splicedb(db, bbpairs, verbosity=verbosity, parallel=parallel, **kw)
     if precache_only:
         return bbs
 
     verts = [None] * len(queries)
     edges = [None] * len(queries[1:])
     if source:
-        srcdirn = [''.join('NC_' [d] for d in source.verts[i].dirn)
-                   for i in range(len(source.verts))] # yapf: disable
+        srcdirn = [
+            "".join("NC_"[d] for d in source.verts[i].dirn)
+            for i in range(len(source.verts))
+        ]  # yapf: disable
         srcverts, srcedges = list(), list()
         for i, bb in enumerate(bbs):
             for isrc, bbsrc in enumerate(source.bbs):
-                if directions[i] != srcdirn[isrc]: continue
+                if directions[i] != srcdirn[isrc]:
+                    continue
                 if [b.filehash for b in bb] == [b.filehash for b in bbsrc]:
                     verts[i] = source.verts[isrc]
                     srcverts.append(isrc)
@@ -243,15 +236,19 @@ def simple_search_dag(
             bb0, bb1 = bb
             for isrc, bbsrc in enumerate(zip(source.bbs, source.bbs[1:])):
                 bbsrc0, bbsrc1 = bbsrc
-                if directions[i] != srcdirn[isrc]: continue
-                if directions[i + 1] != srcdirn[isrc + 1]: continue
+                if directions[i] != srcdirn[isrc]:
+                    continue
+                if directions[i + 1] != srcdirn[isrc + 1]:
+                    continue
                 he = [b.filehash for b in bb0] == [b.filehash for b in bbsrc0]
                 he &= [b.filehash for b in bb1] == [b.filehash for b in bbsrc1]
-                if not he: continue
+                if not he:
+                    continue
                 edges[i] = source.edges[isrc]
                 srcedges.append(isrc)
 
-    if not make_edges: edges = []
+    if not make_edges:
+        edges = []
 
     tvertex = time()
     exe = InProcessExecutor()
@@ -268,9 +265,7 @@ def simple_search_dag(
         for i, bb in enumerate(bbs):
             dirn = directions[i]
             if verts[i] is None:
-                futures.append(
-                    pool.submit(Vertex, bb, dirn, min_seg_len=min_seg_len)
-                )
+                futures.append(pool.submit(Vertex, bb, dirn, min_seg_len=min_seg_len))
         verts_new = [f.result() for f in futures]
         isnone = [i for i in range(len(verts)) if verts[i] is None]
         for i, inone in enumerate(isnone):
@@ -280,8 +275,7 @@ def simple_search_dag(
             assert i + 1 == len(verts_new)
         assert all(v for v in verts)
         if only_seg is not None:
-            verts = ([None] * only_seg + verts +
-                     [None] * (len(queries) - only_seg - 1))
+            verts = [None] * only_seg + verts + [None] * (len(queries) - only_seg - 1)
             bbs, directions = save
     tvertex = time() - tvertex
     # info(
@@ -301,7 +295,7 @@ def simple_search_dag(
                     splicedb=spdb,
                     verbosity=verbosity,
                     precache_splices=precache_splices,
-                    **kw
+                    **kw,
                 )
         tedge = time() - tedge
         if print_edge_summary:
@@ -320,18 +314,18 @@ def simple_search_dag(
 
 
 def _print_edge_summary(edges):
-    print('splice stats: ', end='')
+    print("splice stats: ", end="")
     for e in edges:
         nsplices = e.total_allowed_splices()
         ntot = e.nout * e.nent
-        print(f'({nsplices:,} {nsplices*100.0/ntot:5.2f}%)', end=' ')
+        print(f"({nsplices:,} {nsplices*100.0/ntot:5.2f}%)", end=" ")
     print()
 
 
-def graph_dump_pdb(out, ssdag, idx, pos, join='splice', trim=True):
+def graph_dump_pdb(out, ssdag, idx, pos, join="splice", trim=True):
     close = False
     if isinstance(out, str):
-        out = open(out, 'w')
+        out = open(out, "w")
         close = True
     assert len(idx) == len(pos)
     assert idx.ndim == 1
@@ -351,4 +345,5 @@ def graph_dump_pdb(out, ssdag, idx, pos, join='splice', trim=True):
             rnum=rnum,
             join=join,
         )
-    if close: out.close()
+    if close:
+        out.close()

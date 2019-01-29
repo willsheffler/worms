@@ -12,16 +12,16 @@ from worms.search.result import ResultJIT, SearchStats
 
 class HashCriteria(WormCriteria):
     def __init__(
-            self,
-            from_seg=0,
-            to_seg=-1,
-            hash_cart_resl=None,
-            hash_ori_resl=None,
-            filter_hash=None,
-            filter_binner=None,
-            prev_isite=None,
-            prev_vsize=None,
-            **kw
+        self,
+        from_seg=0,
+        to_seg=-1,
+        hash_cart_resl=None,
+        hash_ori_resl=None,
+        filter_hash=None,
+        filter_binner=None,
+        prev_isite=None,
+        prev_vsize=None,
+        **kw,
     ):
         self.from_seg = from_seg
         self.to_seg = to_seg
@@ -44,7 +44,7 @@ class HashCriteria(WormCriteria):
         raise NotImplementedError
 
     def cloned_segments(self):
-        return self.to_seg,
+        return (self.to_seg,)
 
     def jit_lossfunc(self):
         from_seg = self.from_seg
@@ -73,7 +73,7 @@ class HashCriteria(WormCriteria):
                     return 9e9
                 key = binner(xhat.astype(np.float64))
 
-                nverts = np.zeros((len(verts), ), dtype=np.int64)
+                nverts = np.zeros((len(verts),), dtype=np.int64)
                 for i in range(len(nverts)):
                     nverts[i] = len(verts[i].ibblock)
                 index = encode_indices(nverts, idx)
@@ -105,11 +105,13 @@ class HashCriteria(WormCriteria):
                 xhat = xhat.astype(np.float64)
                 filter_key = filter_binner(xhat)
                 val = _khash_get(filter_hash_vp, filter_key, -1)
-                if val < 0: return 9e9
+                if val < 0:
+                    return 9e9
                 prev_ivert = decode_indices(prev_vsize, val)[0]
                 prev_site = prev_isite[prev_ivert, 1]
                 site = verts[-1].isite[idx[-1], 0]
-                if prev_site == site: return 9e9
+                if prev_site == site:
+                    return 9e9
                 return 0
 
             return func
@@ -137,7 +139,7 @@ class Bridge(WormCriteria):
         self.symname = None
 
     def cloned_segments(self):
-        return (len(self.bbspec) - 1) // 2,
+        return ((len(self.bbspec) - 1) // 2,)
 
     def merge_segment(self, **kw):
         return (len(self.bbspec) - 1) // 2
@@ -147,16 +149,21 @@ class Bridge(WormCriteria):
         x_to = pos[self.to_seg]
         xhat = x_to @ np.linalg.inv(x_from)
         axis, angle = hm.axis_angle_of(xhat)
-        rot_err_sq = angle**2 * self.lever**2
-        cart_err_sq = np.sum(xhat[:3, 3]**2)
+        rot_err_sq = angle ** 2 * self.lever ** 2
+        cart_err_sq = np.sum(xhat[:3, 3] ** 2)
         return np.sqrt(rot_err_sq + cart_err_sq)
 
     def alignment(self, pos, **kw):
         return np.eye(4)
 
     def stages(
-            self, bbs, hash_cart_resl, hash_ori_resl, loose_hash_cart_resl,
-            loose_hash_ori_resl, **kw
+        self,
+        bbs,
+        hash_cart_resl,
+        hash_ori_resl,
+        loose_hash_cart_resl,
+        loose_hash_ori_resl,
+        **kw,
     ):
         """
         stage1: grow A->B and produce coarse_hash of all B positions
@@ -171,17 +178,17 @@ class Bridge(WormCriteria):
             # hash_ori_resl=25,
             hash_cart_resl=loose_hash_cart_resl,
             hash_ori_resl=loose_hash_ori_resl,
-            merge_seg=self.merge_segment()
+            merge_seg=self.merge_segment(),
         )
         assert len(self.bbspec) == len(bbs)
 
-        mbb = kw['merge_bblock']
+        mbb = kw["merge_bblock"]
         mseg = self.merge_segment()
-        critA.bbspec = deepcopy(self.bbspec[:mseg + 1])
-        critA.bbspec[-1][1] = critA.bbspec[-1][1][0] + '_'
+        critA.bbspec = deepcopy(self.bbspec[: mseg + 1])
+        critA.bbspec[-1][1] = critA.bbspec[-1][1][0] + "_"
         bbspecB = deepcopy(self.bbspec[mseg:])
-        bbspecB[0][1] = '_' + bbspecB[0][1][1]
-        bbsA = bbs[:mseg + 1]
+        bbspecB[0][1] = "_" + bbspecB[0][1][1]
+        bbsA = bbs[: mseg + 1]
         bbsB = bbs[mseg:]
 
         # print('Brigde.stages')
@@ -190,8 +197,8 @@ class Bridge(WormCriteria):
 
         def critB(prevcrit, prevssdag, prevresult):
             print(
-                f'mbb {mbb:4}a hash: {prevcrit.hash_table.size():8,},',
-                f' ntotal: {prevresult.stats.total_samples[0]:10,}    '
+                f"mbb {mbb:4}a hash: {prevcrit.hash_table.size():8,},",
+                f" ntotal: {prevresult.stats.total_samples[0]:10,}    ",
             )
 
             critB = HashCriteria(
@@ -203,15 +210,15 @@ class Bridge(WormCriteria):
                 filter_hash=prevcrit.hash_table,
                 hash_cart_resl=hash_cart_resl,
                 hash_ori_resl=hash_ori_resl,
-                **kw
+                **kw,
             )
             critB.bbspec = bbspecB
             return critB
 
         def critC(prevcrit, prevssdag, prevresult):
             print(
-                f'mbb {mbb:4}b hash: {prevcrit.hash_table.size():8,},',
-                f'ntotal: {prevresult.stats.total_samples[0]:10,}    '
+                f"mbb {mbb:4}b hash: {prevcrit.hash_table.size():8,},",
+                f"ntotal: {prevresult.stats.total_samples[0]:10,}    ",
             )
             critC = HashCriteria(
                 from_seg=0,
@@ -220,14 +227,12 @@ class Bridge(WormCriteria):
                 filter_hash=prevcrit.hash_table,
                 prev_isite=prevssdag.verts[0].isite,
                 prev_vsize=np.array([len(v.ibblock) for v in prevssdag.verts]),
-                **kw
+                **kw,
             )
             critC.bbspec = critA.bbspec
             return critC
 
-        return [(critA, bbsA),
-                (critB, bbsB),
-                (critC, bbsA)], merge_results_bridge
+        return [(critA, bbsA), (critB, bbsB), (critC, bbsA)], merge_results_bridge
 
     def iface_rms(self, pose, prov, **kw):
         return -1
@@ -258,11 +263,13 @@ def merge_results_bridge(criteria, critC, ssdag, ssdB, ssdC, rsltC, **kw):
 
         merge_ibblock = ssdB.verts[0].ibblock[idxB[0]]
         merge_ibblock_c = ssdC.verts[-1].ibblock[idxC[-1]]
-        if merge_ibblock != merge_ibblock_c: continue
+        if merge_ibblock != merge_ibblock_c:
+            continue
         merge_site1 = ssdB.verts[0].isite[idxB[0], 1]
         merge_site2 = ssdC.verts[-1].isite[idxC[-1], 0]
         # print('    merge_sites', iresult, merge_site1, merge_site2)
-        if merge_site1 == merge_site2: continue
+        if merge_site1 == merge_site2:
+            continue
 
         merge_outres = ssdB.verts[0].ires[idxB[0], 1]
         merge_inres = ssdC.verts[-1].ires[idxC[-1], 0]
@@ -283,15 +290,17 @@ def merge_results_bridge(criteria, critC, ssdag, ssdB, ssdC, rsltC, **kw):
 
         imergeseg = len(idxC) - 1
         vmerge = ssdag.verts[imergeseg]
-        w = ((vmerge.ibblock == merge_ibblock) *
-             (vmerge.ires[:, 0] == merge_inres) *
-             (vmerge.ires[:, 1] == merge_outres))
+        w = (
+            (vmerge.ibblock == merge_ibblock)
+            * (vmerge.ires[:, 0] == merge_inres)
+            * (vmerge.ires[:, 1] == merge_outres)
+        )
         imerge = np.where(w)[0]
         if len(imerge) is 0:
-            print('    empty imerge')
+            print("    empty imerge")
             continue
         if len(imerge) > 1:
-            print('    imerge', imerge)
+            print("    imerge", imerge)
             assert len(imerge) == 1
         imerge = imerge[0]
         # print('    ', imerge)
@@ -315,7 +324,8 @@ def merge_results_bridge(criteria, critC, ssdag, ssdB, ssdC, rsltC, **kw):
         # print(x)
         err = criteria.score(pos)
         # print('    err', err)
-        if err > kw['tolerance']: continue
+        if err > kw["tolerance"]:
+            continue
 
         idx_list.append(idx)
         pos_list.append(pos)

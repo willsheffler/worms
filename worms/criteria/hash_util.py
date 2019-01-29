@@ -23,7 +23,7 @@ def decode_indices(sizes, index):
     indices = np.zeros(sizes.shape, dtype=np.int64)
     for i, size in enumerate(sizes):
         indices[i] = index % size
-        index -= (index % size)
+        index -= index % size
         index /= size
     assert index == 0
     return indices
@@ -44,13 +44,15 @@ def make_hash_table(ssdag, rslt, gubinner):
     isite1 = ssdag.verts[-1].isite[rslt.idx[:, -1], 0]
     assert np.all(ibb0 == ibb1)
     assert np.all(isite0 != isite1)
-    assert np.all(isite0 < 2**8)
-    assert np.all(isite1 < 2**8)
-    assert np.all(ibb0 < 2**16)
+    assert np.all(isite0 < 2 ** 8)
+    assert np.all(isite1 < 2 ** 8)
+    assert np.all(ibb0 < 2 ** 16)
     assert np.all(keys >= 0)
     vals = (
-        np.left_shift(ridx, 32) + np.left_shift(ibb0, 16) +
-        np.left_shift(isite0, 8) + isite1
+        np.left_shift(ridx, 32)
+        + np.left_shift(ibb0, 16)
+        + np.left_shift(isite0, 8)
+        + isite1
     )
     # print(keys[:10])
     # print(vals[:10])
@@ -67,7 +69,7 @@ class WheelHashCriteria(WormCriteria):
         self.is_cyclic = False
 
     def cloned_segments(self):
-        return (-1, )
+        return (-1,)
 
     def score(self, *args):
         return 0
@@ -92,13 +94,13 @@ class WheelHashCriteria(WormCriteria):
 
                 # must use same bblock
                 ibody = verts[-1].ibblock[idx[-1]]
-                ibody0 = np.right_shift(val, 16) % 2**16
+                ibody0 = np.right_shift(val, 16) % 2 ** 16
                 if ibody != ibody0:
                     continue
 
                 # must use different site
-                isite0 = np.right_shift(val, 8) % 2**8
-                isite1 = val % 2**8
+                isite0 = np.right_shift(val, 8) % 2 ** 8
+                isite1 = val % 2 ** 8
                 isite = verts[-1].isite[idx[-1], 0]
                 if isite == isite0 or isite == isite1:
                     continue
@@ -110,12 +112,14 @@ class WheelHashCriteria(WormCriteria):
 
 
 def _get_hash_lossfunc_data(nfold):
-    rots = np.stack((
-        hg.hrot([0, 0, 1, 0], np.pi * 2. / nfold),
-        hg.hrot([0, 0, 1, 0], -np.pi * 2. / nfold),
-    )).astype(np.float32)
+    rots = np.stack(
+        (
+            hg.hrot([0, 0, 1, 0], np.pi * 2.0 / nfold),
+            hg.hrot([0, 0, 1, 0], -np.pi * 2.0 / nfold),
+        )
+    ).astype(np.float32)
     assert rots.shape == (2, 4, 4)
-    irots = (0, 1) if nfold > 2 else (0, )
+    irots = (0, 1) if nfold > 2 else (0,)
     return rots, irots
 
 

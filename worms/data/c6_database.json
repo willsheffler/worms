@@ -1,48 +1,10 @@
-[{"file": "/home/rubul/database/fusion/hb_dhr/c6_fusion_pdb/RM06-C6f_6H2LD-8_DHR10_6_000001_0011_K_0001_0003_N.pdb",
-  "name": "RM06-C6f_6H2LD-8_DHR10" ,
-  "class": ["C6_N"],
-  "type": "HDock_C6_N" ,
-  "base": "6H2LD-8" ,
-  "components": ["DHR10"],
-  "validated": false,
-  "protocol": "HDock",
-  "connections": [
-   {"chain": 1, "direction": "N", "residues":[":30"]}
-  ]
-},
-
-{"file": "/home/rubul/database/fusion/hb_dhr/c6_fusion_pdb/RM07-C6f_6H2LD-8_DHR21_6_000001_0010_K_0001_N.pdb",
-  "name": "RM07-C6f_6H2LD-8_DHR21" ,
-  "class": ["C6_N"],
-  "type": "HDock_C6_N" ,
-  "base": "6H2LD-8" ,
-  "components": ["DHR21"],
-  "validated": false,
-  "protocol": "HDock",
-  "connections": [
-   {"chain": 1, "direction": "N", "residues":["-30:"]}
-  ]
-},
-
+[
 {"file": "/home/rubul/database/fusion/hb_dhr/c6_fusion_pdb/RM08-C6f_6H2LD-8_DHR27_6_000001_0003_K_0001_0002_N.pdb",
   "name": "RM08-C6f_6H2LD-8_DHR27" ,
   "class": ["C6_N"],
   "type": "HDock_C6_N" ,
   "base": "6H2LD-8" ,
   "components": ["DHR27"],
-  "validated": false,
-  "protocol": "HDock",
-  "connections": [
-   {"chain": 1, "direction": "N", "residues":[":30"]}
-  ]
-},
-
-{"file": "/home/rubul/database/fusion/hb_dhr/c6_fusion_pdb/RM13-C6f_6H2LD-8_DHR70_6_000001_0013_K_0001_0001_N.pdb",
-  "name": "RM13-C6f_6H2LD-8_DHR70" ,
-  "class": ["C6_N"],
-  "type": "HDock_C6_N" ,
-  "base": "6H2LD-8" ,
-  "components": ["DHR70"],
   "validated": false,
   "protocol": "HDock",
   "connections": [

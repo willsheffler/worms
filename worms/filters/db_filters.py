@@ -8,6 +8,7 @@ from collections import namedtuple, defaultdict
 from pyrosetta.rosetta.core.select.residue_selector import *
 import numpy as np
 from pyrosetta import rosetta
+
 pyrosetta.Pose = pyrosetta.rosetta.core.pose.Pose
 from pyrosetta import toolbox
 from pyrosetta.toolbox import *
@@ -17,7 +18,10 @@ import sys
 
 from worms.filters.alignment_validator import AlignmentValidator, PoseInfo
 from worms.filters.contact_analyzer import ContactAnalyzer, PoseMap
-from worms.filters.interface_contacts import count_contacts_accross_junction, identify_helical_segments
+from worms.filters.interface_contacts import (
+    count_contacts_accross_junction,
+    identify_helical_segments,
+)
 
 
 def get_affected_positions(pose, prov):
@@ -29,8 +33,7 @@ def get_affected_positions(pose, prov):
     for lb, ub, src_pose, src_lb, src_ub in prov:
         src_chains = src_pose.split_by_chain()
         src_asu = src_chains[1]
-        if len(list(src_chains)
-               ) > 1 and src_chains[1].size() == src_chains[2].size():
+        if len(list(src_chains)) > 1 and src_chains[1].size() == src_chains[2].size():
             is_symmetric[src_pose] = True
             src_asu_size = src_asu.size()
             src_lb_asu = (src_lb - 1) % src_asu_size + 1
@@ -42,8 +45,8 @@ def get_affected_positions(pose, prov):
         src_pose_range[src_pose].append([src_lb_asu, src_ub_asu])
         final_pose_range[src_pose].append([lb, ub])
     for src_pose in src_pose_range.keys():
-        #asym_pose = pyrosetta.rosetta.core.pose.Pose()
-        #pyrosetta.rosetta.core.pose.symmetry.extract_asymmetric_unit(src_pose, asym_pose,Fa
+        # asym_pose = pyrosetta.rosetta.core.pose.Pose()
+        # pyrosetta.rosetta.core.pose.symmetry.extract_asymmetric_unit(src_pose, asym_pose,Fa
         if is_symmetric[src_pose]:
 
             src_chains = src_pose.split_by_chain()
@@ -54,8 +57,7 @@ def get_affected_positions(pose, prov):
             src_asu_size = src_pose.size()
         input_pose_maps.append(
             PoseMap(
-                src_asu.clone(), src_pose_range[src_pose],
-                final_pose_range[src_pose]
+                src_asu.clone(), src_pose_range[src_pose], final_pose_range[src_pose]
             )
         )
         # # src_asu.dump_pdb('TEST.pdb')
@@ -80,7 +82,12 @@ def get_affected_positions(pose, prov):
         pose, input_pose_maps
     )
 
-    return modified_positions, new_contact_positions, lost_contact_positions, final_junction_res
+    return (
+        modified_positions,
+        new_contact_positions,
+        lost_contact_positions,
+        final_junction_res,
+    )
 
 
 def make_junct_strs(db, criteria, ssdag, idx):
@@ -89,59 +96,64 @@ def make_junct_strs(db, criteria, ssdag, idx):
     for i in range(len(idx)):
         fn = bytes(ssdag.bbs[i][ssdag.verts[i].ibblock[idx[i]]].file).decode()
         dbentry = db.get_json_entry(fn)
-        body_names.append(dbentry['name'])
+        body_names.append(dbentry["name"])
 
     enres = [ssdag.verts[i].ires[idx[i], 0] + 1 for i in range(len(idx))]
     exres = [ssdag.verts[i].ires[idx[i], 1] + 1 for i in range(len(idx))]
     Nseg = len(idx) - 1 if criteria.is_cyclic else len(idx)
-    junct_str = '%s_ex%s_en%s_%s_' % (
-        body_names[0], exres[0], enres[1], body_names[1]
-    )
-    junct_str1 = '%-20s %4d %4d %-20s ' % (
-        body_names[0], exres[0], enres[1], body_names[1]
+    junct_str = "%s_ex%s_en%s_%s_" % (body_names[0], exres[0], enres[1], body_names[1])
+    junct_str1 = "%-20s %4d %4d %-20s " % (
+        body_names[0],
+        exres[0],
+        enres[1],
+        body_names[1],
     )
     for i in range(1, len(idx) - 1):
-        junct_str = junct_str + 'ex%s_en%s_%s_' % (
-            exres[i], enres[i + 1], body_names[i + 1]
+        junct_str = junct_str + "ex%s_en%s_%s_" % (
+            exres[i],
+            enres[i + 1],
+            body_names[i + 1],
         )
-        junct_str1 = junct_str1 + '%4d %4d %-20s ' % (
-            exres[i], enres[i + 1], body_names[i + 1]
+        junct_str1 = junct_str1 + "%4d %4d %-20s " % (
+            exres[i],
+            enres[i + 1],
+            body_names[i + 1],
         )
     if criteria.is_cyclic:
-        junct_str = junct_str + 'ex%s_en%s' % (exres[Nseg - 1], enres[Nseg])
-        junct_str1 = junct_str1 + '%4d %4d ' % (exres[Nseg - 1], enres[Nseg])
+        junct_str = junct_str + "ex%s_en%s" % (exres[Nseg - 1], enres[Nseg])
+        junct_str1 = junct_str1 + "%4d %4d " % (exres[Nseg - 1], enres[Nseg])
     return junct_str, junct_str1
 
 
 def run_db_filters(
-        databases,
-        criteria,
-        ssdag,
-        iresult,
-        idx,
-        pose,
-        prov,
-        postfilt_splice_max_rms,
-        postfilt_splice_rms_length,
-        postfilt_splice_ncontact_cut,
-        postfilt_splice_ncontact_no_helix_cut,
-        postfilt_splice_nhelix_contacted_cut,
-        **kw,
+    databases,
+    criteria,
+    ssdag,
+    iresult,
+    idx,
+    pose,
+    prov,
+    postfilt_splice_max_rms,
+    postfilt_splice_rms_length,
+    postfilt_splice_ncontact_cut,
+    postfilt_splice_ncontact_no_helix_cut,
+    postfilt_splice_nhelix_contacted_cut,
+    **kw,
 ):
     bbdb, _ = databases
     AV = AlignmentValidator(
         superimpose_rmsd=postfilt_splice_max_rms + 0.2,
-        superimpose_length=postfilt_splice_rms_length
+        superimpose_length=postfilt_splice_rms_length,
     )
     junct_str, junct_str1 = make_junct_strs(databases[0], criteria, ssdag, idx)
 
     ori_segment_map = []
     final_segment_map = []
-    filter = 'Pass'
+    filter = "Pass"
 
     # AV.test_pair_alignment and prefiltering don't agree perfectly,
     # but in this case, I trust the prefilter numbers
-    super_grade = 'A'
+    super_grade = "A"
     # for i in range(len(idx) - 1):
     # if ssdag.verts[i].dirn[1] == 0:  # NC
     #     poseN = bbdb.pose(
@@ -191,13 +203,12 @@ def run_db_filters(
     # else:
     #     super_grade = 'B'
 
-    last_chain = pose.chain(prov[0][1]
-                            )  #chain number  of upper bound of first segment
+    last_chain = pose.chain(prov[0][1])  # chain number  of upper bound of first segment
     final_junction_res = []
     for i, splice in enumerate(prov[1:]):
         lb, ub, *_ = splice
         current_chain = pose.chain(lb)
-        if current_chain == last_chain:  #in same chain so bonafide junction
+        if current_chain == last_chain:  # in same chain so bonafide junction
             final_junction_res.append(lb)
         else:
             last_chain = current_chain
@@ -222,34 +233,36 @@ def run_db_filters(
         #     )
         # )
 
-        if nc < min_contacts: min_contacts = nc
+        if nc < min_contacts:
+            min_contacts = nc
         if nc_no_helix < min_contacts_no_helix:
             min_contacts_no_helix = nc_no_helix
         n_helix = min(
-            n_helix_contacted, n_helix_contacted_before,
-            n_helix_contacted_after
+            n_helix_contacted, n_helix_contacted_before, n_helix_contacted_after
         )
         num_contacts.append(nc)
         num_contacts_no_helix.append(nc_no_helix)
         num_helices_contacted.append(n_helix)
-        if n_helix < min_helices_contacted: min_helices_contacted = n_helix
+        if n_helix < min_helices_contacted:
+            min_helices_contacted = n_helix
         if min_contacts < postfilt_splice_ncontact_cut - 10:
-            nc_grade = 'F'
-            filter = 'Fail_con'
+            nc_grade = "F"
+            filter = "Fail_con"
         elif min_contacts < postfilt_splice_ncontact_cut:
-            nc_grade = 'B'
+            nc_grade = "B"
         else:
-            nc_grade = 'A'
+            nc_grade = "A"
         if min_contacts_no_helix < postfilt_splice_ncontact_no_helix_cut:
-            nc_no_helix_grade = 'B'
+            nc_no_helix_grade = "B"
         else:
-            nc_no_helix_grade = 'A'
+            nc_no_helix_grade = "A"
         if min_helices_contacted < postfilt_splice_nhelix_contacted_cut:
-            helix_contact_grade = 'B'
+            helix_contact_grade = "B"
         else:
-            helix_contact_grade = 'A'
+            helix_contact_grade = "A"
     grade = super_grade + nc_grade + nc_no_helix_grade + helix_contact_grade
-    if filter[0] != 'F': filter = grade
+    if filter[0] != "F":
+        filter = grade
 
     ss = Dssp(pose).get_dssp_secstruct()
     close_to_junction = []
@@ -288,8 +301,7 @@ def run_db_filters(
     for lb, ub, src_pose, src_lb, src_ub in prov:
         src_chains = src_pose.split_by_chain()
         src_asu = src_chains[1]
-        if len(list(src_chains)
-               ) > 1 and src_chains[1].size() == src_chains[2].size():
+        if len(list(src_chains)) > 1 and src_chains[1].size() == src_chains[2].size():
             is_symmetric[src_pose] = True
             src_asu_size = src_asu.size()
             src_lb_asu = (src_lb - 1) % src_asu_size + 1
@@ -301,8 +313,8 @@ def run_db_filters(
         src_pose_range[src_pose].append([src_lb_asu, src_ub_asu])
         final_pose_range[src_pose].append([lb, ub])
     for src_pose in src_pose_range.keys():
-        #asym_pose = pyrosetta.rosetta.core.pose.Pose()
-        #pyrosetta.rosetta.core.pose.symmetry.extract_asymmetric_unit(src_pose, asym_pose,Fa
+        # asym_pose = pyrosetta.rosetta.core.pose.Pose()
+        # pyrosetta.rosetta.core.pose.symmetry.extract_asymmetric_unit(src_pose, asym_pose,Fa
         if is_symmetric[src_pose]:
 
             src_chains = src_pose.split_by_chain()
@@ -313,8 +325,7 @@ def run_db_filters(
             src_asu_size = src_pose.size()
         input_pose_maps.append(
             PoseMap(
-                src_asu.clone(), src_pose_range[src_pose],
-                final_pose_range[src_pose]
+                src_asu.clone(), src_pose_range[src_pose], final_pose_range[src_pose]
             )
         )
         #           src_asu.dump_pdb('TEST.pdb')
@@ -325,17 +336,24 @@ def run_db_filters(
         #     )
         # )
 
+    #          pose_map_mab = PoseMap(w.pose(iresult), original_ranges_mab, final_ranges_mab)
 
-#          pose_map_mab = PoseMap(w.pose(iresult), original_ranges_mab, final_ranges_mab)
-
-# sys.stdout.flush()
-# PRINTDBG(
-#     'close to junction: %s input_pose_maps: %s' %
-#     (close_to_junction, input_pose_maps)
-# )
+    # sys.stdout.flush()
+    # PRINTDBG(
+    #     'close to junction: %s input_pose_maps: %s' %
+    #     (close_to_junction, input_pose_maps)
+    # )
 
     return (
-        junct_str, junct_str1, filter, grade, final_junction_res, min_contacts,
-        min_contacts_no_helix, min_helices_contacted, num_contacts,
-        num_contacts_no_helix, num_helices_contacted
+        junct_str,
+        junct_str1,
+        filter,
+        grade,
+        final_junction_res,
+        min_contacts,
+        min_contacts_no_helix,
+        min_helices_contacted,
+        num_contacts,
+        num_contacts_no_helix,
+        num_helices_contacted,
     )

@@ -13,11 +13,12 @@ def get_cli_args(argv=None, **kw):
     lazy definition of cli args via a dictionary (kw) mapping names to
     default values
     """
-    if argv is None: argv = sys.argv[1:]
+    if argv is None:
+        argv = sys.argv[1:]
     # add from @files
     atfiles = []
     for a in argv:
-        if a.startswith('@'):
+        if a.startswith("@"):
             atfiles.append(a)
     for a in atfiles:
         argv.remove(a)
@@ -25,7 +26,7 @@ def get_cli_args(argv=None, **kw):
             newargs = []
             for l in inp:
                 # last char in l is newline, so [:-1] ok
-                newargs.extend(l[:l.find('#')].split())
+                newargs.extend(l[: l.find("#")].split())
             argv = newargs + argv
 
     p = argparse.ArgumentParser()
@@ -33,12 +34,12 @@ def get_cli_args(argv=None, **kw):
         nargs = None
         type_ = type(v)
         if isinstance(v, list):
-            nargs = '+'
+            nargs = "+"
             type_ = type(v[0])
-        p.add_argument('--' + k, type=type_, dest=k, default=v, nargs=nargs)
+        p.add_argument("--" + k, type=type_, dest=k, default=v, nargs=nargs)
         # print('arg', k, type_, nargs, v)
     args = p.parse_args(argv)
-    if hasattr(args, 'parallel') and args.parallel < 0:
+    if hasattr(args, "parallel") and args.parallel < 0:
         args.parallel = util.cpu_count()
     return args
 
@@ -46,9 +47,9 @@ def get_cli_args(argv=None, **kw):
 def build_worms_setup_from_cli_args(argv):
     args = get_cli_args(
         argv=argv,
-        geometry=[''],
-        bbconn=[''],
-        config_file=[''],
+        geometry=[""],
+        bbconn=[""],
+        config_file=[""],
         nbblocks=64,
         use_saved_bblocks=0,
         monte_carlo=[0.0],
@@ -59,14 +60,14 @@ def build_worms_setup_from_cli_args(argv):
         pbar=0,
         pbar_interval=10.0,
         #
-        context_structure='',
+        context_structure="",
         #
-        cachedirs=[''],
+        cachedirs=[""],
         disable_cache=0,
-        dbfiles=[''],
+        dbfiles=[""],
         load_poses=0,
         read_new_pdbs=0,
-        run_cache='',
+        run_cache="",
         merge_bblock=-1,
         no_duplicate_bases=1,
         shuffle_bblocks=1,
@@ -75,12 +76,11 @@ def build_worms_setup_from_cli_args(argv):
         merge_segment=-1,
         min_seg_len=15,
         topology=[-1],
-
         # splice stuff
         splice_rms_range=4,
         splice_max_rms=0.7,
-        splice_clash_d2=3.5**2,  # ca only
-        splice_contact_d2=8.0**2,
+        splice_clash_d2=3.5 ** 2,  # ca only
+        splice_contact_d2=8.0 ** 2,
         splice_clash_contact_range=40,
         splice_clash_contact_by_helix=1,
         splice_ncontact_cut=38,
@@ -111,7 +111,7 @@ def build_worms_setup_from_cli_args(argv):
         #
         output_from_pose=1,
         output_symmetric=1,
-        output_prefix='./worms',
+        output_prefix="./worms",
         output_centroid=0,
         output_only_AAAA=0,
         output_short_fnames=0,
@@ -123,13 +123,12 @@ def build_worms_setup_from_cli_args(argv):
         postfilt_splice_ncontact_cut=40,
         postfilt_splice_ncontact_no_helix_cut=2,
         postfilt_splice_nhelix_contacted_cut=3,
-
     )
-    if args.config_file == ['']:
+    if args.config_file == [""]:
         args.config_file = []
     args.topology = Topology(args.topology)
     if not args.config_file:
-        crit = eval(''.join(args.geometry))
+        crit = eval("".join(args.geometry))
         bb = args.bbconn[1::2]
         nc = args.bbconn[0::2]
         args.topology.check_nc(nc)
@@ -148,7 +147,7 @@ def build_worms_setup_from_cli_args(argv):
                 assert len(lines) is 2
 
                 def orient(a, b):
-                    return (a or '_') + (b or '_')
+                    return (a or "_") + (b or "_")
 
                 bbnc = eval(lines[0])
                 bb = [x[0] for x in bbnc]
@@ -173,7 +172,8 @@ def build_worms_setup_from_cli_args(argv):
     if args.max_score0 > 9e8:
         args.max_score0 = 2.0 * len(crit[0].bbspec)
 
-    if args.merge_bblock < 0: args.merge_bblock = None
+    if args.merge_bblock < 0:
+        args.merge_bblock = None
     if args.only_merge_bblocks == [-1]:
         args.only_merge_bblocks = []
     if args.only_bblocks == [-1]:
@@ -181,20 +181,20 @@ def build_worms_setup_from_cli_args(argv):
     if args.merge_segment == -1:
         args.merge_segment = None
 
-    if args.dbfiles == ['']:
-        assert 0, 'no --dbfiles specified'
+    if args.dbfiles == [""]:
+        assert 0, "no --dbfiles specified"
 
     kw = vars(args)
     if args.disable_cache:
-        kw['db'] = NoCacheBBlockDB(**kw), NoCacheSpliceDB(**kw)
+        kw["db"] = NoCacheBBlockDB(**kw), NoCacheSpliceDB(**kw)
     else:
-        kw['db'] = CachingBBlockDB(**kw), CachingSpliceDB(**kw)
+        kw["db"] = CachingBBlockDB(**kw), CachingSpliceDB(**kw)
 
-    print('-------------- args ---------------')
+    print("-------------- args ---------------")
     for k, v in kw.items():
-        print('   ', k, v)
-    print('-----------------------------------')
+        print("   ", k, v)
+    print("-----------------------------------")
 
-    kw['db'][0].report()
+    kw["db"][0].report()
 
     return crit, kw

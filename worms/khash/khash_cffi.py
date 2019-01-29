@@ -5,10 +5,11 @@ import glob
 import os
 from cffi import FFI
 from numba import cffi_support
+
 # from cffi import _cffi_backend
 
 _ffi = FFI()
-_ffi.set_source('_khash_ffi', '#include "khash_int2int.h"')
+_ffi.set_source("_khash_ffi", '#include "khash_int2int.h"')
 
 _ffi.cdef(
     """\
@@ -26,10 +27,10 @@ _dir = os.path.dirname(__file__)
 try:
     from worms.khash import _khash_ffi
 except ImportError:
-    print('worms.khash first run, building...')
+    print("worms.khash first run, building...")
     _ffi.compile(tmpdir=_dir)
 
-if not 'READTHEDOCS' in os.environ:
+if not "READTHEDOCS" in os.environ:
     from worms.khash import _khash_ffi
 
     _khash_init = _khash_ffi.lib.khash_int2int_init
@@ -45,7 +46,7 @@ if not 'READTHEDOCS' in os.environ:
     cffi_support.register_module(_khash_ffi)
 
 
-@nb.jitclass((('hash', nb.types.voidptr), ))
+@nb.jitclass((("hash", nb.types.voidptr),))
 class KHashi8i8:
     def __init__(self):
         self.hash = _khash_init()

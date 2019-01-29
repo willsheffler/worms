@@ -32,15 +32,15 @@ class WormCriteria(abc.ABC):
         pass
 
     allowed_attributes = (
-        'last_body_same_as',
-        'symname',
-        'is_cyclic',
-        'alignment',
-        'from_seg',
-        'to_seg',
-        'origin_seg',
-        'symfile_modifiers',
-        'crystinfo',
+        "last_body_same_as",
+        "symname",
+        "is_cyclic",
+        "alignment",
+        "from_seg",
+        "to_seg",
+        "origin_seg",
+        "symfile_modifiers",
+        "crystinfo",
     )
 
 
@@ -84,7 +84,7 @@ class CriteriaList(WormCriteria):
             AttributeError: Description
         """
         if name not in WormCriteria.allowed_attributes:
-            raise AttributeError('CriteriaList has no attribute: ' + name)
+            raise AttributeError("CriteriaList has no attribute: " + name)
         r = [getattr(c, name) for c in self.children if hasattr(c, name)]
         r = [x for x in r if x is not None]
         assert len(r) < 2
