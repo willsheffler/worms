@@ -17,8 +17,12 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
         to_seg=-1,
         space_group_str=None,
         cell_dist_scale=1.0,
+        tgtaxis2_isects=[0, 1, 0],
     ):
         """ Worms criteria for non-intersecting axes re: unbounded things
+
+        assume tgtaxis1 goes through origin
+        tgtaxis2 intersects tgtaxis2_isects
 
         Args:
             symname (str): Symmetry identifier, to label stuff and look up the symdef file.
@@ -99,7 +103,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
             # vector delta between cen2 and cen1
             d = hm.proj_perp(ax1, cen2 - cen1)
             Xalign = hm.align_vectors(
-                ax1, d, self.tgtaxis1, [0, 1, 0, 0]
+                ax1, d, self.tgtaxis1, tgtaxis2_isects + [0]
             )  # align d to Y axis
             Xalign[..., :, 3] = -Xalign @ cen1
             cell_dist = (Xalign @ cen2)[..., 1]
@@ -115,10 +119,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
                 raise e
             Xalign[..., :, 3] = -Xalign @ cen1  ## move from_seg cen1 to origin
             cen2_0 = Xalign @ cen2  # moving cen2 by Xalign
-            D = np.stack([self.tgtaxis1[:3], [0, 1, 0], self.tgtaxis2[:3]]).T
-            # matrix where the columns are the things in the list
-            # CHANGE Uy to an ARGUMENT SOON!!!!
-            # print("D: ", D)
+            D = np.stack([self.tgtaxis1[:3], self.tgtaxis2_isects, self.tgtaxis2[:3]]).T
             A1offset, cell_dist, _ = np.linalg.inv(D) @ cen2_0[:3]
             # transform of A1 offest, cell distance (offset along other axis), and A2 offset (<-- we are ignoring this)
             Xalign[..., :, 3] = Xalign[..., :, 3] - (A1offset * self.tgtaxis1)
@@ -158,7 +159,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
 
 def Sheet_P321(c3=None, c2=None, **kw):
     if c3 is None or c2 is None:
-        raise ValueError("must specify ...?")  # one or two of c3, c2
+        raise ValueError("must specify ...?")
     return AxesAngle(
         "Sheet_P321_C3_C2_depth3_1comp", Uz, Ux, from_seg=c3, to_seg=c2, **kw
     )  ##this is currently identical to the D3 format...how do we change it to make it an array?
@@ -178,6 +179,14 @@ def Sheet_P6(c6=None, c2=None, **kw):
         raise ValueError("must specify ...?")  # one or two of c6, c2
     return AxesAngle(
         "Sheet_P6_C6_C2_depth3_1comp", Uz, Uz, from_seg=c6, to_seg=c2, **kw
+    )
+
+
+def Sheet_P6_C3_C2(c3=None, c2=None, **kw):
+    if c3 is None or c2 is None:
+        raise ValueError("must specify ...?")
+    return AxesAngle(
+        "Sheet_P6_C6_C2_depth3_1comp", Uz, Uz, from_seg=c3, to_seg=c2, **kw
     )
 
 
@@ -234,8 +243,8 @@ def Crystal_I213_C2_C3(c2a=None, c3b=None, **kw):
 
 
 def Crystal_I432_C2_C4(c2a=None, c4b=None, **kw):
-    if c3a is None or c3b is None:
-        raise ValueError("must specify ...?")  # one or two of c6, c2
+    if c2a is None or c4b is None:
+        raise ValueError("must specify ...?")
     # return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
     return AxesAngle(
         "Crystal_I432_C2_C4_depth3_1comp",
