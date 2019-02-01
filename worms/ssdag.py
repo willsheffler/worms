@@ -106,6 +106,7 @@ def simple_search_dag(
     precache_splices=False,
     precache_only=False,
     bbs=None,
+    bblock_ranges=[],
     only_seg=None,
     source=None,
     print_edge_summary=False,
@@ -149,6 +150,19 @@ def simple_search_dag(
                 )
                 bbs.append(bbs0)
 
+            if bblock_ranges:
+                bbs_sliced = list()
+                assert len(bblock_ranges) == 2 * len(bbs)
+                for ibb, bb in enumerate(bbs):
+                    lb, ub = bblock_ranges[2 * ibb : 2 * ibb + 2]
+                    bbs_sliced.append(bb[lb:ub])
+                bbs = bbs_sliced
+
+            for ibb, bb in enumerate(bbs):
+                print("bblocks", ibb)
+                for b in bb:
+                    print("   ", bytes(b.file).decode("utf-8"))
+
         bases = [Counter(bytes(b.base).decode("utf-8") for b in bbs0) for bbs0 in bbs]
         assert len(bbs) == len(queries)
         for i, v in enumerate(bbs):
@@ -181,13 +195,13 @@ def simple_search_dag(
 
     if merge_bblock is not None and merge_bblock >= 0:
         # print('cloned_segments', criteria.bbspec, criteria.cloned_segments())
-        if merge_segment is None:
-            # print('   ', 'merge_segment is None')
-            if hasattr(criteria, "cloned_segments"):
-                for i in criteria.cloned_segments():
-                    # print('   ', 'merge seg', i, 'merge_bblock', merge_bblock)
-                    bbs[i] = (bbs[i][merge_bblock],)
+        if hasattr(criteria, "cloned_segments") and merge_segment is None:
+            for i in criteria.cloned_segments():
+                # print('   ', 'merge seg', i, 'merge_bblock', merge_bblock)
+                bbs[i] = (bbs[i][merge_bblock],)
         else:
+            if merge_segment is None:
+                merge_segment = 0
             # print('   ', 'merge_segment not None')
             # print('   ', [len(b) for b in bbs])
             # print('   ', 'merge_segment', merge_segment)

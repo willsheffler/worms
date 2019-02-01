@@ -198,7 +198,7 @@ def worms_main_protocol(criteria, bbs_states=None, disable_clash_check=0, **kw):
 
         log = []
         if True:  # len(result3.idx) > 0:
-            msg = f'mbb{kw["merge_bblock"]:4} nresults after clash/geom check {len(result3.idx):,}'
+            msg = f'mbb{kw["merge_bblock"]:04} nresults after clash/geom check {len(result3.idx):,}'
             log.append("    " + msg)
             print(log[-1])
 

@@ -72,7 +72,8 @@ def build_worms_setup_from_cli_args(argv):
         no_duplicate_bases=1,
         shuffle_bblocks=1,
         only_merge_bblocks=[-1],
-        only_bblocks=[-1],
+        only_bblocks=[-1],  # select single set of bbs
+        bblock_ranges=[-1],
         merge_segment=-1,
         min_seg_len=15,
         topology=[-1],
@@ -178,6 +179,11 @@ def build_worms_setup_from_cli_args(argv):
         args.only_merge_bblocks = []
     if args.only_bblocks == [-1]:
         args.only_bblocks = []
+    if args.bblock_ranges == [-1]:
+        args.bblock_ranges = []
+    elif args.shuffle_bblocks:
+        print("you probably shouldnt use --shuffle_bblocks with --bblock_ranges ")
+        sys.exit(0)
     if args.merge_segment == -1:
         args.merge_segment = None
 

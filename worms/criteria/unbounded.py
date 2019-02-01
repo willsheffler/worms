@@ -61,6 +61,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
         # print(self.target_angle * (180 / np.pi))
         self.is_cyclic = False
         self.origin_seg = None
+        self.tgtaxis2_isects = tgtaxis2_isects
 
     def score(self, segpos, **kw):
         ax1 = segpos[self.from_seg][..., :, 2]
@@ -103,7 +104,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
             # vector delta between cen2 and cen1
             d = hm.proj_perp(ax1, cen2 - cen1)
             Xalign = hm.align_vectors(
-                ax1, d, self.tgtaxis1, tgtaxis2_isects + [0]
+                ax1, d, self.tgtaxis1, self.tgtaxis2_isects + [0]
             )  # align d to Y axis
             Xalign[..., :, 3] = -Xalign @ cen1
             cell_dist = (Xalign @ cen2)[..., 1]
