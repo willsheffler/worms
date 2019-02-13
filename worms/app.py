@@ -16,7 +16,6 @@ from xbin import gu_xbin_indexer, numba_xbin_indexer
 import homog as hg
 
 from worms.cli import build_worms_setup_from_cli_args
-from worms.criteria.bridge import merge_results_bridge
 from worms.ssdag import simple_search_dag
 from worms.search import grow_linear
 from worms.util import run_and_time
@@ -222,6 +221,7 @@ def worms_main_protocol(criteria, bbs_states=None, disable_clash_check=0, **kw):
 def search_func(criteria, bbs, monte_carlo, merge_segment, **kw):
 
     stages = [criteria]
+    merge = None
     if hasattr(criteria, "stages"):
         stages, merge = criteria.stages(bbs=bbs, **kw)
     if len(stages) > 1:
@@ -255,6 +255,7 @@ def search_func(criteria, bbs, monte_carlo, merge_segment, **kw):
 
     # todo: this whole block is very protocol-specific... needs refactoring
     if len(results) is 1:
+        assert merge is None
         return results[0][1:]
     elif len(results) is 2:
 
@@ -337,6 +338,7 @@ def search_single_stage(criteria, lbl="", **kw):
         frac_redundant = result.stats.n_redundant_results[0] / len(result.idx)
         log = [
             f"grow_linear {lbl} done, nresults {len(result.idx):,}, "
+            + f"total_samples {result.stats.total_samples[0]:,}, "
             + f"samp/sec {Nsparse_rate:,}, redundant ratio {frac_redundant}"
         ]
     if log:

@@ -119,6 +119,8 @@ def filter_and_output_results(
                     bases.remove("?")
                 while "n/a" in bases:
                     bases.remove("n/a")
+                while "none" in bases:
+                    bases.remove("none")
                 bases_uniq = set(bases)
                 nbases = len(bases)
                 if len(bases_uniq) != nbases:

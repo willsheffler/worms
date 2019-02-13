@@ -186,6 +186,7 @@ def build_worms_setup_from_cli_args(argv):
         sys.exit(0)
     if args.merge_segment == -1:
         args.merge_segment = None
+    args.tolerance = min(args.tolerance, 9e8)
 
     if args.dbfiles == [""]:
         assert 0, "no --dbfiles specified"

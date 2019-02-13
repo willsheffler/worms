@@ -63,6 +63,7 @@ class HashCriteria(WormCriteria):
             filter_binner = filter_hash_vp = None
 
         if binner and filter_binner:  # filter and bin
+            # print("making binner and filter")
 
             @jit
             def func(pos, idx, verts):
@@ -84,6 +85,7 @@ class HashCriteria(WormCriteria):
             return func
 
         elif binner:  # bin without filter
+            # print("making binner")
 
             @jit
             def func(pos, idx, verts):
@@ -96,6 +98,7 @@ class HashCriteria(WormCriteria):
             return func
 
         elif filter_binner:  # filter only
+            # print("making filter")
             assert prev_isite is not None
             assert prev_vsize is not None
 
@@ -156,7 +159,60 @@ class Bridge(WormCriteria):
     def alignment(self, pos, **kw):
         return np.eye(4)
 
-    def stages(
+    def stages_short(self, bbs, hash_cart_resl, hash_ori_resl, **kw):
+        """
+        stage1: grow A->B and produce fine_hash of all B positions
+        stage2: grow A->B if B is in fine_hash, record result
+        """
+        critA = HashCriteria(
+            from_seg=0,
+            to_seg=-1,
+            # hash_cart_resl=6,
+            # hash_ori_resl=25,
+            hash_cart_resl=hash_cart_resl,
+            hash_ori_resl=hash_ori_resl,
+            merge_seg=self.merge_segment(),
+        )
+        assert len(self.bbspec) == len(bbs)
+
+        mbb = kw["merge_bblock"]
+        mseg = self.merge_segment()
+
+        critA.bbspec = deepcopy(self.bbspec[: mseg + 1])
+        critA.bbspec[-1][1] = critA.bbspec[-1][1][0] + "_"
+        bbspecB = deepcopy(self.bbspec[mseg:])
+        bbspecB[0][1] = "_" + bbspecB[0][1][1]
+        bbsA = bbs[: mseg + 1]
+        bbsB = bbs[mseg:]
+
+        def critB(prevcrit, prevssdag, prevresult):
+            print(
+                f"mbb {mbb:04} hash: {prevcrit.hash_table.size():8,},",
+                f" ntotal: {prevresult.stats.total_samples[0]:10,}    ",
+            )
+
+            critB = HashCriteria(
+                from_seg=-1,  # note: backwards! coming from other end
+                to_seg=0,  # in stage B, to_seg becomes origin here
+                # from_seg=0,
+                # to_seg=-1,
+                filter_binner=prevcrit.binner,
+                filter_hash=prevcrit.hash_table,
+                prev_isite=prevssdag.verts[0].isite,
+                prev_vsize=np.array([len(v.ibblock) for v in prevssdag.verts]),
+                **kw,
+            )
+            critB.bbspec = bbspecB
+            return critB
+
+        # print(mseg, len(bbsA), len(bbsB))
+        # print(critA.bbspec)
+        # print(bbspecB)
+        # assert 0
+
+        return [(critA, bbsA), (critB, bbsB)], merge_results_bridge_short
+
+    def stages_long(
         self,
         bbs,
         hash_cart_resl,
@@ -170,7 +226,6 @@ class Bridge(WormCriteria):
         stage2: grow B->A if B is in coarse_hash, put in fine_hash
         stage3: grow A->B if B is in fine_hash, record result
         """
-
         critA = HashCriteria(
             from_seg=0,
             to_seg=-1,
@@ -232,18 +287,138 @@ class Bridge(WormCriteria):
             critC.bbspec = critA.bbspec
             return critC
 
-        return [(critA, bbsA), (critB, bbsB), (critC, bbsA)], merge_results_bridge
+        return [(critA, bbsA), (critB, bbsB), (critC, bbsA)], merge_results_bridge_long
+
+    def stages(self, bbs, **kw):
+        # if len(bbs) > 4:
+        return self.stages_long(bbs, **kw)
+        # else:
+        # return self.stages_short(bbs, **kw)
 
     def iface_rms(self, pose, prov, **kw):
         return -1
 
 
-def merge_results_bridge(criteria, critC, ssdag, ssdB, ssdC, rsltC, **kw):
+def merge_results_bridge_short(criteria, ssdag, ssdA, rsltA, critB, ssdB, rsltB, **kw):
+    print("merge_results_bridge_short")
+    # look up rsltCs in critC hashtable to get Bs
+
+    sizes = np.array([len(v.ibblock) for v in ssdA.verts])
+    # print('merge_results_bridge_long')
+    # print('    sizesB:', sizesB)
+    # print('    sizes', [len(v.ibblock) for v in ssdag.verts])
+
+    idx_list = list()
+    pos_list = list()
+    err_list = list()
+    missing = 0
+    for iresult in range(len(rsltB.err)):
+        idxB = rsltB.idx[iresult]
+        posB = rsltB.pos[iresult]
+        xhat = posB[critB.to_seg] @ np.linalg.inv(posB[critB.from_seg])
+        xhat = xhat.astype(np.float64)
+        key = critB.filter_binner(xhat)
+        val = critB.filter_hash.get(key)
+        assert val < np.prod(sizes)
+        if val == -123_456_789:
+            missing += 1
+            continue
+        idxA = decode_indices(sizes, val)
+        merge_ibblock = ssdA.verts[0].ibblock[idxA[0]]
+        merge_ibblock_b = ssdB.verts[-1].ibblock[idxB[-1]]
+        if merge_ibblock != merge_ibblock_b:
+            continue
+        merge_site1 = ssdA.verts[0].isite[idxA[0], 1]
+        merge_site2 = ssdB.verts[-1].isite[idxB[-1], 0]
+        # print('    merge_sites', iresult, merge_site1, merge_site2)
+        if merge_site1 == merge_site2:
+            continue
+
+        merge_outres = ssdA.verts[0].ires[idxA[0], 1]
+        merge_inres = ssdB.verts[-1].ires[idxB[-1], 0]
+
+        iinA = [v.ires[i, 0] for v, i in zip(ssdA.verts, idxA)]
+        iinB = [v.ires[i, 0] for v, i in zip(ssdB.verts, idxB)]
+        ioutA = [v.ires[i, 1] for v, i in zip(ssdA.verts, idxA)]
+        ioutB = [v.ires[i, 1] for v, i in zip(ssdB.verts, idxB)]
+
+        ibbA = [v.ibblock[i] for v, i in zip(ssdA.verts, idxA)]
+        ibbB = [v.ibblock[i] for v, i in zip(ssdB.verts, idxB)]
+        # print('    hash stuff', iresult, key, val, idxB, ibbC, ibbB)
+        # print('    iinC', iinC)
+        # print('    iinB', iinB)
+        # print('    ioutC', ioutC)
+        # print('    ioutB', ioutB)
+        # print('    ', merge_ibblock, merge_inres, merge_outres)
+
+        imergeseg = len(idxB) - 1
+        vmerge = ssdag.verts[imergeseg]
+        w = (
+            (vmerge.ibblock == merge_ibblock)
+            * (vmerge.ires[:, 0] == merge_inres)
+            * (vmerge.ires[:, 1] == merge_outres)
+        )
+        imerge = np.where(w)[0]
+        if len(imerge) is 0:
+            print("    empty imerge")
+            continue
+        if len(imerge) > 1:
+            print("    imerge", imerge)
+            assert len(imerge) == 1
+        imerge = imerge[0]
+        # print('    ', imerge)
+        # print('    ', vmerge.ibblock[imerge], vmerge.ires[imerge])
+        idx = np.concatenate([idxC[:-1], [imerge], idxB[1:]])
+        # print('    idx', idx)
+
+        # compute pos and err
+        spos = np.eye(4)
+        pos = list()
+        for i, v in enumerate(ssdag.verts):
+            index = idx[i]
+            pos.append(spos @ v.x2orig[index])
+            spos = spos @ v.x2exit[index]
+        pos = np.stack(pos)
+        # print('posC')
+        # for x in posC:
+        # print(x)
+        # print('pos')
+        # for x in pos:
+        # print(x)
+        err = criteria.score(pos)
+        # print('    err', err)
+        if err > kw["tolerance"]:
+            continue
+
+        idx_list.append(idx)
+        pos_list.append(pos)
+        err_list.append(err)
+
+    if missing > 0:
+        print(
+            "merge_results_bridge_long: xform missing from hash_table:",
+            missing,
+            "of",
+            len(rsltB.err),
+        )
+    assert missing == 0
+
+    if len(pos_list) > 0:
+        return ResultJIT(
+            np.stack(pos_list),
+            np.stack(idx_list),
+            np.array(err_list),
+            SearchStats(0, 0, 0),
+        )
+    return None
+
+
+def merge_results_bridge_long(criteria, critC, ssdag, ssdB, ssdC, rsltC, **kw):
 
     # look up rsltCs in critC hashtable to get Bs
 
     sizesB = np.array([len(v.ibblock) for v in ssdB.verts])
-    # print('merge_results_bridge')
+    # print('merge_results_bridge_long')
     # print('    sizesB:', sizesB)
     # print('    sizes', [len(v.ibblock) for v in ssdag.verts])
 
@@ -335,7 +510,7 @@ def merge_results_bridge(criteria, critC, ssdag, ssdB, ssdC, rsltC, **kw):
 
     if missing > 0:
         print(
-            "merge_results_bridge: xform missing from hash_table:",
+            "merge_results_bridge_long: xform missing from hash_table:",
             missing,
             "of",
             len(rsltC.err),
