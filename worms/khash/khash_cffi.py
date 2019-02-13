@@ -61,7 +61,7 @@ class KHashi8i8:
             self.set(ary[i], ary2[i])
 
     def get(self, i):
-        return _khash_get(self.hash, i, -9223372036854775808)
+        return _khash_get(self.hash, i, -123456789)
 
     def set(self, i, v):
         return _khash_set(self.hash, i, v)

@@ -10,8 +10,8 @@ from worms.util import jit
 
 @jit
 def encode_indices(sizes, indices):
-    prod = 1
-    index = 0
+    prod = np.int64(1)
+    index = np.int64(0)
     for i in range(len(sizes)):
         index += prod * indices[i]
         prod *= sizes[i]
@@ -86,10 +86,10 @@ class WheelHashCriteria(WormCriteria):
                 to_pos = rots[irot] @ pos
                 xtgt = (np.linalg.inv(pos) @ to_pos).astype(np.float64)
                 key = binner(xtgt)
-                val = _khash_get(hash_vp, key, -9223372036854775808)
+                val = _khash_get(hash_vp, key, -123456789)
 
                 # if missing, no hit
-                if val == -9223372036854775808:
+                if val == -123456789:
                     continue
 
                 # must use same bblock
@@ -131,7 +131,7 @@ def _get_hash_val(gubinner, hash_table, pos, nfold):
         xtgt = xtgt.astype(np.float64)
         key = gubinner(xtgt)
         val = hash_table.get(key)
-        if val != -9223372036854775808:
+        if val != -123456789:
             return val
     # assert 0, 'pos not found in table!'
     return -1

@@ -18,8 +18,8 @@ def test_khash_jitclass():
     assert use_khash_jitclass(h, 1) == 23
     assert use_khash_jitclass(h, 7) == 13
     assert use_khash_jitclass(h, 13) == 14
-    assert h.get(-2345) == -9223372036854775808
-    assert h.get(926347) == -9223372036854775808
+    assert h.get(-2345) == -123456789
+    assert h.get(926347) == -123456789
     assert h.size() == 3
 
 
@@ -33,7 +33,7 @@ def foo(h):
 
     @jit
     def func(i):
-        return _khash_get(hash, i, -9223372036854775808)
+        return _khash_get(hash, i, -123456789)
 
     return func
 

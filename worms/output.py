@@ -113,11 +113,11 @@ def filter_and_output_results(
             if no_duplicate_bases:
                 if criteria.is_cyclic:
                     bases = bases[:-1]
-                if "" in bases:
+                while "" in bases:
                     bases.remove("")
-                if "?" in bases:
+                while "?" in bases:
                     bases.remove("?")
-                if "n/a" in bases:
+                while "n/a" in bases:
                     bases.remove("n/a")
                 bases_uniq = set(bases)
                 nbases = len(bases)

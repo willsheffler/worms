@@ -250,7 +250,7 @@ def merge_results_bridge(criteria, critC, ssdag, ssdB, ssdC, rsltC, **kw):
     idx_list = list()
     pos_list = list()
     err_list = list()
-
+    missing = 0
     for iresult in range(len(rsltC.err)):
         idxC = rsltC.idx[iresult]
         posC = rsltC.pos[iresult]
@@ -259,8 +259,10 @@ def merge_results_bridge(criteria, critC, ssdag, ssdB, ssdC, rsltC, **kw):
         key = critC.filter_binner(xhat)
         val = critC.filter_hash.get(key)
         assert val < np.prod(sizesB)
+        if val == -123_456_789:
+            missing += 1
+            continue
         idxB = decode_indices(sizesB, val)
-
         merge_ibblock = ssdB.verts[0].ibblock[idxB[0]]
         merge_ibblock_c = ssdC.verts[-1].ibblock[idxC[-1]]
         if merge_ibblock != merge_ibblock_c:
@@ -330,6 +332,15 @@ def merge_results_bridge(criteria, critC, ssdag, ssdB, ssdC, rsltC, **kw):
         idx_list.append(idx)
         pos_list.append(pos)
         err_list.append(err)
+
+    if missing > 0:
+        print(
+            "merge_results_bridge: xform missing from hash_table:",
+            missing,
+            "of",
+            len(rsltC.err),
+        )
+    assert missing == 0
 
     if len(pos_list) > 0:
         return ResultJIT(
