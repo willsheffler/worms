@@ -220,7 +220,7 @@ def worms_main_protocol(criteria, bbs_states=None, disable_clash_check=0, **kw):
 
 def search_func(criteria, bbs, monte_carlo, merge_segment, **kw):
 
-    stages = [criteria]
+    stages = [(criteria, bbs)]
     merge = None
     if hasattr(criteria, "stages"):
         stages, merge = criteria.stages(bbs=bbs, **kw)

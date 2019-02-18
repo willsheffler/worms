@@ -139,6 +139,11 @@ class NullCriteria(WormCriteria):
         self.to_seg = to_seg
         self.origin_seg = None
         self.is_cyclic = False
+        self.tolerance = 9e8
+        self.symname = None
+
+    def merge_segment(self, **kw):
+        return None
 
     def score(self, segpos, **kw):
         """TODO: Summary
@@ -170,3 +175,6 @@ class NullCriteria(WormCriteria):
             return 0.0
 
         return null_lossfunc
+
+    def iface_rms(self, pose0, prov0, **kw):
+        return -1
