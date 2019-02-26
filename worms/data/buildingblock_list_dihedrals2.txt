@@ -1,5 +1,5 @@
 [{
-  "file": "/home/acourbet/Fivans/pdb_database/1na0C33_DSS310_6.pdb",
+  "file": "/databases/worms/pdbs/acourbet_dihedrals/1na0C33_DSS310_6.pdb",
   "name": "1na0C33_DSS310_6",
   "type": "D3_N-C" ,
   "class": "D3" ,
@@ -13,7 +13,7 @@
 },
 
 {
-  "file": "/home/acourbet/Fivans/pdb_database/1na0C33_DSS310_7.pdb",
+  "file": "/databases/worms/pdbs/acourbet_dihedrals/1na0C33_DSS310_7.pdb",
   "name": "1na0C33_DSS310_7",
   "type": "D3_N-C" ,
   "class": "D3" ,
@@ -28,8 +28,7 @@
 
 {
   "file": "/home/acourbet/Fivans/pdb_database/D2_813_8.pdb",
-  "name": "D2_813_8",
-  "type": "D2_N-C" ,
+  "name":/databases/worms/pdbs/acourbet_dihedrals ,
   "class": "D2" ,
   "base": "D2_813_8" ,
   "components": [""],
@@ -43,8 +42,7 @@
 
 {
   "file": "/home/acourbet/Fivans/pdb_database/D2_158_1.pdb",
-  "name": "D2_158_1",
-  "type": "D2_N-C" ,
+  "name":/databases/worms/pdbs/acourbet_dihedrals ,
   "class": "D2" ,
   "base": "D2_158_1" ,
   "components": [""],
@@ -58,8 +56,7 @@
 
 {
   "file": "/home/acourbet/Fivans/pdb_database/D2_893_3.pdb",
-  "name": "D2_893_3",
-  "type": "D2_N-C" ,
+  "name":/databases/worms/pdbs/acourbet_dihedrals ,
   "class": "D2" ,
   "base": "D2_893_3" ,
   "components": [""],
@@ -72,7 +69,7 @@
 },
 
 {
-  "file": "/home/acourbet/Fivans/pdb_database/1na0C33_DSS310_20.pdb",
+  "file": "/databases/worms/pdbs/acourbet_dihedrals/1na0C33_DSS310_20.pdb",
   "name": "1na0C33_DSS310_20",
   "type": "D3_N-C" ,
   "class": "D3" ,
@@ -86,7 +83,7 @@
 },
 
 {
-  "file": "/home/acourbet/Fivans/pdb_database/1552_1na0C3_int2_3.pdb",
+  "file": "/databases/worms/pdbs/acourbet_dihedrals/1552_1na0C3_int2_3.pdb",
   "name": "1552_1na0C3_int2_3",
   "type": "D3_N-C" ,
   "class": "D3" ,
@@ -101,7 +98,7 @@
 
 
 {
-  "file": "/home/acourbet/Fivans/pdb_database/1552_1na0C3_int2_4.pdb",
+  "file": "/databases/worms/pdbs/acourbet_dihedrals/1552_1na0C3_int2_4.pdb",
   "name": "1552_1na0C3_int2_4",
   "type": "D3_N-C" ,
   "class": "D3" ,
@@ -115,7 +112,7 @@
 },
 
 {
-  "file": "/home/acourbet/Fivans/pdb_database/1552_1na0C3_int2_6.pdb",
+  "file": "/databases/worms/pdbs/acourbet_dihedrals/1552_1na0C3_int2_6.pdb",
   "name": "1552_1na0C3_int2_6",
   "type": "D3_N-C" ,
   "class": "D3" ,
@@ -129,7 +126,7 @@
 },
 
 {
-  "file": "/home/acourbet/Fivans/pdb_database/1552_1na0C3_int2_11.pdb",
+  "file": "/databases/worms/pdbs/acourbet_dihedrals/1552_1na0C3_int2_11.pdb",
   "name": "1552_1na0C3_int2_11",
   "type": "D3_N-C" ,
   "class": "D3" ,
@@ -143,7 +140,7 @@
 },
 
 {
-  "file": "/home/acourbet/Fivans/pdb_database/1552_1na0C3_int2_18.pdb",
+  "file": "/databases/worms/pdbs/acourbet_dihedrals/1552_1na0C3_int2_18.pdb",
   "name": "1552_1na0C3_int2_18",
   "type": "D3_N-C" ,
   "class": "D3" ,
@@ -157,7 +154,7 @@
 },
 
 {
-  "file": "/home/acourbet/Fivans/pdb_database/D2_1119_7_tj81C2_V39_4.pdb",
+  "file": "/databases/worms/pdbs/acourbet_dihedrals/D2_1119_7_tj81C2_V39_4.pdb",
   "name": "D2_1119_7_tj81C2_V39_4",
   "type": "D2_N-C" ,
   "class": "D2" ,
@@ -171,7 +168,7 @@
 },
 
 {
-  "file": "/home/acourbet/Fivans/pdb_database/D2_1119_7_tj81C2_V39_6.pdb",
+  "file": "/databases/worms/pdbs/acourbet_dihedrals/D2_1119_7_tj81C2_V39_6.pdb",
   "name": "D2_1119_7_tj81C2_V39_6",
   "type": "D2_N-C" ,
   "class": "D2" ,
@@ -185,7 +182,7 @@
 },
 
 {
-  "file": "/home/acourbet/Fivans/pdb_database/D_1na0C3_int2_418.pdb",
+  "file": "/databases/worms/pdbs/acourbet_dihedrals/D_1na0C3_int2_418.pdb",
   "name": "D_1na0C3_int2_418",
   "type": "D3_N-C" ,
   "class": "D3" ,
@@ -199,7 +196,7 @@
 },
 
 {
-  "file": "/home/acourbet/Fivans/pdb_database/D_1na0C3_int2_441.pdb",
+  "file": "/databases/worms/pdbs/acourbet_dihedrals/D_1na0C3_int2_441.pdb",
   "name": "D_1na0C3_int2_441",
   "type": "D3_N-C" ,
   "class": "D3" ,
@@ -213,7 +210,7 @@
 },
 
 {
-  "file": "/home/acourbet/Fivans/pdb_database/D_1na0C3_int2_1138.pdb",
+  "file": "/databases/worms/pdbs/acourbet_dihedrals/D_1na0C3_int2_1138.pdb",
   "name": "D_1na0C3_int2_1138",
   "type": "D3_N-C" ,
   "class": "D3" ,
@@ -227,7 +224,7 @@
 },
 
 {
-  "file": "/home/acourbet/Fivans/pdb_database/D_1na0C4_G1_1558.pdb",
+  "file": "/databases/worms/pdbs/acourbet_dihedrals/D_1na0C4_G1_1558.pdb",
   "name": "D_1na0C4_G1_1558",
   "type": "D4_N-C" ,
   "class": "D4" ,
@@ -241,7 +238,7 @@
 },
 
 {
-  "file": "/home/acourbet/Fivans/pdb_database/D_tj10C4_G1_178.pdb",
+  "file": "/databases/worms/pdbs/acourbet_dihedrals/D_tj10C4_G1_178.pdb",
   "name": "D_tj10C4_G1_178",
   "type": "D4_N-C" ,
   "class": "D4" ,
@@ -255,7 +252,7 @@
 },
 
 {
-  "file": "/home/acourbet/Fivans/pdb_database/D_tj10C4_G1_498.pdb",
+  "file": "/databases/worms/pdbs/acourbet_dihedrals/D_tj10C4_G1_498.pdb",
   "name": "D_tj10C4_G1_498",
  "type": "D4_N-C" ,
  "class": "D4" ,
@@ -270,7 +267,7 @@
 
 
 {
-  "file": "/home/acourbet/Fivans/pdb_database/D_tj10C4_G1_678.pdb",
+  "file": "/databases/worms/pdbs/acourbet_dihedrals/D_tj10C4_G1_678.pdb",
   "name": "D_tj10C4_G1_678",
  "type": "D4_N-C" ,
  "class": "D4" ,
