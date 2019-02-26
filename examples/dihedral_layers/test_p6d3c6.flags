@@ -1,0 +1,20 @@
+--geometry P6m_D3_C6()
+--bbconn
+    _C D3_N-C
+    NC Het:NC
+    N_ C6_N
+--dbfiles
+    /home/sheffler/src/worms/worms/data/c6_database.json
+    /home/sheffler/src/worms/worms/data/buildingblock_list_dihedrals2.txt
+    /home/sheffler/src/worms/worms/data/HBRP_Cx_database.json
+    /home/sheffler/src/worms/worms/data/HFuse_Cx_database.20180219.json
+    /home/sheffler/src/worms/worms/data/HFuse_het_2chain_2arm_database.ZCON-103_2.20180406.json
+    /home/sheffler/src/worms/worms/data/HFuse_het_2chain_2arm_database.ZCON-112_2.20180406.json
+    /home/sheffler/src/worms/worms/data/HFuse_het_2chain_2arm_database.ZCON-127_2.20180406.json
+    /home/sheffler/src/worms/worms/data/HFuse_het_2chain_2arm_database.ZCON-13_2.20180406.json
+    /home/sheffler/src/worms/worms/data/HFuse_het_2chain_2arm_database.ZCON-15_2.20180406.json
+    /home/sheffler/src/worms/worms/data/HFuse_het_2chain_2arm_database.ZCON-34_2.20180406.json
+    /home/sheffler/src/worms/worms/data/HFuse_het_2chain_2arm_database.ZCON-37_2.20180406.json
+    /home/sheffler/src/worms/worms/data/HFuse_het_2chain_2arm_database.ZCON-39_2.20180406.json
+
+
