@@ -7,3 +7,4 @@ from .dihedral_lattice import *
 from .null import *
 from .bridge import *
 from .stack import *
+from .f222 import *

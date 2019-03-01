@@ -4,7 +4,7 @@ import homog as hm
 from worms.util import jit
 
 
-class DihedralLattice2D(WormCriteria):
+class DihedralCyclicLattice2D(WormCriteria):
     """
     cases
     D3 C3
@@ -33,6 +33,7 @@ class DihedralLattice2D(WormCriteria):
         to_seg=-1,
         space_group_str=None,
     ):
+        assert from_seg == 0
         self.symname = symname
         self.from_seg = from_seg
         assert d_nfold, c_nfold in (
@@ -57,7 +58,7 @@ class DihedralLattice2D(WormCriteria):
         self.is_cyclic = False
         self.origin_seg = None
 
-        print(f"DihedralLattice2D D{d_nfold} component 2folds:")
+        print(f"DihedralCyclicLattice2D D{d_nfold} component 2folds:")
         for x in self.d_2folds:
             print("   ", x, hm.angle_degrees(x, self.d_2folds[0]))
 
@@ -74,7 +75,7 @@ class DihedralLattice2D(WormCriteria):
         origin = np.array([0, 0, 0])
 
         @jit
-        def lossfunc_Dx_Cx(pos, idx, verts):
+        def lossfunc_Dx_Cx(pos, idx, vrts):
             ax = pos[to_seg, :3, 2]
             cn = pos[to_seg, :3, 3]
             mn = 9e9
@@ -86,7 +87,7 @@ class DihedralLattice2D(WormCriteria):
             return np.sqrt(carterr2 + angerr2)
 
         @jit
-        def lossfunc_Dx_C2(pos, idx, verts):
+        def lossfunc_Dx_C2(pos, idx, vrts):
             ax = pos[to_seg, :3, 2]
             cn = pos[to_seg, :3, 3]
 
@@ -110,7 +111,7 @@ class DihedralLattice2D(WormCriteria):
                 return np.sqrt(angerr2_a + angerr2_b + carterr2)
 
         @jit
-        def lossfunc_D2_Cx(pos, idx, verts):
+        def lossfunc_D2_Cx(pos, idx, vrts):
             ax = pos[to_seg, :3, 2]
             cn = pos[to_seg, :3, 3]
             mn, mni = 9e9, -1
@@ -250,54 +251,54 @@ def get_2folds(n):
 
 
 def P3m_D3_C3(d3=0, c3=-1):
-    return DihedralLattice2D(
+    return DihedralCyclicLattice2D(
         "P3m_D3_C3_3", d_nfold=3, c_nfold=3, from_seg=d3, to_seg=c3
     )
 
 
 def P4m_D2_C4(d2=0, c4=-1):
-    return DihedralLattice2D(
+    return DihedralCyclicLattice2D(
         "P4m_D2_C4_4", d_nfold=2, c_nfold=4, from_seg=d2, to_seg=c4
     )
 
 
 def P4m_D4_C2(d4=0, c2=-1):
-    return DihedralLattice2D(
+    return DihedralCyclicLattice2D(
         "P4m_D4_C2_3", d_nfold=4, c_nfold=2, from_seg=d4, to_seg=c2
     )
 
 
 def P4m_D4_C4(d4=0, c4=-1):
-    return DihedralLattice2D(
+    return DihedralCyclicLattice2D(
         "P4m_D4_C4_3", d_nfold=4, c_nfold=4, from_seg=d4, to_seg=c4
     )
 
 
 def P6m_D2_C3(d2=0, c3=-1):
-    return DihedralLattice2D(
+    return DihedralCyclicLattice2D(
         "P6m_D2_C3_4", d_nfold=2, c_nfold=3, from_seg=d2, to_seg=c3
     )
 
 
 def P6m_D2_C6(d2=0, c6=-1):
-    return DihedralLattice2D(
+    return DihedralCyclicLattice2D(
         "P6m_D2_C6_3", d_nfold=2, c_nfold=6, from_seg=d2, to_seg=c6
     )
 
 
 def P6m_D3_C2(d3=0, c2=-1):
-    return DihedralLattice2D(
+    return DihedralCyclicLattice2D(
         "P6m_D3_C2_4", d_nfold=3, c_nfold=2, from_seg=d3, to_seg=c2
     )
 
 
 def P6m_D3_C6(d3=0, c6=-1):
-    return DihedralLattice2D(
+    return DihedralCyclicLattice2D(
         "P6m_D3_C6_3", d_nfold=3, c_nfold=6, from_seg=d3, to_seg=c6
     )
 
 
-class DihedralLattice3D(WormCriteria):
+class DihedralCyclicLattice3D(WormCriteria):
     def __init__(
         self,
         symname,
@@ -313,6 +314,7 @@ class DihedralLattice3D(WormCriteria):
         space_group_str=None,
         to_origin=[0, 0, 0],
     ):
+        assert from_seg == 0
         self.symname = symname
         self.from_seg = from_seg
         assert d_nfold, c_nfold in (
@@ -356,7 +358,7 @@ class DihedralLattice3D(WormCriteria):
         origin = np.array([0, 0, 0])
 
         @jit
-        def lossfunc_Dx_Cx(pos, idx, verts):
+        def lossfunc_Dx_Cx(pos, idx, vrts):
             ax = pos[to_seg, :3, 2]
             cn = pos[to_seg, :3, 3]
             mn = 9e9
@@ -451,7 +453,7 @@ class DihedralLattice3D(WormCriteria):
 
 
 def P432_D4_C3(d4=0, c3=-1):
-    return DihedralLattice3D(
+    return DihedralCyclicLattice3D(
         "P432_D4_C3_2",
         d_nfold=4,
         c_nfold=3,

@@ -396,9 +396,15 @@ def get_symdata_modified(name, string_substitutions=None, scale_positions=None):
         for line in symfilestr.splitlines():
             if not line.startswith("xyz"):
                 continue
-            posstr = re.split("\s+", line)[-1]
-            x, y, z = [float(x) * scale_positions for x in posstr.split(",")]
-            string_substitutions[posstr] = "%f,%f,%f" % (x, y, z)
+            if isinstance(scale_positions, np.ndarray):
+                for posstr in re.split("\s+", line)[-3:]:
+                    tmp = np.array([float(x) for x in posstr.split(",")])
+                    x, y, z = tmp * scale_positions
+                    string_substitutions[posstr] = "%f,%f,%f" % (x, y, z)
+            else:
+                posstr = re.split("\s+", line)[-1]
+                x, y, z = [float(x) * scale_positions for x in posstr.split(",")]
+                string_substitutions[posstr] = "%f,%f,%f" % (x, y, z)
     if string_substitutions is not None:
         for k, v in string_substitutions.items():
             symfilestr = symfilestr.replace(k, v)
