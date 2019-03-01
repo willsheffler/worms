@@ -294,6 +294,7 @@ def filter_and_output_results(
                 sympose.dump_pdb(fname + "_sym.pdb")
             if output_centroid:
                 pose = cenpose
+            print("solution", fname)
             pose.dump_pdb(fname + "_asym.pdb")
             if symfilestr is not None:
                 with open(fname + ".sym", "w") as out:

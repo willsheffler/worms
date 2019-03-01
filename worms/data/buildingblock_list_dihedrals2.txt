@@ -27,8 +27,9 @@
 },
 
 {
-  "file": "/home/acourbet/Fivans/pdb_database/D2_813_8.pdb",
-  "name":/databases/worms/pdbs/acourbet_dihedrals ,
+  "file": "/databases/worms/pdbs/acourbet_dihedrals/D2_813_8.pdb",
+  "name": "D2_813_8",
+  "type": "D2_N-C",
   "class": "D2" ,
   "base": "D2_813_8" ,
   "components": [""],
@@ -41,8 +42,9 @@
 },
 
 {
-  "file": "/home/acourbet/Fivans/pdb_database/D2_158_1.pdb",
-  "name":/databases/worms/pdbs/acourbet_dihedrals ,
+  "file": "/databases/worms/pdbs/acourbet_dihedrals/D2_158_1.pdb",
+  "name": "D2_158_1",
+  "type": "D2_N-C",
   "class": "D2" ,
   "base": "D2_158_1" ,
   "components": [""],
@@ -55,8 +57,9 @@
 },
 
 {
-  "file": "/home/acourbet/Fivans/pdb_database/D2_893_3.pdb",
-  "name":/databases/worms/pdbs/acourbet_dihedrals ,
+  "file": "/databases/worms/pdbs/acourbet_dihedrals/D2_893_3.pdb",
+  "name": "D2_893_3",
+  "type": "D2_N-C",
   "class": "D2" ,
   "base": "D2_893_3" ,
   "components": [""],
