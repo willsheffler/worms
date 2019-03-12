@@ -36,8 +36,8 @@
   "validated": true,
   "protocol": "Alex_denovo_dihedrals",
   "connections": [
-   {"chain": 1, "direction": "C", "residues":["-100:"]},
-   {"chain": 1, "direction": "N", "residues":[":100"]}
+   {"chain": 1, "direction": "C", "residues":["-40:"]},
+   {"chain": 1, "direction": "N", "residues":[":40"]}
   ]
 },
 
@@ -51,8 +51,8 @@
   "validated": true,
   "protocol": "Alex_denovo_dihedrals",
   "connections": [
-   {"chain": 1, "direction": "C", "residues":["-100:"]},
-   {"chain": 1, "direction": "N", "residues":[":100"]}
+   {"chain": 1, "direction": "C", "residues":["-40:"]},
+   {"chain": 1, "direction": "N", "residues":[":40"]}
   ]
 },
 
@@ -66,8 +66,8 @@
   "validated": true,
   "protocol": "Alex_denovo_dihedrals",
   "connections": [
-   {"chain": 1, "direction": "C", "residues":["-100:"]},
-   {"chain": 1, "direction": "N", "residues":[":100"]}
+   {"chain": 1, "direction": "C", "residues":["-40:"]},
+   {"chain": 1, "direction": "N", "residues":[":40"]}
   ]
 },
 
