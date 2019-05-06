@@ -193,6 +193,7 @@ class Cyclic(WormCriteria):
         return self.from_seg, self.to_seg
 
     def iface_rms(self, pose0, prov, **kw):
+        return -1
         if self.origin_seg is None:
             # print('WARNING: iface_rms not implemented for simple cyclic')
             return -1

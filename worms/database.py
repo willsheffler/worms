@@ -23,7 +23,6 @@ logging.basicConfig(level=logging.INFO)
 import _pickle as pickle
 
 try:
-    # god, I'm so tired of this crap....
     from pyrosetta import pose_from_file
     from pyrosetta.rosetta.core.scoring.dssp import Dssp
 
@@ -63,9 +62,9 @@ def _query_names(bbdb, query, *, useclass=True, exclude_bases=None):
         assert False, f"invalid database or query"
     else:
         excon = None
-        if subq.endswith("X"):
+        if subq.lower().endswith("x"):
             excon = True
-        if subq.endswith("Y"):
+        if subq.lower().endswith("y"):
             excon = False
         hits = list()
         assert query == "Het"
