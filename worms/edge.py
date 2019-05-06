@@ -21,7 +21,7 @@ except ImportError:
 
 def Edge(u, ublks, v, vblks, verbosity=0, **kw):
 
-    splices, nout, nent = get_allowed_splices(
+    splices, nout, nent, analysis = get_allowed_splices(
         u, ublks, v, vblks, verbosity=verbosity, **kw
     )
     maxentries = max(len(_) for _ in splices)
@@ -35,7 +35,41 @@ def Edge(u, ublks, v, vblks, verbosity=0, **kw):
         assert np.max(splice_ary[:, 1:]) < len(v.inbreaks), "egde.py bad splice_ary"
     assert len(splice_ary) == 1 + np.max(u.inout[:, 1]), "edge.py, bad splice_ary"
 
-    return _Edge(splice_ary, nout, nent)
+    return _Edge(splice_ary, nout, nent), analysis
+
+
+_len_analysis = 10
+
+
+def _analysis(nclash, rms, ncontact, ncnh, nhc, **kw):
+    ok = (
+        (nclash == 0)
+        * (rms <= kw["splice_max_rms"])
+        * (ncontact >= kw["splice_ncontact_cut"])
+        * (ncnh >= kw["splice_ncontact_no_helix_cut"])
+        * (nhc >= kw["splice_nhelix_contacted_cut"])
+    )
+    Nrmsok = np.sum(rms <= kw["splice_max_rms"])
+    f_clash_ok = np.sum(nclash == 0) / Nrmsok
+    f_rms_ok = np.sum(rms <= kw["splice_max_rms"]) / rms.size
+    f_ncontact_ok = np.sum(ncontact >= kw["splice_ncontact_cut"]) / Nrmsok
+    f_ncnh_ok = np.sum(ncnh >= kw["splice_ncontact_no_helix_cut"]) / Nrmsok
+    f_nhc_ok = np.sum(nhc >= kw["splice_nhelix_contacted_cut"]) / Nrmsok
+    rms = rms.copy()[rms < 9e8]
+    ncontact = ncontact.copy()[ncontact >= 0]
+    ncnh = ncnh.copy()[ncnh >= 0]
+    nhc = nhc.copy()[nhc >= 0]
+    m_rms = np.min(rms) if rms.size else 999
+    m_ncontact = np.max(ncontact) if ncontact.size else -1
+    m_ncnh = np.max(ncnh) if ncnh.size else -1
+    m_nhc = np.max(nhc) if nhc.size else -1
+    analysis = (
+        int(np.sum(ok)),
+        *(f_clash_ok, f_rms_ok, f_ncontact_ok, f_ncnh_ok, f_nhc_ok),
+        *(m_rms, m_ncontact, m_ncnh, m_nhc),
+    )
+    assert len(analysis) == _len_analysis
+    return ok, analysis
 
 
 def splice_metrics_pair(
@@ -89,7 +123,7 @@ def get_allowed_splices(
     splice_clash_contact_by_helix=True,
     splice_ncontact_no_helix_cut=0,
     splice_nhelix_contacted_cut=0,
-    splice_max_chain_length=999999,
+    splice_max_chain_length=999_999,
     skip_on_fail=True,
     parallel=False,
     verbosity=1,
@@ -97,7 +131,7 @@ def get_allowed_splices(
     precache_splices=False,
     pbar=False,
     pbar_interval=10.0,
-    **kw
+    **kw,
 ):
     assert (
         u.dirn[1] + v.dirn[0]
@@ -150,6 +184,7 @@ def get_allowed_splices(
         outblk, inblk = inblk, outblk
 
     pairs_with_no_valid_splices = 0
+    bblock_pair_analysis = list()
     tcache = 0
 
     exe = InProcessExecutor()
@@ -216,15 +251,23 @@ def get_allowed_splices(
         for future in future_iter:
             iblk0, iblk1, ofst0, ofst1, ires0, ires1 = future.stash
             result = future.result()
-            if len(result) is 5 and isinstance(result[0], np.ndarray):
+            analysis = (-1,) * _len_analysis
+            if len(result[-1]) == _len_analysis:
+                result, analysis = result
+            cached = not (len(result) is 5 and isinstance(result[0], np.ndarray))
+            if not cached:
                 # is newly computed result, not from cache
                 rms, nclash, ncontact, ncnh, nhc = result
-                ok = (
-                    (nclash == 0)
-                    * (rms <= splice_max_rms)
-                    * (ncontact >= splice_ncontact_cut)
-                    * (ncnh >= splice_ncontact_no_helix_cut)
-                    * (nhc >= splice_nhelix_contacted_cut)
+                ok, analysis = _analysis(
+                    nclash,
+                    rms,
+                    ncontact,
+                    ncnh,
+                    nhc,
+                    splice_max_rms=splice_max_rms,
+                    splice_ncontact_cut=splice_ncontact_cut,
+                    splice_ncontact_no_helix_cut=splice_ncontact_no_helix_cut,
+                    splice_nhelix_contacted_cut=splice_nhelix_contacted_cut,
                 )
                 result = _splice_respairs(ok, ublks[iblk0], vblks[iblk1])
                 if np.sum(ok) == 0:
@@ -245,6 +288,9 @@ def get_allowed_splices(
                 ires0, ires1 = ires1, ires0
                 ofst0, ofst1 = ofst1, ofst0
 
+            bblock_pair_analysis.append(
+                (iblk0, iblk1, ofst0, ofst1, ires0, ires1) + analysis
+            )
             if len(result[0]) == 0:
                 pairs_with_no_valid_splices += 1
                 continue
@@ -272,7 +318,7 @@ def get_allowed_splices(
         # inblk_res
         # ), 'no valid splices'
 
-    return valid_splices, nout, nent
+    return valid_splices, nout, nent, bblock_pair_analysis
 
 
 @nb.jitclass(
@@ -397,7 +443,7 @@ def _jit_splice_metrics(
     aln1s = _ires_from_conn(conn1, 0)
 
     outshape = len(aln0s), len(aln1s)
-    out_rms = np.zeros(outshape, dtype=np.float32)
+    out_rms = 9e9 * np.ones(outshape, dtype=np.float32)
     out_nclash = -np.ones(outshape, dtype=np.float32)
     out_ncontact = -np.ones(outshape, dtype=np.int32)
     out_ncnh = -np.ones(outshape, dtype=np.int32)
@@ -424,7 +470,6 @@ def _jit_splice_metrics(
                 continue
             if np.abs(chainb01 - aln0) <= splice_rms_range:
                 continue
-
             chain_len2 = aln0 - chainb00
             if chain_len1 + chain_len2 > splice_max_chain_length:
                 continue
@@ -439,34 +484,22 @@ def _jit_splice_metrics(
             rms = np.sqrt(sum_d2 / (splice_rms_range * 6 + 3))
             assert 0 <= rms < 9e9, "bad rms"
             out_rms[ialn0, ialn1] = rms
-
             if skip_on_fail and rms > splice_max_rms:
                 continue
 
+            do_simple_clash_contact = True
             if splice_clash_contact_by_helix:
                 nclash, ncontact, ncnh, nhc = _clash_contact_by_helix(
-                    aln0,
-                    aln1,
-                    xaln,
-                    cb0,
-                    cb1,
-                    hrange0,
-                    hrange1,
-                    helixof0,
-                    helixof1,
-                    splice_clash_d2,
-                    splice_contact_d2,
+                    *(aln0, aln1, xaln, cb0, cb1, hrange0, hrange1),
+                    *(helixof0, helixof1, splice_clash_d2, splice_contact_d2),
                 )
-            else:
+                if nclash >= 0:
+                    do_simple_clash_contact = False
+
+            if do_simple_clash_contact:
                 nclash, ncontact, ncnh, nhc = _clash_contact_simple(
-                    aln0,
-                    aln1,
-                    xaln,
-                    ncac0,
-                    ncac1,
-                    splice_clash_contact_range,
-                    splice_clash_d2,
-                    splice_contact_d2,
+                    *(aln0, aln1, xaln, ncac0, ncac1),
+                    *(splice_clash_contact_range, splice_clash_d2, splice_contact_d2),
                 )
             out_nclash[ialn0, ialn1] = nclash
             out_ncontact[ialn0, ialn1] = ncontact
@@ -524,7 +557,7 @@ def _clash_contact_by_helix(
         or helixof1[aln1] < 0
         or helixof1[aln1] + 2 >= hrange1.shape[0]
     ):
-        return 0, 0, 0, 0
+        return -1, -1, -1, -1
 
     ct0, ct1 = set([-1]), set([-1])
 

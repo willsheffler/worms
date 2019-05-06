@@ -41,7 +41,7 @@ def test_linear_search_two(bbdb_fullsize_prots):
         splice_clash_contact_range=60,
         splice_clash_contact_by_helix=False,
     )
-    edges = (Edge(u, bbs, v, bbs, **kw),)
+    edges = (Edge(u, bbs, v, bbs, **kw)[0],)
 
     assert np.all(u.inout[:, 1] == np.arange(u.len))
     assert np.all(v.inout[:, 0] == np.arange(v.len))
@@ -115,8 +115,8 @@ def test_linear_search_three(bbdb_fullsize_prots):
         splice_clash_contact_range=60,
         splice_clash_contact_by_helix=False,
     )
-    e = Edge(u, bbs, v, bbs, **kw)
-    f = Edge(v, bbs, w, bbs, **kw)
+    e = Edge(u, bbs, v, bbs, **kw)[0]
+    f = Edge(v, bbs, w, bbs, **kw)[0]
     edges = (e, f)
 
     # print('------------- e ---------------')

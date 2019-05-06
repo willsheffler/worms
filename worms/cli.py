@@ -65,6 +65,7 @@ def build_worms_setup_from_cli_args(argv):
         cachedirs=[""],
         disable_cache=0,
         dbfiles=[""],
+        dbroot="",
         load_poses=0,
         read_new_pdbs=0,
         run_cache="",

@@ -33,12 +33,12 @@ def test_percomp_splices_1(bbdb_fullsize_prots, spdb):
     # print(repr(list(splices[k3][0])))
     # print(repr(list(splices[k3][1])))
 
-    assert np.all(splices[k0][0] == [])
-    assert np.all(splices[k0][1] == [])
-    assert np.all(splices[k1][0] == [])
-    assert np.all(splices[k1][1] == [])
+    assert np.all(splices[k0][0][0] == [])
+    assert np.all(splices[k0][0][1] == [])
+    assert np.all(splices[k1][0][0] == [])
+    assert np.all(splices[k1][0][1] == [])
     assert np.all(
-        splices[k2][0]
+        splices[k2][0][0]
         == [
             537,
             537,
@@ -64,7 +64,7 @@ def test_percomp_splices_1(bbdb_fullsize_prots, spdb):
         ]
     )
     assert np.all(
-        splices[k2][1]
+        splices[k2][0][1]
         == [
             15,
             332,
@@ -90,7 +90,7 @@ def test_percomp_splices_1(bbdb_fullsize_prots, spdb):
         ]
     )
     assert np.all(
-        splices[k3][0]
+        splices[k3][0][0]
         == [
             537,
             537,
@@ -113,6 +113,6 @@ def test_percomp_splices_1(bbdb_fullsize_prots, spdb):
         ]
     )
     assert np.all(
-        splices[k3][1]
+        splices[k3][0][1]
         == [15, 34, 31, 34, 29, 32, 29, 33, 15, 30, 34, 31, 32, 33, 34, 15, 28, 34]
     )

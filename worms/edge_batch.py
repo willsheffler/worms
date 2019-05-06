@@ -6,8 +6,10 @@ from collections import defaultdict
 import _pickle
 from random import shuffle
 
+import numpy as np
+
 from worms import Vertex, Edge
-from worms.edge import _jit_splice_metrics, _splice_respairs
+from worms.edge import _jit_splice_metrics, _splice_respairs, _analysis
 from worms.bblock import BBlockWrap
 from worms.util import InProcessExecutor, hash_str_to_int
 
@@ -37,15 +39,8 @@ def _valid_splice_pairs(bbw0, bbw1, **kw):
         kw["splice_max_chain_length"],
         True,
     )
-    ok = (
-        (nclash == 0)
-        * (rms <= kw["splice_max_rms"])
-        * (ncontact >= kw["splice_ncontact_cut"])
-        * (ncnh >= kw["splice_ncontact_no_helix_cut"])
-        * (nhc >= kw["splice_nhelix_contacted_cut"])
-    )
-
-    return _splice_respairs(ok, blk0, blk1)
+    ok, analysis = _analysis(nclash, rms, ncontact, ncnh, nhc, **kw)
+    return _splice_respairs(ok, blk0, blk1), analysis
 
 
 def compute_splices(bbdb, bbpairs, verbosity, parallel, pbar, pbar_interval=10.0, **kw):

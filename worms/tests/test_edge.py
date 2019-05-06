@@ -119,7 +119,7 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots):
 
     u = Vertex(bbs, "_C")
     v = Vertex(bbs, "N_")
-    e = Edge(
+    e, _ = Edge(
         u,
         bbs,
         v,
@@ -148,7 +148,7 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots):
 
     u = Vertex(bbs, "NC")
     v = Vertex(bbs, "NN")
-    e = Edge(
+    e, _ = Edge(
         u,
         bbs,
         v,
@@ -177,7 +177,7 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots):
 
     u = Vertex(bbs, "_N")
     v = Vertex(bbs, "CN")
-    e = Edge(
+    e, _ = Edge(
         u,
         bbs,
         v,
@@ -255,7 +255,7 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots):
 
     u = Vertex(bbs, "_N")
     v = Vertex(bbs, "C_")
-    e = Edge(
+    e, _ = Edge(
         u,
         bbs,
         v,
@@ -333,7 +333,7 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots):
 
     u = Vertex(bbs, "NN")
     v = Vertex(bbs, "C_")
-    e = Edge(
+    e, _ = Edge(
         u,
         bbs,
         v,
@@ -391,7 +391,7 @@ def test_edge_fullsize_prots(bbdb_fullsize_prots):
 
     # u = Vertex(bbs, 'NN')
     # v = Vertex(bbs, 'C_')
-    # e = Edge(u, bbs, v, bbs, splice_max_rms=0.7,
+    # e, _ = Edge(u, bbs, v, bbs, splice_max_rms=0.7,
     #     splice_rms_range=5, splice_ncontact_cut=7, splice_clash_contact_range=9
     # ) # yapf: disable
     # empty = []

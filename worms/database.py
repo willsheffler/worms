@@ -90,7 +90,7 @@ def _query_names(bbdb, query, *, useclass=True, exclude_bases=None):
     return hits
 
 
-def _read_dbfiles(bbdb, dbfiles):
+def _read_dbfiles(bbdb, dbfiles, dbroot=""):
     bbdb._alldb = []
     for dbfile in dbfiles:
         with open(dbfile) as f:
@@ -111,7 +111,7 @@ def _read_dbfiles(bbdb, dbfiles):
 
     pdb_files_missing = False
     for entry in bbdb._alldb:
-        if not os.path.exists(entry["file"]):
+        if not os.path.exists(dbroot + entry["file"]):
             pdb_files_missing = True
             print("pdb file pdb_files_missing:", entry["file"])
     assert not pdb_files_missing
@@ -192,9 +192,10 @@ class NoCacheSpliceDB:
 
 
 class NoCacheBBlockDB:
-    def __init__(self, dbfiles=[], cachedirs=[], **kw):
+    def __init__(self, dbfiles=[], cachedirs=[], dbroot="", **kw):
         self.dbfiles = dbfiles
-        _read_dbfiles(self, dbfiles)
+        self.dbroot = dbroot + "/" if dbroot and not dbroot.endswith("/") else dbroot
+        _read_dbfiles(self, dbfiles, self.dbroot)
         self.cachedirs = _get_cachedirs(cachedirs)
         self._bblock_cache = dict()
 
@@ -213,8 +214,8 @@ class NoCacheBBlockDB:
                 return pickle.load(f)
         else:
             print("reading pdb", pdbfile)
-            assert os.path.exists(pdbfile)
-            return pose_from_file(pdbfile)
+            assert os.path.exists(self.dbroot + pdbfile)
+            return pose_from_file(self.dbroot + pdbfile)
 
     def pose(self, pdbfile):
         """load pose from _bblock_cache, read from file if not in memory"""
@@ -285,6 +286,7 @@ class CachingSpliceDB:
                     self._cache[params, pdbkey] = pickle.load(f)
             else:
                 self._cache[params, pdbkey] = dict()
+
         return self._cache[params, pdbkey]
 
     def has(self, params, pdbkey0, pdbkey1):
@@ -357,6 +359,7 @@ class CachingBBlockDB:
         lazy=True,
         read_new_pdbs=False,
         verbosity=0,
+        dbroot="",
         **kw,
     ):
         """TODO: Summary
@@ -370,6 +373,7 @@ class CachingBBlockDB:
             read_new_pdbs (bool, optional): Description
         """
         self.cachedirs = _get_cachedirs(cachedirs)
+        self.dbroot = dbroot + "/" if dbroot and not dbroot.endswith("/") else dbroot
         print("CachingBBlockDB cachedirs:", self.cachedirs)
         self.load_poses = load_poses
         os.makedirs(self.cachedirs[0] + "/poses", exist_ok=True)
@@ -382,7 +386,7 @@ class CachingBBlockDB:
         self._alldb = []
         self._holding_lock = False
         self.dbfiles = dbfiles
-        _read_dbfiles(self, dbfiles)
+        _read_dbfiles(self, dbfiles, self.dbroot)
         if len(self._alldb) != len(self._dictdb):
             dups = len(self._alldb) - len(self._dictdb)
             warning("!" * 100)
@@ -470,8 +474,8 @@ class CachingBBlockDB:
         pdbfile = sanitize_pdbfile(pdbfile)
         if not pdbfile in self._poses_cache:
             if not self.load_cached_pose_into_memory(pdbfile):
-                assert os.path.exists(pdbfile)
-                self._poses_cache[pdbfile] = pose_from_file(pdbfile)
+                assert os.path.exists(self.dbroot + pdbfile)
+                self._poses_cache[pdbfile] = pose_from_file(self.dbroot + pdbfile)
         return self._poses_cache[pdbfile]
 
     def savepose(self, pdbfile):

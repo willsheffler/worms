@@ -301,7 +301,7 @@ def simple_search_dag(
         tedge = time()
         for i, e in enumerate(edges):
             if e is None:
-                edges[i] = Edge(
+                edges[i], edge_analysis = Edge(
                     verts[i],
                     bbs[i],
                     verts[i + 1],
@@ -311,6 +311,64 @@ def simple_search_dag(
                     precache_splices=precache_splices,
                     **kw,
                 )
+                allok = all(x[6] for x in edge_analysis)
+                if allok:
+                    continue
+                print("=" * 80)
+                print(
+                    "info for edges with no valid splices",
+                    edges[i].total_allowed_splices(),
+                )
+                for tup in edge_analysis:
+                    iblk0, iblk1, ofst0, ofst1, ires0, ires1 = tup[:6]
+                    ok, f_clash, f_rms, f_ncontact, f_ncnh, f_nhc = tup[6:12]
+                    m_rms, m_ncontact, m_ncnh, m_nhc = tup[12:]
+                    if ok:
+                        continue
+                    print("=" * 80)
+                    print("egde Bblock A", bytes(bbs[i][iblk0].file))
+                    print("egde Bblock B", bytes(bbs[i + 1][iblk1].file))
+                    print(
+                        f"bb {iblk0:3} {iblk1:3}",
+                        f"ofst {ofst0:4} {ofst1:4}",
+                        f"resi {ires0.shape} {ires1.shape}",
+                    )
+                    print(
+                        f"clash_ok {int(f_clash*100):3}%",
+                        f"rms_ok {int(f_rms*100):3}%",
+                        f"ncontact_ok {int(f_ncontact*100):3}%",
+                        f"ncnh_ok {int(f_ncnh*100):3}%",
+                        f"nhc_ok {int(f_nhc*100):3}%",
+                    )
+                    print(
+                        f"min_rms {m_rms:7.3f}",
+                        f"max_ncontact {m_ncontact:7.3f}",
+                        f"max_ncnh {m_ncnh:7.3f}",
+                        f"max_nhc {m_nhc:7.3f}",
+                    )
+                print("=" * 80)
+                fok = np.stack([x[7:12] for x in edge_analysis]).mean(axis=0)
+                rmsmin = np.array([x[12] for x in edge_analysis]).min()
+                fmx = np.stack([x[13:] for x in edge_analysis]).max(axis=0)
+                print(f"{' SPLICE FAIL SUMMARY ':=^80}")
+                print(f"splice clash ok               {int(fok[0]*100):3}%")
+                print(f"splice rms ok                 {int(fok[1]*100):3}%")
+                print(f"splice ncontacts ok           {int(fok[2]*100):3}%")
+                print(f"splice ncontacts_no_helix ok  {int(fok[3]*100):3}%")
+                print(f"splice nhelixcontacted ok     {int(fok[4]*100):3}%")
+                print(f"min rms of any failing        {rmsmin}")
+                print(
+                    f"max ncontact of any failing   {fmx[0]} (maybe large for non-5-helix splice)"
+                )
+                print(
+                    f"max ncontact_no_helix         {fmx[1]} (will be 999 for non-5-helix splice)"
+                )
+                print(
+                    f"max nhelix_contacted          {fmx[2]} (will be 999 for non-5-helix splice)"
+                )
+                print("=" * 80)
+                assert edges[i].total_allowed_splices() > 0, "invalid splice"
+
         tedge = time() - tedge
         if print_edge_summary:
             _print_edge_summary(edges)
