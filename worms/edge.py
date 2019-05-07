@@ -49,12 +49,14 @@ def _analysis(nclash, rms, ncontact, ncnh, nhc, **kw):
         * (ncnh >= kw["splice_ncontact_no_helix_cut"])
         * (nhc >= kw["splice_nhelix_contacted_cut"])
     )
-    Nrmsok = np.sum(rms <= kw["splice_max_rms"])
-    f_clash_ok = np.sum(nclash == 0) / Nrmsok
+    denominator = np.sum(rms <= kw["splice_max_rms"])
+    denominator = denominator if denominator else nclash.size
+    denominator = denominator if denominator else 1
+    f_clash_ok = np.sum(nclash == 0) / denominator
     f_rms_ok = np.sum(rms <= kw["splice_max_rms"]) / rms.size
-    f_ncontact_ok = np.sum(ncontact >= kw["splice_ncontact_cut"]) / Nrmsok
-    f_ncnh_ok = np.sum(ncnh >= kw["splice_ncontact_no_helix_cut"]) / Nrmsok
-    f_nhc_ok = np.sum(nhc >= kw["splice_nhelix_contacted_cut"]) / Nrmsok
+    f_ncontact_ok = np.sum(ncontact >= kw["splice_ncontact_cut"]) / denominator
+    f_ncnh_ok = np.sum(ncnh >= kw["splice_ncontact_no_helix_cut"]) / denominator
+    f_nhc_ok = np.sum(nhc >= kw["splice_nhelix_contacted_cut"]) / denominator
     rms = rms.copy()[rms < 9e8]
     ncontact = ncontact.copy()[ncontact >= 0]
     ncnh = ncnh.copy()[ncnh >= 0]
@@ -285,6 +287,7 @@ def get_allowed_splices(
 
             if swapped:
                 result = result[1], result[0]
+                iblk1, iblk0 = iblk0, iblk1
                 ires0, ires1 = ires1, ires0
                 ofst0, ofst1 = ofst1, ofst0
 

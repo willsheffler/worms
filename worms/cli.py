@@ -50,7 +50,7 @@ def build_worms_setup_from_cli_args(argv):
         geometry=[""],
         bbconn=[""],
         config_file=[""],
-        nbblocks=64,
+        nbblocks=[64],
         use_saved_bblocks=0,
         monte_carlo=[0.0],
         parallel=1,
@@ -191,6 +191,9 @@ def build_worms_setup_from_cli_args(argv):
 
     if args.dbfiles == [""]:
         assert 0, "no --dbfiles specified"
+
+    if len(args.nbblocks) == 1:
+        args.nbblocks *= 100
 
     kw = vars(args)
     if args.disable_cache:
