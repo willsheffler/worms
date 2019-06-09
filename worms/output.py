@@ -13,11 +13,9 @@ from worms.filters.db_filters import run_db_filters
 from worms.filters.db_filters import get_affected_positions
 from worms.ssdag import graph_dump_pdb
 
-
 def getmem():
    mem = psutil.Process(os.getpid()).memory_info().rss / 2**20
    return f"{int(mem):5}"
-
 
 def filter_and_output_results(
       criteria,
@@ -37,6 +35,7 @@ def filter_and_output_results(
       full_score0sym,
       output_short_fnames,
       output_only_connected,
+      null_base_names,
       **kw,
 ):
    sf = ros.core.scoring.ScoreFunctionFactory.create_score_function("score0")
@@ -53,9 +52,10 @@ def filter_and_output_results(
    if not merge_bblock:
       # do this once per run, at merge_bblock == 0 (or None)
       with open(head + "__HEADER.info", "w") as info_file:
-         info_file.write("close_err close_rms score0 score0sym filter zheight zradius " +
-                         "radius porosity nc nc_wo_jct n_nb bases_str fname nchain chain_len " +
-                         "splicepoints ibblocks ivertex")
+         info_file.write(
+            "close_err close_rms score0 score0sym filter zheight zradius " +
+            "radius porosity nc nc_wo_jct n_nb bases_str fname nchain chain_len " +
+            "splicepoints ibblocks ivertex")
          N = len(ssdag.verts)
          info_file.write(" seg0_pdb_0 seg0_exit")
          for i in range(1, N - 1):
@@ -112,14 +112,9 @@ def filter_and_output_results(
          if no_duplicate_bases:
             if criteria.is_cyclic:
                bases = bases[:-1]
-            while "" in bases:
-               bases.remove("")
-            while "?" in bases:
-               bases.remove("?")
-            while "n/a" in bases:
-               bases.remove("n/a")
-            while "none" in bases:
-               bases.remove("none")
+            for null_name in null_base_names:
+               while null_name in bases:
+                  bases.remove("")
             bases_uniq = set(bases)
             nbases = len(bases)
             if len(bases_uniq) != nbases:
@@ -160,7 +155,8 @@ def filter_and_output_results(
                nc,
                ncnh,
                nhc,
-            ) = run_db_filters(db, criteria, ssdag, iresult, result.idx[iresult], pose, prov, **kw)
+            ) = run_db_filters(db, criteria, ssdag, iresult, result.idx[iresult], pose,
+                               prov, **kw)
          except Exception as e:
             print("error in db_filters:")
             print(traceback.format_exc())
@@ -253,7 +249,9 @@ def filter_and_output_results(
             fname = "%s_%04i_%s_%s_%s" % (head, iresult, jpos, jstr[:200], grade)
 
          # report bblock ids, taking into account merge_bblock shenani
-         ibblock_list = [str(v.ibblock[i]) for i, v in zip(result.idx[iresult], ssdag.verts)]
+         ibblock_list = [
+            str(v.ibblock[i]) for i, v in zip(result.idx[iresult], ssdag.verts)
+         ]
          mseg = kw["merge_segment"]
          mseg = criteria.merge_segment(**kw) if mseg is None else mseg
          mseg = mseg or 0  # 0 if None

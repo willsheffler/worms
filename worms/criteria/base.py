@@ -1,10 +1,3 @@
-"""TODO: Summary
-
-Attributes:
-    Ux (TYPE): Description
-    Uy (TYPE): Description
-    Uz (TYPE): Description
-"""
 import abc
 import numpy as np
 import homog as hm
@@ -17,164 +10,77 @@ Uz = np.array([0, 0, 1, 0])
 
 
 class WormCriteria(abc.ABC):
-    """TODO: Summary
+   @abc.abstractmethod
+   def score(self, **kw):
+      pass
 
-    Attributes:
-        allowed_attributes (TYPE): Description
-    """
-
-    @abc.abstractmethod
-    def score(self, **kw):
-        """TODO: Summary
-
-        Args:
-            kw: passthru args        """
-        pass
-
-    allowed_attributes = (
-        "last_body_same_as",
-        "symname",
-        "is_cyclic",
-        "alignment",
-        "from_seg",
-        "to_seg",
-        "origin_seg",
-        "symfile_modifiers",
-        "crystinfo",
-    )
+   allowed_attributes = (
+      "last_body_same_as",
+      "symname",
+      "is_cyclic",
+      "alignment",
+      "from_seg",
+      "to_seg",
+      "origin_seg",
+      "symfile_modifiers",
+      "crystinfo",
+   )
 
 
 class CriteriaList(WormCriteria):
-    """TODO: Summary
+   def __init__(self, children):
+      if isinstance(children, WormCriteria):
+         children = [children]
+      self.children = children
 
-    Attributes:
-        children (TYPE): Description
-    """
+   def score(self, **kw):
+      return sum(c.score(**kw) for c in self.children)
 
-    def __init__(self, children):
-        """TODO: Summary
+   def __getattr__(self, name):
+      if name not in WormCriteria.allowed_attributes:
+         raise AttributeError("CriteriaList has no attribute: " + name)
+      r = [getattr(c, name) for c in self.children if hasattr(c, name)]
+      r = [x for x in r if x is not None]
+      assert len(r) < 2
+      return r[0] if len(r) else None
 
-        Args:
-            children (TYPE): Description
-        """
-        if isinstance(children, WormCriteria):
-            children = [children]
-        self.children = children
+   def __getitem__(self, index):
+      assert isinstance(index, int)
+      return self.children[index]
 
-    def score(self, **kw):
-        """TODO: Summary
+   def __len__(self):
+      return len(self.children)
 
-        Args:
-            kw: passthru args
-        Returns:
-            TYPE: Description
-        """
-        return sum(c.score(**kw) for c in self.children)
-
-    def __getattr__(self, name):
-        """TODO: Summary
-
-        Args:
-            name (TYPE): Description
-
-        Returns:
-            TYPE: Description
-
-        Raises:
-            AttributeError: Description
-        """
-        if name not in WormCriteria.allowed_attributes:
-            raise AttributeError("CriteriaList has no attribute: " + name)
-        r = [getattr(c, name) for c in self.children if hasattr(c, name)]
-        r = [x for x in r if x is not None]
-        assert len(r) < 2
-        return r[0] if len(r) else None
-
-    def __getitem__(self, index):
-        """TODO: Summary
-
-        Args:
-            index (TYPE): Description
-
-        Returns:
-            TYPE: Description
-        """
-        assert isinstance(index, int)
-        return self.children[index]
-
-    def __len__(self):
-        """TODO: Summary
-
-        Returns:
-            TYPE: Description
-        """
-        return len(self.children)
-
-    def __iter__(self):
-        """TODO: Summary
-
-        Returns:
-            TYPE: Description
-        """
-        return iter(self.children)
+   def __iter__(self):
+      return iter(self.children)
 
 
 class NullCriteria(WormCriteria):
-    """TODO: Summary
+   def __init__(self, from_seg=0, to_seg=-1, origin_seg=None):
+      self.from_seg = from_seg
+      self.to_seg = to_seg
+      self.origin_seg = None
+      self.is_cyclic = False
+      self.tolerance = 9e8
+      self.symname = None
 
-    Attributes:
-        from_seg (TYPE): Description
-        to_seg (TYPE): Description
-    """
+   def merge_segment(self, **kw):
+      return None
 
-    def __init__(self, from_seg=0, to_seg=-1, origin_seg=None):
-        """TODO: Summary
+   def score(self, segpos, **kw):
+      return np.zeros(segpos[-1].shape[:-2])
 
-        Args:
-            from_seg (int, optional): Description
-            to_seg (TYPE, optional): Description
-            origin_seg (None, optional): Description
-        """
-        self.from_seg = from_seg
-        self.to_seg = to_seg
-        self.origin_seg = None
-        self.is_cyclic = False
-        self.tolerance = 9e8
-        self.symname = None
+   def alignment(self, segpos, **kw):
+      r = np.empty_like(segpos[-1])
+      r[..., :, :] = np.eye(4)
+      return r
 
-    def merge_segment(self, **kw):
-        return None
+   def jit_lossfunc(self):
+      @jit
+      def null_lossfunc(pos, idx, verts):
+         return 0.0
 
-    def score(self, segpos, **kw):
-        """TODO: Summary
+      return null_lossfunc
 
-        Args:
-            segpos (TYPE): Description
-            kw: passthru args
-        Returns:
-            TYPE: Description
-        """
-        return np.zeros(segpos[-1].shape[:-2])
-
-    def alignment(self, segpos, **kw):
-        """TODO: Summary
-
-        Args:
-            segpos (TYPE): Description
-            kw: passthru args
-        Returns:
-            TYPE: Description
-        """
-        r = np.empty_like(segpos[-1])
-        r[..., :, :] = np.eye(4)
-        return r
-
-    def jit_lossfunc(self):
-        @jit
-        def null_lossfunc(pos, idx, verts):
-            return 0.0
-
-        return null_lossfunc
-
-    def iface_rms(self, pose0, prov0, **kw):
-        return -1
+   def iface_rms(self, pose0, prov0, **kw):
+      return -1

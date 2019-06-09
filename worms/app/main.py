@@ -28,7 +28,6 @@ from worms.output import filter_and_output_results
 
 _shared_ssdag = None
 
-
 def worms_main(argv):
 
    pyrosetta.init("-mute all -beta -preserve_crystinfo --prevent_repacking")
@@ -42,7 +41,6 @@ def worms_main(argv):
       bbdb = kw["db"][0]
       bbdb.clear()
       raise e
-
 
 def worms_main2(criteria_list, kw):
    print("worms_main,", len(criteria_list), "criteria, args:")
@@ -64,8 +62,8 @@ def worms_main2(criteria_list, kw):
          del kw["merge_bblock"]
          pbar = kw["pbar"]
          del kw["pbar"]
-         kw["bbs"] = simple_search_dag(
-            criteria, merge_bblock=None, precache_only=True, pbar=True, **kw)
+         kw["bbs"] = simple_search_dag(criteria, merge_bblock=None, precache_only=True, pbar=True,
+                                       **kw)
          if kw["only_bblocks"]:
             assert len(kw["bbs"]) is len(kw["only_bblocks"])
             for i, bb in enumerate(kw["bbs"]):
@@ -90,7 +88,8 @@ def worms_main2(criteria_list, kw):
 
          merge_bblock = kw["merge_bblock"]
          del kw["merge_bblock"]
-         _shared_ssdag = simple_search_dag(criteria, merge_bblock=0, print_edge_summary=True, **kw)
+         _shared_ssdag = simple_search_dag(criteria, merge_bblock=0, print_edge_summary=True,
+                                           **kw)
          kw["merge_bblock"] = merge_bblock
          print("memuse for global _shared_ssdag:")
          _shared_ssdag.report_memory_use()
@@ -118,7 +117,6 @@ def worms_main2(criteria_list, kw):
          for msg in log:
             print(msg)
    print("======================== done ========================")
-
 
 def worms_main_each_mergebb(
       criteria,
@@ -173,7 +171,6 @@ def worms_main_each_mergebb(
          log = [""] * len(futures) + log
       return log
 
-
 def worms_main_protocol(criteria, bbs_states=None, disable_clash_check=0, **kw):
 
    try:
@@ -212,7 +209,6 @@ def worms_main_protocol(criteria, bbs_states=None, disable_clash_check=0, **kw):
       print(e)
       sys.stdout.flush()
       return []
-
 
 def search_func(criteria, bbs, monte_carlo, merge_segment, **kw):
 
@@ -304,7 +300,6 @@ def search_func(criteria, bbs, monte_carlo, merge_segment, **kw):
    else:
 
       assert 0, "unknown 3+ stage protcol"
-
 
 def search_single_stage(criteria, lbl="", **kw):
 

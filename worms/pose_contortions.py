@@ -19,7 +19,6 @@ try:
 except ImportError:
    pass
 
-
 class AnnoPose:
    def __init__(self, pose, iseg, srcpose, src_lb, src_ub, cyclic_entry):
       self.pose = pose
@@ -45,9 +44,7 @@ class AnnoPose:
    def srcseq(self):
       return self.srcpose.sequence()[self.src_lb - 1:self.src_ub]
 
-
 CyclicTrim = namedtuple("CyclicTrim", "sym_seg_from sym_seg_to".split())
-
 
 def contort_pose_chains(
       pose,
@@ -214,7 +211,6 @@ def contort_pose_chains(
 
    return enex, rest
 
-
 def reorder_spliced_as_N_to_C(body_chains, polarities):
    """remap chains of each body such that concatenated chains are N->C
 
@@ -249,14 +245,12 @@ def reorder_spliced_as_N_to_C(body_chains, polarities):
          chains[i] = chains[i][::-1]
    return chains
 
-
 def _dump_chainlist(cl, tag='cl', ich=0):
    for i, ap in enumerate(cl):
       import os
       fn = f'{tag}_iseg{ap.iseg}_chain{ich}_elem{i}.pdb'
       assert not os.path.exists(fn)
       ap.pose.dump_pdb(fn)
-
 
 def _cyclic_permute_chains(chainslist, entrypol, exitpol):
    """rearrange segments in a cylic structure so chainbreak is at chain boundary
@@ -363,7 +357,8 @@ def make_contorted_pose(
          if origin_seg is not None:
             skipsegs.append(origin_seg)
 
-         if (only_connected == "auto" and sources[0][0] in skipsegs) or only_connected != "auto":
+         if (only_connected == "auto"
+             and sources[0][0] in skipsegs) or only_connected != "auto":
             # print('skip', i, skipsegs, len(chains), len(sources))
             continue
       if make_chain_list:
@@ -405,6 +400,8 @@ def make_contorted_pose(
       pi = pyrosetta.rosetta.core.pose.PDBInfo(pose)
       pi.set_crystinfo(ci)
       pose.pdb_info(pi)
+
+   ros.core.scoring.dssp.Dssp(pose).insert_ss_into_pose(pose)
 
    if not provenance and make_chain_list:
       return pose, ret_chain_list

@@ -9,7 +9,8 @@ dependencies:
  - numpy
  - scipy
  - numba
- - xarray
+ - pandas=0.24.2
+ - xarray=0.11.3
  - pytest
  - pytest-faulthandler
  - sphinx_rtd_theme
