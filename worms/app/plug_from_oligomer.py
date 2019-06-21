@@ -1,12 +1,8 @@
 import sys, os, logging, blosc, pyrosetta, concurrent.futures
-import numpy as np
-import sicdock
-from sicdock import Timer, Bunch, util as sutil
-from sicdock.motif import HierScore
-from sicdock.search import grid_search, make_plugs
-from sicdock.sampling import grid_sym_axis
-# from sicdock.util import NOCACHE as cache
-from sicdock.util import GLOBALCACHE as cache
+import numpy as np, rpxdock as rp
+from rpxdock.search import make_plugs
+# from rpxdock.util import NOCACHE as cache
+from rpxdock.util import GLOBALCACHE as cache
 import worms
 
 from worms import prune_clashes
@@ -14,6 +10,7 @@ from worms import prune_clashes
 def main():
    arg, criteria = setup()
    arg.plug_fixed_olig = True
+   arg.output_body = 0
    # arg.executor = concurrent.futures.ThreadPoolExecutor(2)
 
    if arg.run_cache and os.path.exists(arg.run_cache):
@@ -32,24 +29,24 @@ def main():
       results.dump_pdbs_top_score(**arg)
       results.dump_pdbs_top_score_each(**arg)
    if not arg.suppress_dump_results:
-      sutil.dump(results, arg.output_prefix + '_Result.pickle')
+      rp.util.dump(results, arg.output_prefix + '_Result.pickle')
 
    shutdown(**arg)
 
 def setup():
-   prof = Timer(verbose=False).start()
+   prof = rp.Timer(verbose=False).start()
    pyrosetta.init("-mute all -beta -preserve_crystinfo --prevent_repacking")
    blosc.set_releasegil(True)
    prof.checkpoint('pyrosetta init')
 
-   # parser = sicdock.app.default_cli_parser()
+   # parser = rp.app.default_cli_parser()
    # critlist, kw = worms.cli.build_worms_setup_from_cli_args(sys.argv[1:], parser)
    worms_parser = worms.cli.make_cli_arg_parser()
-   parser = sicdock.app.default_cli_parser(parent=worms_parser)
+   parser = rp.app.default_cli_parser(parent=worms_parser)
    critlist, kw = worms.cli.build_worms_setup_from_cli_args(sys.argv[1:], parser)
 
    criteria = critlist[0]
-   arg = sicdock.app.process_cli_args(kw)
+   arg = rp.app.process_cli_args(kw)
    del kw
    arg.prof = prof
 
@@ -63,7 +60,7 @@ def setup():
    return arg, criteria
 
 def worms_search(criteria, **kw):
-   arg = Bunch(kw)
+   arg = rp.Bunch(kw)
    ssdag = cache(worms.simple_search_dag, criteria, _key='ssdag', **arg)
    arg.prof.checkpoint('worms dag')
    wresult = cache(worms.grow_linear, ssdag, criteria.jit_lossfunc(), _key='wresult', **arg)
@@ -77,21 +74,32 @@ def shutdown(prof, run_cache, **kw):
    cache.save(run_cache)
 
 def plug_dock(wresult, ssdag, criteria, max_dock=-1, **kw):
-   arg = Bunch(kw)
+   arg = rp.Bunch(kw)
 
-   hscore = cache(HierScore, arg.hscore_files, _nodump=True)
+   hscore = cache(rp.HierScore, arg.hscore_files, hscore_data_dir=arg.hscore_data_dir,
+                  _nodump=True)
    arg.prof.checkpoint('load hscore')
 
-   hole = cache(sicdock.body.Body, arg.context_structure, sym=arg.sym, which_ss='H')
-   # hole.dump_pdb(os.path.basename(arg.context_structure) + "_hole.pdb")
-   hole.dump_pdb("context_structure.pdb")
+   hole = cache(rp.body.Body, arg.context_structure, sym=arg.sym, which_ss='H')
+   # hole.dump_pdb(os.path.basename(arg.context_structure) + "_hole.pdb", use_body_sym=True)
+   hole.dump_pdb("context_structure.pdb", use_body_sym=True)
    arg.prof.checkpoint('make hole')
 
-   crt_smap = np.arange(-100, 100.1, arg.grid_resolution_cart_angstroms)
-   ori_samp = np.arange(-180 / arg.nfold, 180 / arg.nfold - 0.001,
-                        arg.grid_resolution_ori_degrees)
-   samples = grid_sym_axis(crt_smap, ori_samp, axis=[0, 0, 1], flip=[0, 1, 0])
-   logging.info(f'docking samples per splice {len(samples)}')
+   cb = arg.cart_bounds
+   if not cb: cb = [-100, 100]
+   if arg.docking_method.lower() == 'grid':
+      search = rp.grid_search
+      crt_smap = np.arange(cb[0], cb[1] + 0.001, arg.grid_resolution_cart_angstroms)
+      ori_samp = np.arange(-180 / arg.nfold, 180 / arg.nfold - 0.001,
+                           arg.grid_resolution_ori_degrees)
+      sampler = rp.sampling.grid_sym_axis(crt_smap, ori_samp, axis=[0, 0, 1], flip=[0, 1, 0])
+      logging.info(f'docking samples per splice {len(sampler)}')
+   elif arg.docking_method.lower() == 'hier':
+      search = rp.hier_search
+      sampler = rp.sampling.hier_axis_sampler(arg.nfold, lb=cb[0], ub=cb[1])
+      logging.info(f'docking possible samples per splice {sampler.size(4)}')
+   else:
+      raise ValueError(f'unknown search dock_method {arg.dock_method}')
 
    enddir = dict(N='C', C='N')[criteria.bbspec[-1].direction[0]]
    results = list()
@@ -101,6 +109,7 @@ def plug_dock(wresult, ssdag, criteria, max_dock=-1, **kw):
    if arg.parallel > 1:
       exe = concurrent.futures.ProcessPoolExecutor(arg.parallel)
 
+   logging.info(f'docking {min(max_dock, len(wresult.idx))} of {len(wresult.idx)} worms fusions')
    with exe as pool:
       for iresult, (idx, pos) in enumerate(zip(wresult.idx, wresult.pos)):
          if max_dock > 0 and iresult >= max_dock:
@@ -109,27 +118,27 @@ def plug_dock(wresult, ssdag, criteria, max_dock=-1, **kw):
          arg.prof.checkpoint('make pose')
          label, bbnames = make_label(ssdag, idx, **arg)
          futures.append(
-            pool.submit(plug_dock_one, hole, samples, pose, label, bbnames, enddir, iresult,
-                        **arg.sub(db=None, dont_store_body_in_results=True)))
+            pool.submit(plug_dock_one, hole, search, sampler, pose, label, bbnames, enddir,
+                        iresult, **arg.sub(db=None, dont_store_body_in_results=True)))
       results, plugs, profs = zip(*[f.result() for f in futures])
    arg.prof.merge(profs)
 
-   results = sicdock.search.concat_results(results)
+   results = rp.search.concat_results(results)
    if not arg.dont_store_body_in_results:
       results.body_labels = 'plug hole'.split()
       results.bodies = [(p, hole) for p in plugs]
 
    return results
 
-def plug_dock_one(hole, samples, pose, label, bbnames, enddir, iresult, **kw):
-   arg = Bunch(kw)
-   prof = Timer().start()
-   plug = sicdock.body.Body(pose, which_ss="H", trim_direction=enddir, label=label,
-                            components=bbnames)
+def plug_dock_one(hole, search, sampler, pose, label, bbnames, enddir, iresult, **kw):
+   arg = rp.Bunch(kw)
+   prof = rp.Timer().start()
+   plug = rp.body.Body(pose, which_ss="H", trim_direction=enddir, label=label, components=bbnames)
    prof.checkpoint('make body')
    op = f'{arg.output_prefix}_{iresult:04}'
-   hscore = cache(HierScore, arg.hscore_files)  # read from forked data
-   result = make_plugs(plug, hole, hscore, samples, grid_search, **arg.sub(output_prefix=op))
+   # read from forked cache data
+   hscore = cache(rp.HierScore, arg.hscore_files, hscore_data_dir=arg.hscore_data_dir)
+   result = make_plugs(plug, hole, hscore, search, sampler, **arg.sub(output_prefix=op))
    prof.checkpoint('plug dock')
    return result, plug, prof
 
@@ -140,7 +149,7 @@ def make_label(ssdag, idx, sep='__', **kw):
    splice = np.concatenate(splice)
    splice = np.array([s for s in splice if s >= 0])
    splice = splice.reshape(-1, 2)
-   ndigit = sutil.num_digits(max(np.max(v.ires) for v in ssdag.verts))
+   ndigit = rp.util.num_digits(max(np.max(v.ires) for v in ssdag.verts))
    s = str()
    for i, n in enumerate(names):
       if i > 0:
@@ -150,12 +159,12 @@ def make_label(ssdag, idx, sep='__', **kw):
 
 def main_test_dump():
    arg, crit = setup()
-   result = sicdock.load('worms_Result.pickle')
-   assert isinstance(result, sicdock.Result)
+   result = rp.load('worms_Result.pickle')
+   assert isinstance(result, rp.Result)
    arg.dump_pbds = True
    result.dump_pdbs_top_score(**arg)
    result.dump_pdbs_top_score_each(**arg)
 
 if __name__ == '__main__':
-   main_test_dump()
-   # main()
+   # main_test_dump()
+   main()
