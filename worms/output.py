@@ -252,7 +252,7 @@ def filter_and_output_results(
          mseg = kw["merge_segment"]
          mseg = criteria.merge_segment(**kw) if mseg is None else mseg
          mseg = mseg or 0  # 0 if None
-         print("!!!!!!!", merge_bblock, "mseg", mseg, ibblock_list)
+         # print("!!!!!!!", merge_bblock, "mseg", mseg, ibblock_list)
          ibblock_list[mseg] = str(merge_bblock)
 
          if not info_file:

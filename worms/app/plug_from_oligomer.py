@@ -5,8 +5,6 @@ from rpxdock.search import make_plugs
 from rpxdock.util import GLOBALCACHE as cache
 import worms
 
-from worms import prune_clashes
-
 def main():
    arg, criteria = setup()
    arg.plug_fixed_olig = True
@@ -43,6 +41,7 @@ def setup():
    # critlist, kw = worms.cli.build_worms_setup_from_cli_args(sys.argv[1:], parser)
    worms_parser = worms.cli.make_cli_arg_parser()
    parser = rp.app.default_cli_parser(parent=worms_parser)
+   parser.add_argument("--dont_store_plugs", action='store_true', default=False)
    critlist, kw = worms.cli.build_worms_setup_from_cli_args(sys.argv[1:], parser)
 
    criteria = critlist[0]
@@ -65,7 +64,7 @@ def worms_search(criteria, **kw):
    arg.prof.checkpoint('worms dag')
    wresult = cache(worms.grow_linear, ssdag, criteria.jit_lossfunc(), _key='wresult', **arg)
    arg.prof.checkpoint('worms search')
-   # wresult = cache(worms.prune_clashes, ssdag, criteria, wresult, **arg)
+   # wresult = cache(worms.filters.clash.prune_clashes, ssdag, criteria, wresult, **arg)
    arg.prof.checkpoint('worms clash')
    return ssdag, wresult
 
@@ -76,8 +75,7 @@ def shutdown(prof, run_cache, **kw):
 def plug_dock(wresult, ssdag, criteria, max_dock=-1, **kw):
    arg = rp.Bunch(kw)
 
-   hscore = cache(rp.HierScore, arg.hscore_files, hscore_data_dir=arg.hscore_data_dir,
-                  _nodump=True)
+   hscore = cache(rp.RpxHier, arg.hscore_files, hscore_data_dir=arg.hscore_data_dir, _nodump=True)
    arg.prof.checkpoint('load hscore')
 
    hole = cache(rp.body.Body, arg.context_structure, sym=arg.sym, which_ss='H')
@@ -85,7 +83,7 @@ def plug_dock(wresult, ssdag, criteria, max_dock=-1, **kw):
    hole.dump_pdb("context_structure.pdb", use_body_sym=True)
    arg.prof.checkpoint('make hole')
 
-   cb = arg.cart_bounds
+   cb = arg.cart_bounds[0]
    if not cb: cb = [-100, 100]
    if arg.docking_method.lower() == 'grid':
       search = rp.grid_search
@@ -137,9 +135,11 @@ def plug_dock_one(hole, search, sampler, pose, label, bbnames, enddir, iresult, 
    prof.checkpoint('make body')
    op = f'{arg.output_prefix}_{iresult:04}'
    # read from forked cache data
-   hscore = cache(rp.HierScore, arg.hscore_files, hscore_data_dir=arg.hscore_data_dir)
+   hscore = cache(rp.RpxHier, arg.hscore_files, hscore_data_dir=arg.hscore_data_dir)
    result = make_plugs(plug, hole, hscore, search, sampler, **arg.sub(output_prefix=op))
    prof.checkpoint('plug dock')
+   if arg.dont_store_plugs:
+      plug = None
    return result, plug, prof
 
 def make_label(ssdag, idx, sep='__', **kw):
