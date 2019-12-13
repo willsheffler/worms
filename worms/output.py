@@ -39,6 +39,11 @@ def filter_and_output_results(
       **kw,
 ):
    sf = ros.core.scoring.ScoreFunctionFactory.create_score_function("score0")
+   if hasattr(scoring.symmetry, 'symmetrize_scorefunction'):
+      sfsym = scoring.symmetry.symmetrize_scorefunction(sf)
+   else:
+      sfsym = sf
+
    sfsym = ros.core.scoring.symmetry.symmetrize_scorefunction(sf)
 
    mbb = ""

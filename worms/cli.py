@@ -52,6 +52,7 @@ cli_args = dict(
    splice_ncontact_no_helix_cut=6,
    splice_nhelix_contacted_cut=3,
    splice_max_chain_length=450,
+   splice_min_dotz=0,
    #
    tolerance=1.0,
    lever=25.0,
@@ -103,7 +104,7 @@ def make_cli_arg_parser(parent=None):
     lazy definition of cli arg via a dictionary (kw) mapping names to
     default values
     """
-   parser = parent if parent else argparse.ArgumentParser()
+   parser = parent if parent else argparse.ArgumentParser(allow_abbrev=False)
 
    for k, v in cli_args.items():
       nargs = None
