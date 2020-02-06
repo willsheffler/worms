@@ -357,14 +357,14 @@ def make_contorted_pose(
          if origin_seg is not None:
             skipsegs.append(origin_seg)
 
-         if (only_connected == "auto"
-             and sources[0][0] in skipsegs) or only_connected != "auto":
+         if (only_connected == "auto" and sources[0][0] in skipsegs) or only_connected != "auto":
             # print('skip', i, skipsegs, len(chains), len(sources))
             continue
       if make_chain_list:
          ret_chain_list.append(chains[0])
       ros.core.pose.append_pose_to_pose(pose, chains[0], True)
       prov0.append(sources[0])
+      prev_source, prev_chain = sources[0], chains[0]
       for chain, source in zip(chains[1:], sources[1:]):
          assert isinstance(chain, ros.core.pose.Pose)
          rm_upper_t(pose, len(pose))
@@ -373,11 +373,30 @@ def make_contorted_pose(
          if make_chain_list:
             ret_chain_list.append(chain)
          fixres = len(pose)
+
+         ####################################################
+
+         # tim look here!
+         # pose: overall output structure
+         # chain: new thing to splice on, already truncated
+         # prev_chain: the last thing spliced on, already truncated
+         # pose_source_before: untruncated pose of previous BB
+         # pose_source_after: untruncated pose of this BB
+         # lb/ub_before/after residue range in source poses in truncated 'chain's
+
          ros.core.pose.append_pose_to_pose(pose, chain, not join)
+         iseg_before, pose_source_before, lb_before, ub_before = prev_source
+         iseg_after, pose_source_after, lb_after, ub_after = source
+
+         #
+
+         ######################################################
+
          # this dosen't work correctly
          # util.fix_bb_o(pose, fixres)
          # util.fix_bb_h(pose, fixres + 1)
          prov0.append(source)
+         prev_source, prev_chain = source, chain
    if not only_connected or only_connected == "auto":
       for chain, source in it.chain(*rest):
          assert isinstance(chain, ros.core.pose.Pose)
