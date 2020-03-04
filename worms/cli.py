@@ -52,7 +52,7 @@ cli_args = dict(
    splice_ncontact_no_helix_cut=6,
    splice_nhelix_contacted_cut=3,
    splice_max_chain_length=450,
-   splice_min_dotz=0,
+   splice_min_dotz=0.0,
    #
    tolerance=1.0,
    lever=25.0,
