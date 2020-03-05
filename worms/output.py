@@ -44,8 +44,6 @@ def filter_and_output_results(
    else:
       sfsym = sf
 
-   sfsym = ros.core.scoring.symmetry.symmetrize_scorefunction(sf)
-
    mbb = ""
    if merge_bblock is not None:
       mbb = f"_mbb{merge_bblock:04d}"
