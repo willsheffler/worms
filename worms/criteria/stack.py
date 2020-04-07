@@ -7,7 +7,6 @@ from worms.util import jit
 class Stack(WormCriteria):
    """
     """
-
    def __init__(self, sym, *, from_seg=0, tolerance=1.0, lever=50, to_seg=-1):
       if from_seg == to_seg:
          raise ValueError("from_seg should not be same as to_seg")
@@ -27,17 +26,18 @@ class Stack(WormCriteria):
    def jit_lossfunc(self):
       from_seg = self.from_seg
       to_seg = self.to_seg
+      tol = self.tolerance
       tol2 = self.tolerance**2
+      rot_tol = self.rot_tol
       rot_tol2 = self.rot_tol**2
 
       @jit
       def func(pos, idx, verts):
-         cen2 = pos[to_seg, :, 3].copy()  #  this was a good bug!
-         cen2[2] = 0.0
+         cen2 = pos[to_seg, :, 3]
          ax2 = pos[to_seg, :, 2]
-         dist2 = np.sum(cen2**2)
-         ang2 = np.arccos(np.abs(ax2[2]))**2
-         err = np.sqrt(ang2 / rot_tol2 + dist2 / tol2)
+         dist = np.sqrt(cen2[0]**2 + cen2[1]**2)
+         ang = np.arccos(np.abs(ax2[2]))
+         err = ang / rot_tol + dist / tol
          return err
 
       return func
