@@ -4,6 +4,7 @@ from rpxdock.search import make_plugs
 # from rpxdock.util import NOCACHE as cache
 from rpxdock.util import GLOBALCACHE as cache
 import worms
+from worms.filters.db_filters import get_affected_positions
 
 def main():
    arg, criteria = setup()
@@ -101,7 +102,6 @@ def plug_dock(wresult, ssdag, criteria, max_dock=-1, **kw):
 
    enddir = dict(N='C', C='N')[criteria.bbspec[-1].direction[0]]
    results = list()
-
    futures = list()
    exe = worms.util.InProcessExecutor()
    if arg.parallel > 1:
@@ -112,11 +112,11 @@ def plug_dock(wresult, ssdag, criteria, max_dock=-1, **kw):
       for iresult, (idx, pos) in enumerate(zip(wresult.idx, wresult.pos)):
          if max_dock > 0 and iresult >= max_dock:
             break
-         pose = worms.make_pose_crit(arg.db[0], ssdag, criteria, idx, pos)
+         pose, prov = worms.make_pose_crit(arg.db[0], ssdag, criteria, idx, pos, provenance=True)
          arg.prof.checkpoint('make pose')
          label, bbnames = make_label(ssdag, idx, **arg)
          futures.append(
-            pool.submit(plug_dock_one, hole, search, sampler, pose, label, bbnames, enddir,
+            pool.submit(plug_dock_one, hole, search, sampler, pose, prov, label, bbnames, enddir,
                         iresult, **arg.sub(db=None, dont_store_body_in_results=True)))
       results, plugs, profs = zip(*[f.result() for f in futures])
    arg.prof.merge(profs)
@@ -128,7 +128,7 @@ def plug_dock(wresult, ssdag, criteria, max_dock=-1, **kw):
 
    return results
 
-def plug_dock_one(hole, search, sampler, pose, label, bbnames, enddir, iresult, **kw):
+def plug_dock_one(hole, search, sampler, pose, prov, label, bbnames, enddir, iresult, **kw):
    arg = rp.Bunch(kw)
    prof = rp.Timer().start()
    plug = rp.body.Body(pose, which_ss="H", trim_direction=enddir, label=label, components=bbnames)
@@ -140,7 +140,25 @@ def plug_dock_one(hole, search, sampler, pose, label, bbnames, enddir, iresult, 
    prof.checkpoint('plug dock')
    if arg.dont_store_plugs:
       plug = None
+   result.pdb_extra = [get_pdb_extra(pose, prov)] * len(result.data.scores)
    return result, plug, prof
+
+def get_pdb_extra(pose, prov):
+   mod, new, lost, junct = get_affected_positions(pose, prov)
+   commas = lambda l: ",".join(str(_) for _ in l)
+   extra = ''
+   for ip, p in enumerate(prov):
+      lb, ub, psrc, lbsrc, ubsrc = p
+      extra += (f"Segment: {ip:2} resis {lb:4}-{ub:4} come from resis " +
+                f"{lbsrc}-{ubsrc} of {psrc.pdb_info().name()}\n")
+   nchain = pose.num_chains()
+   extra += "Modified positions: " + commas(mod) + "\n"
+   extra += "New contact positions: " + commas(new) + "\n"
+   extra += "Lost contact positions: " + commas(lost) + "\n"
+   extra += "Junction residues: " + commas(junct) + "\n"
+   extra += "Length of asymetric unit: " + str(len(pose.residues)) + "\n"
+   extra += "Number of chains in ASU: " + str(nchain) + "\n"
+   return extra
 
 def make_label(ssdag, idx, sep='__', **kw):
    bbs = [ssdag.bbs[i][ssdag.verts[i].ibblock[idx[i]]] for i in range(len(idx))]

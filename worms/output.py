@@ -311,7 +311,7 @@ def filter_and_output_results(
             out.write("New contact positions: " + commas(new) + "\n")
             out.write("Lost contact positions: " + commas(lost) + "\n")
             out.write("Junction residues: " + commas(junct) + "\n")
-            out.write("Length of asymetric unit: " + str(len(pose)) + "\n")
+            out.write("Length of asymetric unit: " + str(len(pose.residues)) + "\n")
             out.write("Number of chains in ASU: " + str(nchain) + "\n")
             out.write("Closure error: " + str(rms) + "\n")
          #
