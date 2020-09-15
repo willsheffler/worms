@@ -4,7 +4,8 @@
 		{
 			"name": "util_runtests.py",
 			"shell_cmd": "cd $folder; python util/runtests.py $file &> log/sublime_build.log"
-		},	{
+		},
+		{
 			"name": "filter_audit.py",
 			"shell_cmd": "cd $folder; PYTHONPATH=. python examples/filter_audit.py &> log/sublime_build.log"
 		},
@@ -28,6 +29,11 @@
 	"folders":
 	[
 		{
+			"file_exclude_patterns":
+			[
+				"*~",
+				".*"
+			],
 			"folder_exclude_patterns":
 			[
 				".cache",
@@ -37,14 +43,12 @@
 				"*.egg-info",
 				"__pycache__",
 				"_build",
-				".*",
-			],
-			"file_exclude_patterns":
-			[
-				"*~",
-				".*",
+				".*"
 			],
 			"path": "."
+		},
+		{
+			"path": "/home/sheffler/debug/worms_stack"
 		}
 	]
 }

@@ -37,6 +37,7 @@ cli_args = dict(
    only_merge_bblocks=[-1],
    only_bblocks=[-1],  # select single set of bbs
    only_ivertex=[-1],  # only for debugging
+   only_outputs=[-1],
    bblock_ranges=[-1],
    merge_segment=-1,
    min_seg_len=15,
@@ -72,6 +73,7 @@ cli_args = dict(
    max_dock=100000,
    max_output=1000,
    max_score0=9e9,
+   max_score0sym=9e9,
    max_porosity=9e9,
    max_com_redundancy=1.0,
    full_score0sym=0,
@@ -93,150 +95,165 @@ cli_args = dict(
    postfilt_splice_nhelix_contacted_cut=3,
 )
 
+
 def add_argument_unless_exists(parser, *arg, **kw):
-   try:
-      parser.add_argument(*arg, **kw)
-   except argparse.ArgumentError:
-      pass
+    try:
+        parser.add_argument(*arg, **kw)
+    except argparse.ArgumentError:
+        pass
+
 
 def make_cli_arg_parser(parent=None):
-   """
+    """
     lazy definition of cli arg via a dictionary (kw) mapping names to
     default values
     """
-   parser = parent if parent else argparse.ArgumentParser(allow_abbrev=False)
+    parser = parent if parent else argparse.ArgumentParser(allow_abbrev=False)
 
-   for k, v in cli_args.items():
-      nargs = None
-      type_ = type(v)
-      if isinstance(v, list):
-         nargs = "+"
-         type_ = type(v[0])
+    for k, v in cli_args.items():
+        nargs = None
+        type_ = type(v)
+        if isinstance(v, list):
+            nargs = "+"
+            type_ = type(v[0])
 
-      add_argument_unless_exists(
-         parser,
-         "--" + k,
-         type=type_,
-         dest=k,
-         default=v,
-         nargs=nargs,
-      )
-      # print('arg', k, type_, nargs, v)
-   parser._has_worms_args = True
-   return parser
+        add_argument_unless_exists(
+            parser,
+            "--" + k,
+            type=type_,
+            dest=k,
+            default=v,
+            nargs=nargs,
+        )
+        # print('arg', k, type_, nargs, v)
+    parser._has_worms_args = True
+    return parser
+
 
 def make_argv_with_atfiles(argv=None):
-   if argv is None: argv = sys.argv[1:]
-   for a in argv.copy():
-      if not a.startswith('@'): continue
-      argv.remove(a)
-      with open(a[1:]) as inp:
-         newargs = []
-         for l in inp:
-            # last char in l is newline, so [:-1] ok
-            newargs.extend(l[:l.find("#")].split())
-         argv = newargs + argv
-   return argv
+    if argv is None: argv = sys.argv[1:]
+    for a in argv.copy():
+        if not a.startswith('@'): continue
+        argv.remove(a)
+        with open(a[1:]) as inp:
+            newargs = []
+            for l in inp:
+                # last char in l is newline, so [:-1] ok
+                newargs.extend(l[:l.find("#")].split())
+            argv = newargs + argv
+    return argv
+
 
 def get_cli_args(argv=None, parser_=None):
-   if not parser_ or not hasattr(parser_, '_has_worms_args'):
-      parser_ = make_cli_arg_parser(parser_)
-   argv = make_argv_with_atfiles(argv)
-   arg = parser_.parse_args(argv)
-   if hasattr(arg, "parallel") and arg.parallel < 0:
-      arg.parallel = util.cpu_count()
-   return arg
+    if not parser_ or not hasattr(parser_, '_has_worms_args'):
+        parser_ = make_cli_arg_parser(parser_)
+    argv = make_argv_with_atfiles(argv)
+    arg = parser_.parse_args(argv)
+    if hasattr(arg, "parallel") and arg.parallel < 0:
+        arg.parallel = util.cpu_count()
+    return arg
+
 
 BBDir = collections.namedtuple('BBDir', ('bblockspec', 'direction'))
 
+
 def _bbspec(bb, nc):
-   return list(BBDir(*x) for x in zip(bb, nc))
+    return list(BBDir(*x) for x in zip(bb, nc))
+
 
 def build_worms_setup_from_cli_args(argv, parser=None):
-   arg = get_cli_args(argv, parser)
+    arg = get_cli_args(argv, parser)
 
-   numeric_level = getattr(logging, arg.loglevel.upper(), None)
-   if not isinstance(numeric_level, int):
-      raise ValueError('Invalid log level: %s' % arg.loglevel)
-   logging.getLogger().setLevel(numeric_level)
+    numeric_level = getattr(logging, arg.loglevel.upper(), None)
+    if not isinstance(numeric_level, int):
+        raise ValueError('Invalid log level: %s' % arg.loglevel)
+    logging.getLogger().setLevel(numeric_level)
 
-   if arg.config_file == [""]: arg.config_file = []
-   arg.topology = Topology(arg.topology)
-   if not arg.config_file:
-      crit = eval("".join(arg.geometry))
-      bb = arg.bbconn[1::2]
-      nc = arg.bbconn[0::2]
-      arg.topology.check_nc(nc)
-      crit.bbspec = _bbspec(bb, nc)
-      assert len(nc) == len(bb)
-      assert crit.from_seg < len(bb)
-      assert crit.to_seg < len(bb)
-      if isinstance(crit, Cyclic) and crit.origin_seg is not None:
-         assert crit.origin_seg < len(bb)
-      crit = [crit]
-   else:
-      crit = []
-      for cfile in arg.config_file:
-         with open(cfile) as inp:
-            lines = inp.readlines()
-            assert len(lines) is 2
+    if arg.config_file == [""]: arg.config_file = []
+    arg.topology = Topology(arg.topology)
+    if not arg.config_file:
+        if not arg.geometry or not arg.geometry[0]:
+            print('--geometry not specified')
+            sys.exit()
+        crit = eval("".join(arg.geometry))
+        bb = arg.bbconn[1::2]
+        nc = arg.bbconn[0::2]
+        arg.topology.check_nc(nc)
+        crit.bbspec = _bbspec(bb, nc)
+        assert len(nc) == len(bb)
+        assert crit.from_seg < len(bb)
+        assert crit.to_seg < len(bb)
+        if isinstance(crit, Cyclic) and crit.origin_seg is not None:
+            assert crit.origin_seg < len(bb)
+        crit = [crit]
+    else:
+        crit = []
+        for cfile in arg.config_file:
+            with open(cfile) as inp:
+                lines = inp.readlines()
+                assert len(lines) is 2
 
-            def orient(a, b):
-               return (a or "_") + (b or "_")
+                def orient(a, b):
+                    return (a or "_") + (b or "_")
 
-            bbnc = eval(lines[0])
-            bb = [x[0] for x in bbnc]
-            nc = [x[1] for x in bbnc]
-            arg.topology.check_nc(nc)
+                bbnc = eval(lines[0])
+                bb = [x[0] for x in bbnc]
+                nc = [x[1] for x in bbnc]
+                arg.topology.check_nc(nc)
 
-            crit0 = eval(lines[1])
-            crit0.bbspec = _bbspec(bb, nc)
-            assert len(nc) == len(bb)
-            assert crit0.from_seg < len(bb)
-            assert crit0.to_seg < len(bb)
-            if isinstance(crit0, Cyclic) and crit0.origin_seg is not None:
-               assert crit0.origin_seg < len(bb)
-            crit.append(crit0)
+                crit0 = eval(lines[1])
+                crit0.bbspec = _bbspec(bb, nc)
+                assert len(nc) == len(bb)
+                assert crit0.from_seg < len(bb)
+                assert crit0.to_seg < len(bb)
+                if isinstance(crit0, Cyclic) and crit0.origin_seg is not None:
+                    assert crit0.origin_seg < len(bb)
+                crit.append(crit0)
 
-   # oh god... fix these huge assumptions about Criteria
-   for c in crit:
-      # c.tolerance = arg.tolerance
-      c.lever = arg.lever
-      c.rot_tol = c.tolerance / arg.lever
+    # oh god... fix these huge assumptions about Criteria
+    for c in crit:
+        # c.tolerance = arg.tolerance
+        c.lever = arg.lever
+        c.rot_tol = c.tolerance / arg.lever
 
-   if arg.max_score0 > 9e8:
-      arg.max_score0 = 2.0 * len(crit[0].bbspec)
+    if arg.max_score0 > 9e8:
+        arg.max_score0 = 2.0 * len(crit[0].bbspec)
 
-   if arg.merge_bblock < 0: arg.merge_bblock = None
-   if arg.only_merge_bblocks == [-1]: arg.only_merge_bblocks = []
-   if arg.only_bblocks == [-1]: arg.only_bblocks = []
-   if arg.only_ivertex == [-1]: arg.only_ivertex = []
-   if arg.bblock_ranges == [-1]: arg.bblock_ranges = []
-   elif arg.shuffle_bblocks:
-      print("you probably shouldnt use --shuffle_bblocks with --bblock_ranges ")
-      sys.exit(0)
-   if arg.merge_segment == -1: arg.merge_segment = None
-   arg.tolerance = min(arg.tolerance, 9e8)
+    if arg.merge_bblock < 0: arg.merge_bblock = None
+    if arg.only_merge_bblocks == [-1]: arg.only_merge_bblocks = []
+    if arg.only_bblocks == [-1]: arg.only_bblocks = []
+    if arg.only_ivertex == [-1]: arg.only_ivertex = []
+    if arg.only_outputs == [-1]: arg.only_outputs = []
+    if arg.bblock_ranges == [-1]: arg.bblock_ranges = []
+    elif arg.shuffle_bblocks:
+        print(
+            "you probably shouldnt use --shuffle_bblocks with --bblock_ranges "
+        )
+        sys.exit(0)
+    if arg.merge_segment == -1: arg.merge_segment = None
+    arg.tolerance = min(arg.tolerance, 9e8)
 
-   if arg.dbfiles == [""]:
-      assert 0, "no --dbfiles specified"
+    if arg.dbfiles == [""]:
+        assert 0, "no --dbfiles specified"
 
-   if len(arg.nbblocks) == 1: arg.nbblocks *= 100
-   if arg.output_only_connected != 'auto':
-      if arg.output_only_connected in ('', 0, '0', 'false', 'False'):
-         arg.output_only_connected = False
-      else:
-         arg.output_only_connected = True
+    if len(arg.nbblocks) == 1: arg.nbblocks *= 100
+    if arg.output_only_connected != 'auto':
+        if arg.output_only_connected in ('', 0, '0', 'false', 'False'):
+            arg.output_only_connected = False
+        else:
+            arg.output_only_connected = True
 
-   kw = vars(arg)
-   if arg.disable_cache: kw["db"] = NoCacheBBlockDB(**kw), NoCacheSpliceDB(**kw)
-   else: kw["db"] = CachingBBlockDB(**kw), CachingSpliceDB(**kw)
+    kw = vars(arg)
+    if arg.disable_cache:
+        kw["db"] = NoCacheBBlockDB(**kw), NoCacheSpliceDB(**kw)
+    else:
+        kw["db"] = CachingBBlockDB(**kw), CachingSpliceDB(**kw)
 
-   print("-------------- arg ---------------")
-   for k, v in kw.items():
-      print("   ", k, v)
-   print("-----------------------------------")
+    print("-------------- arg ---------------")
+    for k, v in kw.items():
+        print("   ", k, v)
+    print("-----------------------------------")
 
-   kw["db"][0].report()
+    kw["db"][0].report()
 
-   return crit, kw
+    return crit, kw
