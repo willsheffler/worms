@@ -20,27 +20,27 @@ def getmem():
 
 
 def filter_and_output_results(
-        criteria,
-        ssdag,
-        result,
-        output_from_pose,
-        merge_bblock,
-        db,
-        output_symmetric,
-        output_centroid,
-        output_prefix,
-        max_output,
-        max_score0,
-        max_score0sym,
-        rms_err_cut,
-        no_duplicate_bases,
-        output_only_AAAA,
-        full_score0sym,
-        output_short_fnames,
-        output_only_connected,
-        null_base_names,
-        only_outputs,
-        **kw,
+    criteria,
+    ssdag,
+    result,
+    output_from_pose,
+    merge_bblock,
+    db,
+    output_symmetric,
+    output_centroid,
+    output_prefix,
+    max_output,
+    max_score0,
+    max_score0sym,
+    rms_err_cut,
+    no_duplicate_bases,
+    output_only_AAAA,
+    full_score0sym,
+    output_short_fnames,
+    output_only_connected,
+    null_base_names,
+    only_outputs,
+    **kw,
 ):
     sf = ros.core.scoring.ScoreFunctionFactory.create_score_function("score0")
     if hasattr(ros.core.scoring.symmetry, 'symmetrize_scorefunction'):
@@ -77,25 +77,6 @@ def filter_and_output_results(
             info_file.write(" seg%i_enter seg%i_pdb" % (N - 1, N - 1))
             info_file.write("\n")
 
-        if True:
-            # make json files with bblocks for single result
-            tmp, seenit = list(), set()
-            for j in range(len(ssdag.verts)):
-                v = ssdag.verts[j]
-                ibb = v.ibblock[result.idx[iresult, j]]
-                bb = ssdag.bbs[j][ibb]
-                fname = str(bytes(bb.file), 'utf-8')
-                if fname not in seenit:
-                    for e in db[0]._alldb:
-                        if e['file'] == fname:
-                            tmp.append(e)
-                seenit.add(fname)
-            import json
-            jsonfname = 'tmp_%i.json' % iresult
-            print('output bblocks to', jsonfname)
-            with open(jsonfname, 'w') as out:
-                json.dump(tmp, out)
-
     if output_from_pose:
         info_file = None
         nresults = 0
@@ -105,6 +86,25 @@ def filter_and_output_results(
             if only_outputs and iresult not in only_outputs:
                 print('output skipping', iresult)
                 continue
+
+            if False:
+                # make json files with bblocks for single result
+                tmp, seenit = list(), set()
+                for j in range(len(ssdag.verts)):
+                    v = ssdag.verts[j]
+                    ibb = v.ibblock[result.idx[iresult, j]]
+                    bb = ssdag.bbs[j][ibb]
+                    fname = str(bytes(bb.file), 'utf-8')
+                    if fname not in seenit:
+                        for e in db[0]._alldb:
+                            if e['file'] == fname:
+                                tmp.append(e)
+                    seenit.add(fname)
+                import json
+                jsonfname = 'tmp_%i.json' % iresult
+                print('output bblocks to', jsonfname)
+                with open(jsonfname, 'w') as out:
+                    json.dump(tmp, out)
 
             # print(getmem(), 'MEM ================ top of loop ===============')
 
