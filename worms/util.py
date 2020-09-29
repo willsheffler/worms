@@ -134,9 +134,8 @@ def parallel_nobatch_map(pool, function, accumulator, batch_size, map_func_args,
 
 def tqdm_parallel_map(pool, function, accumulator, map_func_args, batch_size, **kw):
    for _ in tqdm(
-         parallel_batch_map(pool, function, accumulator, batch_size,
-                            map_func_args=map_func_args, **kw), total=len(map_func_args[0]),
-         **kw):
+         parallel_batch_map(pool, function, accumulator, batch_size, map_func_args=map_func_args,
+                            **kw), total=len(map_func_args[0]), **kw):
       pass
 
 def numpy_stub_from_rosetta_stub(rosstub):
@@ -195,8 +194,7 @@ def get_bb_coords(pose, which_resi=None):
       if not r.is_protein():
          raise ValueError("non-protein residue %s at position %i" % (r.name(), ir))
       n, ca, c = r.xyz("N"), r.xyz("CA"), r.xyz("C")
-      n_ca_c.append(
-         np.array([[n.x, n.y, n.z, 1], [ca.x, ca.y, ca.z, 1], [c.x, c.y, c.z, 1]]))
+      n_ca_c.append(np.array([[n.x, n.y, n.z, 1], [ca.x, ca.y, ca.z, 1], [c.x, c.y, c.z, 1]]))
    return np.stack(n_ca_c).astype("f8")
 
 def get_cb_coords(pose, which_resi=None):
@@ -227,8 +225,8 @@ def pose_bounds(pose, lb, ub):
    if ub < 0:
       ub = len(pose) + 1 + ub
    if lb < 1 or ub > len(pose):
-      raise ValueError("lb/ub " + str(lb) + "/" + str(ub) +
-                       " out of bounds for pose with len " + str(len(pose)))
+      raise ValueError("lb/ub " + str(lb) + "/" + str(ub) + " out of bounds for pose with len " +
+                       str(len(pose)))
    return lb, ub
 
 def subpose(pose, lb, ub=-1):

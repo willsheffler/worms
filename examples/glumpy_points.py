@@ -99,24 +99,21 @@ program["model"] = np.eye(4, dtype=np.float32)
 program["projection"] = np.eye(4, dtype=np.float32)
 program["view"] = view
 
-
 @window.event
 def on_draw(dt):
-    global theta, phi, translate
-    window.clear()
-    program.draw(gl.GL_POINTS)
-    theta += 0.5
-    phi += 0.5
-    model = np.eye(4, dtype=np.float32)
-    glm.rotate(model, theta, 0, 0, 1)
-    glm.rotate(model, phi, 0, 1, 0)
-    program["model"] = model
-
+   global theta, phi, translate
+   window.clear()
+   program.draw(gl.GL_POINTS)
+   theta += 0.5
+   phi += 0.5
+   model = np.eye(4, dtype=np.float32)
+   glm.rotate(model, theta, 0, 0, 1)
+   glm.rotate(model, phi, 0, 1, 0)
+   program["model"] = model
 
 @window.event
 def on_resize(width, height):
-    program["projection"] = glm.perspective(45.0, width / float(height), 1.0, 1000.0)
-
+   program["projection"] = glm.perspective(45.0, width / float(height), 1.0, 1000.0)
 
 gl.glEnable(gl.GL_DEPTH_TEST)
 app.run()

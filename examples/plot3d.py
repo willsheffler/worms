@@ -19,12 +19,12 @@ left = figure.add_axes([0.0, 0.0, 0.5, 1.0], interface=tball, facecolor=(1, 1, 1
 
 # Create a subplot on right, using panzoom interface (2d)
 right = figure.add_axes(
-    [0.5, 0.0, 0.5, 1.0],
-    xscale=LinearScale(),
-    yscale=LinearScale(),
-    zscale=LinearScale(),
-    interface=tball,
-    facecolor=(1, 1, 1, 0.25),
+   [0.5, 0.0, 0.5, 1.0],
+   xscale=LinearScale(),
+   yscale=LinearScale(),
+   zscale=LinearScale(),
+   interface=tball,
+   facecolor=(1, 1, 1, 0.25),
 )
 
 # Create a new collection of points

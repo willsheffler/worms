@@ -19,7 +19,6 @@ class DihedralCyclicLattice2D(WormCriteria):
     D6 C2
     D6 C3
     """
-
    def __init__(
          self,
          symname,

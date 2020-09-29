@@ -8,7 +8,6 @@ Ux = np.array([1, 0, 0, 0])
 Uy = np.array([0, 1, 0, 0])
 Uz = np.array([0, 0, 1, 0])
 
-
 class WormCriteria(abc.ABC):
    @abc.abstractmethod
    def score(self, **kw):
@@ -25,7 +24,6 @@ class WormCriteria(abc.ABC):
       "symfile_modifiers",
       "crystinfo",
    )
-
 
 class CriteriaList(WormCriteria):
    def __init__(self, children):
@@ -53,7 +51,6 @@ class CriteriaList(WormCriteria):
 
    def __iter__(self):
       return iter(self.children)
-
 
 class NullCriteria(WormCriteria):
    def __init__(self, from_seg=0, to_seg=-1, origin_seg=None):

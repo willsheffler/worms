@@ -29,26 +29,24 @@ void main()
 
 window = app.Window(width=1024, height=1024, color=(0.30, 0.30, 0.35, 1.00))
 
-
 @window.event
 def on_draw(dt):
-    window.clear()
+   window.clear()
 
-    # Filled cube
-    gl.glDisable(gl.GL_BLEND)
-    gl.glEnable(gl.GL_DEPTH_TEST)
-    gl.glEnable(gl.GL_POLYGON_OFFSET_FILL)
-    cube["u_color"] = 1, 1, 1, 1
-    cube.draw(gl.GL_TRIANGLES, faces)
+   # Filled cube
+   gl.glDisable(gl.GL_BLEND)
+   gl.glEnable(gl.GL_DEPTH_TEST)
+   gl.glEnable(gl.GL_POLYGON_OFFSET_FILL)
+   cube["u_color"] = 1, 1, 1, 1
+   cube.draw(gl.GL_TRIANGLES, faces)
 
-    # Outlined cube
-    gl.glDisable(gl.GL_POLYGON_OFFSET_FILL)
-    gl.glEnable(gl.GL_BLEND)
-    gl.glDepthMask(gl.GL_FALSE)
-    cube["u_color"] = 0, 0, 0, 1
-    cube.draw(gl.GL_LINES, outline)
-    gl.glDepthMask(gl.GL_TRUE)
-
+   # Outlined cube
+   gl.glDisable(gl.GL_POLYGON_OFFSET_FILL)
+   gl.glEnable(gl.GL_BLEND)
+   gl.glDepthMask(gl.GL_FALSE)
+   cube["u_color"] = 0, 0, 0, 1
+   cube.draw(gl.GL_LINES, outline)
+   gl.glDepthMask(gl.GL_TRUE)
 
 # Build cube data
 V, I, O = colorcube()

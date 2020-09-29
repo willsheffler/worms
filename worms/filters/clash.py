@@ -46,8 +46,7 @@ def prune_clashes(
          dirns = tuple([v.dirn for v in verts])
          iress = tuple([v.ires for v in verts])
          chains = tuple([
-            ssdag.bbs[k][verts[k].ibblock[rslt.idx[i, k]]].chains
-            for k in range(len(ssdag.verts))
+            ssdag.bbs[k][verts[k].ibblock[rslt.idx[i, k]]].chains for k in range(len(ssdag.verts))
          ])
          ncacs = tuple([
             ssdag.bbs[k][verts[k].ibblock[rslt.idx[i, k]]].ncac for k in range(len(ssdag.verts))

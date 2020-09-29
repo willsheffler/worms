@@ -82,6 +82,8 @@ _khash_ffi.c
 
 .worms_pytest_cache/splices
 .worms_pytest_cache/poses
+.worms_pytest_cache/bblock
+.worms_pytest_cache_disabled
 
 *.info
 *.pdb

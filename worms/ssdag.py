@@ -17,7 +17,6 @@ from pprint import pprint
 from logging import info
 import string
 
-
 def _validate_bbs_verts(bbs, verts):
    assert len(bbs) == len(verts)
    for bb, vert in zip(bbs, verts):
@@ -26,11 +25,9 @@ def _validate_bbs_verts(bbs, verts):
       assert 0 <= np.min(vert.ibblock)
       assert np.max(vert.ibblock) < len(bb)
 
-
 class SearchSpaceDag:
    """represents search space
     """
-
    def __init__(self, bbspec, bbs, verts, edges):
       _validate_bbs_verts(bbs, verts)
       assert isinstance(bbs[0][0], _BBlock)
@@ -89,7 +86,6 @@ class SearchSpaceDag:
       print("SearchSpaceDag sizes:")
       print(f"    vertex sizes: {sum(sizevert):8,}", sizevert)
       print(f"    edge sizes:   {sum(sizeedge):8,}", sizeedge)
-
 
 def simple_search_dag(
       criteria,
@@ -294,7 +290,8 @@ def simple_search_dag(
             print('use new vertex', inone)
       if only_ivertex:
          # raise NotImplementedError
-         print("!!!!!!! using one ivertex !!!!!", only_ivertex, len(verts), [v.len for v in verts])
+         print("!!!!!!! using one ivertex !!!!!", only_ivertex, len(verts),
+               [v.len for v in verts])
          if len(only_ivertex) != len(verts):
             print("NOT altering verts, len(only_ivertex)!=len(verts) continuing...",
                   "this is ok if part of a sub-protocol")
@@ -406,7 +403,6 @@ def simple_search_dag(
       toret = toret, tdb, tvertex, tedge
    return toret
 
-
 def _print_edge_summary(edges):
    print("splice stats: ", end="")
    for e in edges:
@@ -414,7 +410,6 @@ def _print_edge_summary(edges):
       ntot = e.nout * e.nent
       print(f"({nsplices:,} {nsplices*100.0/ntot:5.2f}%)", end=" ")
    print()
-
 
 def graph_dump_pdb(out, ssdag, idx, pos, join="splice", trim=True):
    close = False

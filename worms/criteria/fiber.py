@@ -9,9 +9,8 @@ from worms.criteria.hash_util import encode_indices, decode_indices
 import homog as hg
 from worms.search.result import ResultJIT, SearchStats
 
-
 class Fiber(WormCriteria):
-    """
+   """
     Fiber grows a helical symmetry:
 
         A - B - C - A'
@@ -32,4 +31,4 @@ class Fiber(WormCriteria):
 
     """
 
-    pass
+   pass

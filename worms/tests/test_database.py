@@ -54,7 +54,6 @@ only_if_pyrosetta = pytest.mark.skipif("not HAVE_PYROSETTA")
 #     # pp.load_cached_coord_into_memory(pp.query_names('C3_N'))
 #     # assert len(pp.cache) == 213
 
-
 @only_if_pyrosetta_distributed
 def test_construct_database_from_pdbs(tmpdir, datadir):
    pp = CachingBBlockDB(
@@ -112,7 +111,6 @@ def test_construct_database_from_pdbs(tmpdir, datadir):
    assert np.all(pp.bblock(keys[10]).conn_resids(1) == [6])
    assert np.all(pp.bblock(keys[11]).conn_resids(0) == [0])
    assert np.all(pp.bblock(keys[11]).conn_resids(1) == [8])
-
 
 def test_conftest_pdbfile(bbdb):
    assert len(bbdb.query("all")) == 12

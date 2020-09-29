@@ -42,7 +42,6 @@ class _Vertex:
         x2exit (TYPE): Description
         x2orig (TYPE): Description
     """
-
    def __init__(
          self,
          x2exit,
@@ -137,14 +136,12 @@ class _Vertex:
       # ('dirn'    , nt.int32[:]),
       # ('min_seg_len', nt.int32),
 
-
 @jit
 def _check_inorder(ires):
    for i in range(len(ires) - 1):
       if ires[i] > ires[i + 1]:
          return False
    return True
-
 
 def vertex_single(bbstate, bbid, din, dout, min_seg_len, verbosity=0):
    """build on bblock's worth of vertex"""
@@ -226,7 +223,6 @@ def vertex_single(bbstate, bbid, din, dout, min_seg_len, verbosity=0):
       np.repeat(bbid, np.sum(valid)).astype("i4"),
    )
 
-
 @jit
 def _check_bbires_inorder(ibblock, ires):
    prev = -np.ones(np.max(ibblock) + 1, dtype=np.int32)
@@ -237,7 +233,6 @@ def _check_bbires_inorder(ibblock, ires):
             return False
          prev[ibblock[i]] = ires[i]
    return True
-
 
 def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0):
    dirn_map = {"N": 0, "C": 1, "_": 2}

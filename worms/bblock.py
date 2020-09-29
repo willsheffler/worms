@@ -382,14 +382,13 @@ def bblock_str(bblock):
       "    validated=" + str(bblock.validated),
       "    _type=" + str(bytes(bblock._type)),
       "    base=" + str(bytes(bblock.base)),
-      "    ncac=array(shape=" + str(bblock.ncac.shape) + ", dtype=" + str(
-         bblock.ncac.dtype) + ")",
-      "    chains=" + str(bblock.chains),
-      "    ss=array(shape=" + str(bblock.ss.shape) + ", dtype=" + str(bblock.ss.dtype) +
+      "    ncac=array(shape=" + str(bblock.ncac.shape) + ", dtype=" + str(bblock.ncac.dtype) +
       ")",
-      "    stubs=array(shape=" + str(bblock.stubs.shape) + ", dtype=" + str(
-         bblock.connections.dtype) + ")",
-      "    connectionsZ=array(shape=" + str(bblock.connections.shape) + ", dtype=" + str(
-         bblock.connections.dtype) + ")",
+      "    chains=" + str(bblock.chains),
+      "    ss=array(shape=" + str(bblock.ss.shape) + ", dtype=" + str(bblock.ss.dtype) + ")",
+      "    stubs=array(shape=" + str(bblock.stubs.shape) + ", dtype=" +
+      str(bblock.connections.dtype) + ")",
+      "    connectionsZ=array(shape=" + str(bblock.connections.shape) + ", dtype=" +
+      str(bblock.connections.dtype) + ")",
       ")",
    ])

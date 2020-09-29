@@ -100,8 +100,8 @@ def _read_dbfiles(bbdb, dbfiles, dbroot=""):
    for entry in bbdb._alldb:
       if "name" not in entry:
          entry["name"] = ""
-      entry["file"] = entry["file"].replace(
-         "__DATADIR__", os.path.relpath(os.path.dirname(__file__) + "/data"))
+      entry["file"] = entry["file"].replace("__DATADIR__",
+                                            os.path.relpath(os.path.dirname(__file__) + "/data"))
    bbdb._dictdb = {e["file"]: e for e in bbdb._alldb}
    bbdb._key_to_pdbfile = {hash_str_to_int(e["file"]): e["file"] for e in bbdb._alldb}
 
@@ -137,7 +137,6 @@ def sanitize_pdbfile(pdbfile):
 
 class NoCacheSpliceDB:
    """Stores valid NC splices for bblock pairs"""
-
    def __init__(self, **kw):
       self._cache = dict()
 
@@ -259,7 +258,6 @@ class NoCacheBBlockDB:
 
 class CachingSpliceDB:
    """Stores valid NC splices for bblock pairs"""
-
    def __init__(self, cachedirs=None, **kw):
       cachedirs = _get_cachedirs(cachedirs)
       self.cachedirs = [os.path.join(x, "splices") for x in cachedirs]
@@ -338,7 +336,6 @@ class CachingSpliceDB:
 
 class CachingBBlockDB:
    """stores Poses and BBlocks in a disk cache"""
-
    def __init__(
          self,
          cachedirs=None,
@@ -482,8 +479,7 @@ class CachingBBlockDB:
          if not pdbkey in self._bblock_cache:
             if not self.load_cached_bblock_into_memory(pdbkey):
                pdbfile = self._key_to_pdbfile[pdbkey]
-               raise ValueError("no bblock data for key", pdbkey, pdbfile, "in",
-                                self.cachedirs)
+               raise ValueError("no bblock data for key", pdbkey, pdbfile, "in", self.cachedirs)
          return self._bblock_cache[pdbkey]
       elif isinstance(pdbkey, list):
          return [self.bblock(f) for f in pdbkey]
@@ -590,10 +586,9 @@ class CachingBBlockDB:
       if not self._holding_lock:
          needs_unlock = True
          if not self.acquire_cachedir_lock():
-            raise ValueError(
-               "cachedir locked, cant write new entries.\n"
-               "If no other worms jobs are running, you may manually remove:\n" +
-               self.cachedirs[0] + "/lock")
+            raise ValueError("cachedir locked, cant write new entries.\n"
+                             "If no other worms jobs are running, you may manually remove:\n" +
+                             self.cachedirs[0] + "/lock")
       exe = util.InProcessExecutor()
       if parallel:
          exe = cf.ProcessPoolExecutor(max_workers=parallel)
@@ -653,11 +648,9 @@ class CachingBBlockDB:
          if not self.load_cached_bblock_into_memory(pdbkey):
             if os.path.exists(cachefile):
                raise ValueError(
-                  f"cachefile {cachefile} exists, but cant load data from associated key {pdbkey}"
-               )
+                  f"cachefile {cachefile} exists, but cant load data from associated key {pdbkey}")
             raise ValueError(
-               f"cachefile {cachefile} was removed, cant load data from associated key {pdbkey}"
-            )
+               f"cachefile {cachefile} was removed, cant load data from associated key {pdbkey}")
          if self.load_poses:
             if not self.load_cached_pose_into_memory(pdbfile):
                print("warning, not saved:", pdbfile)

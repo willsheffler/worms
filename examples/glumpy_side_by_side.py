@@ -12,24 +12,24 @@ tball = Trackball(name="trackball")
 
 # Create a subplot on left, using trackball interface (3d)
 left = figure.add_axes(
-    [0.010, 0.01, 0.485, 0.98],
-    xscale=LinearScale(clamp=True),
-    yscale=LinearScale(clamp=True),
-    zscale=LinearScale(clamp=True),
-    interface=tball,
-    facecolor=(1, 0, 0, 0.25),
-    aspect=1,
+   [0.010, 0.01, 0.485, 0.98],
+   xscale=LinearScale(clamp=True),
+   yscale=LinearScale(clamp=True),
+   zscale=LinearScale(clamp=True),
+   interface=tball,
+   facecolor=(1, 0, 0, 0.25),
+   aspect=1,
 )
 
 # Create a subplot on right, using panzoom interface (2d)
 right = figure.add_axes(
-    [0.505, 0.01, 0.485, 0.98],
-    xscale=LinearScale(domain=[-2.0, +2.0], range=[0.25, 1.00]),
-    yscale=LinearScale(domain=[-2.0, +2.0], range=[0, 2 * np.pi]),
-    projection=PolarProjection(),
-    interface=tball,
-    facecolor=(0, 0, 1, 0.25),
-    aspect=1,
+   [0.505, 0.01, 0.485, 0.98],
+   xscale=LinearScale(domain=[-2.0, +2.0], range=[0.25, 1.00]),
+   yscale=LinearScale(domain=[-2.0, +2.0], range=[0, 2 * np.pi]),
+   projection=PolarProjection(),
+   interface=tball,
+   facecolor=(0, 0, 1, 0.25),
+   aspect=1,
 )
 
 # Create a new collection of points
