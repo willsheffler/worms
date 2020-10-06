@@ -81,25 +81,6 @@ def filter_and_output_results(
             print('output skipping', iresult)
             continue
 
-         if False:
-            # make json files with bblocks for single result
-            tmp, seenit = list(), set()
-            for j in range(len(ssdag.verts)):
-               v = ssdag.verts[j]
-               ibb = v.ibblock[result.idx[iresult, j]]
-               bb = ssdag.bbs[j][ibb]
-               fname = str(bytes(bb.file), 'utf-8')
-               if fname not in seenit:
-                  for e in db[0]._alldb:
-                     if e['file'] == fname:
-                        tmp.append(e)
-               seenit.add(fname)
-            import json
-            jsonfname = 'tmp_%i.json' % iresult
-            print('output bblocks to', jsonfname)
-            with open(jsonfname, 'w') as out:
-               json.dump(tmp, out)
-
          # print(getmem(), 'MEM ================ top of loop ===============')
 
          if iresult % 100 == 0:
@@ -158,20 +139,8 @@ def filter_and_output_results(
 
          # print(getmem(), 'MEM dbfilters before')
          try:
-            (
-               jstr,
-               jstr1,
-               filt,
-               grade,
-               sp,
-               mc,
-               mcnh,
-               mhc,
-               nc,
-               ncnh,
-               nhc,
-            ) = run_db_filters(db, criteria, ssdag, iresult, result.idx[iresult], pose, prov,
-                               **kw)
+            (jstr, jstr1, filt, grade, sp, mc, mcnh, mhc, nc, ncnh, nhc) = run_db_filters(
+               db, criteria, ssdag, iresult, result.idx[iresult], pose, prov, **kw)
          except Exception as e:
             print("error in db_filters:")
             print(traceback.format_exc())
@@ -328,6 +297,49 @@ def filter_and_output_results(
             out.write("Number of chains in ASU: " + str(nchain) + "\n")
             out.write("Closure error: " + str(rms) + "\n")
          #
+
+         if True:
+            # make json files with bblocks for single result
+            tmp, seenit = list(), set()
+            detail = dict(bblock=list(), ires=list(), isite=list(), ichain=list())
+            for j in range(len(ssdag.verts)):
+               v = ssdag.verts[j]
+               ibb = v.ibblock[result.idx[iresult, j]]
+               bb = ssdag.bbs[j][ibb]
+               fname = str(bytes(bb.file), 'utf-8')
+               detail['bblock'].append(fname)
+               detail['ires'].append(v.ires[result.idx[iresult, j]].tolist())
+               detail['isite'].append(v.isite[result.idx[iresult, j]].tolist())
+               detail['ichain'].append(v.ichain[result.idx[iresult, j]].tolist())
+               if fname not in seenit:
+                  for e in db[0]._alldb:
+                     if e['file'] == fname:
+                        tmp.append(e)
+                  seenit.add(fname)
+
+            for e in tmp:
+               ires = list()
+               isite = list()
+               for i in range(len(detail['ires'])):
+                  if e['file'] == detail['bblock'][i]:
+                     ires.append(detail['ires'][i])
+                     isite.append(detail['isite'][i])
+               for ic in isite:
+                  if ic[0] is not -1: e['connections'][ic[0]]['residues'].clear()
+                  if ic[1] is not -1: e['connections'][ic[1]]['residues'].clear()
+               for ir, ic in zip(ires, isite):
+                  if ic[0] is not -1: e['connections'][ic[0]]['residues'].append(ir[0])
+                  if ic[1] is not -1: e['connections'][ic[1]]['residues'].append(ir[1])
+
+            tmp = tmp.copy()
+            print(detail)
+
+            import json
+            jsonfname = 'tmp_%i.json' % iresult
+            print('output bblocks to', jsonfname)
+            with open(jsonfname, 'w') as out:
+               json.dump(tmp, out, indent=4)
+               out.write('\n')
 
          print(getmem(), 'MEM dump pdb after')
 

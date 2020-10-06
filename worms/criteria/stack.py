@@ -31,13 +31,36 @@ class Stack(WormCriteria):
 
       @jit
       def func(pos, idx, verts):
-         cen2 = pos[to_seg, :, 3]
-         ax2 = pos[to_seg, :, 2]
-         dist_sq = cen2[0]**2 + cen2[1]**2
-         angl = np.arccos(np.abs(ax2[2]))
-         err_sq = (angl / rtol)**2
-         err_sq += dist_sq / ctol_sq
-         return np.sqrt(err_sq)
+
+         cen = pos[to_seg, :3, 3]
+         # cen = cen / np.linalg.norm(cen)
+         axis = pos[to_seg, :3, 2]
+         if np.sum(axis * cen) < 0:
+            axis = -axis
+
+         dist_sq = cen[0]**2 + cen[1]**2
+         if dist_sq > ctol_sq * 4: return 9e9
+
+         axis_angle = np.arccos(np.abs(axis[2]))
+         if axis_angle > rtol * 4: return 9e9
+
+         # cart_angle = np.arccos(np.abs(cen[2]/np.linalg.norm(cen)))
+         # cart_perp = np.array([cen[0], cen[1], 0])
+         correction_axis = np.array([axis[1], -axis[0], 0])  # cross prod w/z
+
+         correction_axis = correction_axis / np.linalg.norm(correction_axis)
+         cart_bad_err = np.abs(np.sum(correction_axis * cen))
+
+         cen_len = np.linalg.norm(cen)
+         axis_to_cart = axis * cen_len
+         delta = axis_to_cart - cen
+
+         return np.sqrt(np.sum(delta**2) / ctol_sq)  #+ cart_bad_err
+
+         # ang_err2 = (axis_angle / rtol)**2
+         # dist_sq = cen[0]**2 + cen[1]**2
+         # dis_errg2= dist_sq / ctol_sq
+         # return np.sqrt(err_sq)
 
       return func
 
