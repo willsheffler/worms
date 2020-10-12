@@ -31,36 +31,52 @@ class Stack(WormCriteria):
 
       @jit
       def func(pos, idx, verts):
+         cen2 = pos[to_seg, :, 3].copy()  #  this was a good bug!
+         ax2 = pos[to_seg, :, 2]
+         cen2[2] = 0.0
+         dist2 = np.sum(cen2**2)
+         ang2 = np.arccos(np.abs(ax2[2]))**2
+         err = np.sqrt(ang2 / rot_tol2 + dist2 / tol2)
+         return err
 
-         cen = pos[to_seg, :3, 3]
-         # cen = cen / np.linalg.norm(cen)
-         axis = pos[to_seg, :3, 2]
-         if np.sum(axis * cen) < 0:
-            axis = -axis
+      # try to correlate angle/cart deviation
 
-         dist_sq = cen[0]**2 + cen[1]**2
-         if dist_sq > ctol_sq * 4: return 9e9
+      # cen = pos[to_seg, :3, 3]
+      # # cen = cen / np.linalg.norm(cen)
+      # axis = pos[to_seg, :3, 2]
+      # if np.sum(axis * cen) < 0:
+      #    axis = -axis
 
-         axis_angle = np.arccos(np.abs(axis[2]))
-         if axis_angle > rtol * 4: return 9e9
+      # dist_sq = cen[0]**2 + cen[1]**2
+      # if dist_sq > ctol_sq * 4: return 9e9
 
-         # cart_angle = np.arccos(np.abs(cen[2]/np.linalg.norm(cen)))
-         # cart_perp = np.array([cen[0], cen[1], 0])
-         correction_axis = np.array([axis[1], -axis[0], 0])  # cross prod w/z
+      # axis_angle = np.arccos(np.abs(axis[2]))
+      # if axis_angle > rtol * 4: return 9e9
 
-         correction_axis = correction_axis / np.linalg.norm(correction_axis)
-         cart_bad_err = np.abs(np.sum(correction_axis * cen))
+      # # cart_angle = np.arccos(np.abs(cen[2]/np.linalg.norm(cen)))
+      # # cart_perp = np.array([cen[0], cen[1], 0])
+      # correction_axis = np.array([axis[1], -axis[0], 0])  # cross prod w/z
 
-         cen_len = np.linalg.norm(cen)
-         axis_to_cart = axis * cen_len
-         delta = axis_to_cart - cen
+      # correction_axis = correction_axis / np.linalg.norm(correction_axis)
+      # cart_bad_err = np.abs(np.sum(correction_axis * cen))
 
-         return np.sqrt(np.sum(delta**2) / ctol_sq)  #+ cart_bad_err
+      # cen_len = np.linalg.norm(cen)
+      # axis_to_cart = axis * cen_len
+      # delta = axis_to_cart - cen
 
-         # ang_err2 = (axis_angle / rtol)**2
-         # dist_sq = cen[0]**2 + cen[1]**2
-         # dis_errg2= dist_sq / ctol_sq
-         # return np.sqrt(err_sq)
+      # return np.sqrt(np.sum(delta**2) / ctol_sq)  #+ cart_bad_err
+
+      # ang_err2 = (axis_angle / rtol)**2
+      # dist_sq = cen[0]**2 + cen[1]**2
+      # dis_errg2= dist_sq / ctol_sq
+      # return np.sqrt(err_sq)
+
+      # cen2 = pos[to_seg, :, 3]
+      #  ax2 = pos[to_seg, :, 2]
+      #  dist = np.sqrt(cen2[0]**2 + cen2[1]**2)
+      #  ang = np.arccos(np.abs(ax2[2]))
+      #  err = ang / rot_tol + dist / tol
+      #  return err
 
       return func
 
