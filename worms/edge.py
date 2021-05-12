@@ -66,17 +66,17 @@ def _analysis(nclash, rms, ncontact, ncnh, nhc, **kw):
    return ok, analysis
 
 def splice_metrics_pair(
-      blk0,
-      blk1,
-      splice_max_rms,
-      splice_clash_d2,
-      splice_contact_d2,
-      splice_rms_range,
-      splice_clash_contact_range,
-      splice_clash_contact_by_helix,
-      splice_max_chain_length,
-      splice_min_dotz,
-      skip_on_fail,
+   blk0,
+   blk1,
+   splice_max_rms,
+   splice_clash_d2,
+   splice_contact_d2,
+   splice_rms_range,
+   splice_clash_contact_range,
+   splice_clash_contact_by_helix,
+   splice_max_chain_length,
+   splice_min_dotz,
+   skip_on_fail,
 ):
    return _jit_splice_metrics(
       blk0.chains,
@@ -103,30 +103,30 @@ def splice_metrics_pair(
    )
 
 def get_allowed_splices(
-      u,
-      ublks,
-      v,
-      vblks,
-      splicedb=None,
-      splice_max_rms=0.7,
-      splice_ncontact_cut=30,
-      splice_clash_d2=4.0**2,  # ca only
-      splice_contact_d2=8.0**2,
-      splice_rms_range=6,
-      splice_clash_contact_range=60,
-      splice_clash_contact_by_helix=True,
-      splice_ncontact_no_helix_cut=0,
-      splice_nhelix_contacted_cut=0,
-      splice_max_chain_length=999_999,
-      splice_min_dotz=0,
-      skip_on_fail=True,
-      parallel=False,
-      verbosity=1,
-      cache_sync=0.001,
-      precache_splices=False,
-      pbar=False,
-      pbar_interval=10.0,
-      **kw,
+   u,
+   ublks,
+   v,
+   vblks,
+   splicedb=None,
+   splice_max_rms=0.7,
+   splice_ncontact_cut=30,
+   splice_clash_d2=4.0**2,  # ca only
+   splice_contact_d2=8.0**2,
+   splice_rms_range=6,
+   splice_clash_contact_range=60,
+   splice_clash_contact_by_helix=True,
+   splice_ncontact_no_helix_cut=0,
+   splice_nhelix_contacted_cut=0,
+   splice_max_chain_length=999_999,
+   splice_min_dotz=0,
+   skip_on_fail=True,
+   parallel=False,
+   verbosity=1,
+   cache_sync=0.001,
+   precache_splices=False,
+   pbar=False,
+   pbar_interval=10.0,
+   **kw,
 ):
    assert (u.dirn[1] + v.dirn[0]) == 1, "get_allowed_splices dirn mismatch (must be N->C or C->N)"
 
@@ -538,8 +538,19 @@ def _mark_cont(ct0, ct1, bnd0, bnd1, cb0, cb1, mark0, mark1, cld2, ctd2):
    return clash, contact
 
 @jit
-def _clash_contact_by_helix(aln0, aln1, x, cb0, cb1, hrange0, hrange1, helixof0, helixof1, cld2,
-                            ctd2):
+def _clash_contact_by_helix(
+   aln0,
+   aln1,
+   x,
+   cb0,
+   cb1,
+   hrange0,
+   hrange1,
+   helixof0,
+   helixof1,
+   cld2,
+   ctd2,
+):
    # at least two helices befor and after don't exist
    if (helixof0[aln0] < 2 or helixof1[aln1] < 0 or helixof1[aln1] + 2 >= hrange1.shape[0]):
       return -1, -1, -1, -1

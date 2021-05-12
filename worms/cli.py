@@ -251,10 +251,10 @@ def build_worms_setup_from_cli_args(argv, parser=None):
    else:
       kw["db"] = CachingBBlockDB(**kw), CachingSpliceDB(**kw)
 
-   print("-------------- arg ---------------")
-   for k, v in kw.items():
-      print("   ", k, v)
-   print("-----------------------------------")
+   # print("-------------- arg ---------------")
+   # for k, v in kw.items():
+   #    print("   ", k, v)
+   # print("-----------------------------------")
 
    kw["db"][0].report()
 

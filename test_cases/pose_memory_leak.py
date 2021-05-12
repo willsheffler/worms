@@ -9,7 +9,7 @@ def report_memuse(tag):
 
 def main():
    print(len(sys.argv))
-   pyrosetta.init()
+   pyrosetta.init('-mute all')
    report_memuse("init")
    keep = list()
    for posefile in sys.argv[1:]:

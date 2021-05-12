@@ -87,3 +87,8 @@ _khash_ffi.c
 
 *.info
 *.pdb
+
+test_cases/*/*.pdb
+test_cases/*/*.json
+test_cases/*/*.info
+wormscache

@@ -1,0 +1,35 @@
+--geometry Cyclic(2)
+--bbconn 
+   _N HFuse_het_C2_N-N
+   CC HFuse_het_C2_C-C
+   N_ HFuse_het_C2_N-N
+
+--no_duplicate_bases 1
+--nbblocks 8
+
+--shuffle_bblocks 0
+#--only_bblocks 0 1 0
+
+--disable_cache 0
+--monte_carlo 0
+--pbar 0
+
+
+--tolerance 1.0
+--lever 25
+
+--splice_rms_range 4
+--splice_max_rms 0.8
+--splice_clash_contact_by_helix=1
+--splice_ncontact_cut 1
+--splice_ncontact_no_helix_cut 1
+--splice_nhelix_contacted_cut 1
+--splice_max_chain_length 9999
+--max_score0 1.0
+--max_score0sym 5.0
+--dbfiles 
+   input/local_HFuse_het_2chain_2arm_database.Sh13-5+1-AI_2.20180905.txt#
+   input/local_HFuse_het_2chain_2arm_database.ZCON-9_2.20180516.txt
+
+--parallel 8
+--cachedirs ./wormscache

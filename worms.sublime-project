@@ -24,7 +24,14 @@
 		{
 			"name": "test_plug_from_olig",
 			"shell_cmd": "cd /home/sheffler/debug/plug_from_oligomer; python ~/src/worms/worms/app/plug_from_oligomer.py @input/test.flags --cachedirs cache --run_cache runcache.pickle --verbosity 2 --monte_carlo 0 --parallel 0 @input/test2.flags &> log/sublime_build.log"
+		},
+		{
+			"name": "test_helix_ori",
+			"shell_cmd": "cd $folder/test_cases/helix_ori; rm -rf *.pdb *.info *.json ; python -mworms @input/helix_ori_1.flags &> sublime_build.log"
 		}
+
+
+
 	],
 	"folders":
 	[
@@ -48,7 +55,7 @@
 			"path": "."
 		},
 		{
-			"path": "/home/sheffler/debug/worms_stack"
+			"path": "/home/sheffler/debug/worms_debug"
 		}
 	]
 }

@@ -18,27 +18,27 @@ def getmem():
    return f"{int(mem):5}"
 
 def filter_and_output_results(
-      criteria,
-      ssdag,
-      result,
-      output_from_pose,
-      merge_bblock,
-      db,
-      output_symmetric,
-      output_centroid,
-      output_prefix,
-      max_output,
-      max_score0,
-      max_score0sym,
-      rms_err_cut,
-      no_duplicate_bases,
-      output_only_AAAA,
-      full_score0sym,
-      output_short_fnames,
-      output_only_connected,
-      null_base_names,
-      only_outputs,
-      **kw,
+   criteria,
+   ssdag,
+   result,
+   output_from_pose,
+   merge_bblock,
+   db,
+   output_symmetric,
+   output_centroid,
+   output_prefix,
+   max_output,
+   max_score0,
+   max_score0sym,
+   rms_err_cut,
+   no_duplicate_bases,
+   output_only_AAAA,
+   full_score0sym,
+   output_short_fnames,
+   output_only_connected,
+   null_base_names,
+   only_outputs,
+   **kw,
 ):
    sf = ros.core.scoring.ScoreFunctionFactory.create_score_function("score0")
    if hasattr(ros.core.scoring.symmetry, 'symmetrize_scorefunction'):
@@ -197,17 +197,15 @@ def filter_and_output_results(
                sym_asym_pose = sympose.clone()
                ros.core.pose.symmetry.make_asymmetric_pose(sym_asym_pose)
                score0sym = sf(sym_asym_pose)
+               if score0sym < max_score0sym:
+                  print('!!!!!!!!!!!!!!!!!!!!!!!!!!', score0sym)
+                  sym_asym_pose.dump_pdb('test.pdb')
+                  assert 0
             # print(getmem(), 'MEM poses and score0sym after')
 
             if score0sym >= max_score0sym:
-               print(
-                  f"mbb{merge_bblock:06} {iresult:04} score0sym fail",
-                  score0sym,
-                  "rms",
-                  rms,
-                  "grade",
-                  grade,
-               )
+               print(f"mbb{merge_bblock:06} {iresult:04} score0sym fail", score0sym, "rms", rms,
+                     "grade", grade)
                continue
          else:
             score0sym = -1

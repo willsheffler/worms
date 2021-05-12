@@ -45,7 +45,7 @@ def grow_linear(ssdag, loss_function=null_lossfunc, tolerance=1.0, last_bb_same_
 
    # if isinstance(loss_function, types.FunctionType):
    #     if not 'NUMBA_DISABLE_JIT' in os.environ:
-   #         loss_function = nb.njit(nogil=1, fastmath=1)
+   #         loss_function = nb.njit(nogil=1, fastmath=True)
 
    exe = (cf.ThreadPoolExecutor(max_workers=parallel) if parallel else InProcessExecutor())
    # exe = cf.ProcessPoolExecutor(max_workers=parallel) if parallel else InProcessExecutor()

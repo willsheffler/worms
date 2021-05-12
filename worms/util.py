@@ -328,6 +328,7 @@ def symfile_path(name):
 
 @ft.lru_cache()
 def get_symfile_contents(name):
+   print(f'reading symdef from {symfile_path(name)}')
    with open(symfile_path(name)) as f:
       return f.read()
 

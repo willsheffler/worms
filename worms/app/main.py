@@ -119,16 +119,16 @@ def worms_main2(criteria_list, kw):
    print("======================== done ========================")
 
 def worms_main_each_mergebb(
-      criteria,
-      precache_splices,
-      merge_bblock,
-      parallel,
-      verbosity,
-      bbs,
-      pbar,
-      only_merge_bblocks,
-      merge_segment,
-      **kw,
+   criteria,
+   precache_splices,
+   merge_bblock,
+   parallel,
+   verbosity,
+   bbs,
+   pbar,
+   only_merge_bblocks,
+   merge_segment,
+   **kw,
 ):
    exe = util.InProcessExecutor()
    if parallel:

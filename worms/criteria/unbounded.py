@@ -5,18 +5,18 @@ from worms.util import jit
 
 class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
    def __init__(
-         self,
-         symname,
-         tgtaxis1,
-         tgtaxis2,
-         from_seg,
-         *,
-         tolerance=1.0,
-         lever=50,
-         to_seg=-1,
-         space_group_str=None,
-         cell_dist_scale=1.0,
-         tgtaxis2_isects=[0, 1, 0],
+      self,
+      symname,
+      tgtaxis1,
+      tgtaxis2,
+      from_seg,
+      *,
+      tolerance=1.0,
+      lever=50,
+      to_seg=-1,
+      space_group_str=None,
+      cell_dist_scale=1.0,
+      tgtaxis2_isects=[0, 1, 0],
    ):
       """ Worms criteria for non-intersecting axes re: unbounded things
 
@@ -157,15 +157,17 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
 def Sheet_P321(c3=None, c2=None, **kw):
    if c3 is None or c2 is None:
       raise ValueError("must specify ...?")
-   return AxesAngle(
-      "Sheet_P321_C3_C2_depth3_1comp", Uz, Ux, from_seg=c3, to_seg=c2, **kw
-   )  ##this is currently identical to the D3 format...how do we change it to make it an array?
+   return AxesAngle("Sheet_P321_C3_C2_depth3_1comp", Uz, Ux, from_seg=c3, to_seg=c2, **kw)
+
+##this is currently identical to the D3 format...how do we change it to make it an array?
 
 def Sheet_P4212(c4=None, c2=None, **kw):
    ##should there be options for multiple C2's?
    if c4 is None or c2 is None:
       raise ValueError("must specify ...?")  # one or two of c4, c2
-   return AxesAngle("Sheet_P4212_C4_C2_depth3_1comp", Uz, Ux, from_seg=c4, to_seg=c2, **kw)
+
+#"Sheet_P4212_C4_C2_depth3_1comp",
+   return AxesAngle('P4212_C4_C2_6', Uz, Ux, from_seg=c4, to_seg=c2, cell_dist_scale=2.0, **kw)
 
 def Sheet_P6(c6=None, c2=None, **kw):
    if c6 is None or c2 is None:
@@ -270,6 +272,47 @@ def Crystal_P432_C4_C4(c4a=None, c4b=None, **kw):
       **kw,
    )
    # dihedral angle = 90
+
+def Sheet_P42_from_ws_0127(c4=None, c2=None, **kw):
+   ##should there be options for multiple C2's?
+   if c4 is None or c2 is None:
+      raise ValueError("must specify ...?")  # one or two of c4, c2
+   return AxesAngle(
+      "P42_C4_C2_4",
+      Uz,
+      Uz,
+      from_seg=c4,
+      to_seg=c2,
+      cell_dist_scale=2.0,
+      **kw,
+   )
+
+def Sheet_P6_C3_C2_from_ws_0202(c3=None, c2=None, **kw):
+   if c3 is None or c2 is None:
+      raise ValueError("must specify ...?")
+   return AxesAngle(
+      "P6_C3_C2_6",
+      Uz,
+      Uz,
+      from_seg=c3,
+      to_seg=c2,
+      cell_dist_scale=2,
+      **kw,
+   )
+
+def Sheet_P4212_from_ws_0127(c4=None, c2=None, **kw):
+   ##should there be options for multiple C2's?
+   if c4 is None or c2 is None:
+      raise ValueError("must specify ...?")  # one or two of c4, c2
+   return AxesAngle(
+      "P4212_C4_C2_4",
+      Uz,
+      Ux,
+      from_seg=c4,
+      to_seg=c2,
+      cell_dist_scale=2.0,
+      **kw,
+   )
 
 class Crystal_F23_T_C2(AxesAngle):
    def __init__(self, t=None, c2=None, **kw):

@@ -1,3 +1,4 @@
+from worms.edge import _helix_range
 from .base import *
 from worms import util
 from worms.criteria import make_hash_table, WheelHashCriteria
@@ -9,15 +10,15 @@ from worms.merge.concat import merge_results_concat
 
 class Cyclic(WormCriteria):
    def __init__(
-         self,
-         symmetry=1,
-         from_seg=0,
-         *,
-         tolerance=1.0,
-         origin_seg=None,
-         lever=50.0,
-         to_seg=-1,
-         min_radius=0,
+      self,
+      symmetry=1,
+      from_seg=0,
+      *,
+      tolerance=1.0,
+      origin_seg=None,
+      lever=50.0,
+      to_seg=-1,
+      min_radius=0,
    ):
       if from_seg == to_seg:
          raise ValueError("from_seg should not be same as to_seg")
@@ -124,6 +125,9 @@ class Cyclic(WormCriteria):
       to_seg = self.to_seg
       lever = self.lever
       min_sep2 = self.min_sep2
+      zpad = 8.0
+      min_perp_helix = 2
+      helix_max_sin = np.sin(np.radians(15.0))
 
       @util.jit
       def func(pos, idx, verts):
@@ -135,7 +139,53 @@ class Cyclic(WormCriteria):
          axis, angle = numba_axis_angle(xhat)
          rot_err_sq = lever**2 * (angle - tgt_ang)**2
          cart_err_sq = (np.sum(xhat[:, 3] * axis))**2
-         return np.sqrt(rot_err_sq + cart_err_sq)
+         geomerr = np.sqrt(rot_err_sq + cart_err_sq)
+
+         if geomerr > 1.5: return 9e9
+
+         zlb, zub = 9e9, -9e9
+         for iv in range(len(verts) - 1):
+            v = verts[iv]
+            vidx = idx[iv]
+            ibb = v.ibblock[vidx]
+            for ihull in range(v.numhull[ibb]):
+               pt = xhat @ v.hull[ibb, ihull]
+               z = np.sum(axis * pt)
+               zlb = min(z, zlb)
+               zub = max(z, zub)
+         zlb += zpad
+         zub -= zpad
+         # print('ZBOUNDS', zlb, zub)
+
+         hsupper, hslower = 0, 0
+         for iv in range(len(verts) - 1):
+            v = verts[iv]
+            vidx = idx[iv]
+            ibb = v.ibblock[vidx]
+            # print(iv, vidx, ibb, v.numhelix[ibb])
+            for ih in range(v.numhelix[ibb]):
+               beg = xhat @ v.helixbeg[ibb, ih, :]
+               end = xhat @ v.helixend[ibb, ih, :]
+               z = np.sum(axis * (beg + end) / 2)
+               hvec = end - beg
+               dot = np.sum(axis * hvec) / np.sqrt(np.sum(hvec * hvec))
+               # print(iv, ih, dot, abs(dot) < 0.1)
+               if abs(dot) > helix_max_sin:
+                  continue
+               if z < zlb: hslower += 1
+               if z > zub: hsupper += 1
+               # print('ZVAL', z)
+               # print(iv, vidx, ibb, ih, beg, end)
+
+         # helix_score = max(hsupper, hslower)
+         helix_score = max(hsupper, hslower)
+
+         # print('helix_score', helix_score)
+         # assert 0
+         if helix_score < min_perp_helix:
+            return 9e9
+
+         return geomerr
 
       @util.jit
       def func1(pos, idx, verts):

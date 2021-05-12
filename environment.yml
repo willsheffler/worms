@@ -2,10 +2,10 @@ name: worms
 channels:
  - schrodinger
  - conda-forge
- - https://conda.anaconda.org/t/IuO94WfD-JCG/rosettacommons
+ - https://pose:foldtree@conda.graylab.jhu.edu
 dependencies:
  - python >= 3.6
- - pyrosetta=2018.52
+ - pyrosetta
  - numpy=1.16.3
  - matplotlib
  - scipy
@@ -19,6 +19,8 @@ dependencies:
  - cffi
  - pymol >= 2.1
  - python-blosc >= 1.5
+ - psutil
+ - pympler
  - pip
  - pip:
    - homog >= 0.1.10

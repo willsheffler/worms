@@ -9,6 +9,7 @@ from worms.filters.clash import _chain_bounds
 import numba.types as nt
 import homog
 from worms.util import hash_str_to_int
+from scipy.spatial import ConvexHull
 
 def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
 
@@ -47,6 +48,13 @@ def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
          s = "[" + ",".join(s) + "]"
       return np.frombuffer(s.encode(), dtype="i1")
 
+   hull_obj = ConvexHull(cb[:, :3])
+   hull = cb[hull_obj.vertices, :3]
+   numhull = len(hull)
+   # print(hull.shape)
+   # print(numhull)
+   # assert 0
+
    validated = entry["validated"]
    if validated in ("na", "NA"):
       validated = False
@@ -71,6 +79,8 @@ def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
       stubs=np.ascontiguousarray(stubs.astype("f8")),
       com=com,
       rg=rg,
+      numhull=numhull,
+      hull=hull,
    )
 
    return bblock
@@ -97,30 +107,34 @@ def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
         ("stubs", nt.float64[:, :, :]),
         ("com", nt.float64[:]),
         ("rg", nt.float64),
+        ('numhull', nt.int64),
+        ('hull', nt.float64[:,:]),
     )
 )  # yapf: disable
 class _BBlock:
    def __init__(
-         self,
-         json,
-         connections,
-         file,
-         filehash,
-         components,
-         protocol,
-         name,
-         classes,
-         validated,
-         _type,
-         base,
-         basehash,
-         ncac,
-         cb,
-         chains,
-         ss,
-         stubs,
-         com,
-         rg,
+      self,
+      json,
+      connections,
+      file,
+      filehash,
+      components,
+      protocol,
+      name,
+      classes,
+      validated,
+      _type,
+      base,
+      basehash,
+      ncac,
+      cb,
+      chains,
+      ss,
+      stubs,
+      com,
+      rg,
+      numhull,
+      hull,
    ):
       self.json = json
       self.connections = connections
@@ -141,6 +155,8 @@ class _BBlock:
       self.stubs = stubs
       self.com = com
       self.rg = rg
+      self.numhull = numhull
+      self.hull = hull
       assert np.isnan(np.sum(self.ncac)) == False
       assert np.isnan(np.sum(self.cb)) == False
       assert np.isnan(np.sum(self.stubs)) == False
@@ -180,6 +196,8 @@ class _BBlock:
          self.stubs,
          self.com,
          self.rg,
+         self.numhull,
+         self.hull,
       )
 
 def bblock_dump_pdb(

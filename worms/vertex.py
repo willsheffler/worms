@@ -11,65 +11,51 @@ from logging import warning
 import concurrent.futures as cf
 from worms.util import InProcessExecutor, jit
 from worms.criteria import cyclic
+from worms.edge import _helix_range
 
 vertex_xform_dtype = np.float32
 
+MAX_HELIX = 50
+MAX_HULL = 100
 
 @nb.jitclass(
-    (
-        ("x2exit", nb.typeof(vertex_xform_dtype(0))[:, :, :]),
-        ("x2orig", nb.typeof(vertex_xform_dtype(0))[:, :, :]),
-        ("inout", nt.int32[:, :]),
-        ("inbreaks", nt.int32[:]),
-        ("ires", nt.int32[:, :]),
-        ("isite", nt.int32[:, :]),
-        ("ichain", nt.int32[:, :]),
-        ("ibblock", nt.int32[:]),
-        ("dirn", nt.int32[:]),
-        ("min_seg_len", nt.int32),
-    )
+      (
+            ("x2exit", nb.typeof(vertex_xform_dtype(0))[:, :, :]),
+            ("x2orig", nb.typeof(vertex_xform_dtype(0))[:, :, :]),
+            ("inout", nt.int32[:, :]),
+            ("inbreaks", nt.int32[:]),
+            ("ires", nt.int32[:, :]),
+            ("isite", nt.int32[:, :]),
+            ("ichain", nt.int32[:, :]),
+            ("ibblock", nt.int32[:]),
+            ("dirn", nt.int32[:]),
+            ("min_seg_len", nt.int32),
+            ('numhelix', nt.int32[:]),
+            ('helixbeg', nt.float32[:,:,:]),
+            ('helixend', nt.float32[:,:,:]),
+            ('numhull', nt.int32[:]),
+            ('hull', nt.float32[:,:,:])
+      )
 )  # yapf: disable
 class _Vertex:
-   """contains data for one topological vertex in the topological ssdag
-
-    Attributes:
-        dirn (TYPE): Description
-        ibblock (TYPE): Description
-        ichain (TYPE): Description
-        inout (TYPE): Description
-        ires (TYPE): Description
-        isite (TYPE): Description
-        x2exit (TYPE): Description
-        x2orig (TYPE): Description
-    """
    def __init__(
-         self,
-         x2exit,
-         x2orig,
-         ires,
-         isite,
-         ichain,
-         ibblock,
-         inout,
-         inbreaks,
-         dirn,
-         min_seg_len,
+      self,
+      x2exit,
+      x2orig,
+      ires,
+      isite,
+      ichain,
+      ibblock,
+      inout,
+      inbreaks,
+      dirn,
+      min_seg_len,
+      numhelix,
+      helixbeg,
+      helixend,
+      numhull,
+      hull,
    ):
-      """TODO: Summary
-
-        Args:
-            x2exit (TYPE): Description
-            x2orig (TYPE): Description
-            ires (TYPE): Description
-            isite (TYPE): Description
-            ichain (TYPE): Description
-            ibblock (TYPE): Description
-            inout (TYPE): Description
-            dirn (TYPE): Description
-
-        Deleted Parameters:
-            bblock (TYPE): Description
-        """
       self.x2exit = x2exit.astype(vertex_xform_dtype)
       self.x2orig = x2orig.astype(vertex_xform_dtype)
       self.ires = ires
@@ -80,6 +66,12 @@ class _Vertex:
       self.inbreaks = inbreaks
       self.dirn = dirn
       self.min_seg_len = min_seg_len
+      self.numhelix = numhelix
+      self.helixbeg = helixbeg
+      self.helixend = helixend
+
+      self.numhull = numhull
+      self.hull = hull
 
    @property
    def entry_index(self):
@@ -122,6 +114,11 @@ class _Vertex:
          self.inbreaks,
          self.dirn,
          self.min_seg_len,
+         self.numhelix,
+         self.helixbeg,
+         self.helixend,
+         self.numhull,
+         self.hull,
       )
 
    @property
@@ -156,7 +153,7 @@ def vertex_single(bbstate, bbid, din, dout, min_seg_len, verbosity=0):
       if bb.conn_dirn(i) == dout:
          ires1.append(ires)
          isite1.append(np.repeat(i, len(ires)))
-   dirn = "NC_" [din] + "NC_" [dout]
+   dirn = "NC_"[din] + "NC_"[dout]
    if din < 2 and not ires0 or dout < 2 and not ires1:
       if verbosity > 0:
          warning("invalid vertex " + dirn + " " + bytes(bb.file).decode())
@@ -269,13 +266,13 @@ def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0):
    # assert _check_bbires_inorder(ibblock, ires[:, 1])
 
    inout = np.stack(
-       [
-           util.unique_key_int32s(ibblock, ires[:, 0]),
-           util.unique_key_int32s(ibblock, ires[:, 1]),
-       ],
-       axis=-1,
+         [
+               util.unique_key_int32s(ibblock, ires[:, 0]),
+               util.unique_key_int32s(ibblock, ires[:, 1]),
+         ],
+         axis=-1,
    ).astype(
-       "i4"
+         "i4"
    )  # yapf: disable
 
    # inout2 = np.stack([
@@ -299,4 +296,50 @@ def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0):
    assert inbreaks.dtype == np.int32
    assert np.all(inbreaks <= len(inout))
 
-   return _Vertex(*tup, inout, inbreaks, np.array([din, dout], dtype="i4"), min_seg_len)
+   numhelix = np.zeros(dtype=np.int32, shape=(len(bbs), ))
+   helixbeg = np.zeros(dtype=np.float32, shape=(len(bbs), MAX_HELIX, 4))
+   helixend = np.zeros(dtype=np.float32, shape=(len(bbs), MAX_HELIX, 4))
+
+   numhull = -np.ones(dtype=np.int32, shape=(len(bbs), ))
+   hull = 9e9 * np.ones(dtype=np.float32, shape=(len(bbs), MAX_HULL, 4))
+   hull[:, :, 3] = 1
+
+   for ibb, bb in enumerate(bbs):
+      hrange, helixof = _helix_range(bb.ss)
+      numh = 0
+      for ih, (lb, ub) in enumerate(hrange):
+         if ub - lb < 21: continue
+         beg = np.mean(bb.ncac[lb + 3:lb + 10, 1], axis=0)
+         end = np.mean(bb.ncac[ub - 9:ub - 2, 1], axis=0)
+         helixbeg[ibb, numh, :] = beg
+         helixend[ibb, numh, :] = end
+         numh += 1
+      numhelix[ibb] = numh
+
+      numhull[ibb] = bb.numhull
+      hull[ibb, :bb.numhull, :3] = bb.hull
+      # print(bb.hull.shape)
+      # print(hull[ibb, :bb.numhull, :].shape)
+      # print(hull.shape)
+      # assert 0
+
+   # print('numhelix', numhelix)
+   # print()
+   # print(helixbeg[0, :10])
+   # print()
+   # print(helixbeg[1, :10])
+   # print('helixori', numhelix.shape, helixbeg.shape, helixend.shape)
+   # assert 0
+
+   return _Vertex(
+      *tup,
+      inout,
+      inbreaks,
+      np.array([din, dout], dtype="i4"),
+      min_seg_len,
+      numhelix,
+      helixbeg,
+      helixend,
+      numhull,
+      hull,
+   )

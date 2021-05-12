@@ -11,7 +11,7 @@ sys.path.insert(0, ".")
 print(os.getcwd())
 from worms import util
 
-pr.init()
+pr.init('-mute all')
 
 template = """
 {"file": "__DATADIR__/%s",
