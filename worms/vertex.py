@@ -31,6 +31,8 @@ MAX_HULL = 100
             ("dirn", nt.int32[:]),
             ("min_seg_len", nt.int32),
             ('numhelix', nt.int32[:]),
+            ('helixresbeg', nt.int32[:,:]),
+            ('helixresend', nt.int32[:,:]),
             ('helixbeg', nt.float32[:,:,:]),
             ('helixend', nt.float32[:,:,:]),
             ('numhull', nt.int32[:]),
@@ -51,6 +53,8 @@ class _Vertex:
       dirn,
       min_seg_len,
       numhelix,
+      helixresbeg,
+      helixresend,
       helixbeg,
       helixend,
       numhull,
@@ -67,6 +71,8 @@ class _Vertex:
       self.dirn = dirn
       self.min_seg_len = min_seg_len
       self.numhelix = numhelix
+      self.helixresbeg = helixresbeg
+      self.helixresend = helixresend
       self.helixbeg = helixbeg
       self.helixend = helixend
 
@@ -115,6 +121,8 @@ class _Vertex:
          self.dirn,
          self.min_seg_len,
          self.numhelix,
+         self.helixresbeg,
+         self.helixresend,
          self.helixbeg,
          self.helixend,
          self.numhull,
@@ -297,6 +305,9 @@ def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0):
    assert np.all(inbreaks <= len(inout))
 
    numhelix = np.zeros(dtype=np.int32, shape=(len(bbs), ))
+
+   helixresbeg = np.zeros(dtype=np.int32, shape=(len(bbs), MAX_HELIX))
+   helixresend = np.zeros(dtype=np.int32, shape=(len(bbs), MAX_HELIX))
    helixbeg = np.zeros(dtype=np.float32, shape=(len(bbs), MAX_HELIX, 4))
    helixend = np.zeros(dtype=np.float32, shape=(len(bbs), MAX_HELIX, 4))
 
@@ -311,6 +322,8 @@ def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0):
          if ub - lb < 21: continue
          beg = np.mean(bb.ncac[lb + 3:lb + 10, 1], axis=0)
          end = np.mean(bb.ncac[ub - 9:ub - 2, 1], axis=0)
+         helixresbeg[ibb, numh] = lb
+         helixresend[ibb, numh] = ub
          helixbeg[ibb, numh, :] = beg
          helixend[ibb, numh, :] = end
          numh += 1
@@ -338,6 +351,8 @@ def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0):
       np.array([din, dout], dtype="i4"),
       min_seg_len,
       numhelix,
+      helixresbeg,
+      helixresend,
       helixbeg,
       helixend,
       numhull,

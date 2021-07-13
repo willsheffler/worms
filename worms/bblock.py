@@ -48,8 +48,17 @@ def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
          s = "[" + ",".join(s) + "]"
       return np.frombuffer(s.encode(), dtype="i1")
 
-   hull_obj = ConvexHull(cb[:, :3])
-   hull = cb[hull_obj.vertices, :3]
+   ca = ncac[:, 1, :]
+   hullcoord = np.array([np.mean(ca[i - 3:i + 4], axis=0) for i in range(3, len(ca) - 4)])
+   # print('!' * 100)
+   # print(hullcoord.shape)
+   # print('!' * 100)
+   # assert 0
+
+   # hullcoord = ca
+
+   hull_obj = ConvexHull(hullcoord[:, :3])
+   hull = hullcoord[hull_obj.vertices, :3]
    numhull = len(hull)
    # print(hull.shape)
    # print(numhull)

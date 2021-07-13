@@ -88,7 +88,7 @@ class AxesIntersect(WormCriteria):
       roterr2 = (ang - self.tgtangle)**2
       return np.sqrt(roterr2 / self.rot_tol**2 + (dist / self.tolerance)**2)
 
-   def jit_lossfunc(self):
+   def jit_lossfunc(self, **kw):
       from_seg = self.from_seg
       to_seg = self.to_seg
       tgtangle = self.tgtangle

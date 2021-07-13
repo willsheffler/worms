@@ -23,7 +23,7 @@ class Stack(WormCriteria):
    def score(self):
       raise NotImplementedError
 
-   def jit_lossfunc(self):
+   def jit_lossfunc(self, **kw):
       from_seg = self.from_seg
       to_seg = self.to_seg
       ctol_sq = self.tolerance**2

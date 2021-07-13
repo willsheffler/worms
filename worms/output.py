@@ -2,6 +2,7 @@ import sys
 import os
 import psutil
 import gc
+import numpy
 
 from pympler.asizeof import asizeof
 
@@ -12,6 +13,8 @@ from worms.ssdag_pose import make_pose_crit
 from worms.filters.db_filters import run_db_filters
 from worms.filters.db_filters import get_affected_positions
 from worms.ssdag import graph_dump_pdb
+
+TODO_shuf_output = True
 
 def getmem():
    mem = psutil.Process(os.getpid()).memory_info().rss / 2**20
@@ -75,7 +78,9 @@ def filter_and_output_results(
       info_file = None
       nresults = 0
       Ntotal = min(max_output, len(result.idx))
-      for iresult in range(Ntotal):
+      _stuff = list(range(Ntotal))
+      if TODO_shuf_output: numpy.random.shuffle(_stuff)
+      for iresult in _stuff:
 
          if only_outputs and iresult not in only_outputs:
             print('output skipping', iresult)

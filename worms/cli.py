@@ -93,6 +93,50 @@ cli_args = dict(
    postfilt_splice_ncontact_cut=40,
    postfilt_splice_ncontact_no_helix_cut=2,
    postfilt_splice_nhelix_contacted_cut=3,
+
+   # define which helices are "horizontal"
+   # =====================================
+   helixconf_min_num_horiz_helix=0,  # min number of 'horizontal helices required'
+   helixconf_max_num_horiz_helix=999,  # max number of 'horizontal helices required'
+   helixconf_helix_res_to_ignore=[int],  # ignore helices in specified residue range(s)
+   helixconf_min_vert_angle=0.0,  # min angle out of horizontal (perpendicular) plane
+   helixconf_max_vert_angle=8.0,  # max angle out of horizontal (perpendicular) plane
+   helixconf_min_horiz_angle=0.0,  # min horizontal 'twist' around sym axis
+   helixconf_max_horiz_angle=999.0,  # max horizontal 'twist' around sym axis
+   helixconf_min_dist_to_sym_axis=0.0,  # min distance from helix to sym axis
+   helixconf_max_dist_to_sym_axis=999.0,  # max distance from helix to sym axis
+   helixconf_check_helix_curve=0,  # consider helix curviture
+   helixconf_strict_helix_curve=0,  # all regions of helix curve must angles csts
+   helixconf_lax_helix_curve=0,  # single region of helix curve must satisfy angle csts
+
+   # define which helices are on surface / extrema
+   # =============================================
+   helixconf_use_hull_for_surface=1,  # use a convex hull to define extrema
+   helixconf_max_num_hull_verts=9999,  # limit number of points in null
+   helixconf_hull_ignore_loops=0,  # ignore loops in hull
+   helixconf_hull_trim_extrema_dist=0,  # trim points on extrema close to hull and recompute
+   helixconf_hull_trim_extrema_max_snug_dist=0,  # trim points until all hull is 'snug' to within dist
+   helixconf_max_res_trimed_extrema=0,  # max res allowed to be trimmed from hull
+   helixconf_min_depth_within_hull=0.0,  # furthist helix burial within hull allowed
+   helixconf_max_depth_within_hull=2.0,  # furthist helix exposure outside hull allowed
+   helixconf_min_axis_dist_trim=0.0,  # dont trim res within dist of symaxis
+   helixconf_max_axis_dist_trim=0.0,  # dont trim res beyond dist of symaxis
+
+   # define multiple helix patches
+   # =============================
+   helixconf_min_neighbor_helix=0,  # minimum number of neighboring helices
+   helixconf_max_neighbor_helix=999,  # minimum number of neighboring helices   
+   helixconf_min_abs_depth_neighbor=0,  # furthist neighbor burial within hull
+   helixconf_max_abs_angle_neighbor=2,  # furthist neighbor exposuer outside hull
+   helixconf_min_rel_depth_among_neighbor_helix=0,  # max neighbor vertical separation
+   helixconf_max_rel_angle_to_neighbor_helix=0,  # max neighbor helix angle delta
+   helixconf_min_neighbor_res_contacts=0,  # look at res pairs to determine neighbor distance
+   helixconf_max_dist_to_be_neighbor_helix=0,  # neighbor must be within dist of primary
+   helixconf_min_neighbor_vert_dist=0,  # min neighbor separation along sym axis
+   helixconf_max_neighbor_vert_dist=0,  # max neighbor separation along sym axis
+   helixconf_min_neighbor_horizontal_dist=0,  # min neighbor separation perp to sym axis
+   helixconf_max_neighbor_horizontal_dist=0,  # max neighbor separation perp to sym axis
+   helixconf_both_ends_neighbor_helix=0,  # neighbor helix contacts must span helices
 )
 
 def add_argument_unless_exists(parser, *arg, **kw):
@@ -113,7 +157,11 @@ def make_cli_arg_parser(parent=None):
       type_ = type(v)
       if isinstance(v, list):
          nargs = "+"
-         type_ = type(v[0])
+         if isinstance(v[0], type):
+            type_ = v[0]
+            v = list()
+         else:
+            type_ = type(v[0])
 
       add_argument_unless_exists(
          parser,

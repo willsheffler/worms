@@ -1,21 +1,14 @@
---geometry Cyclic(3)
+--geometry Cyclic(5, fixori_segment=None, fixori_tolerance=10, target_structure='input/tgt.pdb', reference_structure='input/ref.pdb')
 --bbconn 
    _N HFuse_het_C2_N-N
-   CC HFuse_het_C2_C-C
+#    CC HFuse_het_C3_C-C-N
+   CC HFuse_Sh29_3_3c_3a_0001
    N_ HFuse_het_C2_N-N
 
 --no_duplicate_bases 1
---nbblocks 1
+--nbblocks 4
+
 --shuffle_bblocks 0
-
---parallel 1
-
---tolerance 2
-
---helixconf_min_num_horiz_helix 2
---helixconf_max_vert_angle 10
---helixconf_max_depth_within_hull 2000
-
 #--only_bblocks 0 1 0
 
 --disable_cache 0
@@ -23,7 +16,7 @@
 --pbar 0
 
 
-
+--tolerance 1.0
 --lever 25
 
 --splice_rms_range 4
@@ -36,8 +29,9 @@
 --max_score0 1.0
 --max_score0sym 5.0
 --dbfiles 
-   input/local_HFuse_het_2chain_2arm_database.Sh13-5+1-AI_2.20180905.txt#
+   database/hetc3.json
+   input/local_HFuse_het_2chain_2arm_database.Sh13-5+1-AI_2.20180905.txt
    input/local_HFuse_het_2chain_2arm_database.ZCON-9_2.20180516.txt
 
-
+--parallel 8
 --cachedirs ./wormscache

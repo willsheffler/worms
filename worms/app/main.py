@@ -314,7 +314,7 @@ def search_single_stage(criteria, lbl="", **kw):
    result, tsearch = run_and_time(
       grow_linear,
       ssdag=ssdag,
-      loss_function=criteria.jit_lossfunc(),
+      loss_function=criteria.jit_lossfunc(**kw),
       last_bb_same_as=criteria.from_seg if criteria.is_cyclic else -1,
       lbl=lbl,
       **kw,

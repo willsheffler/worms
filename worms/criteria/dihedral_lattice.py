@@ -20,16 +20,16 @@ class DihedralCyclicLattice2D(WormCriteria):
     D6 C3
     """
    def __init__(
-         self,
-         symname,
-         from_seg,
-         d_nfold,
-         c_nfold,
-         *,
-         tolerance=1.0,
-         lever=50,
-         to_seg=-1,
-         space_group_str=None,
+      self,
+      symname,
+      from_seg,
+      d_nfold,
+      c_nfold,
+      *,
+      tolerance=1.0,
+      lever=50,
+      to_seg=-1,
+      space_group_str=None,
    ):
       assert from_seg == 0
       self.symname = symname
@@ -64,7 +64,7 @@ class DihedralCyclicLattice2D(WormCriteria):
    def score(self, segpos, **kw):
       raise NotImplementedError
 
-   def jit_lossfunc(self):
+   def jit_lossfunc(self, **kw):
       d_nfold = self.d_nfold
       d_2diag = np.array(self.d_2diag)
       c_nfold = self.c_nfold
@@ -294,19 +294,19 @@ def P6m_D3_C6(d3=0, c6=-1):
 
 class DihedralCyclicLattice3D(WormCriteria):
    def __init__(
-         self,
-         symname,
-         from_seg,
-         d_nfold,
-         c_nfold,
-         c_tgt_axis_isect,
-         aligners,
-         *,
-         tolerance=1.0,
-         lever=200,
-         to_seg=-1,
-         space_group_str=None,
-         to_origin=[0, 0, 0],
+      self,
+      symname,
+      from_seg,
+      d_nfold,
+      c_nfold,
+      c_tgt_axis_isect,
+      aligners,
+      *,
+      tolerance=1.0,
+      lever=200,
+      to_seg=-1,
+      space_group_str=None,
+      to_origin=[0, 0, 0],
    ):
       assert from_seg == 0
       self.symname = symname
@@ -341,7 +341,7 @@ class DihedralCyclicLattice3D(WormCriteria):
    def score(self, segpos, **kw):
       raise NotImplementedError
 
-   def jit_lossfunc(self):
+   def jit_lossfunc(self, **kw):
       d_nfold = self.d_nfold
       c_nfold = self.c_nfold
       c_tgt_axis_isect = self.c_tgt_axis_isect

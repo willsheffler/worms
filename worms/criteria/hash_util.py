@@ -65,7 +65,7 @@ class WheelHashCriteria(WormCriteria):
    def score(self, *args):
       return 0
 
-   def jit_lossfunc(self):
+   def jit_lossfunc(self, **kw):
       rots, irots = _get_hash_lossfunc_data(self.orig_criteria.nfold)
       binner = self.binner
       hash_vp = self.hash_table.hash

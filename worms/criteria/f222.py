@@ -20,7 +20,7 @@ class F222_D2_D2(WormCriteria):
    def score(self, segpos, **kw):
       raise NotImplementedError
 
-   def jit_lossfunc(self):
+   def jit_lossfunc(self, **kw):
       to_seg = self.to_seg
       tolerance = self.tolerance
       lever = self.lever

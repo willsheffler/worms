@@ -1,0 +1,1 @@
+PYTHONPATH=/home/sheffler/src/worms_helixori /home/sheffler/.conda/envs/worms/bin/python -mworms @helix_ori_1.flags

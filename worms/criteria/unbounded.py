@@ -67,7 +67,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
       angle = np.arccos(np.abs(hm.hdot(ax1, ax2)))
       return np.abs((angle - self.target_angle)) / self.tolerance * self.lever
 
-   def jit_lossfunc(self):
+   def jit_lossfunc(self, **kw):
       from_seg = self.from_seg
       to_seg = self.to_seg
       target_angle = self.target_angle
@@ -329,7 +329,7 @@ class Crystal_F23_T_C2(AxesAngle):
          **kw,
       )
 
-   def jit_lossfunc(self):
+   def jit_lossfunc(self, **kw):
       from_seg = self.from_seg
       to_seg = self.to_seg
       target_angle = self.target_angle
@@ -376,7 +376,7 @@ class Crystal_F23_T_C3(AxesAngle):
          **kw,
       )
 
-   def jit_lossfunc(self):
+   def jit_lossfunc(self, **kw):
       from_seg = self.from_seg
       to_seg = self.to_seg
       target_angle = self.target_angle
@@ -442,7 +442,7 @@ class Crystal_F23_T_T(AxesAngle):
          **kw,
       )
 
-   def jit_lossfunc(self):
+   def jit_lossfunc(self, **kw):
       from_seg = self.from_seg
       to_seg = self.to_seg
       target_angle = self.target_angle

@@ -1,0 +1,35 @@
+--geometry NullCriteria()
+--bbconn 
+   _C C3_C
+   N_ Monomer
+
+--no_duplicate_bases 1
+--nbblocks 2
+
+--shuffle_bblocks 0
+#--only_bblocks 0 1 0
+
+--disable_cache 1
+--monte_carlo 0
+--pbar 0
+
+
+--tolerance 1.0
+--lever 25
+
+--splice_rms_range 4
+--splice_max_rms 0.8
+--splice_clash_contact_by_helix=1
+--splice_ncontact_cut 1
+--splice_ncontact_no_helix_cut 1
+--splice_nhelix_contacted_cut 1
+--splice_max_chain_length 9999
+--max_score0 50.0
+--max_score0sym 200.0
+--dbfiles 
+   dbfiles/het_oligomers.database.20200928.txt
+   dbfiles/homo_oligomers.database.20210528.txt
+   dbfiles/repeat.database.dhr4.asym.20200428.txt
+
+--parallel -1
+#--cachedirs /home/sheffler/src/worms_helixori/test_cases/helix_ori//wormscache

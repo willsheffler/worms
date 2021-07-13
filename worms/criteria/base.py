@@ -52,6 +52,8 @@ class CriteriaList(WormCriteria):
    def __iter__(self):
       return iter(self.children)
 
+from worms.filters.helixconf_jit import make_helixconf_filter
+
 class NullCriteria(WormCriteria):
    def __init__(self, from_seg=0, to_seg=-1, origin_seg=None):
       self.from_seg = from_seg
@@ -72,10 +74,28 @@ class NullCriteria(WormCriteria):
       r[..., :, :] = np.eye(4)
       return r
 
-   def jit_lossfunc(self):
+   def jit_lossfunc(self, **kw):
+      kw = Bunch(**kw)
+
+      from_seg = self.from_seg
+      to_seg = self.to_seg
+      lever = self.lever
+      min_sep2 = self.min_sep2
+
+      helixconf_filter = make_helixconf_filter(**kw)
+
       @jit
       def null_lossfunc(pos, idx, verts):
-         return 0.0
+
+         x_from = pos[from_seg]
+         x_to = pos[to_seg]
+         xhat = x_to @ np.linalg.inv(x_from)
+         if np.sum(xhat[:3, 3]**2) < min_sep2:
+            return 9e9
+         axis = np.array([0, 0, 1, 0])
+
+         helixerr = helixconf_filter(pos, idx, verts, xhat, axis)
+         return helixerr
 
       return null_lossfunc
 

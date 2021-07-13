@@ -1,26 +1,28 @@
-import sys, os, json, argparse
+import os, json, argparse, re
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser(description="move worms db around")
 parser.add_argument("locations", nargs="+", type=str)
-parser.add_argument("--destination", default=".", type=str)
+parser.add_argument("--destination", default="./dbfiles", type=str)
 args = parser.parse_args()
-dest = args.destination
+dest = args.destination + '/'
 
-def get_files_from_dbfile(dbfile):
-   with open(dbfile) as inp:
-      j = json.load(inp)
-   return [e["file"] for e in j]
-
-for dbloc in args.locations:
-   host, dbfile = dbloc.split(":")
+for dbfile in args.locations:
    os.makedirs(dest, exist_ok=1)
-   cmd = f"rsync -z {host}:{dbfile} {dest}"
-   print(cmd)
-   os.system(cmd)
-   localdbfile = dest + "/" + os.path.basename(dbfile)
-   files = get_files_from_dbfile(localdbfile)
-   for f in files:
-      os.makedirs(dest + "/" + os.path.dirname(f[1:]), exist_ok=1)
-      cmd = f"rsync -z fw:{f} {dest}/{f[1:]}"
-      print(cmd)
+   with open(dbfile) as inp:
+      dbcontents = inp.read()
+   dbjson = json.loads(dbcontents)
+   files = [e["file"] for e in dbjson]
+   for f in tqdm(files):
+      newf = re.sub('/.*/', dest, f)
+      entry = [e for e in dbjson if e['file'] == f]
+      assert len(entry) == 1
+      entry[0]['file'] = newf
+      cmd = f"rsync -z {f} {newf}"
+      # print(cmd)
       os.system(cmd)
+   newdbfile = dest + os.path.split(dbfile)[1]
+   print('reading from', dbfile)
+   print('moving to', newdbfile)
+   with open(newdbfile, 'w') as out:
+      json.dump(dbjson, out)

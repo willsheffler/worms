@@ -1,14 +1,90 @@
-from worms.edge import _helix_range
 from .base import *
 from worms import util
+from worms.bunch import Bunch
+from worms.filters.helixconf_jit import make_helixconf_filter
 from worms.criteria import make_hash_table, WheelHashCriteria
-from homog import numba_axis_angle, hrot
+from homog import numba_axis_angle, hrot, angle
 from xbin import gu_xbin_indexer, numba_xbin_indexer
 from copy import deepcopy
-from worms.util import ros
+from worms.util import ros, get_bb_stubs
 from worms.merge.concat import merge_results_concat
+from math import acos
+from pyrosetta import pose_from_file
 
 class Cyclic(WormCriteria):
+   def jit_lossfunc(self, **kw):
+      kw = Bunch(**kw)
+
+      tgt_ang = self.symangle
+      from_seg = self.from_seg
+      to_seg = self.to_seg
+      lever = self.lever
+      min_sep2 = self.min_sep2
+
+      tolerance = kw.tolerance
+
+      axis_constraint_bblock = -1
+      axis_constraint_angle = 0.6523580032234328  # 37.37739188761675
+
+      fixori_segment = self.fixori_segment
+      fixori_target = self.fixori_target
+      fixori_target_axis, fixori_target_angle = numba_axis_angle(fixori_target)
+      fixori_tolerance = self.fixori_tolerance
+
+      helixconf_filter = make_helixconf_filter(**kw)
+
+      @util.jit
+      def lossfunc(pos, idx, verts):
+         x_from = pos[from_seg]
+         x_to = pos[to_seg]
+         xhat = x_to @ np.linalg.inv(x_from)
+         if np.sum(xhat[:3, 3]**2) < min_sep2:
+            return 9e9
+         axis, angle = numba_axis_angle(xhat)
+         rot_err_sq = lever**2 * (angle - tgt_ang)**2
+         cart_err_sq = (np.sum(xhat[:, 3] * axis))**2
+         geomerr = np.sqrt(rot_err_sq + cart_err_sq)
+         if geomerr > tolerance:
+            return 9e9
+
+         helixerr = helixconf_filter(pos, idx, verts, xhat, axis, angle)
+         if helixerr > tolerance:
+            return 9e9
+
+         if axis_constraint_bblock > 0:
+            bbz = pos[axis_constraint_bblock, :, 2]
+            bb_ang = acos(np.sum(bbz * axis))
+            bb_ang_err_sq = lever**2 * (bb_ang - axis_constraint_angle)**2
+            bb_pt = pos[axis_constraint_bblock, :, 3]
+
+            if bb_ang_err_sq < 1.0:
+               return 9e9
+
+         if fixori_segment is not None:
+            seg_axis, seg_angle = numba_axis_angle(pos[fixori_segment])
+            dev_angle = acos(np.sum(fixori_target_axis * seg_axis))
+            if dev_angle > fixori_tolerance: return 9e9
+            if abs(fixori_target_angle - seg_angle) > fixori_tolerance: return 9e9
+
+         return geomerr
+
+      @util.jit
+      def func1(pos, idx, verts):
+         x_from = pos[from_seg]
+         x_to = pos[to_seg]
+         xhat = x_to @ np.linalg.inv(x_from)
+         cosang = (xhat[0, 0] + xhat[1, 1] + xhat[2, 2] - 1.0) / 2.0
+         rot_err_sq = (1.0 - cosang) * np.pi * lever**2  # hokey, but works
+         # axis, angle = numba_axis_angle(xhat)  # right way, but slower
+         # rot_err_sq = angle**2 * lever**2
+         cart_err_sq = np.sum(xhat[:3, 3]**2)
+         return np.sqrt(rot_err_sq + cart_err_sq)
+
+      if self.nfold is 1:
+         return func1
+
+      return lossfunc
+
    def __init__(
       self,
       symmetry=1,
@@ -19,6 +95,10 @@ class Cyclic(WormCriteria):
       lever=50.0,
       to_seg=-1,
       min_radius=0,
+      reference_structure=None,
+      target_structure=None,
+      fixori_segment=None,
+      fixori_tolerance=10.0,
    ):
       if from_seg == to_seg:
          raise ValueError("from_seg should not be same as to_seg")
@@ -61,6 +141,17 @@ class Cyclic(WormCriteria):
       else:
          self.min_sep2 = min_radius * np.sin(a) / np.sin((np.pi - a) / 2)
       self.min_sep2 = self.min_sep2**2
+
+      self.fixori_segment = fixori_segment
+      self.fixori_tolerance = fixori_tolerance
+      self.fixori_target = np.eye(4)
+      if self.fixori_segment is not None:
+         self.reference_structure = pose_from_file(reference_structure)
+         self.target_structure = pose_from_file(target_structure)
+         assert self.reference_structure.sequence() == self.target_structure.sequence()
+         refstub = get_bb_stubs(self.reference_structure, which_resi=[7])[0].squeeze()
+         tgtstub = get_bb_stubs(self.target_structure, which_resi=[7])[0].squeeze()
+         self.fixori_target = tgtstub @ np.linalg.inv(refstub)
 
    def score(self, segpos, *, verbosity=False, **kw):
       x_from = segpos[self.from_seg]
@@ -118,91 +209,6 @@ class Cyclic(WormCriteria):
       align = hm.hrot((axis + tgtaxis) / 2, np.pi, cen)
       align[..., :3, 3] -= cen[..., :3]
       return align
-
-   def jit_lossfunc(self):
-      tgt_ang = self.symangle
-      from_seg = self.from_seg
-      to_seg = self.to_seg
-      lever = self.lever
-      min_sep2 = self.min_sep2
-      zpad = 8.0
-      min_perp_helix = 2
-      helix_max_sin = np.sin(np.radians(15.0))
-
-      @util.jit
-      def func(pos, idx, verts):
-         x_from = pos[from_seg]
-         x_to = pos[to_seg]
-         xhat = x_to @ np.linalg.inv(x_from)
-         if np.sum(xhat[:3, 3]**2) < min_sep2:
-            return 9e9
-         axis, angle = numba_axis_angle(xhat)
-         rot_err_sq = lever**2 * (angle - tgt_ang)**2
-         cart_err_sq = (np.sum(xhat[:, 3] * axis))**2
-         geomerr = np.sqrt(rot_err_sq + cart_err_sq)
-
-         if geomerr > 1.5: return 9e9
-
-         zlb, zub = 9e9, -9e9
-         for iv in range(len(verts) - 1):
-            v = verts[iv]
-            vidx = idx[iv]
-            ibb = v.ibblock[vidx]
-            for ihull in range(v.numhull[ibb]):
-               pt = xhat @ v.hull[ibb, ihull]
-               z = np.sum(axis * pt)
-               zlb = min(z, zlb)
-               zub = max(z, zub)
-         zlb += zpad
-         zub -= zpad
-         # print('ZBOUNDS', zlb, zub)
-
-         hsupper, hslower = 0, 0
-         for iv in range(len(verts) - 1):
-            v = verts[iv]
-            vidx = idx[iv]
-            ibb = v.ibblock[vidx]
-            # print(iv, vidx, ibb, v.numhelix[ibb])
-            for ih in range(v.numhelix[ibb]):
-               beg = xhat @ v.helixbeg[ibb, ih, :]
-               end = xhat @ v.helixend[ibb, ih, :]
-               z = np.sum(axis * (beg + end) / 2)
-               hvec = end - beg
-               dot = np.sum(axis * hvec) / np.sqrt(np.sum(hvec * hvec))
-               # print(iv, ih, dot, abs(dot) < 0.1)
-               if abs(dot) > helix_max_sin:
-                  continue
-               if z < zlb: hslower += 1
-               if z > zub: hsupper += 1
-               # print('ZVAL', z)
-               # print(iv, vidx, ibb, ih, beg, end)
-
-         # helix_score = max(hsupper, hslower)
-         helix_score = max(hsupper, hslower)
-
-         # print('helix_score', helix_score)
-         # assert 0
-         if helix_score < min_perp_helix:
-            return 9e9
-
-         return geomerr
-
-      @util.jit
-      def func1(pos, idx, verts):
-         x_from = pos[from_seg]
-         x_to = pos[to_seg]
-         xhat = x_to @ np.linalg.inv(x_from)
-         cosang = (xhat[0, 0] + xhat[1, 1] + xhat[2, 2] - 1.0) / 2.0
-         rot_err_sq = (1.0 - cosang) * np.pi * lever**2  # hokey, but works
-         # axis, angle = numba_axis_angle(xhat)  # right way, but slower
-         # rot_err_sq = angle**2 * lever**2
-         cart_err_sq = np.sum(xhat[:3, 3]**2)
-         return np.sqrt(rot_err_sq + cart_err_sq)
-
-      if self.nfold is 1:
-         # print('Cyclic func1 lever', lever, from_seg, to_seg)
-         return func1
-      return func
 
    def stages(self, hash_cart_resl, hash_ori_resl, bbs, **kw):
       "return spearate criteria for each search stage"

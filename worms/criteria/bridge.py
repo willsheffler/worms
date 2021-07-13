@@ -11,16 +11,16 @@ from worms.search.result import ResultJIT, SearchStats
 
 class HashCriteria(WormCriteria):
    def __init__(
-         self,
-         from_seg=0,
-         to_seg=-1,
-         hash_cart_resl=None,
-         hash_ori_resl=None,
-         filter_hash=None,
-         filter_binner=None,
-         prev_isite=None,
-         prev_vsize=None,
-         **kw,
+      self,
+      from_seg=0,
+      to_seg=-1,
+      hash_cart_resl=None,
+      hash_ori_resl=None,
+      filter_hash=None,
+      filter_binner=None,
+      prev_isite=None,
+      prev_vsize=None,
+      **kw,
    ):
       self.from_seg = from_seg
       self.to_seg = to_seg
@@ -45,7 +45,7 @@ class HashCriteria(WormCriteria):
    def cloned_segments(self):
       return (self.to_seg, )
 
-   def jit_lossfunc(self):
+   def jit_lossfunc(self, **kw):
       from_seg = self.from_seg
       to_seg = self.to_seg
       prev_isite = self.prev_isite
@@ -210,13 +210,13 @@ class Bridge(WormCriteria):
       return [(critA, bbsA), (critB, bbsB)], merge_results_bridge_short
 
    def stages_long(
-         self,
-         bbs,
-         hash_cart_resl,
-         hash_ori_resl,
-         loose_hash_cart_resl,
-         loose_hash_ori_resl,
-         **kw,
+      self,
+      bbs,
+      hash_cart_resl,
+      hash_ori_resl,
+      loose_hash_cart_resl,
+      loose_hash_ori_resl,
+      **kw,
    ):
       """
         stage1: grow A->B and produce coarse_hash of all B positions

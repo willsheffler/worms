@@ -18,7 +18,7 @@ class Null(WormCriteria):
    def alignment(self, segpos, **kw):
       return np.eye(4)
 
-   def jit_lossfunc(self):
+   def jit_lossfunc(self, **kw):
       @util.jit
       def func(pos, idx, verts):
          return 0.0
