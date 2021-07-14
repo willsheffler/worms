@@ -88,30 +88,30 @@ class SearchSpaceDag:
       print(f"    edge sizes:   {sum(sizeedge):8,}", sizeedge)
 
 def simple_search_dag(
-      criteria,
-      db=None,
-      nbblocks=[64],
-      min_seg_len=15,
-      parallel=False,
-      verbosity=0,
-      timing=0,
-      modbbs=None,
-      make_edges=True,
-      merge_bblock=None,
-      merge_segment=None,
-      precache_splices=False,
-      precache_only=False,
-      bbs=None,
-      bblock_ranges=[],
-      only_seg=None,
-      source=None,
-      print_edge_summary=False,
-      no_duplicate_bases=False,
-      shuffle_bblocks=False,
-      use_saved_bblocks=False,
-      output_prefix="./worms",
-      only_ivertex=[],
-      **kw,
+   criteria,
+   db=None,
+   nbblocks=[64],
+   min_seg_len=15,
+   parallel=False,
+   verbosity=0,
+   timing=0,
+   modbbs=None,
+   make_edges=True,
+   merge_bblock=None,
+   merge_segment=None,
+   precache_splices=False,
+   precache_only=False,
+   bbs=None,
+   bblock_ranges=[],
+   only_seg=None,
+   source=None,
+   print_edge_summary=False,
+   no_duplicate_bases=False,
+   shuffle_bblocks=False,
+   use_saved_bblocks=False,
+   output_prefix="./worms",
+   only_ivertex=[],
+   **kw,
 ):
    bbdb, spdb = db
    queries, directions = zip(*criteria.bbspec)
@@ -281,7 +281,7 @@ def simple_search_dag(
       for i, bb in enumerate(bbs):
          dirn = directions[i]
          if verts[i] is None:
-            futures.append(pool.submit(Vertex, bb, dirn, min_seg_len=min_seg_len))
+            futures.append(pool.submit(Vertex, bb, dirn, min_seg_len=min_seg_len, **kw))
       verts_new = [f.result() for f in futures]
       isnone = [i for i in range(len(verts)) if verts[i] is None]
       for i, inone in enumerate(isnone):

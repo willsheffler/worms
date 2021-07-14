@@ -55,13 +55,13 @@ class CriteriaList(WormCriteria):
 from worms.filters.helixconf_jit import make_helixconf_filter
 
 class NullCriteria(WormCriteria):
-   def __init__(self, from_seg=0, to_seg=-1, origin_seg=None):
-      self.from_seg = from_seg
-      self.to_seg = to_seg
+   def __init__(self, cyclic=1):
+      self.from_seg = 0
+      self.to_seg = -1
       self.origin_seg = None
       self.is_cyclic = False
       self.tolerance = 9e8
-      self.symname = None
+      self.symname = 'C%i' % cyclic if cyclic > 1 else None
 
    def merge_segment(self, **kw):
       return None
@@ -75,27 +75,16 @@ class NullCriteria(WormCriteria):
       return r
 
    def jit_lossfunc(self, **kw):
-      kw = Bunch(**kw)
-
-      from_seg = self.from_seg
-      to_seg = self.to_seg
-      lever = self.lever
-      min_sep2 = self.min_sep2
-
-      helixconf_filter = make_helixconf_filter(**kw)
+      helixconf_filter = make_helixconf_filter(self, **kw)
 
       @jit
       def null_lossfunc(pos, idx, verts):
-
-         x_from = pos[from_seg]
-         x_to = pos[to_seg]
-         xhat = x_to @ np.linalg.inv(x_from)
-         if np.sum(xhat[:3, 3]**2) < min_sep2:
-            return 9e9
          axis = np.array([0, 0, 1, 0])
-
-         helixerr = helixconf_filter(pos, idx, verts, xhat, axis)
+         helixerr = helixconf_filter(pos, idx, verts, axis)
+         # if helixerr < 9e8:
+         # print('null_lossfunc', helixerr)
          return helixerr
+         # return 0.0
 
       return null_lossfunc
 

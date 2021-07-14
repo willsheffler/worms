@@ -1,8 +1,5 @@
-import sys
-import os
-import psutil
-import gc
-import numpy
+import sys, collections, os, psutil, gc
+import numpy as np
 
 from pympler.asizeof import asizeof
 
@@ -79,7 +76,9 @@ def filter_and_output_results(
       nresults = 0
       Ntotal = min(max_output, len(result.idx))
       _stuff = list(range(Ntotal))
-      if TODO_shuf_output: numpy.random.shuffle(_stuff)
+      if TODO_shuf_output:
+         np.random.shuffle(_stuff)
+      seenpose = collections.defaultdict(lambda: list())
       for iresult in _stuff:
 
          if only_outputs and iresult not in only_outputs:
@@ -141,6 +140,18 @@ def filter_and_output_results(
             print("error in make_pose_crit:")
             print(e)
             continue
+
+         redundant = False
+         for seen in seenpose[pose.size()]:
+            rmsd = ros.core.scoring.CA_rmsd(seen, pose, 1, 0)  # whole pose
+            # print('!' * 100)
+            print(f'    RMSD {iresult:04} {rmsd}')
+            # print('!' * 100)
+            if rmsd < 2.0:
+               print('SKIPPING REDUNDANT OUTPUT')
+               redundant = True
+         if redundant: continue
+         seenpose[pose.size()].append(pose)
 
          # print(getmem(), 'MEM dbfilters before')
          try:
@@ -284,6 +295,7 @@ def filter_and_output_results(
             with open(fname + ".sym", "w") as out:
                out.write(symfilestr)
          nresults += 1
+
          commas = lambda l: ",".join(str(_) for _ in l)
          with open(fname + "_asym.pdb", "a") as out:
             for ip, p in enumerate(prov):

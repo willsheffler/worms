@@ -1,16 +1,26 @@
---geometry NullCriteria()
+--geometry NullCriteria(cyclic=3)
 --bbconn 
    _C C3_C
    N_ Monomer
 
---no_duplicate_bases 1
---nbblocks 2
+--monte_carlo 0
+
+--no_duplicate_bases 0
+--nbblocks 1
+--parallel 0
+
+--helixconf_min_num_horiz_helix 1
+--helixconf_max_vert_angle 15
+--helixconf_max_depth_within_hull 0.0000001
+--helixconf_use_hull_for_surface 0
+--helixconf_min_helix_size 14
 
 --shuffle_bblocks 0
 #--only_bblocks 0 1 0
 
---disable_cache 1
---monte_carlo 0
+
+--disable_cache 0
+
 --pbar 0
 
 
@@ -31,5 +41,5 @@
    dbfiles/homo_oligomers.database.20210528.txt
    dbfiles/repeat.database.dhr4.asym.20200428.txt
 
---parallel -1
-#--cachedirs /home/sheffler/src/worms_helixori/test_cases/helix_ori//wormscache
+
+--cachedirs ./wormscache

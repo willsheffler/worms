@@ -108,6 +108,8 @@ cli_args = dict(
    helixconf_check_helix_curve=0,  # consider helix curviture
    helixconf_strict_helix_curve=0,  # all regions of helix curve must angles csts
    helixconf_lax_helix_curve=0,  # single region of helix curve must satisfy angle csts
+   helixconf_min_helix_size=14,
+   helixconf_max_helix_size=9999,
 
    # define which helices are on surface / extrema
    # =============================================

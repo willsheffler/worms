@@ -12,9 +12,11 @@
 
 --tolerance 2
 
---helixconf_min_num_horiz_helix 2
---helixconf_max_vert_angle 10
---helixconf_max_depth_within_hull 2000
+--helixconf_min_num_horiz_helix 1
+--helixconf_max_vert_angle 15
+--helixconf_max_depth_within_hull 2
+--helixconf_use_hull_for_surface 1
+--helixconf_min_helix_size 14
 
 #--only_bblocks 0 1 0
 

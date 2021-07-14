@@ -31,7 +31,7 @@ class Cyclic(WormCriteria):
       fixori_target_axis, fixori_target_angle = numba_axis_angle(fixori_target)
       fixori_tolerance = self.fixori_tolerance
 
-      helixconf_filter = make_helixconf_filter(**kw)
+      helixconf_filter = make_helixconf_filter(self, **kw)
 
       @util.jit
       def lossfunc(pos, idx, verts):
@@ -47,7 +47,7 @@ class Cyclic(WormCriteria):
          if geomerr > tolerance:
             return 9e9
 
-         helixerr = helixconf_filter(pos, idx, verts, xhat, axis, angle)
+         helixerr = helixconf_filter(pos, idx, verts, axis)
          if helixerr > tolerance:
             return 9e9
 

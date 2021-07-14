@@ -239,7 +239,7 @@ def _check_bbires_inorder(ibblock, ires):
          prev[ibblock[i]] = ires[i]
    return True
 
-def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0):
+def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0, **kw):
    dirn_map = {"N": 0, "C": 1, "_": 2}
    din = dirn_map[dirn[0]]
    dout = dirn_map[dirn[1]]
@@ -304,22 +304,20 @@ def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0):
    assert inbreaks.dtype == np.int32
    assert np.all(inbreaks <= len(inout))
 
+   minsize = kw['helixconf_min_helix_size'] if 'helixconf_min_helix_size' in kw else 14
+   maxsize = kw['helixconf_max_helix_size'] if 'helixconf_max_helix_size' in kw else 999
    numhelix = np.zeros(dtype=np.int32, shape=(len(bbs), ))
-
    helixresbeg = np.zeros(dtype=np.int32, shape=(len(bbs), MAX_HELIX))
    helixresend = np.zeros(dtype=np.int32, shape=(len(bbs), MAX_HELIX))
    helixbeg = np.zeros(dtype=np.float32, shape=(len(bbs), MAX_HELIX, 4))
    helixend = np.zeros(dtype=np.float32, shape=(len(bbs), MAX_HELIX, 4))
 
-   numhull = -np.ones(dtype=np.int32, shape=(len(bbs), ))
-   hull = 9e9 * np.ones(dtype=np.float32, shape=(len(bbs), MAX_HULL, 4))
-   hull[:, :, 3] = 1
-
    for ibb, bb in enumerate(bbs):
       hrange, helixof = _helix_range(bb.ss)
       numh = 0
       for ih, (lb, ub) in enumerate(hrange):
-         if ub - lb < 21: continue
+         if ub - lb < minsize: continue
+         if ub - lb > maxsize: continue
          beg = np.mean(bb.ncac[lb + 3:lb + 10, 1], axis=0)
          end = np.mean(bb.ncac[ub - 9:ub - 2, 1], axis=0)
          helixresbeg[ibb, numh] = lb
@@ -329,6 +327,9 @@ def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0):
          numh += 1
       numhelix[ibb] = numh
 
+      numhull = -np.ones(dtype=np.int32, shape=(len(bbs), ))
+      hull = 9e9 * np.ones(dtype=np.float32, shape=(len(bbs), MAX_HULL, 4))
+      hull[:, :, 3] = 1
       numhull[ibb] = bb.numhull
       hull[ibb, :bb.numhull, :3] = bb.hull
       # print(bb.hull.shape)
