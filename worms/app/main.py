@@ -12,8 +12,8 @@ import traceback
 import pyrosetta
 import blosc
 from tqdm import tqdm
-from xbin import gu_xbin_indexer, numba_xbin_indexer
-import homog as hg
+# from xbin import gu_xbin_indexer, numba_xbin_indexer
+from worms import homog as hg
 
 from worms.cli import build_worms_setup_from_cli_args
 from worms.ssdag import simple_search_dag
@@ -29,6 +29,20 @@ from worms.output import filter_and_output_results
 _shared_ssdag = None
 
 def worms_main(argv):
+
+   # from worms.homog import rand_xform, numba_axis_angle_cen, hrot, axis_ang_cen_of, numba_hrot
+   # x = rand_xform().astype('f4')
+   # print(x.shape)
+   # axis, angle, cen = numba_axis_angle_cen(x)
+   # axis0, angle0, cen0 = axis_ang_cen_of(x)
+   # print(axis)
+   # print(axis0)
+   # print(angle)
+   # print(angle0)
+   # print(cen)
+   # print(cen0)
+   # print(numba_hrot(axis, angle, cen))
+   # assert 0
 
    pyrosetta.init("-mute all -beta -preserve_crystinfo --prevent_repacking")
    blosc.set_releasegil(True)

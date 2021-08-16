@@ -1,7 +1,7 @@
 import _pickle
 
 import numpy as np
-from homog import sym
+from worms.homog import sym
 from worms.data import sphere
 from worms.vis import plot3d
 from worms.data.sphere import get_sphere_samples

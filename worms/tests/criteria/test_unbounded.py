@@ -1,11 +1,11 @@
 import pytest
 import pickle
 import numpy as np
-from homog import hrot, htrans, axis_angle_of, axis_ang_cen_of
+from worms.homog import hrot, htrans, axis_angle_of, axis_ang_cen_of
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from worms import *
 from worms.criteria.unbounded import *
-from homog.sym import icosahedral_axes as IA
+from hm.sym import icosahedral_axes as IA
 import time
 from .. import only_if_pyrosetta
 

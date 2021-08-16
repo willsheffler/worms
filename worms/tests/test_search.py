@@ -1,7 +1,7 @@
 import pytest
 import _pickle as pickle
 import numpy as np
-from homog import hrot, htrans, axis_angle_of, axis_ang_cen_of
+from worms.homog import hrot, htrans, axis_angle_of, axis_ang_cen_of
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from worms import *
 import time

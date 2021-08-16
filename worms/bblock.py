@@ -7,7 +7,7 @@ from worms.util import jit
 from worms.vis import format_atom
 from worms.filters.clash import _chain_bounds
 import numba.types as nt
-import homog
+from worms import homog as hm
 from worms.util import hash_str_to_int
 from scipy.spatial import ConvexHull
 

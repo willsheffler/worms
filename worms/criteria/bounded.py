@@ -1,30 +1,36 @@
 from .base import WormCriteria, Ux, Uy, Uz
 import numpy as np
-import homog as hm
+
+import worms.homog as hm
+from worms.homog import (
+   numba_dihedral,
+   numba_cross,
+   numba_dot,
+   numba_normalized,
+   numba_line_line_closest_points_pa,
+   numba_line_line_distance_pa,
+)
 from worms.util import jit
 from worms.merge.wye import wye_merge
-
-@jit
-def numba_line_line_closest_points_pa(pt1, ax1, pt2, ax2):
-   C21 = pt2 - pt1
-   M = hm.numba_cross(ax1, ax2)
-   m2 = np.sum(M**2)
-   R = hm.numba_cross(C21, M / m2)
-   t1 = np.sum(R * ax2)
-   t2 = np.sum(R * ax1)
-   Q1 = pt1 - t1 * ax1
-   Q2 = pt2 - t2 * ax2
-   return Q1, Q2
-
-@jit
-def numba_normalized(v):
-   return v / hm.numba_norm(v)
 
 class AxesIntersect(WormCriteria):
    """
     """
-   def __init__(self, symname, tgtaxis1, tgtaxis2, from_seg=0, origin_seg=None, *, tolerance=1.0,
-                lever=50, to_seg=-1, nondistinct_axes=False, segs=None, tgtaxis3=None):
+   def __init__(
+      self,
+      symname,
+      tgtaxis1,
+      tgtaxis2,
+      from_seg=0,
+      origin_seg=None,
+      *,
+      tolerance=1.0,
+      lever=50,
+      to_seg=-1,
+      nondistinct_axes=False,
+      segs=None,
+      tgtaxis3=None,
+   ):
       """
         """
       if from_seg == to_seg:
@@ -96,6 +102,9 @@ class AxesIntersect(WormCriteria):
       rot_tol = self.rot_tol
       nondistinct_axes = self.nondistinct_axes
 
+      NFOLD = 3
+      endsymangle = 2 * np.pi / NFOLD
+
       @jit
       def func(pos, idx, verts):
          cen1 = pos[from_seg][:, 3]
@@ -108,7 +117,7 @@ class AxesIntersect(WormCriteria):
             ax1 = ax1[:3]
             ax2 = ax2[:3]
             p, q = numba_line_line_closest_points_pa(cen1, ax1, cen2, ax2)
-            dist = np.sqrt(np.sum((p - q)**2))
+            dist = hm.np.sqrt(np.sum((p - q)**2))
             cen = (p + q) / 2
             ax1c = numba_normalized(cen1 - cen)
             ax2c = numba_normalized(cen2 - cen)
@@ -118,30 +127,101 @@ class AxesIntersect(WormCriteria):
                ax2 = -ax2
             ang = np.arccos(np.sum(ax1 * ax2))
          else:
-            dist = hm.numba_line_line_distance_pa(cen1, ax1, cen2, ax2)
-            ang = np.arccos(np.abs(hm.numba_dot(ax1, ax2)))
+            p, q = numba_line_line_closest_points_pa(cen1, ax1, cen2, ax2)
+            # dist = numba_line_line_distance_pa(cen1, ax1, cen2, ax2)
+            dist = np.linalg.norm(p - q)
+            ang = np.arccos(np.abs(numba_dot(ax1, ax2)))
          roterr2 = (ang - tgtangle)**2
-         return np.sqrt(roterr2 / rot_tol**2 + (dist / tolerance)**2)
+
+         geomscore = np.sqrt(roterr2 / rot_tol**2 + (dist / tolerance)**2)
+         if geomscore > 0.5: return 9e9
+         # print(abs(ang - tgtangle), dist)
+
+         xhat = pos[-1] @ np.linalg.inv(pos[0])
+         p, q = numba_line_line_closest_points_pa(cen1, ax1, cen2, ax2)
+         cagecen = (p + q) / 2.0
+
+         # print('dist tol', dist, tolerance, np.linalg.norm(p - q))
+         # daxis = xhat @ np.array([1, 0, 0, 0], dtype=np.float32)
+
+         flip = numba_dot(pos[-1][:, 2], numba_normalized(pos[-1][:, 3] - cagecen))
+         if flip > 0.0:
+            return 9e9
+         daxis = pos[-1][:, 0]  # x dihedral axis (x)
+         # print('cagecen', cagecen)
+         # print('ax1', ax1)
+         # print('ax2', ax2)
+         # print('daxis', daxis)
+         # print('p3', cagecen + ax2)
+         # print('p4', cagecen + ax2 + daxis)
+
+         dang = numba_dihedral(
+            cagecen + ax1,
+            cagecen,
+            cagecen + ax2,
+            cagecen + ax2 + daxis,
+         )
+         dang = dang % endsymangle
+
+         tgtdang = np.pi / 3
+         dangerr = min(
+            abs(dang - endsymangle - tgtdang),
+            abs(dang - tgtdang),
+            abs(dang + endsymangle - tgtdang),
+         )
+         if dangerr > np.radians(5):
+            return 9e9
+         # print('deg:', dang * 180 / np.pi, 'rad:', dang)
+
+         # dihedral symcen1, center, symcen2, bblock_orig
+         # print(np.sqrt(roterr2), dist)
+         # print(np.sqrt(roterr2 / rot_tol**2 + (dist / tolerance)**2))
+         # print(roterr2, rot_tol, dist, tolerance)
+         # assert 0
+
+         score = geomscore
+
+         return score
 
       return func
 
-   def alignment(self, segpos, debug=0, **kw):
-      """
-        """
+   def alignment(self, segpos, out_cell_spacing=False, debug=0, **kw):
       if hm.angle_degrees(self.tgtaxis1[1], self.tgtaxis2[1]) < 0.1:
          return np.eye(4)
       cen1 = segpos[self.from_seg][..., :, 3]
       cen2 = segpos[self.to_seg][..., :, 3]
       ax1 = segpos[self.from_seg][..., :, 2]
       ax2 = segpos[self.to_seg][..., :, 2]
+
+      # print(segpos)
+      # print('========')
+      print('ang', np.degrees(hm.angle(ax1, ax2)))
       if not self.nondistinct_axes and hm.angle(ax1, ax2) > np.pi / 2:
+         print('swap')
          ax2 = -ax2
+      # print('alignax1', ax1)
+      # print('alignax2', ax2)
+      # print('ang', hm.angle_degrees(ax1, ax2))
+      # assert 0
       p, q = hm.line_line_closest_points_pa(cen1, ax1, cen2, ax2)
       cen = (p + q) / 2
-      # ax1 = hm.hnormalized(cen1 - cen)
-      # ax2 = hm.hnormalized(cen2 - cen)
+      # print('p', p)
+      # print('q', q)
+      # print('dist', hm.line_line_distance_pa(cen1, ax1, cen2, ax2))
+      # print('cendiff1', hm.hnormalized(cen1 - cen))
+      # print('cendiff2', hm.hnormalized(cen2 - cen))
+      # print('tgtaxis1', self.tgtaxis1[1])
+      # print('tgtaxis2', self.tgtaxis2[1])
       x = hm.align_vectors(ax1, ax2, self.tgtaxis1[1], self.tgtaxis2[1])
       x[..., :, 3] = -x @ cen
+      # print('newax', x @ ax1)
+      # print('newax', x @ ax2)
+
+      if out_cell_spacing:
+         # cell spacing = dist to Dx origin * 2
+         cell_spacing = 2 * np.linalg.norm(segpos[-1][:3])
+         return x, cell_spacing
+
       if debug:
          print(
             "angs",

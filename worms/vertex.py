@@ -4,7 +4,7 @@
 import numpy as np
 import numba as nb
 import numba.types as nt
-from homog import is_homog_xform
+from worms.homog import is_homog_xform
 from worms import util
 from worms.bblock import chain_of_ires, _BBlock
 from logging import warning
@@ -16,7 +16,7 @@ from worms.edge import _helix_range
 vertex_xform_dtype = np.float32
 
 MAX_HELIX = 50
-MAX_HULL = 100
+MAX_HULL = 200
 
 @nb.jitclass(
       (

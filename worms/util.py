@@ -15,7 +15,7 @@ import numpy as np
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from concurrent.futures import as_completed as cf_as_completed
-from homog import hrot
+from worms.homog import hrot
 import numba as nb
 
 try:
@@ -86,7 +86,11 @@ class NonFuture:
    def result(self):
       if self.dummy:
          return self.fn
-      return self.fn(*self.args, **self.kw)
+         print('NonFuture running')
+      rslt = self.fn(*self.args, **self.kw)
+      # print('result obj\n  ', rslt)
+      # assert 0
+      return rslt
 
 def cpu_count():
    try:

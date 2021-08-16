@@ -2,11 +2,11 @@ from copy import deepcopy
 
 from .base import *
 
-from xbin import numba_xbin_indexer
+# from xbin import numba_xbin_indexer
 from worms.khash import KHashi8i8
 from worms.khash.khash_cffi import _khash_set, _khash_get
 from worms.criteria.hash_util import encode_indices, decode_indices
-import homog as hg
+from worms import homog as hg
 from worms.search.result import ResultJIT, SearchStats
 
 class HashCriteria(WormCriteria):

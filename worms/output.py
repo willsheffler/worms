@@ -70,10 +70,31 @@ def filter_and_output_results(
             info_file.write(" seg%i_enter seg%i_pdb seg%i_exit" % (i, i, i))
          info_file.write(" seg%i_enter seg%i_pdb" % (N - 1, N - 1))
          info_file.write("\n")
+   nresults = 0
+   if not output_from_pose:
+      for iresult in range(min(max_output, len(result.idx))):
+         segpos = result.pos[iresult]
+         xalign = criteria.alignment(segpos)
+         fname = "%s_%04i" % (head, iresult)
+         # print('align_ax1', xalign @ segpos[0, :, 2])
+         # print('align_ax2', xalign @ segpos[-1, :, 2])
+         # print(fname)
+         # print(result.err[iresult], fname)
+         graph_dump_pdb(
+            fname + ".pdb",
+            ssdag,
+            result.idx[iresult],
+            result.pos[iresult],
+            join="bb",
+            trim=True,
+            xalign=xalign,
+         )
+         nresults += 1
+         # assert 0
 
-   if output_from_pose:
+   else:
       info_file = None
-      nresults = 0
+
       Ntotal = min(max_output, len(result.idx))
       _stuff = list(range(Ntotal))
       if TODO_shuf_output:
@@ -360,22 +381,6 @@ def filter_and_output_results(
 
       if info_file is not None:
          info_file.close()
-
-   else:
-
-      nresults = 0
-      for iresult in range(min(max_output, len(result.idx))):
-         fname = "%s_%04i" % (head, iresult)
-         print(result.err[iresult], fname)
-         graph_dump_pdb(
-            fname + ".pdb",
-            ssdag,
-            result.idx[iresult],
-            result.pos[iresult],
-            join="bb",
-            trim=True,
-         )
-         nresults += 1
 
    if nresults:
       return ["nresults output" + str(nresults)]

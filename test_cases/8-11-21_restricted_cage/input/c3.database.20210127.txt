@@ -1,0 +1,142 @@
+[{"file": "/home/jlubner/scaffolds/helical_bundles/validated_Cx_for_worms/Designed_1na0C3_3_0001.pdb",
+  "name": "Designed_1na0C3_3_0001" ,
+  "class": ["C3_C"],
+  "type": "C3_C",
+  "base": "1na0C3",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-66:"]}
+ ]
+},
+
+{"file": "/home/swang523/scaffolds/C3/denovo/full/ECY_1na0HFuse_013.pdb",
+  "name": "ECY_1na0HFuse_013" ,
+  "class": ["C3_C"],
+  "type": "HFuse_C3_C" ,
+  "base": "1na0C3" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Hfuse",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-170:"]}
+  ]
+},
+
+{"file": "/home/swang523/scaffolds/C3/denovo/full/ECY_1na0HFuse_014.pdb",
+  "name": "ECY_1na0HFuse_014" ,
+  "class": ["C3_C"],
+  "type": "HFuse_C3_C" ,
+  "base": "1na0C3" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Hfuse",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-141:"]}
+  ]
+},
+
+{"file": "/home/swang523/scaffolds/C3/denovo/full/ECY_1na0HFuse_016.pdb",
+  "name": "ECY_1na0HFuse_016" ,
+  "class": ["C3_C"],
+  "type": "HFuse_C3_C" ,
+  "base": "1na0C3" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Hfuse",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-220:"]}
+  ]
+},
+
+{"file": "/home/swang523/scaffolds/C3/denovo/full/ECY_1na0HFuse_018.pdb",
+  "name": "ECY_1na0HFuse_018" ,
+  "class": ["C3_C"],
+  "type": "HFuse_C3_C" ,
+  "base": "1na0C3" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Hfuse",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-190:"]}
+  ]
+},
+
+{"file": "/home/swang523/scaffolds/C3/denovo/full/ECY_1na0HFuse_019.pdb",
+  "name": "ECY_1na0HFuse_019" ,
+  "class": ["C3_C"],
+  "type": "HFuse_C3_C" ,
+  "base": "1na0C3" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Hfuse",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-190:"]}
+  ]
+},
+
+{"file": "/home/swang523/scaffolds/C3/denovo/full/ECY_1na0HFuse_020.pdb",
+  "name": "ECY_1na0HFuse_020" ,
+  "class": ["C3_C"],
+  "type": "HFuse_C3_C" ,
+  "base": "1na0C3" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Hfuse",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-197:"]}
+  ]
+},
+
+{"file": "/home/swang523/scaffolds/C3/denovo/full/ECY_1na0HFuse_021.pdb",
+  "name": "ECY_1na0HFuse_021" ,
+  "class": ["C3_C"],
+  "type": "HFuse_C3_C" ,
+  "base": "1na0C3" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Hfuse",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-131:"]}
+  ]
+},
+
+{"file": "/home/swang523/scaffolds/C3/denovo/full/ECY_1na0HFuse_022.pdb",
+  "name": "ECY_1na0HFuse_022" ,
+  "class": ["C3_C"],
+  "type": "HFuse_C3_C" ,
+  "base": "1na0C3" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Hfuse",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-185:"]}
+  ]
+},
+
+{"file": "/home/swang523/scaffolds/C3/denovo/full/ECY_1na0HFuse_023.pdb",
+  "name": "ECY_1na0HFuse_023" ,
+  "class": ["C3_C"],
+  "type": "HFuse_C3_C" ,
+  "base": "1na0C3" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Hfuse",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-215:"]}
+  ]
+},
+
+{"file": "/home/swang523/scaffolds/C3/denovo/full/ECY_1na0HFuse_024.pdb",
+  "name": "ECY_1na0HFuse_024" ,
+  "class": ["C3_C"],
+  "type": "HFuse_C3_C" ,
+  "base": "1na0C3" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "Hfuse",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-219:"]}
+  ]
+}]

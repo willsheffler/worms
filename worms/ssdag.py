@@ -387,7 +387,7 @@ def simple_search_dag(
          print(f"max ncontact_no_helix         {fmx[1]} (will be 999 for non-5-helix splice)")
          print(f"max nhelix_contacted          {fmx[2]} (will be 999 for non-5-helix splice)")
          print("=" * 80)
-         assert edges[i].total_allowed_splices() > 0, "invalid splice"
+         assert edges[i].total_allowed_splices() > 0, "invalid, no splices seg %i" % i
       tedge = time() - tedge
       if print_edge_summary:
          _print_edge_summary(edges)
@@ -411,7 +411,15 @@ def _print_edge_summary(edges):
       print(f"({nsplices:,} {nsplices*100.0/ntot:5.2f}%)", end=" ")
    print()
 
-def graph_dump_pdb(out, ssdag, idx, pos, join="splice", trim=True):
+def graph_dump_pdb(
+      out,
+      ssdag,
+      idx,
+      pos,
+      join="splice",
+      xalign=np.eye(4),
+      trim=True,
+):
    close = False
    if isinstance(out, str):
       out = open(out, "w")
@@ -428,7 +436,7 @@ def graph_dump_pdb(out, ssdag, idx, pos, join="splice", trim=True):
          bblock=bbs[vert.ibblock[ivert]],
          dirn=vert.dirn if trim else (2, 2),
          splice=vert.ires[ivert] if trim else (-1, -1),
-         pos=x,
+         pos=xalign @ x,
          chain=chain,
          anum=anum,
          rnum=rnum,

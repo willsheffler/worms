@@ -1,0 +1,382 @@
+[{"file": "/home/swang523/scaffolds/C2/denovo/full/2L4HC2-23_2_asu_DHR53_AB_0001_0009.pdb",
+  "class": ["C2_C"],
+  "type": "C2_C",
+  "base": "",
+  "name": "2L4HC2",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-80:"]}
+ ]
+},
+{"file": "/home/thomschl/PDBS/Thomas/Homo-Oligomers/C2/2L4HC2-23_2_asu_DHR53_AB_0001_0009.pdb",
+  "class": ["C2_C"],
+  "type": "C2_C",
+  "base": "",
+  "name": "2L4HC2",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-80:"]}
+ ]
+},
+{"file": "/home/swang523/scaffolds/C2/denovo/full/3L6HC2_4_design_align_model_full.pdb",
+  "class": ["C2_C"],
+  "type": "C2_C",
+  "base": "",
+  "name": "3L6HC2",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-30:"]}
+ ]
+},
+{"file": "/home/swang523/scaffolds/C2/denovo/full/bex2C2_G2.pdb",
+  "class": ["C2_N"],
+  "type": "C2_N",
+  "base": "",
+  "name": "bex2C2_G2",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "N", "residues":[":24"]},
+    {"chain": 2, "direction": "N", "residues":[":24"]}
+ ]
+},
+{"file": "/home/swang523/scaffolds/C2/denovo/full/NB_dim1.pdb",
+  "class": ["C2_C"],
+  "type": "C2_C",
+  "base": "",
+  "name": "NB_dim1",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-15:"]},
+    {"chain": 2, "direction": "C", "residues":["-15:"]}
+ ]
+},
+{"file": "/home/swang523/scaffolds/C2/denovo/full/NB_dim5.pdb",
+  "class": ["C2_C"],
+  "type": "C2_C",
+  "base": "",
+  "name": "NB_dim5",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-15:"]},
+    {"chain": 2, "direction": "C", "residues":["-15:"]}
+ ]
+},
+{"file": "/home/swang523/scaffolds/C2/denovo/full/NB_dim12.pdb",
+  "class": ["C2_C"],
+  "type": "C2_C",
+  "base": "",
+  "name": "NB_dim12",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-15:"]},
+    {"chain": 2, "direction": "C", "residues":["-15:"]}
+ ]
+},
+{"file": "/home/swang523/scaffolds/C2/denovo/full/REFS07_full.pdb",
+  "class": ["C2_C"],
+  "type": "C2_C",
+  "base": "",
+  "name": "REFS07_full",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-100:"]},
+    {"chain": 2, "direction": "C", "residues":["-100:"]}
+ ]
+},
+{"file": "/home/swang523/scaffolds/C2/denovo/full/REFS10_full.pdb",
+  "class": ["C2_C"],
+  "type": "C2_C",
+  "base": "",
+  "name": "REFS10_full",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-100:"]},
+    {"chain": 2, "direction": "C", "residues":["-100:"]}
+ ]
+},
+{"file": "/home/swang523/scaffolds/C2/denovo/full/REFS11_full.pdb",
+  "class": ["C2_C"],
+  "type": "C2_C",
+  "base": "",
+  "name": "REFS11_full",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-100:"]},
+    {"chain": 2, "direction": "C", "residues":["-100:"]}
+ ]
+},
+{"file": "/home/swang523/scaffolds/C2/denovo/full/REFS13_full.pdb",
+  "class": ["C2_C"],
+  "type": "C2_C",
+  "base": "",
+  "name": "REFS13_full",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-120:"]},
+    {"chain": 2, "direction": "C", "residues":["-120:"]}
+ ]
+},
+{"file": "/home/swang523/scaffolds/C2/denovo/full/rop20_align_model_full.pdb",
+  "class": ["C2_C"],
+  "type": "C2_C",
+  "base": "",
+  "name": "rop20_align_model_full",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-25:"]},
+    {"chain": 2, "direction": "C", "residues":["-25:"]}
+ ]
+},
+{"file": "/home/swang523/scaffolds/C2/denovo/full/tj18C2_V03_full.pdb",
+  "class": ["C2_C"],
+  "type": "C2_C",
+  "base": "",
+  "name": "tj18C2_V03_full",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-20:"]},
+    {"chain": 2, "direction": "C", "residues":["-20:"]}
+ ]
+},
+{"file": "/home/swang523/scaffolds/C2/denovo/full/tj79C2_V01_full.pdb",
+  "class": ["C2_C"],
+  "type": "C2_C",
+  "base": "",
+  "name": "tj79C2_V01_full",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-25:"]},
+    {"chain": 2, "direction": "C", "residues":["-25:"]}
+ ]
+},
+{"file": "/home/swang523/scaffolds/C2/denovo/full/tj81C2_V39_full.pdb",
+  "class": ["C2_N"],
+  "type": "C2_N",
+  "base": "",
+  "name": "tj81C2_V39_full",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "N", "residues":[":20"]},
+    {"chain": 2, "direction": "N", "residues":[":20"]}
+ ]
+},
+{"file": "/home/swang523/scaffolds/C2/denovo/full/ZC14_full.pdb",
+  "class": ["C2_N", "C2_C"],
+  "type": "C2_N-C",
+  "base": "",
+  "name": "ZC14_full",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-10:"]},
+    {"chain": 2, "direction": "C", "residues":["-10:"]},
+     {"chain": 1, "direction": "N", "residues":[":10"]},
+    {"chain": 2, "direction": "N", "residues":[":10"]}
+ ]
+},
+{"file": "/home/swang523/scaffolds/C2/denovo/full/ZC15_full.pdb",
+  "class": ["C2_N", "C2_C"],
+  "type": "C2_N-C",
+  "base": "",
+  "name": "ZC15_full",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-10:"]},
+    {"chain": 2, "direction": "C", "residues":["-10:"]},
+     {"chain": 1, "direction": "N", "residues":[":10"]},
+    {"chain": 2, "direction": "N", "residues":[":10"]}
+ ]
+},
+{"file": "/home/swang523/scaffolds/C2/denovo/full/ZC16_align_model_full.pdb",
+  "class": ["C2_N", "C2_C"],
+  "type": "C2_N-C",
+  "base": "",
+  "name": "ZC16_align_model_full",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-10:"]},
+    {"chain": 2, "direction": "C", "residues":["-10:"]},
+     {"chain": 1, "direction": "N", "residues":[":10"]},
+    {"chain": 2, "direction": "N", "residues":[":10"]}
+ ]
+},
+{"file": "/home/swang523/scaffolds/C2/denovo/full/ZC17_full.pdb",
+  "class": ["C2_N", "C2_C"],
+  "type": "C2_N-C",
+  "base": "",
+  "name": "ZC17_full",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-10:"]},
+    {"chain": 2, "direction": "C", "residues":["-10:"]},
+     {"chain": 1, "direction": "N", "residues":[":10"]},
+    {"chain": 2, "direction": "N", "residues":[":10"]}
+ ]
+},
+{"file": "/home/swang523/scaffolds/C2/denovo/full/ZC31_align_model_full.pdb",
+  "class": ["C2_N", "C2_C"],
+  "type": "C2_N-C",
+  "base": "",
+  "name": "ZC31_align_model_full",
+  "components": [""],
+  "validated": true,
+  "protocol": "",
+  "connections":[
+    {"chain": 1, "direction": "C", "residues":["-10:"]},
+    {"chain": 2, "direction": "C", "residues":["-10:"]},
+     {"chain": 1, "direction": "N", "residues":[":10"]},
+    {"chain": 2, "direction": "N", "residues":[":10"]}
+ ]
+},
+{"file": "/home/jlubner/scaffolds/helical_bundles/validated_Cx_for_worms/HDock_2L4HC2-23_2_1BH-91.pdb",
+  "name": "HDock_2L4HC2-23_2_1BH-91" ,
+  "class": ["C2_C"],
+  "type": "HBRP_C2_C" ,
+  "base": "2L4HC2-23" ,
+  "components": ["DHR24"],
+  "validated": true,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-133:"]}
+  ]
+},
+
+{"file": "/home/jlubner/scaffolds/helical_bundles/validated_Cx_for_worms/HDock_2L4HC2-23_2_1BH-92.pdb",
+  "name": "HDock_2L4HC2-23_2_1BH-92" ,
+  "class": ["C2_C"],
+  "type": "HBRP_C2_C" ,
+  "base": "2L4HC2-23" ,
+  "components": ["DHR24"],
+  "validated": true,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-133:"]}
+  ]
+},
+
+{"file": "/home/jlubner/scaffolds/helical_bundles/validated_Cx_for_worms/HDock_2L4HC2-23_2_1BH-93.pdb",
+  "name": "HDock_2L4HC2-23_2_1BH-93" ,
+  "class": ["C2_C"],
+  "type": "HBRP_C2_C" ,
+  "base": "2L4HC2-23" ,
+  "components": ["DHR46"],
+  "validated": true,
+  "protocol": "HBRP_loop_closure",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-95:"]}
+  ]
+},
+
+{"file": "/home/swang523/scaffolds/C2/denovo/full/D_3_114_1_ZnPPaM_xtal.pdb",
+  "name": "D_3_114_1_ZnPPaM_xtal" ,
+  "class": ["C2_N"],
+  "type": "" ,
+  "base": "" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "RPX",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":["1:8"]}
+  ]
+},
+
+{"file": "/home/swang523/scaffolds/C2/denovo/full/JI_81_78_B_xtal.pdb",
+  "name": "JI_81_78_B_xtal" ,
+  "class": ["C2_C"],
+  "type": "" ,
+  "base": "" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "RPX",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-20:"]}
+  ]
+},
+
+{"file": "/home/swang523/scaffolds/C2/denovo/full/ank1C2_G3_align_model_full.pdb",
+  "name": "ank1C2_G3_align_model_full" ,
+  "class": ["C2_N"],
+  "type": "" ,
+  "base": "" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "RPX",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":["1:25"]}
+  ]
+},
+
+{"file": "/home/swang523/scaffolds/C2/denovo/full/ank3C2_1_align_model_full.pdb",
+  "name": "ank3C2_1_align_model_full" ,
+  "class": ["C2_N"],
+  "type": "" ,
+  "base": "" ,
+  "components": [""],
+  "validated": true,
+  "protocol": "RPX",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":["1:13"]}
+  ]
+},
+{"file": "/home/jlubner/scaffolds/helical_bundles/validated_Cx_for_worms/HFuse_2L4HC2-23_2_0034.pdb",
+  "name": "HFuse_2L4HC2-23_2_0034" ,
+  "class": ["C2_N"],
+  "type": "HFuse_C2_N" ,
+  "base": "2L4HC2-23" ,
+  "components": ["DHR21"],
+  "validated": true,
+  "protocol": "Hfuse",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":["1:92"]}
+  ]
+},
+
+{"file": "/home/jlubner/scaffolds/helical_bundles/validated_Cx_for_worms/HFuse_2L4HC2-23_2_0177.pdb",
+  "name": "HFuse_2L4HC2-23_2_0177" ,
+  "class": ["C2_N"],
+  "type": "HFuse_C2_N" ,
+  "base": "2L4HC2-23" ,
+  "components": ["DHR79"],
+  "validated": true,
+  "protocol": "Hfuse",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues":["1:108"]}
+  ]
+}]

@@ -1,0 +1,129 @@
+[{"file": "/home/swang523/scaffolds/heterodimers/fusedHDs/LHD101_A53_B4.pdb",
+  "name": "LHD101_A53_B4" ,
+  "class": ["Het"],
+  "type": "Het" ,
+  "base": "LHD101" ,
+  "components": ["DHR53", "DHR4"],
+  "validated": true,
+  "protocol": "HFuse to sheety dimer",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues": [":126"]},
+   {"chain": 2, "direction": "N", "residues": [":174"]}
+  ]
+},
+
+{"file": "/home/swang523/scaffolds/heterodimers/fusedHDs/LHD101_A53_B14.pdb",
+  "name": "LHD101_A53_B14" ,
+  "class": ["Het"],
+  "type": "Het" ,
+  "base": "LHD101" ,
+  "components": ["DHR53", "DHR14"],
+  "validated": true,
+  "protocol": "HFuse to sheety dimer",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues": [":126"]},
+   {"chain": 2, "direction": "N", "residues": [":141"]}
+  ]
+},
+
+{"file": "/home/swang523/scaffolds/heterodimers/fusedHDs/LHD101_A53_B62.pdb",
+  "name": "LHD101_A53_B62" ,
+  "class": ["Het"],
+  "type": "Het" ,
+  "base": "LHD101" ,
+  "components": ["DHR53", "DHR62"],
+  "validated": true,
+  "protocol": "HFuse to sheety dimer",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues": [":126"]},
+   {"chain": 2, "direction": "N", "residues": [":134"]}
+  ]
+},
+
+{"file": "/home/swang523/scaffolds/heterodimers/fusedHDs/LHD101_A53_B82.pdb",
+  "name": "LHD101_A53_B82" ,
+  "class": ["Het"],
+  "type": "Het" ,
+  "base": "LHD101" ,
+  "components": ["DHR53", "DHR82"],
+  "validated": false,
+  "protocol": "HFuse to sheety dimer",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues": [":124"]},
+   {"chain": 2, "direction": "N", "residues": [":178"]}
+  ]
+},
+
+{"file": "/home/swang523/scaffolds/heterodimers/fusedHDs/LHD274_DHR53_0001.pdb",
+  "name": "LHD274_DHR53_0001" ,
+  "class": ["Het"],
+  "type": "Het" ,
+  "base": "LHD274" ,
+  "components": ["DHR53", "DHR53"],
+  "validated": false,
+  "protocol": "HFuse to sheety dimer",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues": ["-129:"]},
+   {"chain": 2, "direction": "C", "residues": ["-129:"]}
+  ]
+},
+
+
+{"file": "/home/swang523/scaffolds/heterodimers/fusedHDs/LHD101_A21_B4.pdb",
+  "name": "LHD101_A21_B4" ,
+  "class": ["Het"],
+  "type": "Het" ,
+  "base": "LHD101" ,
+  "components": ["DHR21", "DHR4"],
+  "validated": false,
+  "protocol": "HFuse to sheety dimer",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues": [":111"]},
+   {"chain": 2, "direction": "N", "residues": [":173"]}
+  ]
+},
+
+
+{"file": "/home/swang523/scaffolds/heterodimers/fusedHDs/LHD101_A21_B14.pdb",
+  "name": "LHD101_A21_B14" ,
+  "class": ["Het"],
+  "type": "Het" ,
+  "base": "LHD101" ,
+  "components": ["DHR21", "DHR14"],
+  "validated": false,
+  "protocol": "HFuse to sheety dimer",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues": [":111"]},
+   {"chain": 2, "direction": "N", "residues": [":142"]}
+  ]
+},
+
+
+{"file": "/home/swang523/scaffolds/heterodimers/fusedHDs/LHD101_A21_B62.pdb",
+  "name": "LHD101_A21_B62" ,
+  "class": ["Het"],
+  "type": "Het" ,
+  "base": "LHD101" ,
+  "components": ["DHR21", "DHR62"],
+  "validated": false,
+  "protocol": "HFuse to sheety dimer",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues": [":111"]},
+   {"chain": 2, "direction": "N", "residues": [":126"]}
+  ]
+},
+
+
+{"file": "/home/swang523/scaffolds/heterodimers/fusedHDs/LHD101_A21_B82.pdb",
+  "name": "LHD101_A21_B82" ,
+  "class": ["Het"],
+  "type": "Het" ,
+  "base": "LHD101" ,
+  "components": ["DHR21", "DHR82"],
+  "validated": false,
+  "protocol": "HFuse to sheety dimer",
+  "connections": [
+   {"chain": 1, "direction": "N", "residues": [":111"]},
+   {"chain": 2, "direction": "N", "residues": [":168"]}
+  ]
+}]

@@ -12,7 +12,7 @@ from copy import deepcopy
 import numpy as np
 import pytest
 from xbin import gu_xbin_indexer, numba_xbin_indexer
-from homog import hrot, axis_angle_of
+from worms.homog import hrot, axis_angle_of
 
 from worms import simple_search_dag, Cyclic, grow_linear, util
 from worms.database import CachingBBlockDB, CachingSpliceDB

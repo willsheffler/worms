@@ -1,6 +1,6 @@
 import abc
 import numpy as np
-import homog as hm
+from worms import homog as hm
 from numpy.linalg import inv
 from worms.util import jit
 
@@ -80,6 +80,7 @@ class NullCriteria(WormCriteria):
       @jit
       def null_lossfunc(pos, idx, verts):
          axis = np.array([0, 0, 1, 0])
+         cen = np.array([0, 0, 0, 1])
          helixerr = helixconf_filter(pos, idx, verts, axis)
          # if helixerr < 9e8:
          # print('null_lossfunc', helixerr)

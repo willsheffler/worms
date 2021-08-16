@@ -1,8 +1,8 @@
 from worms import *
-from homog import hrot, htrans
+from worms.homog import hrot, htrans
 from .. import only_if_pyrosetta
 from worms.util import residue_sym_err
-from homog.sym import icosahedral_axes as IA
+from hm.sym import icosahedral_axes as IA
 
 def test_geom_check():
    SX = Cyclic

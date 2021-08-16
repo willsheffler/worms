@@ -123,6 +123,7 @@ cli_args = dict(
    helixconf_max_depth_within_hull=2.0,  # furthist helix exposure outside hull allowed
    helixconf_min_axis_dist_trim=0.0,  # dont trim res within dist of symaxis
    helixconf_max_axis_dist_trim=0.0,  # dont trim res beyond dist of symaxis
+   helixconf_local_extrema_distance=9e9,
 
    # define multiple helix patches
    # =============================

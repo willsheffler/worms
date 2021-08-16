@@ -2,11 +2,12 @@ from collections import namedtuple
 import numpy as np
 from worms.util import jit, expand_array_if_needed
 
-SearchStats = namedtuple("SearchStats",
-                         ["total_samples", "n_last_bb_same_as", "n_redundant_results"])
+SearchStats = namedtuple(
+   "SearchStats", ["total_samples", "n_last_bb_same_as", "n_redundant_results", 'best_score'])
 
 def zero_search_stats():
-   return SearchStats(np.zeros(1, dtype="i8"), np.zeros(1, dtype="i8"), np.zeros(1, dtype="i8"))
+   return SearchStats(np.zeros(1, dtype="i8"), np.zeros(1, dtype="i8"), np.zeros(1, dtype="i8"),
+                      np.ones(1, dtype="f8") * 9e9)
 
 ResultJIT = namedtuple("ResultJIT", ["pos", "idx", "err", "stats"])
 

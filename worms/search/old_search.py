@@ -7,8 +7,8 @@ import _pickle as pickle
 import itertools as it
 import numpy as np
 from collections import defaultdict
-from xbin import XformBinner
-from homog import hinv, hrot
+# from xbin import XformBinner
+from worms.homog import hinv, hrot
 from concurrent.futures import ProcessPoolExecutor
 from worms.segments import Segment, Segments, Worms
 from worms.criteria import CriteriaList, Cyclic, WormCriteria
@@ -97,14 +97,14 @@ class MakeXIndexAccumulator:
         xindex (TYPE): Description
     """
    def __init__(
-         self,
-         sizes,
-         thresh=1,
-         from_seg=0,
-         to_seg=-1,
-         max_tmp_size=1024,
-         cart_resl=None,
-         ori_resl=None,
+      self,
+      sizes,
+      thresh=1,
+      from_seg=0,
+      to_seg=-1,
+      max_tmp_size=1024,
+      cart_resl=None,
+      ori_resl=None,
    ):
       """TODO: Summary
 
@@ -281,18 +281,18 @@ class XIndexedAccumulator:
         xindex (TYPE): Description
     """
    def __init__(
-         self,
-         segments,
-         tail,
-         splitpoint,
-         head,
-         xindex,
-         binner,
-         nfold,
-         from_seg,
-         to_seg,
-         max_tmp_size=1024,
-         max_results=100000,
+      self,
+      segments,
+      tail,
+      splitpoint,
+      head,
+      xindex,
+      binner,
+      nfold,
+      from_seg,
+      to_seg,
+      max_tmp_size=1024,
+      max_results=100000,
    ):
       """TODO: Summary
 

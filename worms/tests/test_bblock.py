@@ -30,4 +30,4 @@ def test_bblock(bbdb):
 def test_ncac_to_stubs():
    ncac = np.random.randn(10, 3, 4).reshape(10, 3, 4)
    stubs = _ncac_to_stubs(ncac)
-   assert homog.is_homog_xform(stubs)
+   assert hm.is_homog_xform(stubs)

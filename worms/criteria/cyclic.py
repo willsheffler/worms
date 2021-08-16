@@ -1,15 +1,20 @@
-from .base import *
+from math import sqrt, acos
+from worms.criteria.base import *
 from worms import util
 from worms.bunch import Bunch
 from worms.filters.helixconf_jit import make_helixconf_filter
 from worms.criteria import make_hash_table, WheelHashCriteria
-from homog import numba_axis_angle, hrot, angle
-from xbin import gu_xbin_indexer, numba_xbin_indexer
+import worms.homog as hm
+from worms.homog import numba_axis_angle, numba_axis_angle_cen, hrot, angle, numba_hrot, rand_xform
+# from xbin import gu_xbin_indexer, numba_xbin_indexer
 from copy import deepcopy
 from worms.util import ros, get_bb_stubs
 from worms.merge.concat import merge_results_concat
-from math import acos
+
 from pyrosetta import pose_from_file
+import warnings
+
+warnings.filterwarnings('ignore')
 
 class Cyclic(WormCriteria):
    def jit_lossfunc(self, **kw):
@@ -27,46 +32,80 @@ class Cyclic(WormCriteria):
       axis_constraint_angle = 0.6523580032234328  # 37.37739188761675
 
       fixori_segment = self.fixori_segment
-      fixori_target = self.fixori_target
-      fixori_target_axis, fixori_target_angle = numba_axis_angle(fixori_target)
-      fixori_tolerance = self.fixori_tolerance
+      fixori_target = self.fixori_target.astype(np.float32)
+      fixori_tolerance = np.radians(self.fixori_tolerance)
 
       helixconf_filter = make_helixconf_filter(self, **kw)
 
       @util.jit
-      def lossfunc(pos, idx, verts):
+      def lossfunc(pos, idx, verts, debug=False):
          x_from = pos[from_seg]
          x_to = pos[to_seg]
          xhat = x_to @ np.linalg.inv(x_from)
+         if debug: print('if np.sum(xhat[:3, 3]**2) < min_sep2:')
          if np.sum(xhat[:3, 3]**2) < min_sep2:
             return 9e9
-         axis, angle = numba_axis_angle(xhat)
+
+         if debug: print('axis, angle, cen = numba_axis_angle_cen(xhat)')
+         tmp = numba_axis_angle_cen(xhat)
+         if tmp is None:
+            return 9e9
+         axis, angle, cen = tmp
+
          rot_err_sq = lever**2 * (angle - tgt_ang)**2
          cart_err_sq = (np.sum(xhat[:, 3] * axis))**2
          geomerr = np.sqrt(rot_err_sq + cart_err_sq)
-         if geomerr > tolerance:
+         if geomerr > 10 * tolerance:
             return 9e9
 
          helixerr = helixconf_filter(pos, idx, verts, axis)
-         if helixerr > tolerance:
+         if helixerr > 100 * tolerance:
             return 9e9
 
+         tgtaxiserr = 0
          if axis_constraint_bblock > 0:
             bbz = pos[axis_constraint_bblock, :, 2]
             bb_ang = acos(np.sum(bbz * axis))
             bb_ang_err_sq = lever**2 * (bb_ang - axis_constraint_angle)**2
             bb_pt = pos[axis_constraint_bblock, :, 3]
 
-            if bb_ang_err_sq < 1.0:
+            if bb_ang_err_sq < 2.0:
                return 9e9
 
-         if fixori_segment is not None:
-            seg_axis, seg_angle = numba_axis_angle(pos[fixori_segment])
-            dev_angle = acos(np.sum(fixori_target_axis * seg_axis))
-            if dev_angle > fixori_tolerance: return 9e9
-            if abs(fixori_target_angle - seg_angle) > fixori_tolerance: return 9e9
+            tgtaxiserr = bb_ang_err_sq
+            if debug: print('endif axis_constraint_bblock > 0:            ')
 
-         return geomerr
+         if fixori_segment is not None:
+            tgtpos = xhat @ fixori_target
+            segpos = pos[fixori_segment] @ np.linalg.inv(x_from)
+            tgtxform = tgtpos @ np.linalg.inv(segpos)
+            # if debug: print(tgtxform)
+            # if debug: print(tgtxform.shape)
+
+            tgtaxis, tgtang, tgtcen = numba_axis_angle_cen(tgtxform, debug=debug)
+
+            # if debug: print('\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            # if debug: print('tgtaxis/ang/cen', axis, tgtaxis)
+
+            dev_angle = acos(np.abs(np.sum(axis * tgtaxis)))
+            dev_angle = min(dev_angle, np.pi - dev_angle)
+            # if debug: print('dev_angle', dev_angle)
+            fixorierr = np.sqrt(lever**2 * dev_angle**2)
+            # if debug: print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n')
+            # assert 0
+
+            # print('dev_angle', dev_angle, 'fixori_tolerance', fixori_tolerance)
+            if dev_angle > fixori_tolerance:
+               return 9e9
+            # else:
+            # return 0
+
+         err = sqrt(geomerr**2 + helixerr**2 + tgtaxiserr**2 + fixorierr**2)
+         if err < 5:
+            print('errors', err, 'geom', geomerr, 'hel', helixerr, 'tax', tgtaxiserr, 'ori',
+                  fixorierr)
+
+         return err
 
       @util.jit
       def func1(pos, idx, verts):

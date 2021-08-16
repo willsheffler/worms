@@ -4,7 +4,7 @@
 # -----------------------------------------------------------------------------
 import numpy as np
 
-import homog as hg
+from worms import homog as hg
 
 from glumpy.api.matplotlib import *
 from glumpy.transforms import *

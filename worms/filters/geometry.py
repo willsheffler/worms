@@ -3,7 +3,7 @@ import numpy as np
 from multiprocessing import cpu_count
 from tqdm import tqdm
 
-import homog.sym as sym
+from worms.homog import sym
 from worms.util import jit, InProcessExecutor
 from worms.search.result import ResultTable
 from worms.data.sphere import get_sphere_samples

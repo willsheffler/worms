@@ -1,6 +1,6 @@
 from . import WormCriteria
 import numpy as np
-import homog as hm
+from worms import homog as hm
 from worms.util import jit
 
 class F222_D2_D2(WormCriteria):

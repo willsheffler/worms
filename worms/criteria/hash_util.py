@@ -1,6 +1,6 @@
 import numpy as np
 
-import homog as hg
+from worms import homog as hg
 
 from worms.criteria import WormCriteria
 from worms.khash import KHashi8i8
