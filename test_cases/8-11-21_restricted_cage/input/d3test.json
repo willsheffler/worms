@@ -1,0 +1,13 @@
+[{"file": "input/d3test.pdb",
+  "name": "d3test", 
+  "class": ["D3_C"],
+  "type": "D3_C", 
+  "base": "base_scaffold", 
+  "components": [""],
+  "validated": true,
+  "protocol": "Hfuse",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["90:155"]}
+  ]
+}
+]

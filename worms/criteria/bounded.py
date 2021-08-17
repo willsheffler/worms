@@ -30,6 +30,7 @@ class AxesIntersect(WormCriteria):
       nondistinct_axes=False,
       segs=None,
       tgtaxis3=None,
+      xtal=None,
    ):
       """
         """
@@ -73,6 +74,8 @@ class AxesIntersect(WormCriteria):
       self.is_cyclic = False
       self.origin_seg = None
       self.segs = segs
+      self.xtal = xtal
+      self.cell_dist_scale = 1.0
 
    def score(self, segpos, verbosity=False, **kw):
       cen1 = segpos[self.from_seg][..., :, 3]
@@ -145,7 +148,7 @@ class AxesIntersect(WormCriteria):
          # daxis = xhat @ np.array([1, 0, 0, 0], dtype=np.float32)
 
          flip = numba_dot(pos[-1][:, 2], numba_normalized(pos[-1][:, 3] - cagecen))
-         if flip > 0.0:
+         if flip < 0.0:
             return 9e9
          daxis = pos[-1][:, 0]  # x dihedral axis (x)
          # print('cagecen', cagecen)
@@ -155,6 +158,17 @@ class AxesIntersect(WormCriteria):
          # print('p3', cagecen + ax2)
          # print('p4', cagecen + ax2 + daxis)
 
+         # print(
+         #    np.degrees(
+         #       numba_dihedral(
+         #          np.array([0, 0, 1, 1]),
+         #          np.array([0, 0, 0, 1]),
+         #          np.array([1, 1, 1, 1]),
+         #          np.array([2, 2, 1, 1]),
+         #       )))
+         # assert 0 # -180 -> 60
+         tgtdang = np.pi / 3
+
          dang = numba_dihedral(
             cagecen + ax1,
             cagecen,
@@ -163,13 +177,12 @@ class AxesIntersect(WormCriteria):
          )
          dang = dang % endsymangle
 
-         tgtdang = np.pi / 3
          dangerr = min(
             abs(dang - endsymangle - tgtdang),
             abs(dang - tgtdang),
             abs(dang + endsymangle - tgtdang),
          )
-         if dangerr > np.radians(5):
+         if dangerr > np.radians(1):
             return 9e9
          # print('deg:', dang * 180 / np.pi, 'rad:', dang)
 
@@ -185,6 +198,22 @@ class AxesIntersect(WormCriteria):
 
       return func
 
+   def symfile_modifiers(self, segpos):
+      if self.xtal:
+         x, cell_dist = self.alignment(segpos, out_cell_spacing=True)
+         return dict(scale_positions=cell_dist * self.cell_dist_scale)
+      else:
+         return dict()
+
+   def crystinfo(self, segpos):
+      # CRYST1   85.001   85.001   85.001  90.00  90.00  90.00 P 21 3
+      if self.xtal is None:
+         return None
+      # print("hi")
+      x, cell_dist = self.alignment(segpos, out_cell_spacing=True)
+      cell_dist = abs(cell_dist * self.cell_dist_scale)
+      return cell_dist, cell_dist, cell_dist, 90, 90, 90, self.xtal
+
    def alignment(self, segpos, out_cell_spacing=False, debug=0, **kw):
       if hm.angle_degrees(self.tgtaxis1[1], self.tgtaxis2[1]) < 0.1:
          return np.eye(4)
@@ -195,7 +224,7 @@ class AxesIntersect(WormCriteria):
 
       # print(segpos)
       # print('========')
-      print('ang', np.degrees(hm.angle(ax1, ax2)))
+      # print('ang', np.degrees(hm.angle(ax1, ax2)))
       if not self.nondistinct_axes and hm.angle(ax1, ax2) > np.pi / 2:
          print('swap')
          ax2 = -ax2
@@ -212,15 +241,20 @@ class AxesIntersect(WormCriteria):
       # print('cendiff2', hm.hnormalized(cen2 - cen))
       # print('tgtaxis1', self.tgtaxis1[1])
       # print('tgtaxis2', self.tgtaxis2[1])
-      x = hm.align_vectors(ax1, ax2, self.tgtaxis1[1], self.tgtaxis2[1])
-      x[..., :, 3] = -x @ cen
-      # print('newax', x @ ax1)
-      # print('newax', x @ ax2)
+      xalign = hm.align_vectors(ax1, ax2, self.tgtaxis1[1], self.tgtaxis2[1])
+      xalign[..., :, 3] = -xalign @ cen
+      # print('newax', xalign @ ax1)
+      # print('newax', xalign @ ax2)
 
       if out_cell_spacing:
          # cell spacing = dist to Dx origin * 2
-         cell_spacing = 2 * np.linalg.norm(segpos[-1][:3])
-         return x, cell_spacing
+         x, y, z, _ = xalign @ segpos[-1][:, 3]
+         # print(x, y, z)
+         assert abs(x - y) < 2.0  # totally arbitrary
+         assert abs(y - z) < 2.0  # totally arbitrary
+         assert abs(z - x) < 2.0  # totally arbitrary
+         cell_spacing = 4 * (x + y + z) / 3
+         return xalign, cell_spacing
 
       if debug:
          print(
@@ -230,22 +264,22 @@ class AxesIntersect(WormCriteria):
          )
          print("ax1", ax1)
          print("ax2", ax2)
-         print("xax1", x @ ax1)
+         print("xax1", xalign @ ax1)
          print("tax1", self.tgtaxis1[1])
-         print("xax2", x @ ax2)
+         print("xax2", xalign @ ax2)
          print("tax2", self.tgtaxis2[1])
          raise AssertionError
-         # if not (np.allclose(x @ ax1, self.tgtaxis1[1], atol=1e-2) and
-         #         np.allclose(x @ ax2, self.tgtaxis2[1], atol=1e-2)):
+         # if not (np.allclose(xalign @ ax1, self.tgtaxis1[1], atol=1e-2) and
+         #         np.allclose(xalign @ ax2, self.tgtaxis2[1], atol=1e-2)):
          #     print(hm.angle(self.tgtaxis1[1], self.tgtaxis2[1]))
          #     print(hm.angle(ax1, ax2))
-         #     print(x @ ax1)
+         #     print(xalign @ ax1)
          #     print(self.tgtaxis1[1])
-         #     print(x @ ax2)
+         #     print(xalign @ ax2)
          #     print(self.tgtaxis2[1])
          #     raise AssertionError('hm.align_vectors sucks')
 
-      return x
+      return xalign
 
    def merge_segment(self, **kw):
       if self.origin_seg is None:

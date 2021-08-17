@@ -1,0 +1,27 @@
+2020-10-09
+
+Basic pipeline to run worms
+###########################
+
+1) Copy all building block databases to the "input/" directory. These should be in JSON format, and should end in ".txt".
+2) Run the "1_meta_flags.sh" script. This use the template.flags file to create a worms.flags file,  and add the databases. Edit flags as necessary.
+3) Create a list of configs to run, by changing into the config/ directory, and using ls to create a config.list in the config/ file.
+4) Edit the memory/nodes in the "cmd.sh" script, as needed.
+5) Run the "2_meta_cmd.sh" script. This will launch multiple SLURM jobs for each config.
+
+Sequence design pipeline
+########################
+
+6) Change into the "sequence_design/" directory.
+7) Run the "3_meta.sh" script. This will parse all the worms designs, and check that the appropriate building block information is in the parameters file. If there are any missing blocks, the script will prompt you to edit the parameters file, and abort. If all the information is accurate, it will generate a SLURM array task list. This script will also create a pre-processing/ directory, and output information about the building blocks used for the designs, which may be helpful for debugging.
+8) Launch the SLURM array job with the command: "sbatch -a 1-$(cat tasks|wc -l) digs_array_job.sh".
+9) After the jobs have all finished, check for any jobs that failed by running the "4_check_jobs.sh" script. This will check the output directories, and create a new task list "tasks.new" to re-queue any incomplete jobs. You can find the task ID in the SLURM_jobID file. Check to see if the task failed due to insufficient memory or a queue timeout. Adjust the digs_array_job.sh script (or make a new copy) and re-launch by using the command: "sbatch -a 1-$(cat tasks.new|wc -l) digs_array_job.sh".
+
+Filter designs
+##############
+10) Change into the processing directory, and then into the stats_and_filtering directory.
+11) Some of these scripts may take a few minutes to run, so if you're not directly connected to the digs (i.e. using a linux machine), you may want to open an interactive node via q-login.
+12) Run the "5_meta_gather_stats.sh" script. This will iterate over design.list of inputs, and gather statistics from the sequence design completed jobs using the "gather_stats.sh" script. This will create several files, which are needed for downstream analysis, and may be useful for debugging. The meta script gathers all the .info files from the worms run into the all.info file, and creates a master database file (master.database.txt) from all of the JSON databases used in the worms run. The gather_stats script will parse these files (and the sequence designed jobs) to create a designed.sc score file with details that are useful for filtering, and creating the pymol scripts.
+13) Open the "6_filter_designs.sh" script. If desired, alter the filtering criteria. This script also prepends a design number (which is useful as an alternative to the long names) to the front of each filtered design, and creates a new copy of the design in the "filtered_designs" directory. You can change the starting index by adjusting the "des_counter" variable.
+
+
