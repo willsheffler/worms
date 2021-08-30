@@ -164,10 +164,10 @@ class AxesIntersect(WormCriteria):
          #          np.array([0, 0, 1, 1]),
          #          np.array([0, 0, 0, 1]),
          #          np.array([1, 1, 1, 1]),
-         #          np.array([2, 2, 1, 1]),
+         # ]         np.array([2, 2, 1, 1]),
          #       )))
          # assert 0 # -180 -> 60
-         tgtdang = np.pi / 3
+         tgtdang = np.pi / 6
 
          dang = numba_dihedral(
             cagecen + ax1,

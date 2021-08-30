@@ -27,24 +27,24 @@
 		},
 		{
 			"name": "test_helix_ori",
-			"shell_cmd": "cd $folder/test_cases/helix_ori; rm -rf *.pdb *.info *.json ; python -mworms @input/helix_ori_1.flags &> sublime_build.log"
+			"shell_cmd": "cd $folder/test_cases/helix_ori; rm -rf *.pdb *.info *.json *.sym ; python -mworms @input/helix_ori_1.flags &> sublime_build.log"
 		},
 		{
 			"name": "test_yang_hetc3",
-			"shell_cmd": "cd $folder/test_cases/yang_hetc3; rm -rf *.pdb *.info *.json ; python -mworms @input/yang_hetc3.flags &> sublime_build.log"
+			"shell_cmd": "cd $folder/test_cases/yang_hetc3; rm -rf *.pdb *.info *.json *.sym ; python -mworms @input/yang_hetc3.flags &> sublime_build.log"
 		},
 
 		{
 			"name": "test_yang_fixori",
-			"shell_cmd": "cd $folder/test_cases/yang_fixori; rm -rf *.pdb *.info *.json ; PYTHONPATH=../../ python -mworms @input/yang_fixori.flags &> sublime_build.log"
+			"shell_cmd": "cd $folder/test_cases/yang_fixori; rm -rf *.pdb *.info *.json *.sym ; PYTHONPATH=../../ python -mworms @input/yang_fixori.flags &> sublime_build.log"
 		},
 		{
 			"name": "zhe_helixconf",
-			"shell_cmd": "cd $folder/test_cases/zhe_helixconf; rm -rf *.pdb *.info *.json ; python -mworms @input/for_zhe.flags &> sublime_build.log"
+			"shell_cmd": "cd $folder/test_cases/zhe_helixconf; rm -rf *.pdb *.info *.json *.sym ; python -mworms @input/for_zhe.flags &> sublime_build.log"
 		},
 		{
 			"name": "cagextal",
-			"shell_cmd": "cd $folder/test_cases/8-11-21_restricted_cage; rm -rf *.pdb *.info *.json ; python -mworms @input/cagextal.flags &> sublime_build.log"
+			"shell_cmd": "cd $folder/test_cases/8-11-21_restricted_cage; rm -rf *.pdb *.info *.json *.sym ; python -mworms @input/cagextal.flags &> sublime_build.log"
 		}
 
 
