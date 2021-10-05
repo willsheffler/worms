@@ -41,6 +41,9 @@ def grow_linear(
    debug=False,
    **kw,
 ):
+   print('-' * 60)
+   print('linear.py:grow_linear begin', flush=True)
+   print('-' * 60)
    verts = ssdag.verts
    edges = ssdag.edges
    loss_threshold = tolerance
@@ -61,6 +64,7 @@ def grow_linear(
    #     if not 'NUMBA_DISABLE_JIT' in os.environ:
    #         loss_function = nb.njit(nogil=True, fastmath=True)
 
+   print('linear.py:grow_linear start exe', flush=True)
    exe = (cf.ThreadPoolExecutor(max_workers=parallel) if parallel else InProcessExecutor())
    # exe = cf.ProcessPoolExecutor(max_workers=parallel) if parallel else InProcessExecutor()
    with exe as pool:
@@ -87,6 +91,7 @@ def grow_linear(
       )
       futures = list()
       if monte_carlo:
+         print('linear.py: using monte_carlo', flush=True)
          kwargs["fn"] = _grow_linear_mc_start
          kwargs["seconds"] = monte_carlo
          kwargs["ivertex_range"] = (0, verts[0].len)
@@ -100,6 +105,7 @@ def grow_linear(
             kwargs["threadno"] = ivert
             futures.append(pool.submit(**kwargs))
       else:
+         print('linear.py: NOT using monte_carlo', flush=True)
          kwargs["fn"] = _grow_linear_start
          nbatch = max(1, int(verts[0].len / 64 / cpu_count()))
          for ivert in range(0, verts[0].len, nbatch):
@@ -123,11 +129,17 @@ def grow_linear(
                mininterval=pbar_interval,
                total=len(futures),
             )
+         print('linear.py:grow_linear for f in fiter', flush=True)
          for f in fiter:
+            # print('linear.py:grow_linear:f in fiter',flush=True)
             results.append(f.result())
+            # print('linear.py:grow_linear:f in fiter DONE',flush=True)
+         # print('linear.py:grow_linear for f in fiter DONE', flush=True)
    tot_stats = zero_search_stats()
    for i in range(len(tot_stats)):
       tot_stats[i][0] += sum([r.stats[i][0] for r in results])
+
+   print('linear.py:grow_linear gather results', flush=True)
    result = ResultJIT(
       pos=np.concatenate([r.pos for r in results]),
       idx=np.concatenate([r.idx for r in results]),
@@ -136,6 +148,9 @@ def grow_linear(
    )
    result = remove_duplicate_results(result)
    order = np.argsort(result.err)
+
+   print('linear.py:grow_linear returning ResultJIT', flush=True)
+
    return ResultJIT(
       pos=result.pos[order],
       idx=result.idx[order],
@@ -150,6 +165,10 @@ def _grow_linear_start(
    debug,
    **kwargs,
 ):
+   # debug = True
+
+   if debug: print('linear.py:_grow_linear_start begin', flush=True)
+
    verts = tuple([_Vertex(*vp) for vp in verts_pickleable])
    edges = tuple([_Edge(*ep) for ep in edges_pickleable])
    pos = np.empty(shape=(1024, len(verts), 4, 4), dtype=np.float32)
@@ -173,18 +192,21 @@ def _grow_linear_start(
       print('isplice', kwargs['isplice'] is None)
       print('ivertex_range', kwargs['ivertex_range'] is None)
       print('splice_position', kwargs['splice_position'] is None)
-      with nb.objmode():
-         print('', flush=True)
+      # with nb.objmode():
+      # print('', flush=True)
 
    # assert 0
-   nresults, result = _grow_linear_recurse(
+   if debug: print('linear.py:_grow_linear_start calling _grow_linear_recurse', flush=True)
+   nresults, result, _ = _grow_linear_recurse(
       result=result,
       bb_base=bb_base,
       verts=verts,
       edges=edges,
       bases=bases,
+      bbidx_prev=-np.ones((len(verts), ), dtype=np.int64),
       **kwargs,
    )
+   if debug: print('linear.py:_grow_linear_start calling _grow_linear_recurse DONE', flush=True)
    if debug:
       print('nresults', nresults)
       print('result pos', result.pos.shape)
@@ -198,6 +220,8 @@ def _grow_linear_start(
       result.err[:nresults],
       result.stats,
    )
+
+   if debug: print('linear.py:_grow_linear_start DONE', flush=True)
    return result
 
 @jit
@@ -242,6 +266,7 @@ def _grow_linear_recurse(
    ivertex_range,
    splice_position,
    bases,
+   bbidx_prev,
    debug=False,
 ):
    """Takes a partially built 'worm' of length isplice and extends them by one based on ivertex_range
@@ -265,6 +290,7 @@ def _grow_linear_recurse(
    #    print('============ _grow_linear_recurse ===========', flush=True)
    # assert 0
 
+   debug = False
    current_vertex = verts[isplice]
    for ivertex in range(*ivertex_range):
       if not (last_bb_same_as >= 0 and isplice == len(edges)):
@@ -272,30 +298,51 @@ def _grow_linear_recurse(
          if basehash != 0 and np.any(basehash == bases[:isplice]):
             continue
          bases[isplice] = basehash
-      if debug: print('      bases[isplice] = basehash')
+      if debug: print('ivertex', ivertex)
+
       result.idx[nresults, isplice] = ivertex
       # assert splice_position.dtype is np.float32, 'splice_position not 32'
       # assert current_vertex.x2orig.dtype is np.float32, 'current_vertex not 32'
-      vertex_position = splice_position @ current_vertex.x2orig[ivertex]
       if debug: print('      vertex_position = splice_position @ current_vertex.x2orig[ivertex]')
-      result.pos[nresults, isplice] = vertex_position
+      vertex_position = splice_position @ current_vertex.x2orig[ivertex]
+      # if debug: print('      vertex_position = splice_position @ current_vertex.x2orig[ivertex]')
       if debug: print('      result.pos[nresults, isplice] = vertex_position')
+      result.pos[nresults, isplice] = vertex_position
+      # if debug: print('      result.pos[nresults, isplice] = vertex_position')
       if isplice == len(edges):
-         if debug: print('      if isplice == len(edges):')
+         if debug: print('      isplice == len(edges):')
+         # if debug: print('      if isplice == len(edges):')
+
+         # bbidx = np.ones(len(verts), dtype=np.int64)
+         bbidx = -np.ones((len(verts), ), dtype=np.int64)
+         for isp, vrt in enumerate(verts):
+            ivrt = result.idx[nresults, isp]
+            bbidx[isp] = vrt.ibblock[ivrt]
+         if np.any(bbidx != bbidx_prev):
+            if debug: print('linear.py:_grow_linear_recurse current bblocks', bbidx)
+            bbidx_prev = bbidx
+
+         if debug: print('         result.stats.total_samples[0] += 1')
+
          result.stats.total_samples[0] += 1
          if _site_overlap(result, verts, ivertex, nresults, last_bb_same_as):
-            if debug:
-               print('    if _site_overlap(result, verts, ivertex, nresults, last_bb_same_as):')
+            # if debug:
+            # print('    if _site_overlap(result, verts, ivertex, nresults, last_bb_same_as):')
             continue
-         else:
-            if debug:
-               print('    ELSE _site_overlap(result, verts, ivertex, nresults, last_bb_same_as):')
+         # else:
+         # if debug:
+         # print('    ELSE _site_overlap(result, verts, ivertex, nresults, last_bb_same_as):')
          result.stats.n_last_bb_same_as[0] += 1
          if debug:
-            print(
-               '         loss = loss_function(result.pos[nresults], result.idx[nresults], verts)')
+            print('     loss = loss_function(result.pos[nresults], result.idx[nresults], verts)')
          loss = loss_function(result.pos[nresults], result.idx[nresults], verts)
-         if debug: print('         loss', loss)
+
+         if debug: print('     DONE loss = loss_function(...)')
+         # print('         loss', loss)
+         # print('         loss', loss)
+         # print('         loss', loss)
+         # print('         loss', loss)
+
          if loss < result.stats.best_score[0]:
             result.stats.best_score[0] = loss
          if result.stats.total_samples[0] % 50000 == 0:
@@ -311,7 +358,7 @@ def _grow_linear_recurse(
             if debug: print('         if loss <= loss_threshold:')
             if nresults >= max_linear:
                if debug: print('            if nresults >= max_linear:')
-               return nresults, result
+               return nresults, result, bbidx_prev
             nresults += 1
 
             if nresults % 10000 == 0:
@@ -335,7 +382,7 @@ def _grow_linear_recurse(
             assert next_ivertex_range[1] >= 0, "ivrt rng err"
             assert next_ivertex_range[0] <= next_vertex.len, "ivrt rng err"
             assert next_ivertex_range[1] <= next_vertex.len, "ivrt rng err"
-            nresults, result = _grow_linear_recurse(
+            nresults, result, bbidx_prev = _grow_linear_recurse(
                result=result,
                bb_base=bb_base,
                verts=verts,
@@ -349,10 +396,11 @@ def _grow_linear_recurse(
                ivertex_range=next_ivertex_range,
                splice_position=next_splicepos,
                bases=bases,
+               bbidx_prev=bbidx_prev,
                debug=debug,
             )
    if debug: print('   return nresults, result')
-   return nresults, result
+   return nresults, result, bbidx_prev
 
 def _grow_linear_mc_start(seconds, verts_pickleable, edges_pickleable, threadno, pbar, lbl,
                           verbosity, merge_bblock, pbar_interval, debug, **kwargs):

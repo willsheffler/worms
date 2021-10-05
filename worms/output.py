@@ -1,7 +1,6 @@
-import sys, collections, os, psutil, gc, json
-import numpy as np
+import sys, collections, os, psutil, gc, json, traceback
 
-from pympler.asizeof import asizeof
+# from pympler.asizeof import asizeof
 
 from pyrosetta import rosetta as ros
 
@@ -11,7 +10,11 @@ from worms.filters.db_filters import run_db_filters
 from worms.filters.db_filters import get_affected_positions
 from worms.ssdag import graph_dump_pdb
 
-TODO_shuf_output = True
+def ping(merge_bblock, debug=False):
+   if debug:
+      print('mbb %4i' % merge_bblock, end='   ')
+      traceback.print_stack(limit=2, file=sys.stdout)
+      sys.stdout.flush()
 
 def getmem():
    mem = psutil.Process(os.getpid()).memory_info().rss / 2**20
@@ -40,6 +43,8 @@ def filter_and_output_results(
    only_outputs,
    **kw,
 ):
+   ping(merge_bblock)
+
    sf = ros.core.scoring.ScoreFunctionFactory.create_score_function("score0")
    if hasattr(ros.core.scoring.symmetry, 'symmetrize_scorefunction'):
       sfsym = ros.core.scoring.symmetry.symmetrize_scorefunction(sf)
@@ -59,8 +64,10 @@ def filter_and_output_results(
       head += "_"
 
    if not merge_bblock:
+      ping(merge_bblock)
       # do this once per run, at merge_bblock == 0 (or None)
       with open(head + "__HEADER.info", "w") as info_file:
+         ping(merge_bblock)
          info_file.write("close_err close_rms score0 score0sym filter zheight zradius " +
                          "radius porosity nc nc_wo_jct n_nb bases_str fname nchain chain_len " +
                          "splicepoints ibblocks ivertex")
@@ -72,10 +79,18 @@ def filter_and_output_results(
          info_file.write("\n")
    nresults = 0
    if not output_from_pose:
+
+      ping(merge_bblock)
       for iresult in range(min(max_output, len(result.idx))):
+         ping(merge_bblock)
          segpos = result.pos[iresult]
          xalign = criteria.alignment(segpos)
          if xalign is None: continue
+
+         crystinfo = None
+         if hasattr(criteria, "crystinfo"):
+            crystinfo = criteria.crystinfo(segpos=result.pos[iresult])
+
          fname = "%s_%04i" % (head, iresult)
          # print('align_ax1', xalign @ segpos[0, :, 2])
          # print('align_ax2', xalign @ segpos[-1, :, 2])
@@ -89,27 +104,34 @@ def filter_and_output_results(
             join="bb",
             trim=True,
             xalign=xalign,
+            crystinfo=crystinfo,
          )
          nresults += 1
          # assert 0
 
    else:
+      ping(merge_bblock)
+
       info_file = None
 
       Ntotal = min(max_output, len(result.idx))
       _stuff = list(range(Ntotal))
-      if TODO_shuf_output:
-         np.random.shuffle(_stuff)
+
       seenpose = collections.defaultdict(lambda: list())
       for iresult in _stuff:
-
+         ping(merge_bblock)
          if only_outputs and iresult not in only_outputs:
             print('output skipping', iresult)
             continue
 
+         crystinfo = None
+         if hasattr(criteria, "crystinfo"):
+            crystinfo = criteria.crystinfo(segpos=result.pos[iresult])
+
          # print(getmem(), 'MEM ================ top of loop ===============')
 
          if iresult % 100 == 0:
+            ping(merge_bblock)
             process = psutil.Process(os.getpid())
             gc.collect()
             mem_before = process.memory_info().rss / float(2**20)
@@ -118,7 +140,9 @@ def filter_and_output_results(
             mem_after = process.memory_info().rss / float(2**20)
             print("clear db", mem_before, mem_after, mem_before - mem_after)
 
-         if iresult % 10 == 0:
+         # if iresult % 10 == 0:
+         if iresult % 1 == 0:
+            ping(merge_bblock)
             process = psutil.Process(os.getpid())
             if hasattr(db[0], "_poses_cache"):
                print(
@@ -129,9 +153,11 @@ def filter_and_output_results(
                   f"{process.memory_info().rss / float(2**20):,}mb",
                )
 
+         ping(merge_bblock)
          bases = ssdag.get_bases(result.idx[iresult])
          bases_str = ",".join(bases)
          if no_duplicate_bases:
+            ping(merge_bblock)
             if criteria.is_cyclic:
                bases = bases[:-1]
             for null_name in null_base_names:
@@ -147,6 +173,7 @@ def filter_and_output_results(
 
          try:
             # print(getmem(), 'MEM make_pose_crit before')
+            ping(merge_bblock)
             pose, prov = make_pose_crit(
                db[0],
                ssdag,
@@ -165,18 +192,20 @@ def filter_and_output_results(
 
          redundant = False
          for seen in seenpose[pose.size()]:
+            ping(merge_bblock)
             rmsd = ros.core.scoring.CA_rmsd(seen, pose, 1, 0)  # whole pose
             # print('!' * 100)
             print(f'    RMSD {iresult:04} {rmsd}')
-            # print('!' * 100)
-            if rmsd < 2.0:
-               print('SKIPPING REDUNDANT OUTPUT')
-               redundant = True
+            # print('!' * 100
+            print('SKIPPING REDUNDANT OUTPUT')
+            redundant = True
          if redundant: continue
          seenpose[pose.size()].append(pose)
 
          # print(getmem(), 'MEM dbfilters before')
          try:
+            ping(merge_bblock)
+            # gross....
             (jstr, jstr1, filt, grade, sp, mc, mcnh, mhc, nc, ncnh, nhc) = run_db_filters(
                db, criteria, ssdag, iresult, result.idx[iresult], pose, prov, **kw)
          except Exception as e:
@@ -191,6 +220,7 @@ def filter_and_output_results(
             continue
 
          # print(getmem(), 'MEM rms before')
+         ping(merge_bblock)
          rms = criteria.iface_rms(pose, prov, **kw)
          # if rms > rms_err_cut: continue
          # print(getmem(), 'MEM rms after')
@@ -200,6 +230,7 @@ def filter_and_output_results(
          ros.core.util.switch_to_residue_type_set(cenpose, "centroid")
          score0 = sf(cenpose)
          # print(getmem(), 'MEM poses and score0 after')
+         ping(merge_bblock)
          if score0 > max_score0:
             print(
                f"mbb{merge_bblock:04} {iresult:06} score0 fail",
@@ -216,37 +247,75 @@ def filter_and_output_results(
 
          symfilestr = None
          if hasattr(criteria, "symfile_modifiers"):
+            ping(merge_bblock)
             symdata, symfilestr = util.get_symdata_modified(
                criteria.symname,
                **criteria.symfile_modifiers(segpos=result.pos[iresult]),
             )
          else:
+            ping(merge_bblock)
             symdata = util.get_symdata(criteria.symname)
 
+         ping(merge_bblock)
+
          # print(getmem(), 'MEM poses and score0sym before')
-         if symdata:
-            sympose = cenpose.clone()
-            # if pose.pdb_info() and pose.pdb_info().crystinfo().A() > 0:
-            #     ros.protocols.cryst.MakeLatticeMover().apply(sympose)
-            # else:
-            ros.core.pose.symmetry.make_symmetric_pose(sympose, symdata)
+         sympose = cenpose.clone()
+
+         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         # symops = None
+         symops = criteria.symops(segpos=result.pos[iresult])
+
+         score0sym = -1
+
+         if symops is not None:
+            orig = sympose.clone()
+            fn = f"RAW_{merge_bblock:04}_{iresult:04}_"
+            # pose.dump_pdb(fn + '0.pdb')
+            # ros.core.pose.remove_lower_terminus_type_from_pose_residue(sympose, 1)
+            # ros.core.pose.remove_upper_terminus_type_from_pose_residue(sympose, len(sympose))
+            # print('!'*60)
+            # print('cell spacing', crystinfo[0])
+            # print('!'*60)
+            for i, op in enumerate(symops):
+               ptmp = orig.clone()
+               util.xform_pose(op, ptmp)
+               # ptmp.dump_pdb('ptmp%i.pdb'%i)
+               ros.core.pose.append_pose_to_pose(sympose, ptmp)
+               # sympose.dump_pdb('sympose%i.pdb'%i)
+            # sympose.dump_pdb('fn023480yfnt.pdb' )
+
+            # assert 0
+
+            score0sym = sf(sympose)
+         elif symdata:
+            ping(merge_bblock)
+            usecryst = pose.pdb_info() and pose.pdb_info().crystinfo().A() > 0
+            # usecryst = False  # MakeLatticeMover hangs sometimes
+            if usecryst:
+               print('-' * 60)
+               print('using MakeLatticeMover')
+               print('-' * 60)
+               ros.protocols.cryst.MakeLatticeMover().apply(sympose)
+            else:
+               ros.core.pose.symmetry.make_symmetric_pose(sympose, symdata)
             score0sym = sfsym(sympose)
-            if full_score0sym:
+            if full_score0sym and not usecryst:
+               ping(merge_bblock)
                sym_asym_pose = sympose.clone()
                ros.core.pose.symmetry.make_asymmetric_pose(sym_asym_pose)
-               score0sym = sf(sym_asym_pose)
-               if score0sym < max_score0sym:
-                  print('!!!!!!!!!!!!!!!!!!!!!!!!!!', score0sym)
-                  sym_asym_pose.dump_pdb('test.pdb')
-                  assert 0
+            score0sym = sf(sym_asym_pose)
+            if score0sym > max_score0sym:
+               print('!!!!!!!!!!!!!!!!!!!!!!!!!!', score0sym)
+               sym_asym_pose.dump_pdb('full_score0_sym_fail.pdb')
+               assert 0
             # print(getmem(), 'MEM poses and score0sym after')
-
-            if score0sym >= max_score0sym:
-               print(f"mbb{merge_bblock:06} {iresult:04} score0sym fail", score0sym, "rms", rms,
-                     "grade", grade)
-               continue
          else:
             score0sym = -1
+
+         if score0sym >= max_score0sym:
+            print(f"mbb{merge_bblock:06} {iresult:04} score0sym fail", score0sym, "rms", rms,
+                  "grade", grade)
+            continue
 
          mbbstr = "None"
          if merge_bblock is not None:
@@ -257,6 +326,8 @@ def filter_and_output_results(
          chain_info = "%4d " % (len(list(chains)))
          chain_info += "-".join(str(len(c)) for c in chains)
          # print(getmem(), 'MEM chains after')
+
+         ping(merge_bblock)
 
          # print(getmem(), 'MEM get_affected_positions before')
          mod, new, lost, junct = get_affected_positions(cenpose, prov)
@@ -277,6 +348,7 @@ def filter_and_output_results(
          ibblock_list[mseg] = str(merge_bblock)
 
          if not info_file:
+            ping(merge_bblock)
             d = os.path.dirname(output_prefix)
             if d != "" and not os.path.exists(d):
                os.makedirs(d)
@@ -318,6 +390,11 @@ def filter_and_output_results(
                out.write(symfilestr)
          nresults += 1
 
+         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         # assert 0
+
+         ping(merge_bblock)
+
          commas = lambda l: ",".join(str(_) for _ in l)
          with open(fname + "_asym.pdb", "a") as out:
             for ip, p in enumerate(prov):
@@ -336,6 +413,7 @@ def filter_and_output_results(
          #
 
          if True:
+            ping(merge_bblock)
             # make json files with bblocks for single result
             tmp, seenit = list(), set()
             detail = dict(bblock=list(), ires=list(), isite=list(), ichain=list())
@@ -381,6 +459,10 @@ def filter_and_output_results(
 
       if info_file is not None:
          info_file.close()
+
+      ping(merge_bblock)
+
+   ping(merge_bblock)
 
    if nresults:
       return ["nresults output" + str(nresults)]

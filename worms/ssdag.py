@@ -388,6 +388,7 @@ def simple_search_dag(
          print(f"max nhelix_contacted          {fmx[2]} (will be 999 for non-5-helix splice)")
          print("=" * 80)
          assert edges[i].total_allowed_splices() > 0, "invalid, no splices seg %i" % i
+
       tedge = time() - tedge
       if print_edge_summary:
          _print_edge_summary(edges)
@@ -396,11 +397,14 @@ def simple_search_dag(
       # str([e.total_allowed_splices()
       # for e in edges]) + ' num exits ' + str([e.len for e in edges])
       # )
+      print('syncing splices to disk', flush=True)
       spdb.sync_to_disk()
+      print('syncing splices to disk done', flush=True)
 
    toret = SearchSpaceDag(criteria.bbspec, bbs, verts, edges)
    if timing:
       toret = toret, tdb, tvertex, tedge
+   print('simple_search_dag returning', flush=True)
    return toret
 
 def _print_edge_summary(edges):
@@ -419,11 +423,20 @@ def graph_dump_pdb(
       join="splice",
       xalign=np.eye(4),
       trim=True,
+      crystinfo=None,
 ):
+   # print('graph_dump_pdb')
+
    close = False
    if isinstance(out, str):
       out = open(out, "w")
       close = True
+
+   # print(crystinfo, flush=True)
+
+   cryst1 = 'CRYST1  %7.3f  %7.3f  %7.3f  90.00  90.00  90.00 ' % crystinfo[:3] + crystinfo[6]
+   out.write(cryst1 + '\n')
+
    assert len(idx) == len(pos)
    assert idx.ndim == 1
    assert pos.ndim == 3

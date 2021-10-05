@@ -3,7 +3,7 @@
 	[
 		{
 			"name": "util_runtests.py",
-			"shell_cmd": "cd $folder; python util/runtests.py $file &> log/sublime_build.log"
+			"shell_cmd": "cd $folder; python util/runtests.py $file &> sublime_build.log"
 		},
 		{
 			"name": "filter_audit.py",

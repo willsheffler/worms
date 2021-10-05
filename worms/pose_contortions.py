@@ -29,6 +29,7 @@ class AnnoPose:
       self.cyclic_entry = cyclic_entry
 
    def __iter__(self):
+      'this seems sketchy'
       yield self.pose
       yield (self.iseg, self.srcpose, self.src_lb, self.src_ub)
 

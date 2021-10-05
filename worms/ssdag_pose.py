@@ -4,15 +4,15 @@ from collections.abc import Iterable
 import numpy as np
 
 def make_pose_crit(
-      bbdb,
-      ssdag,
-      criteria,
-      indices,
-      positions,
-      only_connected="auto",
-      provenance=False,
-      join=True,
-      full_output_segs=[],
+   bbdb,
+   ssdag,
+   criteria,
+   indices,
+   positions,
+   only_connected="auto",
+   provenance=False,
+   join=True,
+   full_output_segs=[],
 ):
    cryst_info = None
    if hasattr(criteria, "crystinfo"):

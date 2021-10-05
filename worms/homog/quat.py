@@ -118,11 +118,12 @@ def numba_rot_to_quat(xform):
    kernel_rot_to_quat(xform, quat)
    return quat
 
-gu_rot_to_quat = guvec([
-   (float64[:, :], float64[:]),
-   (float32[:, :], float32[:]),
-], '(n,n)->(n)', kernel_rot_to_quat)
-
+# update to numba 0.52 broke this
+# gu_rot_to_quat = guvec([
+# (float64[:, :], float64[:]),
+# (float32[:, :], float32[:]),
+# ], '(n,n)->(n)', kernel_rot_to_quat)
+#
 def quat_to_rot(quat, dtype='f8', shape=(3, 3)):
    quat = np.asarray(quat)
    assert quat.shape[-1] == 4
@@ -160,17 +161,18 @@ def quat_multiply(q, r):
    t[..., 3] = r0 * q3 - r1 * q2 + r2 * q1 + r3 * q0
    return t
 
-@jit
-def kernel_quat_multiply(q, r, out):
-   q0, q1, q2, q3 = q
-   r0, r1, r2, r3 = r
-   out[0] = r0 * q0 - r1 * q1 - r2 * q2 - r3 * q3
-   out[1] = r0 * q1 + r1 * q0 - r2 * q3 + r3 * q2
-   out[2] = r0 * q2 + r1 * q3 + r2 * q0 - r3 * q1
-   out[3] = r0 * q3 - r1 * q2 + r2 * q1 + r3 * q0
+# update to numba 0.52 broke this
+# @jit
+# def kernel_quat_multiply(q, r, out):
+#    q0, q1, q2, q3 = q
+#    r0, r1, r2, r3 = r
+#    out[0] = r0 * q0 - r1 * q1 - r2 * q2 - r3 * q3
+#    out[1] = r0 * q1 + r1 * q0 - r2 * q3 + r3 * q2
+#    out[2] = r0 * q2 + r1 * q3 + r2 * q0 - r3 * q1
+#    out[3] = r0 * q3 - r1 * q2 + r2 * q1 + r3 * q0
 
-gu_quat_multiply = guvec([(float64[:], float64[:], float64[:])], '(n),(n)->(n)',
-                         kernel_quat_multiply)
+# gu_quat_multiply = guvec([(float64[:], float64[:], float64[:])], '(n),(n)->(n)',
+#                          kernel_quat_multiply)
 
 @jit
 def numba_quat_multiply(q, r):

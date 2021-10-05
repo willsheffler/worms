@@ -22,12 +22,12 @@ try:
 except ImportError:
    info("pymol not available!")
 
-try:
-   from pyrosetta.rosetta.core.pose import Pose
-except ImportError:
-   from unittest.mock import MagicMock
-
-   Pose = MagicMock()
+# try:
+from pyrosetta.rosetta.core.pose import Pose
+# except ImportError:
+# assert 0, 'NO ROSETTA
+#
+# Pose = MagicMock()
 
 _atom_record_format = (
    "ATOM  {atomi:5d} {atomn:^4}{idx:^1}{resn:3s} {chain:1}{resi:4d}{insert:1s}   "
@@ -69,6 +69,11 @@ def pymol_xform(name, xform):
 @singledispatch
 def pymol_load(to_show, state=None, name=None, **kw):
    raise NotImplementedError("pymol_load: don't know how to show " + str(type(to_show)))
+
+# @pymol_load.register(MagicMock)
+# def _(to_show, state=None, name=None, **kw):
+# print('!!!!! MagicMock passed to singledispatch register')
+# return state
 
 @pymol_load.register(Pose)
 def _(to_show, state=None, name=None, **kw):

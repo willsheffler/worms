@@ -1,3 +1,5 @@
+raise NotImplementedError('khash_cffi needs updating for numba 0.49+')
+
 import numpy as np
 
 from worms import homog as hg

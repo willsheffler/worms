@@ -1,0 +1,40 @@
+--geometry Octahedral(c2=0,c3=-1, xtal="I 4 3 2")
+--bbconn      
+   _C C2_C
+   NN Het:NNY
+	C_ D3_C
+
+	#_N C2_N
+   #CC Het:CCY
+	#N_ D3_N
+
+--tolerance 1.0
+
+--output_from_pose 1
+--nbblocks 2
+--monte_carlo 0
+--parallel 0
+--verbosity 2
+--disable_cache 0
+--cachedirs ./wormscache
+--shuffle_bblocks 0
+--merge_segment 1
+--no_duplicate_bases 0
+--splice_rms_range 5
+--splice_max_rms 1.0
+--splice_ncontact_cut 8
+--splice_ncontact_no_helix_cut 2
+--splice_nhelix_contacted_cut 1
+--splice_max_chain_length 750
+
+--xtal_min_cell_size 0
+--xtal_max_cell_size 99999
+
+--max_score0 10
+--max_score0sym 30
+# --full_score0sym 1
+--max_clash_check 10000000
+--max_com_redundancy 4
+--output_only_AAAA 0
+--dbfiles
+	/home/swang523/Crystal_engineering/worms/8-16-21_cage_xtal/input/selected_good.json

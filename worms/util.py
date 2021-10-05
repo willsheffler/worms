@@ -27,7 +27,7 @@ except ImportError:
    ros = None
    HAVE_PYROSETTA = False
 
-jit = nb.njit(nogil=True, fastmath=True)
+jit = nb.njit(nogil=True, fastmath=True, nopython=True)
 
 def run_and_time(func, *args, **kw):
    t = time()

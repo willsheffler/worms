@@ -13,6 +13,9 @@ class WormCriteria(abc.ABC):
    def score(self, **kw):
       pass
 
+   def symops(self, segpos):
+      return None
+
    allowed_attributes = (
       "last_body_same_as",
       "symname",

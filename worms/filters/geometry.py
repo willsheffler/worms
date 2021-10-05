@@ -28,6 +28,9 @@ def check_geometry(ssdag, crit, rslt, max_porosity, max_com_redundancy, **kw):
       # prep data
       bb = [ssdag.bbs[k][verts[k].ibblock[rslt.idx[i, k]]] for k in range(len(ssdag.verts))]
       xaln = crit.alignment(rslt.pos[i])
+      if xaln is None:
+         remove_me[i] = 1
+         continue
       coms = np.stack([rslt.pos[i, j] @ x.com for j, x in enumerate(bb)])
       coms = xaln @ coms[..., None]
       names = tuple([bytes(x.name) for x in bb])
