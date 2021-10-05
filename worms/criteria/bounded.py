@@ -276,10 +276,10 @@ def Tetrahedral(c3=None, c2=None, c3b=None, **kw):
       **kw,
    )
 
-def Octahedral(c4=None, c3=None, c2=None, **kw):
+def Octahedral(c4=None, c3=None, c2=None, **kw): 
    if c4 is not None and c3 is not None and c2 is not None:
       return AxesIntersect(
-         "O",
+         "O", #symname
          segs=(c2, c3, c4),
          tgtaxis1=(2, hm.sym.octahedral_axes[2]),
          tgtaxis2=(3, hm.sym.octahedral_axes[3]),

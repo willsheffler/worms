@@ -127,7 +127,8 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
       else:
          return Xalign
 
-   def symfile_modifiers(self, segpos):
+   def symfile_modifiers(self, segpos): 
+      # Takes in pos of building blocks and computes cell spacing. It returns the scale_positions and scale the positions of any symdef file
       x, cell_dist = self.alignment(segpos, out_cell_spacing=True)
       return dict(scale_positions=cell_dist * self.cell_dist_scale)
 
