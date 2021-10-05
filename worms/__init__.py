@@ -24,3 +24,5 @@ from worms import filters
 
 from worms.filters.clash import prune_clashes
 from worms.ssdag_pose import make_pose_crit
+
+import worms.app

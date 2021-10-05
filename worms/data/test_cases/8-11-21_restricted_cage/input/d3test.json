@@ -1,5 +1,5 @@
 [
-  {"file": "input/d3test.pdb",
+  {"file": "/home/sheffler/src/worms/worms/data/test_cases/8-11-21_restricted_cage/input/d3test.pdb",
   "name": "d3test", 
   "class": ["D3_C"],
   "type": "D3_C", 

@@ -1,0 +1,1006 @@
+[
+  {"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0001_Sh29_3_DHR05_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0001", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR05"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0001_Sh29_3_DHR07_AB_C_0001_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0002", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR07"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0001_Sh29_3_DHR07_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0003", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR07"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0001_Sh29_3_DHR08_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0004", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR08"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0001_Sh29_3_DHR08_AB_C_0001_0003.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0005", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR08"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0001_Sh29_3_DHR10_AB_C_0001_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0006", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR10"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0001_Sh29_3_DHR10_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0007", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR10"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0001_Sh29_3_DHR14_AB_C_0001_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0008", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR14"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0001_Sh29_3_DHR14_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0009", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR14"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0001_Sh29_3_DHR18_AB_C_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0010", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR18"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0001_Sh29_3_DHR49_AB_C_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0011", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR49"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0001_Sh29_3_DHR53_AB_C_0001_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0012", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR53"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0001_Sh29_3_DHR54_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0013", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR54"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0001_Sh29_3_DHR54_AB_C_0001_0003.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0014", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR54"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0001_Sh29_3_DHR64_AB_C_0001_0004.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0015", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR64"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0001_Sh29_3_DHR64_AB_C_0001_0006.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0016", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR64"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0001_Sh29_3_DHR71_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0017", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR71"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0001_Sh29_3_DHR71_AB_C_0001_0004.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0018", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR71"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0001_Sh29_3_DHR71_BA_C_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0019", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-N-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR71"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "N", "residues":["39:117"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0001_Sh29_3_DHR76_AB_C_0001_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0020", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR76"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0001_Sh29_3_DHR76_AB_C_0001_0003.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0021", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR76"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0002_Sh29_3_DHR05_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0022", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR05"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0002_Sh29_3_DHR07_AB_C_0001_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0023", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR07"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0002_Sh29_3_DHR07_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0024", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR07"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0002_Sh29_3_DHR08_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0025", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR08"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0002_Sh29_3_DHR08_AB_C_0001_0003.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0026", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR08"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0002_Sh29_3_DHR10_AB_C_0001_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0027", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR10"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0002_Sh29_3_DHR10_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0028", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR10"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0002_Sh29_3_DHR14_AB_C_0001_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0029", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR14"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0002_Sh29_3_DHR14_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0030", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR14"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0002_Sh29_3_DHR18_AB_C_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0031", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR18"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0002_Sh29_3_DHR49_AB_C_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0032", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR49"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0002_Sh29_3_DHR53_AB_C_0001_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0033", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR53"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0002_Sh29_3_DHR54_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0034", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR54"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0002_Sh29_3_DHR54_AB_C_0001_0003.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0035", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR54"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0002_Sh29_3_DHR64_AB_C_0001_0004.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0036", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR64"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0002_Sh29_3_DHR64_AB_C_0001_0006.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0037", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR64"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0002_Sh29_3_DHR71_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0038", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR71"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0002_Sh29_3_DHR71_AB_C_0001_0004.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0039", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR71"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0002_Sh29_3_DHR71_BA_C_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0040", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-N-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR71"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "N", "residues":["39:117"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0002_Sh29_3_DHR76_AB_C_0001_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0041", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR76"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR14_BA_B_0001_0002_Sh29_3_DHR76_AB_C_0001_0003.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0042", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR14", "DHR76"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["39:117"]},
+   {"chain": 3, "direction": "C", "residues":["-117:-39"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0001_Sh29_3_DHR05_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0043", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR05"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0001_Sh29_3_DHR07_AB_C_0001_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0044", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR07"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0001_Sh29_3_DHR07_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0045", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR07"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0001_Sh29_3_DHR08_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0046", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR08"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0001_Sh29_3_DHR08_AB_C_0001_0003.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0047", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR08"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0001_Sh29_3_DHR10_AB_C_0001_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0048", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR10"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0001_Sh29_3_DHR10_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0049", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR10"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0001_Sh29_3_DHR14_AB_C_0001_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0050", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR14"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0001_Sh29_3_DHR14_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0051", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR14"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0001_Sh29_3_DHR18_AB_C_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0052", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR18"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0001_Sh29_3_DHR49_AB_C_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0053", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR49"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0001_Sh29_3_DHR53_AB_C_0001_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0054", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR53"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0001_Sh29_3_DHR54_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0055", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR54"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0001_Sh29_3_DHR54_AB_C_0001_0003.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0056", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR54"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0001_Sh29_3_DHR64_AB_C_0001_0004.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0057", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR64"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0001_Sh29_3_DHR64_AB_C_0001_0006.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0058", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR64"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0001_Sh29_3_DHR71_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0059", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR71"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0001_Sh29_3_DHR71_AB_C_0001_0004.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0060", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR71"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0001_Sh29_3_DHR71_BA_C_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0061", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-N-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR71"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "N", "residues":["59:177"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0001_Sh29_3_DHR76_AB_C_0001_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0062", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR76"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0001_Sh29_3_DHR76_AB_C_0001_0003.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0063", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR76"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0002_Sh29_3_DHR05_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0064", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR05"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0002_Sh29_3_DHR07_AB_C_0001_0001.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0065", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR07"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0002_Sh29_3_DHR07_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0066", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR07"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+},
+
+{"file": "database/Sh29_3_Sh29_3_DHR05_AB_A_0001_0001_Sh29_3_DHR18_BA_B_0001_0002_Sh29_3_DHR08_AB_C_0001_0002.pdb",
+  "name": "HFuse_Sh29_3_3c_3a_0067", 
+  "class": ["Het"],
+  "type": "HFuse_het_C3_C-C-N", 
+  "base": "Sh29_3", 
+  "components": ["DHR05", "DHR18", "DHR08"],
+  "validated": false,
+  "protocol": "Hfuse_asym",
+  "connections": [
+   {"chain": 1, "direction": "C", "residues":["-147:-49"]},
+   {"chain": 2, "direction": "N", "residues":["59:177"]},
+   {"chain": 3, "direction": "C", "residues":["-177:-59"]}
+  ]
+}
+]

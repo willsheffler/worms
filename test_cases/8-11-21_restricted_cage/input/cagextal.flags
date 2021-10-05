@@ -8,13 +8,15 @@
 --tolerance 0.5
 
 --output_from_pose 1
---nbblocks 8
+--nbblocks 999
 --monte_carlo 0
---parallel 0
+--parallel 4
 --verbosity 2
 --disable_cache 0
 --cachedirs ./wormscache
+
 --shuffle_bblocks 0
+
 --merge_segment 1
 --no_duplicate_bases 0
 --splice_rms_range 5

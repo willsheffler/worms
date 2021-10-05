@@ -1,4 +1,4 @@
-import sys, collections, os, psutil, gc
+import sys, collections, os, psutil, gc, json
 import numpy as np
 
 from pympler.asizeof import asizeof
@@ -75,6 +75,7 @@ def filter_and_output_results(
       for iresult in range(min(max_output, len(result.idx))):
          segpos = result.pos[iresult]
          xalign = criteria.alignment(segpos)
+         if xalign is None: continue
          fname = "%s_%04i" % (head, iresult)
          # print('align_ax1', xalign @ segpos[0, :, 2])
          # print('align_ax2', xalign @ segpos[-1, :, 2])
@@ -370,8 +371,7 @@ def filter_and_output_results(
             tmp = tmp.copy()
             print(detail)
 
-            import json
-            jsonfname = 'tmp_%i.json' % iresult
+            jsonfname = 'tmp_%i_%i.json' % (iresult, os.getpid())
             print('output bblocks to', jsonfname)
             with open(jsonfname, 'w') as out:
                json.dump(tmp, out, indent=4)

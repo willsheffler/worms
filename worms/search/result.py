@@ -1,5 +1,6 @@
 from collections import namedtuple
 import numpy as np
+from numpy.lib import index_tricks
 from worms.util import jit, expand_array_if_needed
 
 SearchStats = namedtuple(
@@ -39,12 +40,12 @@ def subset_result(results, ok):
       stats=results.stats,
    )
 
-class ResultTable:
+class ResultTable(dict):
    def __init__(self, other):
       self.table = dict()
-      self.table["idx"] = other.idx
-      self.table["pos"] = other.pos
-      self.table["err"] = other.err
+      self.idx = other.idx
+      self.pos = other.pos
+      self.err = other.err
       self.stats = other.stats
 
    def add(self, name, val):
@@ -54,5 +55,27 @@ class ResultTable:
       for k, v in self.table.items():
          self.table[k] = v[order]
 
-   def __getattr__(self, k):
-      return self.table[k]
+   def close_without_stats(self, other):
+      # print('idxtype', type(self.idx), type(other.idx))
+      # print('postype', type(self.pos), type(other.pos))
+      # print('errtype', type(self.err), type(other.err))
+      # print('statstype', type(self.stats), type(other.stats))
+
+      idxeq = np.allclose(self.idx, other.idx)
+      poseq = np.allclose(self.pos, other.pos)
+      erreq = np.allclose(self.err, other.err)
+      # statseq = self.stats == other.stats
+
+      # print('ResultTable.__eq__', idxeq, poseq, erreq, statseq)
+
+      return idxeq and poseq and erreq
+
+   # def __getattr__(self, k):
+   # if k in ('idx','pos','err','stats'):
+   # return self.table[k]
+
+   def __getstate__(self):
+      return self.idx, self.pos, self.err, self.stats
+
+   def __setstate__(self, state):
+      self.idx, self.pos, self.err, self.stats = state

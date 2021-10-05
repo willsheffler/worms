@@ -42,9 +42,13 @@
 			"name": "zhe_helixconf",
 			"shell_cmd": "cd $folder/test_cases/zhe_helixconf; rm -rf *.pdb *.info *.json *.sym ; python -mworms @input/for_zhe.flags &> sublime_build.log"
 		},
-		{
+		{	
 			"name": "cagextal",
 			"shell_cmd": "cd $folder/test_cases/8-11-21_restricted_cage; rm -rf *.pdb *.info *.json *.sym ; python -mworms @input/cagextal.flags &> sublime_build.log"
+		},
+		{	
+			"name": "test_test_cagextal",
+			"shell_cmd": "cd $folder; rm -rf *.pdb *.info *.json *.sym ; python worms/tests/cagextal/test_O_D3.py  &> log/sublime_build.log"
 		}
 
 

@@ -105,8 +105,15 @@ class AxesIntersect(WormCriteria):
       rot_tol = self.rot_tol
       nondistinct_axes = self.nondistinct_axes
 
+      # temporary hard coded stuff
+
       NFOLD = 3
+
+      #
+
+      tgtdang = np.pi / NFOLD / 2
       endsymangle = 2 * np.pi / NFOLD
+      print('AxesIntersect.jit_lossfunc endsymangle', endsymangle)
 
       @jit
       def func(pos, idx, verts):
@@ -167,7 +174,6 @@ class AxesIntersect(WormCriteria):
          # ]         np.array([2, 2, 1, 1]),
          #       )))
          # assert 0 # -180 -> 60
-         tgtdang = np.pi / 6
 
          dang = numba_dihedral(
             cagecen + ax1,
@@ -250,9 +256,9 @@ class AxesIntersect(WormCriteria):
          # cell spacing = dist to Dx origin * 2
          x, y, z, _ = xalign @ segpos[-1][:, 3]
          # print(x, y, z)
-         assert abs(x - y) < 2.0  # totally arbitrary
-         assert abs(y - z) < 2.0  # totally arbitrary
-         assert abs(z - x) < 2.0  # totally arbitrary
+         if abs(x - y) >= 2.0: return None, None
+         if abs(y - z) >= 2.0: return None, None
+         if abs(z - x) >= 2.0: return None, None
          cell_spacing = 4 * (x + y + z) / 3
          return xalign, cell_spacing
 

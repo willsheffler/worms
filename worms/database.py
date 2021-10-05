@@ -105,11 +105,14 @@ def _read_dbfiles(bbdb, dbfiles, dbroot=""):
    bbdb._dictdb = {e["file"]: e for e in bbdb._alldb}
    bbdb._key_to_pdbfile = {hash_str_to_int(e["file"]): e["file"] for e in bbdb._alldb}
 
+   assert len(bbdb._alldb), 'no db entries'
    pdb_files_missing = False
    for entry in bbdb._alldb:
       if not os.path.exists(dbroot + entry["file"]):
          pdb_files_missing = True
+         print('!' * 60)
          print("pdb file pdb_files_missing:", entry["file"])
+         print('!' * 60)
    assert not pdb_files_missing
 
 def _get_cachedirs(cachedirs):
@@ -337,17 +340,17 @@ class CachingSpliceDB:
 class CachingBBlockDB:
    """stores Poses and BBlocks in a disk cache"""
    def __init__(
-         self,
-         cachedirs=None,
-         dbfiles=[],
-         load_poses=False,
-         nprocs=1,
-         lazy=True,
-         read_new_pdbs=False,
-         verbosity=0,
-         dbroot="",
-         null_base_names=[],
-         **kw,
+      self,
+      cachedirs=None,
+      dbfiles=[],
+      load_poses=False,
+      nprocs=1,
+      lazy=True,
+      read_new_pdbs=False,
+      verbosity=0,
+      dbroot="",
+      null_base_names=[],
+      **kw,
    ):
       """TODO: Summary
 
@@ -374,6 +377,9 @@ class CachingBBlockDB:
       self._alldb = []
       self._holding_lock = False
       self.dbfiles = dbfiles
+      print('database.py: read database files from', self.dbroot)
+      for f in dbfiles:
+         print('   ', f)
       _read_dbfiles(self, dbfiles, self.dbroot)
       if len(self._alldb) != len(self._dictdb):
          dups = len(self._alldb) - len(self._dictdb)
@@ -487,14 +493,14 @@ class CachingBBlockDB:
          raise ValueError("bad pdbkey" + str(type(pdbkey)))
 
    def query(
-         self,
-         query,
-         *,
-         useclass=True,
-         max_bblocks=150,
-         shuffle_bblocks=True,
-         parallel=0,
-         **kw,
+      self,
+      query,
+      *,
+      useclass=True,
+      max_bblocks=150,
+      shuffle_bblocks=True,
+      parallel=0,
+      **kw,
    ):
       names = self.query_names(query, useclass=useclass)
       if len(names) > max_bblocks:

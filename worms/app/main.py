@@ -131,6 +131,7 @@ def worms_main2(criteria_list, kw):
          for msg in log:
             print(msg)
    print("======================== done ========================")
+   return log
 
 def worms_main_each_mergebb(
    criteria,
@@ -176,7 +177,7 @@ def worms_main_each_mergebb(
          ) for i in merge_bblock_list
       ]
       log = [f"split job over merge_segment={mseg}, n = {len(futures)}"]
-      print(log[-1])
+      # print(log[-1])
 
       fiter = cf.as_completed(futures)
       for f in fiter:
@@ -185,7 +186,8 @@ def worms_main_each_mergebb(
          log = [""] * len(futures) + log
       return log
 
-def worms_main_protocol(criteria, bbs_states=None, disable_clash_check=0, **kw):
+def worms_main_protocol(criteria, bbs_states=None, disable_clash_check=0, return_raw_result=False,
+                        **kw):
 
    try:
       if bbs_states is not None:
@@ -208,7 +210,15 @@ def worms_main_protocol(criteria, bbs_states=None, disable_clash_check=0, **kw):
          log.append("    " + msg)
          print(log[-1])
 
-      log += filter_and_output_results(criteria, ssdag, result3, **kw)
+      if not return_raw_result:
+         log += filter_and_output_results(criteria, ssdag, result3, **kw)
+      elif return_raw_result:
+         # print('!' * 60)
+         # print('returning raw result')
+         # print('!' * 60)
+         return [result3]
+      else:
+         print('logical impossibility')
 
       if not kw["pbar"]:
          print(f'completed: mbb{kw["merge_bblock"]:04}')
