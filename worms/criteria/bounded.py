@@ -1,3 +1,7 @@
+'''
+this file contains logic for cage/dihedral and some crystals which include these
+'''
+
 from .base import WormCriteria, Ux, Uy, Uz
 import numpy as np
 
@@ -8,10 +12,12 @@ from worms.homog import (
    numba_dot,
    numba_normalized,
    numba_line_line_closest_points_pa,
-   numba_line_line_distance_pa,
+   numba_line_line_distance_pa,  
 )
 from worms.util import jit
 from worms.merge.wye import wye_merge
+
+DIHEDRAL_ROT_TOL = 1.0
 
 class AxesIntersect(WormCriteria):
    """
@@ -33,7 +39,7 @@ class AxesIntersect(WormCriteria):
       xtal=None,
    ):
       """
-        """
+      """
       if from_seg == to_seg:
          raise ValueError("from_seg should not be same as to_seg")
       self.symname = symname
@@ -110,6 +116,7 @@ class AxesIntersect(WormCriteria):
 
       @jit
       def func(pos, idx, verts):
+         # print('bounded.py:jit_lossfunc begin')
          cen1 = pos[from_seg][:, 3]
          cen2 = pos[to_seg][:, 3]
          ax1 = pos[from_seg][:, 2]
@@ -137,7 +144,9 @@ class AxesIntersect(WormCriteria):
          roterr2 = (ang - tgtangle)**2
 
          geomscore = np.sqrt(roterr2 / rot_tol**2 + (dist / tolerance)**2)
-         if geomscore > 0.5: return 9e9
+         if geomscore > 2.0:
+            # print('bounded.py:jit_lossfunc DONE geomscore > 0.5')
+            return 9e9
          # print(abs(ang - tgtangle), dist)
 
          xhat = pos[-1] @ np.linalg.inv(pos[0])
@@ -149,6 +158,7 @@ class AxesIntersect(WormCriteria):
 
          flip = numba_dot(pos[-1][:, 2], numba_normalized(pos[-1][:, 3] - cagecen))
          if flip < 0.0:
+            # print('bounded.py:jit_lossfunc DONE flip < 0.0')
             return 9e9
          daxis = pos[-1][:, 0]  # x dihedral axis (x)
          # print('cagecen', cagecen)
@@ -182,7 +192,8 @@ class AxesIntersect(WormCriteria):
             abs(dang - tgtdang),
             abs(dang + endsymangle - tgtdang),
          )
-         if dangerr > np.radians(1):
+         if dangerr > np.radians(DIHEDRAL_ROT_TOL):
+            # print('bounded.py:jit_lossfunc DONE dangerr > tol')
             return 9e9
          # print('deg:', dang * 180 / np.pi, 'rad:', dang)
 
@@ -194,6 +205,7 @@ class AxesIntersect(WormCriteria):
 
          score = geomscore
 
+         # print('bounded.py:jit_lossfunc DONE')
          return score
 
       return func
@@ -210,9 +222,39 @@ class AxesIntersect(WormCriteria):
       if self.xtal is None:
          return None
       # print("hi")
+      spacegroup = dict(I432='I 4 3 2', )
+      try:
+         xtal = spacegroup[self.xtal]
+      except Exception:
+         xtal = self.xtal
       x, cell_dist = self.alignment(segpos, out_cell_spacing=True)
       cell_dist = abs(cell_dist * self.cell_dist_scale)
-      return cell_dist, cell_dist, cell_dist, 90, 90, 90, self.xtal
+      return cell_dist, cell_dist, cell_dist, 90, 90, 90, xtal
+
+   def symops(self, segpos):
+      '''
+      used to check symmetric clashes in ouptup.py instead of 
+      MakeLatticeMover, which is too flaky 
+      '''
+      # print('bounded.py:symops xtal:', self.xtal)
+
+      x, cell_dist = self.alignment(segpos, out_cell_spacing=True)
+      # print('    cell dist', cell_dist)
+      if self.xtal.replace(' ', '') == 'I432':
+         ops = (
+            hm.hrot([1, 1, 1], 120),
+            # hm.hrot([1, 1, 1], 240),
+            hm.hrot([1, 1, 0], 180),
+            hm.hrot([1, 0, 0], 90),
+            # hm.hrot([1, 0, 0], 180),
+            # hm.hrot([1, 0, 0], 270),
+            hm.hrot([1, -1, 0], 180, [cell_dist / 4] * 3),
+         )
+         # for op in ops:
+            # print(op)
+         return ops
+      # assert 0
+      return None
 
    def alignment(self, segpos, out_cell_spacing=False, debug=0, **kw):
       if hm.angle_degrees(self.tgtaxis1[1], self.tgtaxis2[1]) < 0.1:
@@ -222,11 +264,11 @@ class AxesIntersect(WormCriteria):
       ax1 = segpos[self.from_seg][..., :, 2]
       ax2 = segpos[self.to_seg][..., :, 2]
 
-      # print(segpos)
+      print(segpos)
       # print('========')
       # print('ang', np.degrees(hm.angle(ax1, ax2)))
       if not self.nondistinct_axes and hm.angle(ax1, ax2) > np.pi / 2:
-         print('swap')
+         # print('swap')
          ax2 = -ax2
       # print('alignax1', ax1)
       # print('alignax2', ax2)
@@ -246,15 +288,13 @@ class AxesIntersect(WormCriteria):
       # print('newax', xalign @ ax1)
       # print('newax', xalign @ ax2)
 
-      if out_cell_spacing:
-         # cell spacing = dist to Dx origin * 2
-         x, y, z, _ = xalign @ segpos[-1][:, 3]
-         # print(x, y, z)
-         assert abs(x - y) < 2.0  # totally arbitrary
-         assert abs(y - z) < 2.0  # totally arbitrary
-         assert abs(z - x) < 2.0  # totally arbitrary
-         cell_spacing = 4 * (x + y + z) / 3
-         return xalign, cell_spacing
+      # cell spacing O_D3 = dist to Dx origin * 2
+      x, y, z, _ = xalign @ segpos[-1][:, 3]
+      # print(x, y, z)
+      if abs(x - y) >= 2.0: return None
+      if abs(y - z) >= 2.0: return None
+      if abs(z - x) >= 2.0: return None
+      cell_spacing = 4 * (x + y + z) / 3
 
       if debug:
          print(
@@ -279,6 +319,8 @@ class AxesIntersect(WormCriteria):
          #     print(self.tgtaxis2[1])
          #     raise AssertionError('hm.align_vectors sucks')
 
+      if out_cell_spacing:
+         return xalign, cell_spacing
       return xalign
 
    def merge_segment(self, **kw):

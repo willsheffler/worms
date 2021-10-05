@@ -136,7 +136,7 @@ def test_many_specs():
 
 # @only_if_jit
 # def test_jitclass_print():
-#     @nb.jitclass((('add', nt.int32), ))
+#     @nb.experimental.jitclass((('add', nt.int32), ))
 #     class DummyFilter:
 #         def __init__(self, add):
 #             self.add = add
@@ -148,7 +148,7 @@ def test_many_specs():
 #             return 13
 #
 #     # cannot subclass from a jitclass
-#     # @nb.jitclass((('add', nt.int32), ))
+#     # @nb.experimental.jitclass((('add', nt.int32), ))
 #     # class DummyFilter2(DummyFilter):
 #     # pass
 #     df = DummyFilter(13)
@@ -171,7 +171,7 @@ def test_numba_tuple_of_arrays():
    assert len(tup3) is 6
 
 # functions are not first class in numba yet
-# @nb.jitclass((('dummy', nt.int32), ))
+# @nb.experimental.jitclass((('dummy', nt.int32), ))
 # class AlwaysOne:
 #     def __init__(self):
 #         self.dummy = 1
@@ -180,7 +180,7 @@ def test_numba_tuple_of_arrays():
 #         return np.ones(len(arg))
 #
 #
-# @nb.jitclass((('dummy', nt.int32), ))
+# @nb.experimental.jitclass((('dummy', nt.int32), ))
 # class AlwaysZero:
 #     def __init__(self):
 #         self.dummy = 1
@@ -339,7 +339,7 @@ def test_numba_chain_funcs_args_per():
 
 @only_if_jit
 def test_numba_cannot_chain_jitclass():
-   @nb.jitclass((("member", nt.int32), ))
+   @nb.experimental.jitclass((("member", nt.int32), ))
    class Ident:
       def __init__(self):
          pass
@@ -350,7 +350,7 @@ def test_numba_cannot_chain_jitclass():
    def chain(fs, inner=Ident()):
       head, tail = fs[-1], fs[:-1]
 
-      @nb.jitclass((("dummy", nt.int32), ))
+      @nb.experimental.jitclass((("dummy", nt.int32), ))
       class Wrap:
          def __init__(self):
             pass
@@ -360,7 +360,7 @@ def test_numba_cannot_chain_jitclass():
 
       return chain(tail, Wrap()) if tail else Wrap()
 
-   @nb.jitclass((("member", nt.int32), ))
+   @nb.experimental.jitclass((("member", nt.int32), ))
    class Foo:
       def __init__(self):
          pass
@@ -368,7 +368,7 @@ def test_numba_cannot_chain_jitclass():
       def call(self, x):
          return x + 1.2
 
-   @nb.jitclass((("member", nt.int32), ))
+   @nb.experimental.jitclass((("member", nt.int32), ))
    class Bar:
       def __init__(self):
          pass

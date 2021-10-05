@@ -140,6 +140,10 @@ cli_args = dict(
    helixconf_min_neighbor_horizontal_dist=0,  # min neighbor separation perp to sym axis
    helixconf_max_neighbor_horizontal_dist=0,  # max neighbor separation perp to sym axis
    helixconf_both_ends_neighbor_helix=0,  # neighbor helix contacts must span helices
+   #
+   shuffle_output=0,
+   xtal_min_cell_size=0,
+   xtal_max_cell_size=9e9,
 )
 
 def add_argument_unless_exists(parser, *arg, **kw):

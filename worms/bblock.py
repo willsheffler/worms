@@ -88,7 +88,7 @@ def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
    return bblock
 
 
-@nb.jitclass(
+@nb.experimental.jitclass(
     (
         ("json", nt.int8[:]),
         ("connections", nt.int32[:, :]),

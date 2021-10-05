@@ -2,9 +2,11 @@ import numpy as np
 
 from worms.search.result import ResultJIT, subset_result
 from worms import util
-from worms.criteria.hash_util import _get_hash_val
-from worms.khash.khash_cffi import _khash_get
-from worms.khash import KHashi8i8
+
+# khash_cffi needs updating for numba 0.49+
+# from worms.criteria.hash_util import _get_hash_val
+# from worms.khash.khash_cffi import _khash_get
+# from worms.khash import KHashi8i8
 
 def merge_results_concat(criteria, ssdag, ssdagA, rsltA, critB, ssdagB, rsltB, merged_err_cut,
                          max_merge, **kw):

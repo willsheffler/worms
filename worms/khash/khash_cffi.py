@@ -1,10 +1,11 @@
+raise NotImplementedError('khash_cffi needs updating for numba 0.49+')
+
 import numba as nb
 import numpy as np
 from numba import cffi_support
 import glob
 import os
 from cffi import FFI
-from numba import cffi_support
 
 # from cffi import _cffi_backend
 
@@ -43,7 +44,7 @@ if not "READTHEDOCS" in os.environ:
    # )
    cffi_support.register_module(_khash_ffi)
 
-@nb.jitclass((("hash", nb.types.voidptr), ))
+@nb.experimental.jitclass((("hash", nb.types.voidptr), ))
 class KHashi8i8:
    def __init__(self):
       self.hash = _khash_init()

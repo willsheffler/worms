@@ -11,7 +11,7 @@ from worms.criteria import *
 from worms import data
 from worms import vis
 from worms import util
-from worms.khash import *
+# from worms.khash import * # khash_cffi needs updating for numba 0.49+
 from worms.bblock import *
 from worms.vertex import *
 from worms.edge import *

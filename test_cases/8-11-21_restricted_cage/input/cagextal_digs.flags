@@ -8,9 +8,9 @@
 --tolerance 0.5
 
 --output_from_pose 1
---nbblocks 8
+--nbblocks 32
 --monte_carlo 0
---parallel 0
+--parallel 16
 --verbosity 2
 --disable_cache 0
 --cachedirs ./wormscache
@@ -34,5 +34,5 @@
 	/home/sheffler/src/worms_helixori/test_cases/8-11-21_restricted_cage/input/c4.database.20210114.txt
 	/home/sheffler/src/worms_helixori/test_cases/8-11-21_restricted_cage/input/cage_comp_O4-11.txt
 	/home/sheffler/src/worms_helixori/test_cases/8-11-21_restricted_cage/input/good_heterodimers.database.20210124.txt 
-	/home/sheffler/src/worms_helixori/test_cases/yang_fixori/input/local_HFuse_het_2chain_2arm_database.Sh13-5+1-AI_2.20180905.txt
 	/home/sheffler/src/worms_helixori/test_cases/8-11-21_restricted_cage/input/d3test.json
+	/home/yhsia/helixfuse/2018-09-04_asym_sh_hetc2/combine/processing/database/HFuse_het_2chain_2arm_database.Sh13-5+1-AI_2.20180905.txt 

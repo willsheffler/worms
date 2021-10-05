@@ -44,6 +44,8 @@ def worms_main(argv):
    # print(numba_hrot(axis, angle, cen))
    # assert 0
 
+   tstart = time()
+
    pyrosetta.init("-mute all -beta -preserve_crystinfo --prevent_repacking")
    blosc.set_releasegil(True)
 
@@ -56,8 +58,10 @@ def worms_main(argv):
       bbdb.clear()
       raise e
 
+   print('worms_main done, time:', time() - tstart)
+
 def worms_main2(criteria_list, kw):
-   print("worms_main,", len(criteria_list), "criteria, args:")
+   print("worms_main2,", len(criteria_list), "criteria, args:")
    orig_output_prefix = kw["output_prefix"]
    for icrit, criteria in enumerate(criteria_list):
       if len(criteria_list) > 1:
@@ -68,7 +72,7 @@ def worms_main2(criteria_list, kw):
       print("================== start job", icrit, "======================")
       print("output_prefix:", kw["output_prefix"])
       print("criteria:", criteria)
-      print("bbspec:", criteria.bbspec)
+      print("bbspec:", criteria.bbspec, flush=True)
 
       if kw["precache_splices"]:
          print("precaching splices")
@@ -119,6 +123,7 @@ def worms_main2(criteria_list, kw):
          for a, b in zip(_shared_ssdag.bbs, kw["bbs"]):
             for aa, bb in zip(a, b):
                assert aa is bb
+      print('_shared_ssdag complete', flush=True)
 
       if kw["context_structure"]:
          kw["context_structure"] = ClashGrid(kw["context_structure"], **kw)
@@ -126,6 +131,7 @@ def worms_main2(criteria_list, kw):
          kw["context_structure"] = None
 
       log = worms_main_each_mergebb(criteria, **kw)
+      print('worms_main_each_mergebb returned', flush=True)
       if kw["pbar"]:
          print("======================== logs ========================")
          for msg in log:
@@ -144,9 +150,11 @@ def worms_main_each_mergebb(
    merge_segment,
    **kw,
 ):
+   print('worms_main_each_mergebb start', flush=True)
    exe = util.InProcessExecutor()
    if parallel:
       exe = cf.ProcessPoolExecutor(max_workers=parallel)
+
    bbs_states = [[b._state for b in bb] for bb in bbs]
    # kw['db'][0].clear_bblocks()  # remove cached BBlocks
    kw["db"][0].clear()
@@ -161,6 +169,7 @@ def worms_main_each_mergebb(
       merge_bblock_list = range(len(bbs[mseg]))
       if only_merge_bblocks:
          merge_bblock_list = only_merge_bblocks
+      print('   mergebblist:', merge_bblock_list)
       futures = [
          pool.submit(
             worms_main_protocol,
@@ -180,9 +189,13 @@ def worms_main_each_mergebb(
 
       fiter = cf.as_completed(futures)
       for f in fiter:
+         print(merge_bblock, 'f in fiter', flush=True)
          log.extend(f.result())
       if pbar and log:
          log = [""] * len(futures) + log
+
+      print(merge_bblock, 'worms_main_each_mergebb done', flush=True)
+
       return log
 
 def worms_main_protocol(criteria, bbs_states=None, disable_clash_check=0, **kw):
@@ -245,6 +258,7 @@ def search_func(criteria, bbs, monte_carlo, merge_segment, **kw):
       lbl = f"stage{i}"
       if kw["merge_bblock"] is not None:
          lbl = f'stage{i}_mbb{kw["merge_bblock"]:04}'
+      print('main.py:search_func: results.append( search_single_stage(')
       results.append(
          search_single_stage(
             crit,
@@ -271,6 +285,7 @@ def search_func(criteria, bbs, monte_carlo, merge_segment, **kw):
       _____, ssdA, rsltA, logA = results[0]
       critB, ssdB, rsltB, logB = results[1]
       assert _shared_ssdag
+      print('main.py:search_func calling simple_search_dag', flush=True)
       ssdag = simple_search_dag(
          criteria,
          only_seg=mseg,
@@ -279,6 +294,7 @@ def search_func(criteria, bbs, monte_carlo, merge_segment, **kw):
          bbs=bbs,
          **kw,
       )
+      print('main.py:search_func calling simple_search_dag DONE', flush=True)
       ssdag.verts = ssdB.verts[:-1] + (ssdag.verts[mseg], ) + ssdA.verts[1:]
 
       assert len(ssdag.verts) == len(criteria.bbspec)
@@ -323,8 +339,11 @@ def search_single_stage(criteria, lbl="", **kw):
             ssdag, result = _pickle.load(inp)
             return criteria, ssdag, result, ["from run cache " + lbl]
 
+   print('main.py:search_single_stage calling simple_search_dag', flush=True)
    ssdag = simple_search_dag(criteria, source=_shared_ssdag, lbl=lbl, **kw)
+   print('main.py:search_single_stage calling simple_search_dag DONE', flush=True)
 
+   print('main.py:search_single_stage calling grow_linear', flush=True)
    result, tsearch = run_and_time(
       grow_linear,
       ssdag=ssdag,
@@ -333,6 +352,7 @@ def search_single_stage(criteria, lbl="", **kw):
       lbl=lbl,
       **kw,
    )
+   print('main.py:search_single_stage calling grow_linear DONE', flush=True)
 
    Nsparse = result.stats.total_samples[0]
    Nsparse_rate = int(Nsparse / tsearch)

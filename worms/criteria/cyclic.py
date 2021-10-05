@@ -3,7 +3,12 @@ from worms.criteria.base import *
 from worms import util
 from worms.bunch import Bunch
 from worms.filters.helixconf_jit import make_helixconf_filter
-from worms.criteria import make_hash_table, WheelHashCriteria
+
+# khash_cffi needs updating for numba 0.49+
+# from worms.criteria import make_hash_table, WheelHashCriteria
+def make_hash_table(*args, **kwargs):
+   raise NotImplementedError('khash_cffi needs updating for numba 0.49+')
+
 import worms.homog as hm
 from worms.homog import numba_axis_angle, numba_axis_angle_cen, hrot, angle, numba_hrot, rand_xform
 # from xbin import gu_xbin_indexer, numba_xbin_indexer

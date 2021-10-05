@@ -18,7 +18,7 @@ vertex_xform_dtype = np.float32
 MAX_HELIX = 50
 MAX_HULL = 200
 
-@nb.jitclass(
+@nb.experimental.jitclass(
       (
             ("x2exit", nb.typeof(vertex_xform_dtype(0))[:, :, :]),
             ("x2orig", nb.typeof(vertex_xform_dtype(0))[:, :, :]),
