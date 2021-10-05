@@ -40,6 +40,10 @@ def filter_and_output_results(
       only_outputs,
       **kw,
 ):
+
+# Takes in arrays of transforms of objects coming out of search function 
+# idx: tells you where indices are 
+# error: geometry error 
    sf = ros.core.scoring.ScoreFunctionFactory.create_score_function("score0")
    if hasattr(ros.core.scoring.symmetry, 'symmetrize_scorefunction'):
       sfsym = ros.core.scoring.symmetry.symmetrize_scorefunction(sf)
@@ -81,7 +85,7 @@ def filter_and_output_results(
             print('output skipping', iresult)
             continue
 
-         if False:
+         if False: 
             # make json files with bblocks for single result
             tmp, seenit = list(), set()
             for j in range(len(ssdag.verts)):
@@ -139,6 +143,7 @@ def filter_and_output_results(
                continue
 
          try:
+         	# makes a pose and tells you where it came from and the building blocks and sub poses 
             # print(getmem(), 'MEM make_pose_crit before')
             pose, prov = make_pose_crit(
                db[0],
@@ -171,7 +176,7 @@ def filter_and_output_results(
                ncnh,
                nhc,
             ) = run_db_filters(db, criteria, ssdag, iresult, result.idx[iresult], pose, prov,
-                               **kw)
+                               **kw) # TODO: see what filters are being run 
          except Exception as e:
             print("error in db_filters:")
             print(traceback.format_exc())
@@ -184,14 +189,14 @@ def filter_and_output_results(
             continue
 
          # print(getmem(), 'MEM rms before')
-         rms = criteria.iface_rms(pose, prov, **kw)
+         rms = criteria.iface_rms(pose, prov, **kw) # Checks for how close symmetry axes are to being intersecting 
          # if rms > rms_err_cut: continue
          # print(getmem(), 'MEM rms after')
 
          # print(getmem(), 'MEM poses and score0 before')
          cenpose = pose.clone()
          ros.core.util.switch_to_residue_type_set(cenpose, "centroid")
-         score0 = sf(cenpose)
+         score0 = sf(cenpose) # basically a backbone clash check 
          # print(getmem(), 'MEM poses and score0 after')
          if score0 > max_score0:
             print(
@@ -208,7 +213,8 @@ def filter_and_output_results(
             continue
 
          symfilestr = None
-         if hasattr(criteria, "symfile_modifiers"):
+         if hasattr(criteria, "symfile_modifiers"): 
+         	# if statement for symmetry mates for unbounded stuff to adjust cell size and sym data to make and score a symmetric post, check sym files of layers and xtals for details 
             symdata, symfilestr = util.get_symdata_modified(
                criteria.symname,
                **criteria.symfile_modifiers(segpos=result.pos[iresult]),
@@ -224,9 +230,9 @@ def filter_and_output_results(
             # else:
             ros.core.pose.symmetry.make_symmetric_pose(sympose, symdata)
             score0sym = sfsym(sympose)
-            if full_score0sym:
+            if full_score0sym: # for xtals and layers, apply symmetry to get symmetry mates and do clash check
                sym_asym_pose = sympose.clone()
-               ros.core.pose.symmetry.make_asymmetric_pose(sym_asym_pose)
+               ros.core.pose.symmetry.make_asymmetric_pose(sym_asym_pose) 
                score0sym = sf(sym_asym_pose)
             # print(getmem(), 'MEM poses and score0sym after')
 
@@ -335,7 +341,8 @@ def filter_and_output_results(
          info_file.close()
 
    else:
-
+   	# dump raw structure data from different positions in ssdag array 
+   	# result object: indices and positions and array of errors from search 
       nresults = 0
       for iresult in range(min(max_output, len(result.idx))):
          fname = "%s_%04i" % (head, iresult)
@@ -345,8 +352,8 @@ def filter_and_output_results(
             ssdag,
             result.idx[iresult],
             result.pos[iresult],
-            join="bb",
-            trim=True,
+            join="bb", #if join is false, it'll give you all separate chains from all segments splicing together
+            trim=True, # If trim is false it'll give you the whole building blocks that all overlapping 
          )
          nresults += 1
 

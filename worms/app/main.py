@@ -177,7 +177,7 @@ def worms_main_protocol(criteria, bbs_states=None, disable_clash_check=0, **kw):
       if bbs_states is not None:
          kw["bbs"] = [tuple(_BBlock(*s) for s in bb) for bb in bbs_states]
 
-      ssdag, result1, log = search_func(criteria, **kw)
+      ssdag, result1, log = search_func(criteria, **kw) # Outputs arrays of splice points and residue points, no structural info
       if result1 is None:
          return []
 
@@ -194,7 +194,7 @@ def worms_main_protocol(criteria, bbs_states=None, disable_clash_check=0, **kw):
          log.append("    " + msg)
          print(log[-1])
 
-      log += filter_and_output_results(criteria, ssdag, result3, **kw)
+      log += filter_and_output_results(criteria, ssdag, result3, **kw) # Where poses get made
 
       if not kw["pbar"]:
          print(f'completed: mbb{kw["merge_bblock"]:04}')
