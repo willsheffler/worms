@@ -1,6 +1,6 @@
 import sys, argparse, collections, logging
 
-from worms import util
+from worms import util, Bunch
 from worms.criteria import *
 from worms.topology import Topology
 from worms.database import CachingBBlockDB, CachingSpliceDB
@@ -300,17 +300,17 @@ def build_worms_setup_from_cli_args(argv, parser=None):
       else:
          arg.output_only_connected = True
 
-   kw = vars(arg)
+   kw = Bunch(vars(arg))
    if arg.disable_cache:
-      kw["db"] = NoCacheBBlockDB(**kw), NoCacheSpliceDB(**kw)
+      kw.db = NoCacheBBlockDB(**kw), NoCacheSpliceDB(**kw)
    else:
-      kw["db"] = CachingBBlockDB(**kw), CachingSpliceDB(**kw)
+      kw.db = CachingBBlockDB(**kw), CachingSpliceDB(**kw)
 
    # print("-------------- arg ---------------")
    # for k, v in kw.items():
    #    print("   ", k, v)
    # print("-----------------------------------")
 
-   kw["db"][0].report()
+   kw.db[0].report()
 
    return crit, kw

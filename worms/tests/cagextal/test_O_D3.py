@@ -1,3 +1,4 @@
+from worms import criteria
 from worms.search.result import ResultTable
 import worms as w
 import os, pickle
@@ -16,12 +17,28 @@ def get_test_stuff(tag):
 
 def test_worms_main():
    argv = ['@' + w.data.get_test_path('8-11-21_restricted_cage/input/cagextal_O_D3.flags')]
-   print('calling worms main', argv)
-   criteria_list, kw = w.app.main.build_worms_setup_from_cli_args(argv)
-   kw['return_raw_result'] = True
-   log = w.app.main.worms_main2(criteria_list, kw)
 
-   results = [x for x in log if isinstance(x, ResultTable)]
+   criteria_list, kw = w.app.main.build_worms_setup_from_cli_args(argv)
+   assert len(criteria_list) == 1
+   criteria = criteria_list[0]
+   print('calling worms main', criteria)
+
+   kw.return_raw_result = True
+   rundata = w.app.main.worms_main2(criteria_list, kw)
+   results = [x for x in rundata.log if isinstance(x, ResultTable)]
+
+   if False:
+      kw.output_from_pose = False
+      for ijob, result in enumerate(results):
+         print('resultset', ijob, len(result.idx))
+         kw.merge_bblock = ijob
+         w.output.filter_and_output_results(
+            criteria_list[0],
+            rundata.ssdag,
+            result,
+            debug_log_traces=True,
+            **kw,
+         )
 
    # save_test_stuff('test_O_D3_results', results)
    refresults = get_test_stuff('test_O_D3_results')

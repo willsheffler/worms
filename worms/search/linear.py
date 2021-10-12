@@ -10,7 +10,7 @@ import concurrent.futures as cf
 from worms.search.result import ResultJIT, zero_search_stats, expand_results
 from multiprocessing import cpu_count
 from tqdm import tqdm
-from time import time, clock
+from time import time, perf_counter as clock
 from worms.search.result import remove_duplicate_results
 
 @jit

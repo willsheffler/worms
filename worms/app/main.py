@@ -8,6 +8,7 @@ import itertools as it
 from time import time
 import concurrent.futures as cf
 import traceback
+from worms import Bunch
 
 import pyrosetta
 import blosc
@@ -91,7 +92,7 @@ def worms_main2(criteria_list, kw):
          kw["merge_bblock"] = merge_bblock
          kw["pbar"] = pbar
          if kw["precache_splices_and_quit"]:
-            return
+            return None
 
       global _shared_ssdag
       if "bbs" in kw and (len(kw["bbs"]) > 2 or kw["bbs"][0] is not kw["bbs"][1]):
@@ -111,7 +112,12 @@ def worms_main2(criteria_list, kw):
          kw["merge_bblock"] = merge_bblock
          print("memuse for global _shared_ssdag:")
          _shared_ssdag.report_memory_use()
-
+         assert _shared_ssdag
+      else:
+         print(
+            'failed\n      if "bbs" in kw and (len(kw["bbs"]) > 2 or kw["bbs"][0] is not kw["bbs"][1]):'
+         )
+         assert 0
          ####
 
          #
@@ -123,9 +129,12 @@ def worms_main2(criteria_list, kw):
          for a, b in zip(_shared_ssdag.bbs, kw["bbs"]):
             for aa, bb in zip(a, b):
                assert aa is bb
-      print('_shared_ssdag complete', flush=True)
+         print('_shared_ssdag complete', flush=True)
+      else:
+         assert 0, 'no _shared_ssdag??'
 
       if kw["context_structure"]:
+         print('have context_structure')
          kw["context_structure"] = ClashGrid(kw["context_structure"], **kw)
       else:
          kw["context_structure"] = None
@@ -137,7 +146,7 @@ def worms_main2(criteria_list, kw):
          for msg in log:
             print(msg)
    print("======================== done ========================")
-   return log
+   return Bunch(log=log, ssdag=_shared_ssdag, database=kw['db'])
 
 def worms_main_each_mergebb(
    criteria,

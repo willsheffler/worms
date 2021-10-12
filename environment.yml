@@ -4,16 +4,14 @@ channels:
  - conda-forge
  - https://pose:foldtree@conda.graylab.jhu.edu
 dependencies:
- - python >= 3.7
+ - python < 3.9
  - pyrosetta
- - numpy>=1.16.3
+ - numpy
  - matplotlib
  - scipy
  - numba
- - pandas>=0.24.2
- - xarray>=0.11.3
- - pytest
- - pytest-faulthandler
+ - pandas
+ - xarray
  - sphinx_rtd_theme
  - ipython
  - cffi
@@ -21,12 +19,12 @@ dependencies:
  - python-blosc >= 1.5
  - psutil
  - pympler
+ - tqdm
+ - yapf
+ - pytest
+ - pytest-faulthandler
+ - pytest-xdist
  - pip
  - pip:
-   - homog >= 0.1.10
-   - xbin >= 0.1.5
-   - hypothesis
    - pytest-sugar
-   - pytest-xdist
-   - tqdm
-   - yapf
+
