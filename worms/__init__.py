@@ -22,9 +22,9 @@ from worms.segments import *
 from worms import cli
 from worms import filters
 from worms.bunch import Bunch
-from worms.util import ping
+from worms.util import PING
 
 from worms.filters.clash import prune_clashes
 from worms.ssdag_pose import make_pose_crit
 
-import worms.app
+from worms import app, output

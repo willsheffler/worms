@@ -144,6 +144,9 @@ cli_args = dict(
    shuffle_output=0,
    xtal_min_cell_size=0,
    xtal_max_cell_size=9e9,
+   #
+   print_splice_fail_summary=1,
+   print_info_edges_with_no_splices=1,
 )
 
 def add_argument_unless_exists(parser, *arg, **kw):

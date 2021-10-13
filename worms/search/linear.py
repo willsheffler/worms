@@ -2,7 +2,8 @@ import os, sys
 import numpy as np
 import numba as nb
 import types
-from worms.util import jit, InProcessExecutor
+
+from worms.util import jit, InProcessExecutor, PING
 from worms.vertex import _Vertex, vertex_xform_dtype
 from worms.edge import _Edge
 from random import random
@@ -42,7 +43,7 @@ def grow_linear(
    **kw,
 ):
    print('-' * 60)
-   print('linear.py:grow_linear begin', flush=True)
+   PING('grow_linear begin')
    print('-' * 60)
    verts = ssdag.verts
    edges = ssdag.edges
@@ -64,7 +65,7 @@ def grow_linear(
    #     if not 'NUMBA_DISABLE_JIT' in os.environ:
    #         loss_function = nb.njit(nogil=True, fastmath=True)
 
-   print('linear.py:grow_linear start exe', flush=True)
+   PING('grow_linear start exe')
    exe = (cf.ThreadPoolExecutor(max_workers=parallel) if parallel else InProcessExecutor())
    # exe = cf.ProcessPoolExecutor(max_workers=parallel) if parallel else InProcessExecutor()
    with exe as pool:
@@ -91,7 +92,7 @@ def grow_linear(
       )
       futures = list()
       if monte_carlo:
-         print('linear.py: using monte_carlo', flush=True)
+         PING('using monte_carlo')
          kwargs["fn"] = _grow_linear_mc_start
          kwargs["seconds"] = monte_carlo
          kwargs["ivertex_range"] = (0, verts[0].len)
@@ -105,7 +106,7 @@ def grow_linear(
             kwargs["threadno"] = ivert
             futures.append(pool.submit(**kwargs))
       else:
-         print('linear.py: NOT using monte_carlo', flush=True)
+         PING('NOT using monte_carlo')
          kwargs["fn"] = _grow_linear_start
          nbatch = max(1, int(verts[0].len / 64 / cpu_count()))
          for ivert in range(0, verts[0].len, nbatch):
@@ -129,7 +130,7 @@ def grow_linear(
                mininterval=pbar_interval,
                total=len(futures),
             )
-         print('linear.py:grow_linear for f in fiter', flush=True)
+         PING('for f in fiter')
          for f in fiter:
             # print('linear.py:grow_linear:f in fiter',flush=True)
             results.append(f.result())
@@ -139,7 +140,7 @@ def grow_linear(
    for i in range(len(tot_stats)):
       tot_stats[i][0] += sum([r.stats[i][0] for r in results])
 
-   print('linear.py:grow_linear gather results', flush=True)
+   PING('gather results')
    result = ResultJIT(
       pos=np.concatenate([r.pos for r in results]),
       idx=np.concatenate([r.idx for r in results]),
@@ -149,7 +150,7 @@ def grow_linear(
    result = remove_duplicate_results(result)
    order = np.argsort(result.err)
 
-   print('linear.py:grow_linear returning ResultJIT', flush=True)
+   PING('returning ResultJIT')
 
    return ResultJIT(
       pos=result.pos[order],
@@ -196,7 +197,7 @@ def _grow_linear_start(
       # print('', flush=True)
 
    # assert 0
-   if debug: print('linear.py:_grow_linear_start calling _grow_linear_recurse', flush=True)
+   if debug: PING('_grow_linear_start calling _grow_linear_recurse')
    nresults, result, _ = _grow_linear_recurse(
       result=result,
       bb_base=bb_base,
@@ -206,8 +207,9 @@ def _grow_linear_start(
       bbidx_prev=-np.ones((len(verts), ), dtype=np.int64),
       **kwargs,
    )
-   if debug: print('linear.py:_grow_linear_start calling _grow_linear_recurse DONE', flush=True)
+
    if debug:
+      PING('_grow_linear_start calling _grow_linear_recurse DONE')
       print('nresults', nresults)
       print('result pos', result.pos.shape)
       print('result idx', result.idx.shape)
@@ -221,7 +223,7 @@ def _grow_linear_start(
       result.stats,
    )
 
-   if debug: print('linear.py:_grow_linear_start DONE', flush=True)
+   if debug: PING('_grow_linear_start DONE', flush=True)
    return result
 
 @jit

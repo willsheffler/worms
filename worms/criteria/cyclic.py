@@ -6,129 +6,26 @@ from worms.filters.helixconf_jit import make_helixconf_filter
 
 # khash_cffi needs updating for numba 0.49+
 # from worms.criteria import make_hash_table, WheelHashCriteria
-def make_hash_table(*args, **kwargs):
-   raise NotImplementedError('khash_cffi needs updating for numba 0.49+')
 
 import worms.homog as hm
-from worms.homog import numba_axis_angle, numba_axis_angle_cen, hrot, angle, numba_hrot, rand_xform
+from worms.homog import numba_axis_angle_cen, hrot
 # from xbin import gu_xbin_indexer, numba_xbin_indexer
 from copy import deepcopy
 from worms.util import ros, get_bb_stubs
 from worms.merge.concat import merge_results_concat
 
-from pyrosetta import pose_from_file
+from pyrosetta import pose_from_file  # type: ignore
 import warnings
+
+def make_hash_table(*__arg__, **__kw__):
+   raise NotImplementedError('khash_cffi needs updating for numba 0.49+')
+
+def WheelHashCriteria(*__arg__, **__kw__):
+   raise NotImplementedError('khash_cffi needs updating for numba 0.49+')
 
 warnings.filterwarnings('ignore')
 
 class Cyclic(WormCriteria):
-   def jit_lossfunc(self, **kw):
-      kw = Bunch(**kw)
-
-      tgt_ang = self.symangle
-      from_seg = self.from_seg
-      to_seg = self.to_seg
-      lever = self.lever
-      min_sep2 = self.min_sep2
-
-      tolerance = kw.tolerance
-
-      axis_constraint_bblock = -1
-      axis_constraint_angle = 0.6523580032234328  # 37.37739188761675
-
-      fixori_segment = self.fixori_segment
-      fixori_target = self.fixori_target.astype(np.float32)
-      fixori_tolerance = np.radians(self.fixori_tolerance)
-
-      helixconf_filter = make_helixconf_filter(self, **kw)
-
-      @util.jit
-      def lossfunc(pos, idx, verts, debug=False):
-         x_from = pos[from_seg]
-         x_to = pos[to_seg]
-         xhat = x_to @ np.linalg.inv(x_from)
-         if debug: print('if np.sum(xhat[:3, 3]**2) < min_sep2:')
-         if np.sum(xhat[:3, 3]**2) < min_sep2:
-            return 9e9
-
-         if debug: print('axis, angle, cen = numba_axis_angle_cen(xhat)')
-         tmp = numba_axis_angle_cen(xhat)
-         if tmp is None:
-            return 9e9
-         axis, angle, cen = tmp
-
-         rot_err_sq = lever**2 * (angle - tgt_ang)**2
-         cart_err_sq = (np.sum(xhat[:, 3] * axis))**2
-         geomerr = np.sqrt(rot_err_sq + cart_err_sq)
-         if geomerr > 10 * tolerance:
-            return 9e9
-
-         helixerr = helixconf_filter(pos, idx, verts, axis)
-         if helixerr > 100 * tolerance:
-            return 9e9
-
-         tgtaxiserr = 0
-         if axis_constraint_bblock > 0:
-            bbz = pos[axis_constraint_bblock, :, 2]
-            bb_ang = acos(np.sum(bbz * axis))
-            bb_ang_err_sq = lever**2 * (bb_ang - axis_constraint_angle)**2
-            bb_pt = pos[axis_constraint_bblock, :, 3]
-
-            if bb_ang_err_sq < 2.0:
-               return 9e9
-
-            tgtaxiserr = bb_ang_err_sq
-            if debug: print('endif axis_constraint_bblock > 0:            ')
-
-         if fixori_segment is not None:
-            tgtpos = xhat @ fixori_target
-            segpos = pos[fixori_segment] @ np.linalg.inv(x_from)
-            tgtxform = tgtpos @ np.linalg.inv(segpos)
-            # if debug: print(tgtxform)
-            # if debug: print(tgtxform.shape)
-
-            tgtaxis, tgtang, tgtcen = numba_axis_angle_cen(tgtxform, debug=debug)
-
-            # if debug: print('\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-            # if debug: print('tgtaxis/ang/cen', axis, tgtaxis)
-
-            dev_angle = acos(np.abs(np.sum(axis * tgtaxis)))
-            dev_angle = min(dev_angle, np.pi - dev_angle)
-            # if debug: print('dev_angle', dev_angle)
-            fixorierr = np.sqrt(lever**2 * dev_angle**2)
-            # if debug: print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n')
-            # assert 0
-
-            # print('dev_angle', dev_angle, 'fixori_tolerance', fixori_tolerance)
-            if dev_angle > fixori_tolerance:
-               return 9e9
-            # else:
-            # return 0
-
-         err = sqrt(geomerr**2 + helixerr**2 + tgtaxiserr**2 + fixorierr**2)
-         if err < 5:
-            print('errors', err, 'geom', geomerr, 'hel', helixerr, 'tax', tgtaxiserr, 'ori',
-                  fixorierr)
-
-         return err
-
-      @util.jit
-      def func1(pos, idx, verts):
-         x_from = pos[from_seg]
-         x_to = pos[to_seg]
-         xhat = x_to @ np.linalg.inv(x_from)
-         cosang = (xhat[0, 0] + xhat[1, 1] + xhat[2, 2] - 1.0) / 2.0
-         rot_err_sq = (1.0 - cosang) * np.pi * lever**2  # hokey, but works
-         # axis, angle = numba_axis_angle(xhat)  # right way, but slower
-         # rot_err_sq = angle**2 * lever**2
-         cart_err_sq = np.sum(xhat[:3, 3]**2)
-         return np.sqrt(rot_err_sq + cart_err_sq)
-
-      if self.nfold is 1:
-         return func1
-
-      return lossfunc
-
    def __init__(
       self,
       symmetry=1,
@@ -197,7 +94,118 @@ class Cyclic(WormCriteria):
          tgtstub = get_bb_stubs(self.target_structure, which_resi=[7])[0].squeeze()
          self.fixori_target = tgtstub @ np.linalg.inv(refstub)
 
-   def score(self, segpos, *, verbosity=False, **kw):
+      self.bbspec = None  # should be filled in elsewhere
+
+   def jit_lossfunc(self, **kw):
+      kw = Bunch(**kw)
+
+      tgt_ang = self.symangle
+      from_seg = self.from_seg
+      to_seg = self.to_seg
+      lever = self.lever
+      min_sep2 = self.min_sep2
+
+      tolerance = float(kw.tolerance)  # type: ignore
+
+      axis_constraint_bblock = -1
+      axis_constraint_angle = 0.6523580032234328  # 37.37739188761675
+
+      fixori_segment = self.fixori_segment
+      fixori_target = self.fixori_target.astype(np.float32)
+      fixori_tolerance = np.radians(self.fixori_tolerance)
+
+      helixconf_filter = make_helixconf_filter(self, **kw)
+
+      @util.jit  # type: ignore
+      def lossfunc(pos, idx, verts, debug=False):
+         x_from = pos[from_seg]
+         x_to = pos[to_seg]
+         xhat = x_to @ np.linalg.inv(x_from)
+         if debug: print('if np.sum(xhat[:3, 3]**2) < min_sep2:')
+         if np.sum(xhat[:3, 3]**2) < min_sep2:
+            return 9e9
+
+         if debug: print('axis, angle, cen = numba_axis_angle_cen(xhat)')
+         tmp = numba_axis_angle_cen(xhat)
+         if tmp is None:
+            return 9e9
+         axis, angle, _ = tmp
+
+         rot_err_sq = lever**2 * (angle - tgt_ang)**2
+         cart_err_sq = (np.sum(xhat[:, 3] * axis))**2
+         geomerr = np.sqrt(rot_err_sq + cart_err_sq)
+         if geomerr > 10 * tolerance:
+            return 9e9
+
+         helixerr = helixconf_filter(pos, idx, verts, axis)
+         if helixerr > 100 * tolerance:
+            return 9e9
+
+         tgtaxiserr = 0
+         fixorierr = 0
+         if axis_constraint_bblock > 0:
+            bbz = pos[axis_constraint_bblock, :, 2]
+            bb_ang = acos(np.sum(bbz * axis))
+            bb_ang_err_sq = lever**2 * (bb_ang - axis_constraint_angle)**2
+            # bb_pt = pos[axis_constraint_bblock, :, 3]
+
+            if bb_ang_err_sq < 2.0:
+               return 9e9
+
+            tgtaxiserr = bb_ang_err_sq
+            if debug: print('endif axis_constraint_bblock > 0:            ')
+
+         if fixori_segment is not None:
+            tgtpos = xhat @ fixori_target
+            segpos = pos[fixori_segment] @ np.linalg.inv(x_from)
+            tgtxform = tgtpos @ np.linalg.inv(segpos)
+            # if debug: print(tgtxform)
+            # if debug: print(tgtxform.shape)
+
+            tgtaxis, _, _ = numba_axis_angle_cen(tgtxform, debug=debug)
+
+            # if debug: print('\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            # if debug: print('tgtaxis/ang/cen', axis, tgtaxis)
+
+            dev_angle = acos(np.abs(np.sum(axis * tgtaxis)))
+            dev_angle = min(dev_angle, np.pi - dev_angle)
+            # if debug: print('dev_angle', dev_angle)
+            fixorierr = np.sqrt(lever**2 * dev_angle**2)
+            # if debug: print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n')
+            # assert 0
+
+            # print('dev_angle', dev_angle, 'fixori_tolerance', fixori_tolerance)
+            if dev_angle > fixori_tolerance:
+               return 9e9
+            # else:
+            # return 0
+
+         err = sqrt(geomerr**2 + helixerr**2 + tgtaxiserr**2 + fixorierr**2)
+         if err < 5:
+            print('errors', err, 'geom', geomerr, 'hel', helixerr, 'tax', tgtaxiserr, 'ori',
+                  fixorierr)
+
+         return err
+
+      @util.jit  #type:ignore
+      def func1(pos, __idx__, __verts__):
+         x_from = pos[from_seg]
+         x_to = pos[to_seg]
+         xhat = x_to @ np.linalg.inv(x_from)
+         cosang = (xhat[0, 0] + xhat[1, 1] + xhat[2, 2] - 1.0) / 2.0
+         rot_err_sq = (1.0 - cosang) * np.pi * lever**2  # hokey, but works
+         # axis, angle = numba_axis_angle(xhat)  # right way, but slower
+         # rot_err_sq = angle**2 * lever**2
+         cart_err_sq = np.sum(xhat[:3, 3]**2)
+         return np.sqrt(rot_err_sq + cart_err_sq)
+
+      if self.nfold is 1:
+         return func1
+
+      return lossfunc
+
+   def score(self, segpos, *, verbosity=False, **_):
+
       x_from = segpos[self.from_seg]
       x_to = segpos[self.to_seg]
       xhat = x_to @ inv(x_from)
@@ -235,7 +243,7 @@ class Cyclic(WormCriteria):
 
       return np.sqrt(carterrsq / self.tolerance**2 + roterrsq / self.rot_tol**2)
 
-   def alignment(self, segpos, **kw):
+   def alignment(self, segpos, **_):
       if self.origin_seg is not None:
          return inv(segpos[self.origin_seg])
       if self.nfold is 1:
@@ -243,7 +251,7 @@ class Cyclic(WormCriteria):
       x_from = segpos[self.from_seg]
       x_to = segpos[self.to_seg]
       xhat = x_to @ inv(x_from)
-      axis, ang, cen = hm.axis_ang_cen_of(xhat)
+      axis, _, cen = hm.axis_ang_cen_of(xhat)
       # print('aln', axis)
       # print('aln', ang * 180 / np.pi)
       # print('aln', cen)
@@ -254,13 +262,13 @@ class Cyclic(WormCriteria):
       align[..., :3, 3] -= cen[..., :3]
       return align
 
-   def stages(self, hash_cart_resl, hash_ori_resl, bbs, **kw):
+   def stages(self, hash_cart_resl, hash_ori_resl, bbs, **_):
       "return spearate criteria for each search stage"
       if self.origin_seg is None:
          return [(self, bbs)], None
 
       assert self.origin_seg == 0
-      bbspec = deepcopy(self.bbspec[self.from_seg:])
+      bbspec = deepcopy(self.bbspec[self.from_seg:])  # type:ignore
       bbspec[0][1] = "_" + bbspec[0][1][1]
       critA = Cyclic(
          self.nfold,
@@ -272,80 +280,80 @@ class Cyclic(WormCriteria):
       bbsA = bbs[self.from_seg:] if bbs else None
       bbsB = bbs[:self.from_seg + 1] if bbs else None
 
-      def stageB(critA, ssdagA, resultA):
-         bbspec = deepcopy(self.bbspec[:self.from_seg + 1])
+      def stageB(__critA__, ssdagA, resultA):
+         bbspec = deepcopy(self.bbspec[:self.from_seg + 1])  # type:ignore
          bbspec[-1][1] = bbspec[-1][1][0] + "_"
          gubinner = gu_xbin_indexer(hash_cart_resl, hash_ori_resl)
          numba_binner = numba_xbin_indexer(hash_cart_resl, hash_ori_resl)
-         keys, hash_table = make_hash_table(ssdagA, resultA, gubinner)
+         __keys__, hash_table = make_hash_table(ssdagA, resultA, gubinner)  # type:ignore
          critB = WheelHashCriteria(self, numba_binner, hash_table)
-         critB.bbspec = bbspec
+         critB.bbspec = bbspec  #type: ignore
          return critB
 
       return [(critA, bbsA), (stageB, bbsB)], merge_results_concat
 
-   def merge_segment(self, **kw):
+   def merge_segment(self, **_):
       return self.from_seg
 
    def cloned_segments(self):
       "which bbs are being merged together"
       return self.from_seg, self.to_seg
 
-   def iface_rms(self, pose0, prov, **kw):
+   def iface_rms(self, pose0, prov, **_):
       return -1
-      if self.origin_seg is None:
-         # print('WARNING: iface_rms not implemented for simple cyclic')
-         return -1
-      else:
-         same_as_last = list()
-         for i, pr in enumerate(prov[:-1]):
-            if pr[2] is prov[-1][2]:
-               same_as_last.append(i)
-         if len(same_as_last) < 2:
-            print("iface_rms ERROR, not 3 merge subs! same_as_last:", same_as_last)
-            # for i, (lb, ub, src, slb, sub) in enumerate(prov):
-            # print(i, lb, ub, id(src), len(src), slb, sub)
-            return 9e9
+      #       if self.origin_seg is None:
+      #          # print('WARNING: iface_rms not implemented for simple cyclic')
+      #          return -1
+      #       else:
+      #          same_as_last = list()
+      #          for i, pr in enumerate(prov[:-1]):
+      #             if pr[2] is prov[-1][2]:
+      #                same_as_last.append(i)
+      #          if len(same_as_last) < 2:
+      #             print("iface_rms ERROR, not 3 merge subs! same_as_last:", same_as_last)
+      #             # for i, (lb, ub, src, slb, sub) in enumerate(prov):
+      #             # print(i, lb, ub, id(src), len(src), slb, sub)
+      #             return 9e9
 
-         i1, i2 = same_as_last[-2:]
-         i3 = -1
-         a1 = util.subpose(pose0, prov[i1][0], prov[i1][1])
-         a2 = util.subpose(pose0, prov[i2][0], prov[i2][1])
-         a3 = util.subpose(pose0, prov[i3][0], prov[i3][1])
-         b1 = util.subpose(prov[i1][2], prov[i1][3], prov[i1][4])
-         b2 = util.subpose(prov[i2][2], prov[i2][3], prov[i2][4])
-         b3 = util.subpose(prov[i3][2], prov[i3][3], prov[i3][4])
+      #          i1, i2 = same_as_last[-2:]
+      #          i3 = -1
+      #          a1 = util.subpose(pose0, prov[i1][0], prov[i1][1])
+      #          a2 = util.subpose(pose0, prov[i2][0], prov[i2][1])
+      #          a3 = util.subpose(pose0, prov[i3][0], prov[i3][1])
+      #          b1 = util.subpose(prov[i1][2], prov[i1][3], prov[i1][4])
+      #          b2 = util.subpose(prov[i2][2], prov[i2][3], prov[i2][4])
+      #          b3 = util.subpose(prov[i3][2], prov[i3][3], prov[i3][4])
 
-         forward = hrot([0, 0, 1], 360.0 / self.nfold)
-         backward = hrot([0, 0, 1], -720.0 / self.nfold)
-         util.xform_pose(forward, a1)
-         # a1.dump_pdb('a3_forward.pdb')
-         fdist = a1.residue(1).xyz(2).distance(a3.residue(1).xyz(2))
-         util.xform_pose(backward, a1)
-         # a1.dump_pdb('a3_backward.pdb')
-         bdist = a1.residue(1).xyz(2).distance(a3.residue(1).xyz(2))
-         if bdist > fdist:
-            util.xform_pose(forward, a1)
-            util.xform_pose(forward, a1)
+      #          forward = hrot([0, 0, 1], 360.0 / self.nfold)
+      #          backward = hrot([0, 0, 1], -720.0 / self.nfold)
+      #          util.xform_pose(forward, a1)
+      #          # a1.dump_pdb('a3_forward.pdb')
+      #          fdist = a1.residue(1).xyz(2).distance(a3.residue(1).xyz(2))
+      #          util.xform_pose(backward, a1)
+      #          # a1.dump_pdb('a3_backward.pdb')
+      #          bdist = a1.residue(1).xyz(2).distance(a3.residue(1).xyz(2))
+      #          if bdist > fdist:
+      #             util.xform_pose(forward, a1)
+      #             util.xform_pose(forward, a1)
 
-         # pose0.dump_pdb('pose0.pdb')
-         # a1.dump_pdb('a1.pdb')
-         # a2.dump_pdb('a2.pdb')
-         # a3.dump_pdb('a3.pdb')
-         # prov[-1][2].dump_pdb('src.pdb')
-         # b1.dump_pdb('b1.pdb')
-         # b2.dump_pdb('b2.pdb')
-         # b3.dump_pdb('b3.pdb')
+      #          # pose0.dump_pdb('pose0.pdb')
+      #          # a1.dump_pdb('a1.pdb')
+      #          # a2.dump_pdb('a2.pdb')
+      #          # a3.dump_pdb('a3.pdb')
+      #          # prov[-1][2].dump_pdb('src.pdb')
+      #          # b1.dump_pdb('b1.pdb')
+      #          # b2.dump_pdb('b2.pdb')
+      #          # b3.dump_pdb('b3.pdb')
 
-         ros.core.pose.append_pose_to_pose(a1, a2, True)
-         ros.core.pose.append_pose_to_pose(a1, a3, True)
-         ros.core.pose.append_pose_to_pose(b1, b2, True)
-         ros.core.pose.append_pose_to_pose(b1, b3, True)
+      #          ros.core.pose.append_pose_to_pose(a1, a2, True)
+      #          ros.core.pose.append_pose_to_pose(a1, a3, True)
+      #          ros.core.pose.append_pose_to_pose(b1, b2, True)
+      #          ros.core.pose.append_pose_to_pose(b1, b3, True)
 
-         # a1.dump_pdb('a.pdb')
-         # b1.dump_pdb('b.pdb')
+      #          # a1.dump_pdb('a.pdb')
+      #          # b1.dump_pdb('b.pdb')
 
-         rms = ros.core.scoring.CA_rmsd(a1, b1)
-         # assert 0, 'debug iface rms ' + str(rms)
+      #          rms = ros.core.scoring.CA_rmsd(a1, b1)
+      #          # assert 0, 'debug iface rms ' + str(rms)
 
-         return rms
+      #          return rms

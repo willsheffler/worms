@@ -1,17 +1,17 @@
 import logging
 import sys
 import concurrent.futures as cf
-from time import clock, time
+from time import perf_counter as clock
 
 import numpy as np
-import pytest
+# import pytest
 
-from worms import simple_search_dag, Cyclic, grow_linear, NullCriteria
+from worms import simple_search_dag, grow_linear, NullCriteria
 from worms.util import InProcessExecutor
 from worms.database import CachingBBlockDB, CachingSpliceDB
-from worms.ssdag_pose import make_pose_crit, make_pose
+from worms.ssdag_pose import make_pose
 from worms.ssdag import graph_dump_pdb
-from worms.filters.clash import prune_clashes
+# from worms.filters.clash import prune_clashes
 from worms.search import lossfunc_rand_1_in
 
 logging.getLogger().setLevel(99)
@@ -39,22 +39,22 @@ def _dump_pdb(i, **kw):
    pose.dump_pdb("test_%i.pdb" % i)
 
 def worm_grow_3(
-      bbdb,
-      spdb,
-      nbblocks=10,
-      shuffle_bblocks=0,
-      parallel=1,
-      verbosity=1,
-      monte_carlo=0,
-      clash_check=0,
-      dump_pdb=0,
-      cache_sync=0.001,
+   bbdb,
+   spdb,
+   nbblocks=10,
+   # shuffle_bblocks=0,
+   parallel=1,
+   verbosity=1,
+   monte_carlo=0,
+   clash_check=0,
+   dump_pdb=0,
+   cache_sync=0.001,
 ):
    if clash_check < dump_pdb:
       clash_check = dump_pdb * 100
-   ttot = time()
+   ttot = clock()
 
-   ssdag, tdb, tvertex, tedge = simple_search_dag(
+   ssdag, (tdb, tvertex, tedge) = simple_search_dag(
       [
          ("C3_N", "_N"),
          ("Het:NCy", "C_"),
@@ -78,7 +78,7 @@ def worm_grow_3(
    lf = crit.jit_lossfunc()
    last_bb_same_as = -1
 
-   tgrow = time()
+   tgrow = clock()
    rslt = grow_linear(
       ssdag,
       # loss_function=lf,
@@ -88,7 +88,7 @@ def worm_grow_3(
       last_bb_same_as=last_bb_same_as,
       monte_carlo=monte_carlo,
    )
-   tgrow = time() - tgrow
+   tgrow = clock() - tgrow
 
    Nres = len(rslt.err)
    Ntot = np.prod([v.len for v in ssdag.verts])
@@ -99,7 +99,7 @@ def worm_grow_3(
    )
    Nsparse = int(rslt.stats.total_samples[0])
    Nsparse_rate = int(Nsparse / tgrow)
-   ttot = time() - ttot
+   ttot = clock() - ttot
    if len(rslt.idx) == 0:
       frac_redundant = 0
    else:
@@ -115,7 +115,7 @@ def worm_grow_3(
    if not clash_check:
       return
 
-   tclash = time()
+   tclash = clock()
    norig = len(rslt.idx)
    # rslt = prune_clashes(
    # ssdag, crit, rslt, at_most=clash_check, thresh=4.0, parallel=parallel
@@ -123,7 +123,7 @@ def worm_grow_3(
    print(
       "pruned clashes, %i of %i remain," % (len(rslt.idx), min(clash_check, norig)),
       "took",
-      time() - tclash,
+      clock() - tclash,
       "seconds",
    )
 
@@ -134,7 +134,7 @@ def worm_grow_3(
    return
 
    if len(rslt.idx) > 0:
-      tpdb = time()
+      tpdb = clock()
       exe = cf.ThreadPoolExecutor if parallel else InProcessExecutor
       with exe(max_workers=3) as pool:
          futures = list()
@@ -150,7 +150,7 @@ def worm_grow_3(
             )
             futures.append(pool.submit(_dump_pdb, **kw))
          [f.result() for f in futures]
-      print("dumped %i structures" % min(dump_pdb, len(rslt.idx)), "time", time() - tpdb)
+      print("dumped %i structures" % min(dump_pdb, len(rslt.idx)), "time", clock() - tpdb)
 
 def main():
    import argparse

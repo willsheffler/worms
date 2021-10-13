@@ -270,7 +270,7 @@ class AxesIntersect(WormCriteria):
       ax1 = segpos[self.from_seg][..., :, 2]
       ax2 = segpos[self.to_seg][..., :, 2]
 
-      print(segpos)
+      # print(segpos)
       # print('========')
       # print('ang', np.degrees(hm.angle(ax1, ax2)))
       if not self.nondistinct_axes and hm.angle(ax1, ax2) > np.pi / 2:

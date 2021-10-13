@@ -61,7 +61,7 @@ def setup():
 
 def worms_search(criteria, **kw):
    arg = rp.Bunch(kw)
-   ssdag = cache(worms.simple_search_dag, criteria, _key='ssdag', **arg)
+   ssdag, _ = cache(worms.simple_search_dag, criteria, _key='ssdag', **arg)
    arg.prof.checkpoint('worms dag')
    wresult = cache(worms.grow_linear, ssdag, criteria.jit_lossfunc(), _key='wresult', **arg)
    arg.prof.checkpoint('worms search')

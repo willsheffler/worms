@@ -1,4 +1,3 @@
-import sys
 from time import time
 from collections import Counter
 import concurrent.futures as cf
@@ -7,15 +6,13 @@ import os
 
 import numpy as np
 
-import worms
-from worms import Vertex, Edge, precompute_splicedb
+from worms import Vertex, Edge, precompute_splicedb, Bunch
 from worms.bblock import bblock_dump_pdb, _BBlock
 from worms.vertex import _Vertex
 from worms.edge import _Edge
 from worms.util import InProcessExecutor
-from pprint import pprint
-from logging import info
-import string
+# from logging import info
+# import string
 
 def _validate_bbs_verts(bbs, verts):
    assert len(bbs) == len(verts)
@@ -111,8 +108,10 @@ def simple_search_dag(
    use_saved_bblocks=False,
    output_prefix="./worms",
    only_ivertex=[],
+   print_splice_fail_summary=True,
    **kw,
 ):
+   kw = Bunch(kw)
    bbdb, spdb = db
    queries, directions = zip(*criteria.bbspec)
    tdb = time()
@@ -224,7 +223,7 @@ def simple_search_dag(
             bbpairs.update((b, a) if rev else (a, b) for a in bb1 for b in bb2)
       precompute_splicedb(db, bbpairs, verbosity=verbosity, parallel=parallel, **kw)
    if precache_only:
-      return bbs
+      return Bunch(bblocks=bbs)
 
    verts = [None] * len(queries)
    edges = [None] * len(queries[1:])
@@ -341,52 +340,54 @@ def simple_search_dag(
          allok = all(x[6] for x in edge_analysis)
          if allok:
             continue
-         print("=" * 80)
-         print("info for edges with no valid splices", edges[i].total_allowed_splices())
-         for tup in edge_analysis:
-            iblk0, iblk1, ofst0, ofst1, ires0, ires1 = tup[:6]
-            ok, f_clash, f_rms, f_ncontact, f_ncnh, f_nhc = tup[6:12]
-            m_rms, m_ncontact, m_ncnh, m_nhc = tup[12:]
-            if ok:
-               continue
-            assert len(bbs[i + 0]) > iblk0
-            assert len(bbs[i + 1]) > iblk1
+         if kw.print_info_edges_with_no_splices:
             print("=" * 80)
-            print("egde Bblock A", bytes(bbs[i][iblk0].file))
-            print("egde Bblock B", bytes(bbs[i + 1][iblk1].file))
-            print(
-               f"bb {iblk0:3} {iblk1:3}",
-               f"ofst {ofst0:4} {ofst1:4}",
-               f"resi {ires0.shape} {ires1.shape}",
-            )
-            print(
-               f"clash_ok {int(f_clash*100):3}%",
-               f"rms_ok {int(f_rms*100):3}%",
-               f"ncontact_ok {int(f_ncontact*100):3}%",
-               f"ncnh_ok {int(f_ncnh*100):3}%",
-               f"nhc_ok {int(f_nhc*100):3}%",
-            )
-            print(
-               f"min_rms {m_rms:7.3f}",
-               f"max_ncontact {m_ncontact:7.3f}",
-               f"max_ncnh {m_ncnh:7.3f}",
-               f"max_nhc {m_nhc:7.3f}",
-            )
-         print("=" * 80)
+            print("info for edges with no valid splices", edges[i].total_allowed_splices())
+            for tup in edge_analysis:
+               iblk0, iblk1, ofst0, ofst1, ires0, ires1 = tup[:6]
+               ok, f_clash, f_rms, f_ncontact, f_ncnh, f_nhc = tup[6:12]
+               m_rms, m_ncontact, m_ncnh, m_nhc = tup[12:]
+               if ok:
+                  continue
+               assert len(bbs[i + 0]) > iblk0
+               assert len(bbs[i + 1]) > iblk1
+               print("=" * 80)
+               print("egde Bblock A", bytes(bbs[i][iblk0].file))
+               print("egde Bblock B", bytes(bbs[i + 1][iblk1].file))
+               print(
+                  f"bb {iblk0:3} {iblk1:3}",
+                  f"ofst {ofst0:4} {ofst1:4}",
+                  f"resi {ires0.shape} {ires1.shape}",
+               )
+               print(
+                  f"clash_ok {int(f_clash*100):3}%",
+                  f"rms_ok {int(f_rms*100):3}%",
+                  f"ncontact_ok {int(f_ncontact*100):3}%",
+                  f"ncnh_ok {int(f_ncnh*100):3}%",
+                  f"nhc_ok {int(f_nhc*100):3}%",
+               )
+               print(
+                  f"min_rms {m_rms:7.3f}",
+                  f"max_ncontact {m_ncontact:7.3f}",
+                  f"max_ncnh {m_ncnh:7.3f}",
+                  f"max_nhc {m_nhc:7.3f}",
+               )
+            print("=" * 80)
          fok = np.stack([x[7:12] for x in edge_analysis]).mean(axis=0)
          rmsmin = np.array([x[12] for x in edge_analysis]).min()
          fmx = np.stack([x[13:] for x in edge_analysis]).max(axis=0)
-         print(f"{' SPLICE FAIL SUMMARY ':=^80}")
-         print(f"splice clash ok               {int(fok[0]*100):3}%")
-         print(f"splice rms ok                 {int(fok[1]*100):3}%")
-         print(f"splice ncontacts ok           {int(fok[2]*100):3}%")
-         print(f"splice ncontacts_no_helix ok  {int(fok[3]*100):3}%")
-         print(f"splice nhelixcontacted ok     {int(fok[4]*100):3}%")
-         print(f"min rms of any failing        {rmsmin}")
-         print(f"max ncontact of any failing   {fmx[0]} (maybe large for non-5-helix splice)")
-         print(f"max ncontact_no_helix         {fmx[1]} (will be 999 for non-5-helix splice)")
-         print(f"max nhelix_contacted          {fmx[2]} (will be 999 for non-5-helix splice)")
-         print("=" * 80)
+         if print_splice_fail_summary:
+            print(f"{' SPLICE FAIL SUMMARY ':=^80}")
+            print(f"splice clash ok               {int(fok[0]*100):3}%")
+            print(f"splice rms ok                 {int(fok[1]*100):3}%")
+            print(f"splice ncontacts ok           {int(fok[2]*100):3}%")
+            print(f"splice ncontacts_no_helix ok  {int(fok[3]*100):3}%")
+            print(f"splice nhelixcontacted ok     {int(fok[4]*100):3}%")
+            print(f"min rms of any failing        {rmsmin}")
+            print(f"max ncontact of any failing   {fmx[0]} (maybe large for non-5-helix splice)")
+            print(f"max ncontact_no_helix         {fmx[1]} (will be 999 for non-5-helix splice)")
+            print(f"max nhelix_contacted          {fmx[2]} (will be 999 for non-5-helix splice)")
+            print("=" * 80)
          assert edges[i].total_allowed_splices() > 0, "invalid, no splices seg %i" % i
 
       tedge = time() - tedge
@@ -401,11 +402,9 @@ def simple_search_dag(
       spdb.sync_to_disk()
       print('syncing splices to disk done', flush=True)
 
-   toret = SearchSpaceDag(criteria.bbspec, bbs, verts, edges)
-   if timing:
-      toret = toret, tdb, tvertex, tedge
+   ssdag = SearchSpaceDag(criteria.bbspec, bbs, verts, edges)
    print('simple_search_dag returning', flush=True)
-   return toret
+   return Bunch(ssdag=ssdag, prof=(tdb, tvertex, tedge))
 
 def _print_edge_summary(edges):
    print("splice stats: ", end="")

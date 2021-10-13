@@ -20,7 +20,7 @@ def make_helixconf_filter(criteria, **kw):
    max_axis_dist = kw.helixconf_max_dist_to_sym_axis
 
    @util.jit
-   def func(pos, idx, verts, axis, cen):
+   def func(pos, idx, verts, axis):
       # def func(pos, idx, verts, axis, cen):
       # if random.random() < .9: return 9e9
 

@@ -1,4 +1,4 @@
-from worms import criteria
+# sfrom worms import criteria
 from worms.search.result import ResultTable
 import worms as w
 import os, pickle
@@ -23,25 +23,53 @@ def test_worms_main():
    criteria = criteria_list[0]
    print('calling worms main', criteria)
 
+   kw.parallel = False
    kw.return_raw_result = True
-   rundata = w.app.main.worms_main2(criteria_list, kw)
+   kw.print_splice_fail_summary = False
+   kw.print_info_edges_with_no_splices = False
+   kw.xtal_min_cell_size = 100
+   kw.xtal_max_cell_size = 9e9
+   rundata = w.app.main.construct_global_ssdag_and_run(criteria_list, kw)
+   assert rundata.log
    results = [x for x in rundata.log if isinstance(x, ResultTable)]
+   refresults = get_test_stuff('test_O_D3_results')
 
-   if False:
+   if True:
       kw.output_from_pose = False
+      kw.output_prefix = 'test_worms_main_new'
+      outputfiles = list()
       for ijob, result in enumerate(results):
          print('resultset', ijob, len(result.idx))
          kw.merge_bblock = ijob
-         w.output.filter_and_output_results(
+         outputresult = w.output.filter_and_output_results(
             criteria_list[0],
             rundata.ssdag,
             result,
             debug_log_traces=True,
             **kw,
          )
+         outputfiles.extend(outputresult.files)
 
-   # save_test_stuff('test_O_D3_results', results)
-   refresults = get_test_stuff('test_O_D3_results')
+      print(outputfiles)
+      print('!!!!!!!!!!!!!!!!!!!!!!!!')
+
+      outputfiles = list()
+      kw.output_prefix = 'test_worms_main_old'
+      for ijob, result in enumerate(refresults):
+         print('resultset', ijob, len(result.idx))
+         kw.merge_bblock = ijob
+         outputresult = w.output.filter_and_output_results(
+            criteria_list[0],
+            rundata.ssdag,
+            result,
+            debug_log_traces=True,
+            **kw,
+         )
+         outputfiles.extend(outputresult.files)
+      print(outputfiles)
+
+   # save_test_stuff('test_O_D3_results', results, )
+
    print('nresults', len(results), 'nrefresults', len(refresults))
    assert len(results) == len(refresults)
 

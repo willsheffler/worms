@@ -1,23 +1,27 @@
 import os, traceback
 
-def ping(message='', debug=True, printit=True, bounds=(1, -1)):
+def PING(
+   message='',
+   printit=True,
+   ntraceback=-1,
+   skip_process=True,
+   flush=False,
+):
    message = str(message)
-   if debug:
 
-      stack = traceback.extract_stack()
-      framestrs = list()
-      for iframe, frame in enumerate(stack[bounds[0]:bounds[1]]):
-         # print(iframe)
-         # print(frame[0])
-         # print(type(frame[0]))
-         path = frame[0].split('/')[-1].replace('.py', '')
-         line = path + '.' + frame[2] + ':' + str(frame[1])
-         framestrs.append(line)
-         # for ix, x in enumerate(frame):
-         # print('   ', ix, x)
-   msg = 'PING (' + message + ')' + '/'.join(framestrs)
+   stack = traceback.extract_stack()
+   framestrs = list()
+   for iframe, frame in enumerate(stack[1:ntraceback]):  # 0 is ping func, skip
+      path = frame[0].split('/')[-1].replace('.py', '')
+      line = path + '.' + frame[2] + ':' + str(frame[1])
+      if skip_process and line.startswith(('process.', 'popen_fork.', 'context.')):
+         continue
+      framestrs.append(line)
+      # for ix, x in enumerate(frame):
+      # print('   ', ix, x)
+   msg = 'PING ' + message + ' FROM ' + '/'.join(framestrs)
    if printit:
-      print(msg)
+      print(msg, flush=True)
    return msg
 
 def foo():
@@ -27,7 +31,7 @@ def bar():
    baz()
 
 def baz():
-   ping('something about baz')
+   PING('hello from baz')
 
 if __name__ == '__main__':
    print('-' * 80)

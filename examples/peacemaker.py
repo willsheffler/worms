@@ -1,5 +1,5 @@
 import logging
-import sys
+# import sys
 import glob
 from time import clock, time
 import pyrosetta
@@ -107,7 +107,7 @@ def make_peace(spec, cart_resl, ori_resl, clash_check, dump_pdb, **kw):
       modbbs=modsinglebb((spec[1].from_seg, ), kw["i_merge_bblock"]),
       make_edges=False,
       **kw,
-   )
+   ).ssdag
    print("whole:", spec[0])
    rslt, imerge = merge_results(ssdag, crit, in_rslt, in_graph, ot_rslt, ot_graph, binner,
                                 hash_table)
@@ -248,7 +248,7 @@ def outside_grow(spec, min_radius, i_merge_bblock, **kw):
          ssdag, rslt, crit = pickle.load(inp)
    else:
       crit = Cyclic(crit0.nfold, min_radius=min_radius)
-      ssdag = simple_search_dag(
+      ssdag, _ = simple_search_dag(
           bbspec, modbbs=modsinglebb((0, -1), i_merge_bblock), **kw
       )
       rslt = grow_linear(
@@ -274,7 +274,7 @@ def inside_grow(spec, binner, table, i_merge_bblock, **kw):
       with open("inner.pickle", "rb") as inp:
          ssdag, rslt = pickle.load(inp)
    else:
-      ssdag = simple_search_dag(
+      ssdag, _ = simple_search_dag(
           bbspec, modbbs=modsinglebb((-1,), i_merge_bblock), **kw
       )
       rslt = grow_linear(

@@ -4,7 +4,7 @@ import sys, collections, os, psutil, gc, json, traceback
 
 from pyrosetta import rosetta as ros
 
-from worms import util, Bunch, ping
+from worms import util, Bunch, PING
 from worms.ssdag_pose import make_pose_crit
 from worms.filters.db_filters import run_db_filters
 from worms.filters.db_filters import get_affected_positions
@@ -27,7 +27,7 @@ def filter_and_output_results(
    max_output,
    max_score0,
    max_score0sym,
-   rms_err_cut,
+   # rms_err_cut,
    no_duplicate_bases,
    output_only_AAAA,
    full_score0sym,
@@ -35,10 +35,14 @@ def filter_and_output_results(
    output_only_connected,
    null_base_names,
    only_outputs,
-   debug_log_traces=False,
+   debug=False,
    **kw,
 ):
-   ping('mbb%i' % merge_bblock, debug_log_traces)
+   kw = Bunch(kw)
+   print_pings = debug
+   files_output = list()
+
+   PING('mbb%i' % merge_bblock, print_pings)
 
    sf = ros.core.scoring.ScoreFunctionFactory.create_score_function("score0")
    if hasattr(ros.core.scoring.symmetry, 'symmetrize_scorefunction'):
@@ -59,10 +63,10 @@ def filter_and_output_results(
       head += "_"
 
    if not merge_bblock:
-      ping('mbb%i' % merge_bblock, debug_log_traces)
+      PING('mbb%i' % merge_bblock, print_pings)
       # do this once per run, at merge_bblock == 0 (or None)
       with open(head + "__HEADER.info", "w") as info_file:
-         ping('mbb%i' % merge_bblock, debug_log_traces)
+         PING('mbb%i' % merge_bblock, print_pings)
          info_file.write("close_err close_rms score0 score0sym filter zheight zradius " +
                          "radius porosity nc nc_wo_jct n_nb bases_str fname nchain chain_len " +
                          "splicepoints ibblocks ivertex")
@@ -72,12 +76,13 @@ def filter_and_output_results(
             info_file.write(" seg%i_enter seg%i_pdb seg%i_exit" % (i, i, i))
          info_file.write(" seg%i_enter seg%i_pdb" % (N - 1, N - 1))
          info_file.write("\n")
-   nresults = 0
+
+   nresults, npdbs_dumped = 0, 0
    if not output_from_pose:
 
-      ping('mbb%i' % merge_bblock, debug_log_traces)
+      PING('mbb%i no pose output' % merge_bblock, print_pings)
       for iresult in range(min(max_output, len(result.idx))):
-         ping('mbb%i' % merge_bblock, debug_log_traces)
+         PING('mbb%i' % merge_bblock, print_pings)
          segpos = result.pos[iresult]
          xalign = criteria.alignment(segpos)
          if xalign is None: continue
@@ -85,6 +90,8 @@ def filter_and_output_results(
          crystinfo = None
          if hasattr(criteria, "crystinfo"):
             crystinfo = criteria.crystinfo(segpos=result.pos[iresult])
+            if crystinfo[0] < kw.xtal_min_cell_size: continue
+            if crystinfo[0] > kw.xtal_max_cell_size: continue
 
          fname = "%s_%04i" % (head, iresult)
          # print('align_ax1', xalign @ segpos[0, :, 2])
@@ -101,11 +108,13 @@ def filter_and_output_results(
             xalign=xalign,
             crystinfo=crystinfo,
          )
+         npdbs_dumped += 1
          nresults += 1
+         files_output.append(fname + '.pdb')
          # assert 0
 
    else:
-      ping('mbb%i' % merge_bblock, debug_log_traces)
+      PING('mbb%i pose output' % merge_bblock, print_pings)
 
       info_file = None
 
@@ -114,7 +123,7 @@ def filter_and_output_results(
 
       seenpose = collections.defaultdict(lambda: list())
       for iresult in _stuff:
-         ping('mbb%i' % merge_bblock, debug_log_traces)
+         PING('mbb%i' % merge_bblock, print_pings)
          if only_outputs and iresult not in only_outputs:
             print('output skipping', iresult)
             continue
@@ -122,11 +131,13 @@ def filter_and_output_results(
          crystinfo = None
          if hasattr(criteria, "crystinfo"):
             crystinfo = criteria.crystinfo(segpos=result.pos[iresult])
+            if crystinfo[0] < kw.xtal_min_cell_size: continue
+            if crystinfo[0] > kw.xtal_max_cell_size: continue
 
          # print(getmem(), 'MEM ================ top of loop ===============')
 
          if iresult % 100 == 0:
-            ping('mbb%i' % merge_bblock, debug_log_traces)
+            PING('mbb%i' % merge_bblock, print_pings)
             process = psutil.Process(os.getpid())
             gc.collect()
             mem_before = process.memory_info().rss / float(2**20)
@@ -137,7 +148,7 @@ def filter_and_output_results(
 
          # if iresult % 10 == 0:
          if iresult % 1 == 0:
-            ping('mbb%i' % merge_bblock, debug_log_traces)
+            PING('mbb%i' % merge_bblock, print_pings)
             process = psutil.Process(os.getpid())
             if hasattr(db[0], "_poses_cache"):
                print(merge_bblock, iresult, Ntotal)
@@ -149,11 +160,11 @@ def filter_and_output_results(
                   f"{process.memory_info().rss / float(2**20):,}mb",
                )
 
-         ping('mbb%i' % merge_bblock, debug_log_traces)
+         PING('mbb%i' % merge_bblock, print_pings)
          bases = ssdag.get_bases(result.idx[iresult])
          bases_str = ",".join(bases)
          if no_duplicate_bases:
-            ping('mbb%i' % merge_bblock, debug_log_traces)
+            PING('mbb%i' % merge_bblock, print_pings)
             if criteria.is_cyclic:
                bases = bases[:-1]
             for null_name in null_base_names:
@@ -169,7 +180,7 @@ def filter_and_output_results(
 
          try:
             # print(getmem(), 'MEM make_pose_crit before')
-            ping('mbb%i' % merge_bblock, debug_log_traces)
+            PING('mbb%i' % merge_bblock, print_pings)
             pose, prov = make_pose_crit(
                db[0],
                ssdag,
@@ -188,7 +199,7 @@ def filter_and_output_results(
 
          redundant = False
          for seen in seenpose[pose.size()]:
-            ping('mbb%i' % merge_bblock, debug_log_traces)
+            PING('mbb%i' % merge_bblock, print_pings)
             rmsd = ros.core.scoring.CA_rmsd(seen, pose, 1, 0)  # whole pose
             # print('!' * 100)
             print(f'    RMSD {iresult:04} {rmsd}')
@@ -200,9 +211,9 @@ def filter_and_output_results(
 
          # print(getmem(), 'MEM dbfilters before')
          try:
-            ping('mbb%i' % merge_bblock, debug_log_traces)
+            PING('mbb%i' % merge_bblock, print_pings)
             # gross....
-            (jstr, jstr1, filt, grade, sp, mc, mcnh, mhc, nc, ncnh, nhc) = run_db_filters(
+            (jstr, jstr1, _, grade, sp, mc, mcnh, mhc, _, _, _) = run_db_filters(
                db, criteria, ssdag, iresult, result.idx[iresult], pose, prov, **kw)
          except Exception as e:
             print("error in db_filters:")
@@ -216,7 +227,7 @@ def filter_and_output_results(
             continue
 
          # print(getmem(), 'MEM rms before')
-         ping('mbb%i' % merge_bblock, debug_log_traces)
+         PING('mbb%i' % merge_bblock, print_pings)
          rms = criteria.iface_rms(pose, prov, **kw)
          # if rms > rms_err_cut: continue
          # print(getmem(), 'MEM rms after')
@@ -226,7 +237,7 @@ def filter_and_output_results(
          ros.core.util.switch_to_residue_type_set(cenpose, "centroid")
          score0 = sf(cenpose)
          # print(getmem(), 'MEM poses and score0 after')
-         ping('mbb%i' % merge_bblock, debug_log_traces)
+         PING('mbb%i' % merge_bblock, print_pings)
          if score0 > max_score0:
             print(
                f"mbb{merge_bblock:04} {iresult:06} score0 fail",
@@ -243,16 +254,16 @@ def filter_and_output_results(
 
          symfilestr = None
          if hasattr(criteria, "symfile_modifiers"):
-            ping('mbb%i' % merge_bblock, debug_log_traces)
+            PING('mbb%i' % merge_bblock, print_pings)
             symdata, symfilestr = util.get_symdata_modified(
                criteria.symname,
                **criteria.symfile_modifiers(segpos=result.pos[iresult]),
             )
          else:
-            ping('mbb%i' % merge_bblock, debug_log_traces)
+            PING('mbb%i' % merge_bblock, print_pings)
             symdata = util.get_symdata(criteria.symname)
 
-         ping('mbb%i' % merge_bblock, debug_log_traces)
+         PING('mbb%i' % merge_bblock, print_pings)
 
          # print(getmem(), 'MEM poses and score0sym before')
          sympose = cenpose.clone()
@@ -265,7 +276,7 @@ def filter_and_output_results(
 
          if symops is not None:
             orig = sympose.clone()
-            fn = f"RAW_{merge_bblock:04}_{iresult:04}_"
+            # fn = f"RAW_{merge_bblock:04}_{iresult:04}_"
             # pose.dump_pdb(fn + '0.pdb')
             # ros.core.pose.remove_lower_terminus_type_from_pose_residue(sympose, 1)
             # ros.core.pose.remove_upper_terminus_type_from_pose_residue(sympose, len(sympose))
@@ -284,7 +295,7 @@ def filter_and_output_results(
 
             score0sym = sf(sympose)
          elif symdata:
-            ping('mbb%i' % merge_bblock, debug_log_traces)
+            PING('mbb%i' % merge_bblock, print_pings)
             usecryst = pose.pdb_info() and pose.pdb_info().crystinfo().A() > 0
             # usecryst = False  # MakeLatticeMover hangs sometimes
             if usecryst:
@@ -296,14 +307,14 @@ def filter_and_output_results(
                ros.core.pose.symmetry.make_symmetric_pose(sympose, symdata)
             score0sym = sfsym(sympose)
             if full_score0sym and not usecryst:
-               ping('mbb%i' % merge_bblock, debug_log_traces)
+               PING('mbb%i' % merge_bblock, print_pings)
                sym_asym_pose = sympose.clone()
                ros.core.pose.symmetry.make_asymmetric_pose(sym_asym_pose)
-            score0sym = sf(sym_asym_pose)
-            if score0sym > max_score0sym:
-               print('!!!!!!!!!!!!!!!!!!!!!!!!!!', score0sym)
-               sym_asym_pose.dump_pdb('full_score0_sym_fail.pdb')
-               assert 0
+               score0sym = sf(sym_asym_pose)
+               if score0sym > max_score0sym:
+                  print('!!!!!!!!!!!!!!!!!!!!!!!!!!', score0sym)
+                  sym_asym_pose.dump_pdb('full_score0_sym_fail.pdb')
+                  assert 0
             # print(getmem(), 'MEM poses and score0sym after')
          else:
             score0sym = -1
@@ -313,9 +324,9 @@ def filter_and_output_results(
                   "grade", grade)
             continue
 
-         mbbstr = "None"
-         if merge_bblock is not None:
-            mbbstr = f"{merge_bblock:4d}"
+         # mbbstr = "None"
+         # if merge_bblock is not None:
+         # mbbstr = f"{merge_bblock:4d}"
 
          # print(getmem(), 'MEM chains before')
          chains = pose.split_by_chain()
@@ -323,7 +334,7 @@ def filter_and_output_results(
          chain_info += "-".join(str(len(c)) for c in chains)
          # print(getmem(), 'MEM chains after')
 
-         ping('mbb%i' % merge_bblock, debug_log_traces)
+         PING('mbb%i' % merge_bblock, print_pings)
 
          # print(getmem(), 'MEM get_affected_positions before')
          mod, new, lost, junct = get_affected_positions(cenpose, prov)
@@ -344,7 +355,7 @@ def filter_and_output_results(
          ibblock_list[mseg] = str(merge_bblock)
 
          if not info_file:
-            ping('mbb%i' % merge_bblock, debug_log_traces)
+            PING('mbb%i' % merge_bblock, print_pings)
             d = os.path.dirname(output_prefix)
             if d != "" and not os.path.exists(d):
                os.makedirs(d)
@@ -381,6 +392,8 @@ def filter_and_output_results(
             pose = cenpose
          print("solution", fname)
          pose.dump_pdb(fname + "_asym.pdb")
+         files_output.append(fname + '_asym.pdb')
+         npdbs_dumped += 1
          if symfilestr is not None:
             with open(fname + ".sym", "w") as out:
                out.write(symfilestr)
@@ -389,7 +402,7 @@ def filter_and_output_results(
          # !!!!!!!!!!!!!!!!!!!!!!!!!!!!
          # assert 0
 
-         ping('mbb%i' % merge_bblock, debug_log_traces)
+         PING('mbb%i' % merge_bblock, print_pings)
 
          commas = lambda l: ",".join(str(_) for _ in l)
          with open(fname + "_asym.pdb", "a") as out:
@@ -409,7 +422,7 @@ def filter_and_output_results(
          #
 
          if True:
-            ping('mbb%i' % merge_bblock, debug_log_traces)
+            PING('mbb%i' % merge_bblock, print_pings)
             # make json files with bblocks for single result
             tmp, seenit = list(), set()
             detail = dict(bblock=list(), ires=list(), isite=list(), ichain=list())
@@ -456,11 +469,13 @@ def filter_and_output_results(
       if info_file is not None:
          info_file.close()
 
-      ping('mbb%i' % merge_bblock, debug_log_traces)
+      PING('mbb%i' % merge_bblock, print_pings)
 
-   ping('mbb%i' % merge_bblock, debug_log_traces)
+   PING('mbb%i' % merge_bblock, print_pings)
 
    if nresults:
-      return ["nresults output" + str(nresults)]
+      return Bunch(
+         log=["nresults output: " + str(nresults), 'npdbs_dumped: ' + str(npdbs_dumped)],
+         files=files_output)
    else:
-      return []
+      return Bunch(log=[], files=[])

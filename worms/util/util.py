@@ -346,8 +346,6 @@ def get_symdata(name):
    return d
 
 def get_symdata_modified(name, string_substitutions=None, scale_positions=None):
-   if name is None:
-      return None
    symfilestr = get_symfile_contents(name)
    if scale_positions is not None:
       if string_substitutions is None:
@@ -428,7 +426,7 @@ def items_to_dicts(inp):
     Returns:
         TYPE: Description
     """
-   if isinstance(inp, list) and isinstance(inp[0], tuple) and len(inp[0]) is 2:
+   if isinstance(inp, list) and isinstance(inp[0], tuple) and len(inp[0]) == 2:
       return {k: items_to_dicts(v) for k, v in inp}
    elif isinstance(inp, list):
       return [items_to_dicts(x) for x in inp]

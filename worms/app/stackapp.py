@@ -20,7 +20,7 @@ def main():
    assert len(criteria) is 1
    criteria = criteria[0]
 
-   ssdag = simple_search_dag(criteria, print_edge_summary=True, **kw)
+   ssdag, _ = simple_search_dag(criteria, print_edge_summary=True, **kw)
 
    result = grow_linear(ssdag, criteria.jit_lossfunc())
 
