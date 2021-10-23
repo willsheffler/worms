@@ -8,19 +8,19 @@ from worms.search.result import ResultJIT
 from worms.clashgrid import ClashGrid
 
 def prune_clashes(
-      ssdag,
-      crit,
-      rslt,
-      max_clash_check=-1,
-      ca_clash_dis=4.0,
-      parallel=False,
-      approx=0,
-      verbosity=0,
-      merge_bblock=None,
-      pbar=False,
-      pbar_interval=10.0,
-      context_structure=None,
-      **kw,
+   ssdag,
+   crit,
+   rslt,
+   max_clash_check=-1,
+   ca_clash_dis=4.0,
+   parallel=False,
+   approx=0,
+   verbosity=0,
+   merge_bblock=None,
+   pbar=False,
+   pbar_interval=10.0,
+   context_structure=None,
+   **kw,
 ):
    # print('todo: clash check should handle symmetry')
    if max_clash_check == 0:

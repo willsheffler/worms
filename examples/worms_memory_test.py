@@ -1,3 +1,5 @@
+raise DeprecationWarning('this is from worms v1 and should not be used any longer')
+
 from worms import *
 from worms.data import poselib
 from worms.vis import showme

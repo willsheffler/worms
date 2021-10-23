@@ -5,14 +5,11 @@ import _pickle
 import os
 
 import numpy as np
-
-from worms import Vertex, Edge, precompute_splicedb, Bunch
+import worms
+from worms import Bunch
+from worms.vertex import Vertex
 from worms.bblock import bblock_dump_pdb, _BBlock
-from worms.vertex import _Vertex
-from worms.edge import _Edge
 from worms.util import InProcessExecutor
-# from logging import info
-# import string
 
 def _validate_bbs_verts(bbs, verts):
    assert len(bbs) == len(verts)
@@ -28,8 +25,8 @@ class SearchSpaceDag:
    def __init__(self, bbspec, bbs, verts, edges):
       _validate_bbs_verts(bbs, verts)
       assert isinstance(bbs[0][0], _BBlock)
-      assert isinstance(verts[0], (_Vertex, type(None)))
-      if not (len(edges) == 0 or all(isinstance(e, _Edge) for e in edges)):
+      assert isinstance(verts[0], (worms.vertex._Vertex, type(None)))
+      if not (len(edges) == 0 or all(isinstance(e, worms.edge._Edge) for e in edges)):
          raise ValueError("Error bad SearchSpaceDag edges")
       if bbspec:
          assert len(bbspec) == len(bbs)
@@ -50,8 +47,8 @@ class SearchSpaceDag:
    def __setstate__(self, state):
       self.bbspec = state[0]
       self.bbs = tuple(tuple(_BBlock(*x) for x in bb) for bb in state[1])
-      self.verts = tuple(_Vertex(*x) for x in state[2])
-      self.edges = tuple(_Edge(*x) for x in state[3])
+      self.verts = tuple(worms.vertex._Vertex(*x) for x in state[2])
+      self.edges = tuple(worms.edge._Edge(*x) for x in state[3])
       _validate_bbs_verts(self.bbs, self.verts)
       assert len(self.bbs) == len(self.verts) == len(self.edges) + 1
 
@@ -86,7 +83,7 @@ class SearchSpaceDag:
 
 def simple_search_dag(
    criteria,
-   db=None,
+   database=None,
    nbblocks=[64],
    min_seg_len=15,
    parallel=False,
@@ -112,7 +109,7 @@ def simple_search_dag(
    **kw,
 ):
    kw = Bunch(kw)
-   bbdb, spdb = db
+   bbdb, spdb = database
    queries, directions = zip(*criteria.bbspec)
    tdb = time()
    if bbs is None:
@@ -221,7 +218,13 @@ def simple_search_dag(
             bbpairs.update((a, a) for a in bb1)
          else:
             bbpairs.update((b, a) if rev else (a, b) for a in bb1 for b in bb2)
-      precompute_splicedb(db, bbpairs, verbosity=verbosity, parallel=parallel, **kw)
+      worms.edge_batch.precompute_splicedb(
+         database,
+         bbpairs,
+         verbosity=verbosity,
+         parallel=parallel,
+         **kw,
+      )
    if precache_only:
       return Bunch(bblocks=bbs)
 
@@ -327,7 +330,7 @@ def simple_search_dag(
       for i, e in enumerate(edges):
          if e is not None:
             continue
-         edges[i], edge_analysis = Edge(
+         edges[i], edge_analysis = worms.edge.Edge(
             verts[i],
             bbs[i],
             verts[i + 1],
@@ -398,12 +401,10 @@ def simple_search_dag(
       # str([e.total_allowed_splices()
       # for e in edges]) + ' num exits ' + str([e.len for e in edges])
       # )
-      print('syncing splices to disk', flush=True)
       spdb.sync_to_disk()
-      print('syncing splices to disk done', flush=True)
 
    ssdag = SearchSpaceDag(criteria.bbspec, bbs, verts, edges)
-   print('simple_search_dag returning', flush=True)
+   # print('simple_search_dag returning', flush=True)
    return Bunch(ssdag=ssdag, prof=(tdb, tvertex, tedge))
 
 def _print_edge_summary(edges):

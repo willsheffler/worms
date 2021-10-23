@@ -1,4 +1,5 @@
 import os, sys
+from posixpath import expanduser
 import numpy as np
 import numba as nb
 import types
@@ -8,11 +9,11 @@ from worms.vertex import _Vertex, vertex_xform_dtype
 from worms.edge import _Edge
 from random import random
 import concurrent.futures as cf
-from worms.search.result import ResultJIT, zero_search_stats, expand_results
+from worms.search.result import ResultJIT, zero_search_stats
 from multiprocessing import cpu_count
 from tqdm import tqdm
 from time import time, perf_counter as clock
-from worms.search.result import remove_duplicate_results
+from worms.search.result import remove_duplicate_results, ResultJIT
 
 @jit
 def null_lossfunc(pos, idx, verts):
@@ -197,6 +198,7 @@ def _grow_linear_start(
       # print('', flush=True)
 
    # assert 0
+   from worms.util.jitutil import expand_results
    if debug: PING('_grow_linear_start calling _grow_linear_recurse')
    nresults, result, _ = _grow_linear_recurse(
       result=result,
@@ -205,6 +207,7 @@ def _grow_linear_start(
       edges=edges,
       bases=bases,
       bbidx_prev=-np.ones((len(verts), ), dtype=np.int64),
+      expand_results=expand_results,
       **kwargs,
    )
 
@@ -269,6 +272,7 @@ def _grow_linear_recurse(
    splice_position,
    bases,
    bbidx_prev,
+   expand_results,
    debug=False,
 ):
    """Takes a partially built 'worm' of length isplice and extends them by one based on ivertex_range
@@ -399,6 +403,7 @@ def _grow_linear_recurse(
                splice_position=next_splicepos,
                bases=bases,
                bbidx_prev=bbidx_prev,
+               expand_results=expand_results,
                debug=debug,
             )
    if debug: print('   return nresults, result')
@@ -491,6 +496,7 @@ def _grow_linear_mc(
    bases,
    debug,
 ):
+   from worms.util.jitutil import expand_results
    for i in range(niter):
       nresults, result = _grow_linear_mc_recurse(
          result=result,
@@ -506,6 +512,7 @@ def _grow_linear_mc(
          ivertex_range=ivertex_range,
          splice_position=splice_position,
          bases=bases,
+         expand_results=expand_results,
          debug=debug,
       )
    return nresults, result
@@ -610,6 +617,7 @@ def _grow_linear_mc_recurse(
             ivertex_range=next_ivertex_range,
             splice_position=next_splicepos,
             bases=bases,
+            expand_results=expand_results,
             debug=debug,
          )
    return nresults, result

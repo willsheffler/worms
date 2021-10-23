@@ -1,19 +1,9 @@
+import json, itertools, pytest, numpy as np
 from worms import util
-import json
-import itertools as it
-import pytest
-import numpy as np
-
-try:
-   import pyrosetta
-
-   HAVE_PYROSETTA = True
-except ImportError:
-   HAVE_PYROSETTA = False
 
 def test_unique_key_int32s():
    a = np.array([1, 4, 7], dtype=np.int32)
-   k = util._unique_key_int32s(a)
+   k = util.jitutil._unique_key_int32s(a)
    assert list(k) == [0, 1, 2]
 
 @pytest.mark.skip()
@@ -21,12 +11,12 @@ def test_infer_symmetry(c1pose, c2pose, c3pose, c3hetpose, c6pose):
    print(c3pose)
    assert 0
 
-def test_MultiRange():
-   mr = util.MultiRange([2, 3, 4, 2, 3])
-   prod = it.product(*[range(n) for n in mr.nside])
-   for i, tup in enumerate(prod):
-      assert tup == mr[i]
-   assert i + 1 == len(mr)
+# def test_MultiRange():
+# mr = util.MultiRange([2, 3, 4, 2, 3])
+# prod = itertools.product(*[range(n) for n in mr.nside])
+# for i, tup in enumerate(prod):
+# assert tup == mr[i]
+# assert i + 1 == len(mr)
 
 @pytest.mark.skip()
 def test_remove_dicts():
@@ -37,7 +27,7 @@ def test_remove_dicts():
    assert isinstance(jd, dict)
    assert isinstance(ji, list)
    assert isinstance(ji[0], tuple)
-   assert len(ji[0]) is 2
+   assert len(ji[0]) == 2
 
 def test_contig_idx_breaks():
    tst = np.array([1, 1, 1, 1, 3, 3, 3, 3], dtype="i4")
@@ -105,3 +95,13 @@ def test_numba_expand_array_if_needed_int32():
    assert ary.shape[0] >= 100
    assert np.all(ary[:len(ary0)] == ary0)
    assert np.all(ary[len(ary0):] == -1)
+
+if __name__ == '__main__':
+   test_unique_key_int32s()
+   # test_remove_dicts()
+   test_contig_idx_breaks()
+   test_numba_expand_array_if_needed_1d()
+   test_numba_expand_array_if_needed_2d1()
+   test_numba_expand_array_if_needed_2d()
+   test_numba_expand_array_if_needed_7d()
+   test_numba_expand_array_if_needed_int32()

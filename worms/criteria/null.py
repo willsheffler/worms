@@ -1,10 +1,8 @@
 from .base import *
 from worms import util
-from worms.criteria import make_hash_table
 from worms.homog import numba_axis_angle, hrot
 # from xbin import gu_xbin_indexer, numba_xbin_indexer
 from copy import deepcopy
-from worms.util import ros
 
 class Null(WormCriteria):
    def __init__(self, from_seg=0, origin_seg=None, to_seg=-1):

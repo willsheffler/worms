@@ -1,9 +1,8 @@
 from math import sqrt, acos
 from worms.criteria.base import *
 from worms import util
-from worms.bunch import Bunch
+from worms.util import Bunch
 from worms.filters.helixconf_jit import make_helixconf_filter
-
 # khash_cffi needs updating for numba 0.49+
 # from worms.criteria import make_hash_table, WheelHashCriteria
 
@@ -11,10 +10,8 @@ import worms.homog as hm
 from worms.homog import numba_axis_angle_cen, hrot
 # from xbin import gu_xbin_indexer, numba_xbin_indexer
 from copy import deepcopy
-from worms.util import ros, get_bb_stubs
 from worms.merge.concat import merge_results_concat
 
-from pyrosetta import pose_from_file  # type: ignore
 import warnings
 
 def make_hash_table(*__arg__, **__kw__):
@@ -87,6 +84,9 @@ class Cyclic(WormCriteria):
       self.fixori_tolerance = fixori_tolerance
       self.fixori_target = np.eye(4)
       if self.fixori_segment is not None:
+         raise NotImplementedError
+         from worms.util.rosetta_utils import get_bb_stubs
+         from pyrosetta import pose_from_file  # type: ignore
          self.reference_structure = pose_from_file(reference_structure)
          self.target_structure = pose_from_file(target_structure)
          assert self.reference_structure.sequence() == self.target_structure.sequence()
@@ -199,7 +199,7 @@ class Cyclic(WormCriteria):
          cart_err_sq = np.sum(xhat[:3, 3]**2)
          return np.sqrt(rot_err_sq + cart_err_sq)
 
-      if self.nfold is 1:
+      if self.nfold == 1:
          return func1
 
       return lossfunc
@@ -210,7 +210,7 @@ class Cyclic(WormCriteria):
       x_to = segpos[self.to_seg]
       xhat = x_to @ inv(x_from)
       trans = xhat[..., :, 3]
-      if self.nfold is 1:
+      if self.nfold == 1:
          angle = hm.angle_of(xhat)
          carterrsq = np.sum(trans[..., :3]**2, axis=-1)
          roterrsq = angle**2
@@ -246,7 +246,7 @@ class Cyclic(WormCriteria):
    def alignment(self, segpos, **_):
       if self.origin_seg is not None:
          return inv(segpos[self.origin_seg])
-      if self.nfold is 1:
+      if self.nfold == 1:
          return np.eye(4)
       x_from = segpos[self.from_seg]
       x_to = segpos[self.to_seg]

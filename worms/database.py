@@ -1,34 +1,22 @@
-"""TODO: Summary
 """
-import os
-import json
-import random
-import sys
-import concurrent.futures as cf
-import itertools as it
-import logging
+stores structures and info about categories and splicing and stuff
+does a bunch of caching.. maybe too much
+"""
+
+import os, json, random, sys, logging, time, pickle, functools, collections
+import concurrent.futures as cf, itertools as it, numpy as np
 from logging import info, warning, error
 from random import shuffle
-import time
-from functools import lru_cache
 
-import numpy as np
 from tqdm import tqdm
+from deferred_import import deferred_import
 
-from worms.util import hash_str_to_int
-from worms import util
-from worms.bblock import BBlock, _BBlock
+import worms
+
+pyrosetta = deferred_import('pyrosetta')
 
 logging.basicConfig(level=logging.INFO)
-import _pickle as pickle
-
-try:
-   from pyrosetta import pose_from_file
-   from pyrosetta.rosetta.core.scoring.dssp import Dssp
-
-   HAVE_PYROSETTA = True
-except ImportError:
-   HAVE_PYROSETTA = False
+Databases = collections.namedtuple('Databases', ('bblockdb', 'splicedb'))
 
 def flatten_path(pdbfile):
    if isinstance(pdbfile, bytes):
@@ -103,7 +91,7 @@ def _read_dbfiles(bbdb, dbfiles, dbroot=""):
       entry["file"] = entry["file"].replace("__DATADIR__",
                                             os.path.relpath(os.path.dirname(__file__) + "/data"))
    bbdb._dictdb = {e["file"]: e for e in bbdb._alldb}
-   bbdb._key_to_pdbfile = {hash_str_to_int(e["file"]): e["file"] for e in bbdb._alldb}
+   bbdb._key_to_pdbfile = {worms.util.hash_str_to_int(e["file"]): e["file"] for e in bbdb._alldb}
 
    assert len(bbdb._alldb), 'no db entries'
    pdb_files_missing = False
@@ -164,26 +152,39 @@ class NoCacheSpliceDB:
          self._cache[k] = dict()
       self._cache[k][pdbkey1] = val
 
-   def cachepath(self, params, pdbkey):
-      # stock hash ok for tuples of numbers (?)
-      prm = "%016x" % abs(hash(params))
-      key = "%016x.pickle" % pdbkey
-      for d in self.cachedirs:
-         candidate = os.path.join(d, prm, key)
-         if os.path.exists(candidate):
-            return candidate
-      return os.path.join(self.cachedirs[0], prm, key)
+   # def cachepath(self, params, pdbkey):
+   #    # stock hash ok for tuples of numbers (?)
+   #    prm = "%016x" % abs(hash(params))
+   #    key = "%016x.pickle" % pdbkey
+   #    for d in self.cachedirs:
+   #       candidate = os.path.join(d, prm, key)
+   #       if os.path.exists(candidate):
+   #          return candidate
+   #    return os.path.join(self.cachedirs[0], prm, key)
+
+   def sync_to_disk(self, *_):
+      pass
 
    def listpath(self, params, pdbkey):
-      return ""
-
-   def sync_to_disk(self, dirty_only=True):
-      # print('NoCacheSpliceDB not saving')
-      pass
+      return ''
 
    def clear(self):
       # do nothing, as can't reload from cache
       pass
+
+   def merge_into_self(self, other):
+      keys1 = set(self._cache.keys())
+      keys2 = set(other._cache.keys())
+      self._cache.update({k: other._cache[k] for k in keys2 - keys1})
+
+   def __str__(self):
+      degree = [len(v) for v in self._cache]
+      return os.linesep.join([
+         f'NoCacheSpliceDB',
+         f'   num lhs: {len(self._cache)}',
+         f'   npairs: {sum(degree)}',
+         f'   num rhs: {degree}',
+      ])
 
 class NoCacheBBlockDB:
    def __init__(self, dbfiles=[], cachedirs=[], dbroot="", null_base_names=[], **kw):
@@ -193,6 +194,49 @@ class NoCacheBBlockDB:
       self.cachedirs = _get_cachedirs(cachedirs)
       self._bblock_cache = dict()
       self.null_base_names = null_base_names
+      self.bblocks_accessed = set()
+      self.poses_accessed = set()
+
+   def merge_into_self(self, other, keep_access_info=False):
+      self.dbfiles = list({*self.dbfiles, *other.dbfiles})
+      assert self.dbroot == other.dbroot
+      assert self.cachedirs == other.cachedirs
+      self._bblock_cache.update(other._bblock_cache)
+      assert self.null_base_names == other.null_base_names
+      self._dictdb.update(other._dictdb)
+      self._alldb = list(self._dictdb.values())
+      self._key_to_pdbfile.update(other._key_to_pdbfile)
+      if keep_access_info:
+         self.bblocks_accessed.update(other.bblocks_accessed)
+         self.poses_accessed.update(other.poses_accessed)
+      else:
+         self.bblocks_accessed = set()
+         self.poses_accessed = set()
+
+   def __setstate__(self, state):
+      assert len(state) == 8
+      self.dbfiles = state[0]
+      self.dbroot = state[1]
+      self.cachedirs = state[2]
+      self._bblock_cache = {k: worms.bblock._BBlock(*v) for k, v in state[3].items()}
+      self.null_base_names = state[4]
+      self._alldb = state[5]
+      self._dictdb = state[6]
+      self._key_to_pdbfile = state[7]
+      self.bblocks_accessed = set()
+      self.poses_accessed = set()
+
+   def __getstate__(self):
+      return (
+         self.dbfiles,
+         self.dbroot,
+         self.cachedirs,
+         {k: v._state for k, v in self._bblock_cache.items()},
+         self.null_base_names,
+         self._alldb,
+         self._dictdb,
+         self._key_to_pdbfile,
+      )
 
    def posefile(self, pdbfile):
       for d in self.cachedirs:
@@ -201,7 +245,7 @@ class NoCacheBBlockDB:
             return candidate
       return None
 
-   @lru_cache(128)
+   @functools.lru_cache(128)
    def _cached_pose(self, pdbfile):
       posefile = self.posefile(pdbfile)
       if posefile:
@@ -210,30 +254,45 @@ class NoCacheBBlockDB:
       else:
          print("reading pdb", pdbfile)
          assert os.path.exists(self.dbroot + pdbfile)
-         return pose_from_file(self.dbroot + pdbfile)
+         return pyrosetta.pose_from_file(self.dbroot + pdbfile)
 
    def pose(self, pdbfile):
-      """load pose from _bblock_cache, read from file if not in memory"""
+      """load pose from _bblock_cache, read from file if not in memory. only reads"""
       if isinstance(pdbfile, bytes):
          pdbfile = str(pdbfile, "utf-8")
       if isinstance(pdbfile, np.ndarray):
          pdbfile = str(bytes(pdbfile), "utf-8")
+      self.poses_accessed.add(pdbfile)
       return self._cached_pose(pdbfile)
 
    def bblock(self, pdbkey):
       if isinstance(pdbkey, list):
          return [self.bblock(f) for f in pdbkey]
       if isinstance(pdbkey, (str, bytes)):
-         pdbkey = hash_str_to_int(pdbkey)
+
+         import worms  # todo, why is this necessary??
+
+         pdbkey = worms.util.hash_str_to_int(pdbkey)
       assert isinstance(pdbkey, int)
       if not pdbkey in self._bblock_cache:
+         import worms.rosetta_init
          pdbfile = self._key_to_pdbfile[pdbkey]
          pose = self.pose(pdbfile)
          entry = self._dictdb[pdbfile]
-         ss = Dssp(pose).get_dssp_secstruct()
-         bblock = BBlock(entry, pdbfile, pdbkey, pose, ss, self.null_base_names)
+         ss = pyrosetta.rosetta.core.scoring.dssp.Dssp(pose).get_dssp_secstruct()
+         bblock = worms.bblock.BBlock(entry, pdbfile, pdbkey, pose, ss, self.null_base_names)
          self._bblock_cache[pdbkey] = bblock
+      self.bblocks_accessed.add(self._key_to_pdbfile[pdbkey])
       return self._bblock_cache[pdbkey]
+
+   def load_all_bblocks(self):
+      for i, k in enumerate(self._dictdb):
+         if i % 100 == 0:
+            print(f'load_all_bblocks progress {i} of {len(self._dictdb)}', flush=True)
+         self.bblock(k)  # will load and cache in memory
+
+   def loaded_pdbs(self):
+      return self._bblock_cache.keys()
 
    def query(self, query, *, useclass=True, max_bblocks=150, shuffle_bblocks=True, **kw):
       names = self.query_names(query, useclass=useclass)
@@ -258,6 +317,19 @@ class NoCacheBBlockDB:
 
    def report(self):
       print("NoCacheBBlockDB nentries:", len(self._alldb))
+
+   def __str__(self):
+      return os.linesep.join([
+         f'NoCacheBBlockDB',
+         f'   dbroot: {self.dbroot}',
+         f'   null_base_names: {self.null_base_names}',
+         f'   entries: {len(self._dictdb)}',
+         f'   loaded bblocks: {len(self._bblock_cache)}',
+         f'   accessed bblocks: {len(self.bblocks_accessed)}',
+         f'   accessed poses: {len(self.poses_accessed)}',
+         f'   dbfiles:',
+         os.linesep.join([f'      {x}' for x in self.dbfiles]),
+      ])
 
 class CachingSpliceDB:
    """Stores valid NC splices for bblock pairs"""
@@ -310,6 +382,7 @@ class CachingSpliceDB:
       return self.cachepath(params, pdbkey).replace(".pickle", "_list.pickle")
 
    def sync_to_disk(self, dirty_only=True):
+      print('CachingSpliceDB sync_to_disk')
       for i in range(10):
          keys = list(self._dirty) if dirty_only else self.cache.keys()
          for key in keys:
@@ -333,12 +406,39 @@ class CachingSpliceDB:
       if len(self._dirty):
          print(self._dirty)
          print("warning: some caches unsaved", len(self._dirty))
+      print('CachingSpliceDB sync_to_disk DONE')
 
    def clear(self):
       self._cache.clear()
 
+   def __str__(self):
+      return os.linesep.join([
+         f'CachingSpliceDB',
+         f'   dbfiles: {self.dbfiles}',
+         f'   dbroot: {self.dbroot}',
+         f'   dbfiles: {len(self.dbfiles)}',
+      ])
+
 class CachingBBlockDB:
    """stores Poses and BBlocks in a disk cache"""
+   def __str__(self):
+      return os.linesep.join([
+         f'CachingBBlockDB',
+         f'   entries {len(self._alldb)}',
+         f'   bblocks {len(self._bblock_cache)}',
+         f'   poses {len(self._poses_cache)}',
+         f'   dbroot {self.dbroot}',
+         f'   cachedirs {self.cachedirs}',
+         f'   load_poses {self.load_poses}',
+         f'   nprocs {self.nprocs}',
+         f'   lazy {self.lazy}',
+         f'   read_new_pdbs {self.read_new_pdbs}',
+         f'   dbfiles {self.dbfiles}',
+         f'   n_missing_entries {self.n_missing_entries}',
+         f'   n_new_entries {self.n_new_entries}',
+         f'   holding_lock {self._holding_lock}',
+      ])
+
    def __init__(
       self,
       cachedirs=None,
@@ -352,16 +452,8 @@ class CachingBBlockDB:
       null_base_names=[],
       **kw,
    ):
-      """TODO: Summary
-
-        Args:
-            cachedirs (None, optional): Description
-            dbfiles (list, optional): Description
-            load_poses (bool, optional): Description
-            nprocs (int, optional): Description
-            lazy (bool, optional): Description
-            read_new_pdbs (bool, optional): Description
-        """
+      """Stores building block structures and ancillary data
+      """
       self.null_base_names = null_base_names
       self.cachedirs = _get_cachedirs(cachedirs)
       self.dbroot = dbroot + "/" if dbroot and not dbroot.endswith("/") else dbroot
@@ -395,8 +487,9 @@ class CachingBBlockDB:
             self.unlock_cachedir()
          if nprocs != 1:
             # reload because processpool cache entries not serialized back
-            self.nprocs = 1
+            self.nprocs, tmp = 1, self.nprocs
             self.load_from_pdbs()
+            # self.nprocs = tmp
       for i, k in enumerate(sorted(self._dictdb)):
          self._alldb[i] = self._dictdb[k]
 
@@ -467,7 +560,7 @@ class CachingBBlockDB:
       if not pdbfile in self._poses_cache:
          if not self.load_cached_pose_into_memory(pdbfile):
             assert os.path.exists(self.dbroot + pdbfile)
-            self._poses_cache[pdbfile] = pose_from_file(self.dbroot + pdbfile)
+            self._poses_cache[pdbfile] = pyrosetta.pose_from_file(self.dbroot + pdbfile)
       return self._poses_cache[pdbfile]
 
    def savepose(self, pdbfile):
@@ -480,7 +573,7 @@ class CachingBBlockDB:
 
    def bblock(self, pdbkey):
       if isinstance(pdbkey, (str, bytes)):
-         pdbkey = hash_str_to_int(pdbkey)
+         pdbkey = worms.util.hash_str_to_int(pdbkey)
       if isinstance(pdbkey, int):
          if not pdbkey in self._bblock_cache:
             if not self.load_cached_bblock_into_memory(pdbkey):
@@ -567,7 +660,7 @@ class CachingBBlockDB:
          entry = self._dictdb[self._key_to_pdbfile[pdbkey]]
          newjson = json.dumps(entry).encode()
          if bytes(bbstate[0]) == newjson:
-            self._bblock_cache[pdbkey] = _BBlock(*bbstate)
+            self._bblock_cache[pdbkey] = worms.bblock._BBlock(*bbstate)
             return True
          print("!!! database entry updated for key", pdbkey, entry["file"])
       if cache_replace:
@@ -595,7 +688,7 @@ class CachingBBlockDB:
             raise ValueError("cachedir locked, cant write new entries.\n"
                              "If no other worms jobs are running, you may manually remove:\n" +
                              self.cachedirs[0] + "/lock")
-      exe = util.InProcessExecutor()
+      exe = worms.util.InProcessExecutor()
       if parallel:
          exe = cf.ProcessPoolExecutor(max_workers=parallel)
       with exe as pool:
@@ -613,8 +706,8 @@ class CachingBBlockDB:
 
    def load_from_pdbs(self):
       shuffle(self._alldb)
-      if self.nprocs is 1:
-         with util.InProcessExecutor() as exe:
+      if self.nprocs == 1:
+         with worms.util.InProcessExecutor() as exe:
             result = self.load_from_pdbs_inner(exe)
       else:
          with cf.ThreadPoolExecutor(max_workers=self.nprocs) as exe:
@@ -647,7 +740,7 @@ class CachingBBlockDB:
    def build_pdb_data(self, entry, uselock=True):
       """return Nnew, Nmissing"""
       pdbfile = entry["file"]
-      pdbkey = hash_str_to_int(pdbfile)
+      pdbkey = worms.util.hash_str_to_int(pdbfile)
       cachefile = self.bblockfile(pdbkey)
       posefile = self.posefile(pdbfile)
       if os.path.exists(cachefile):
@@ -667,8 +760,8 @@ class CachingBBlockDB:
          read_pdb = False
          # info('CachingBBlockDB.build_pdb_data reading %s' % pdbfile)
          pose = self.pose(pdbfile)
-         ss = Dssp(pose).get_dssp_secstruct()
-         bblock = BBlock(entry, pdbfile, pdbkey, pose, ss, self.null_base_names)
+         ss = pyrosetta.rosetta.core.scoring.dssp.Dssp(pose).get_dssp_secstruct()
+         bblock = worms.bblock.BBlock(entry, pdbfile, pdbkey, pose, ss, self.null_base_names)
          self._bblock_cache[pdbkey] = bblock
          # print(cachefile)
          with open(cachefile, "wb") as f:

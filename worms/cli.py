@@ -1,10 +1,8 @@
 import sys, argparse, collections, logging
 
-from worms import util, Bunch
+import worms
+from worms import Bunch, PING
 from worms.criteria import *
-from worms.topology import Topology
-from worms.database import CachingBBlockDB, CachingSpliceDB
-from worms.database import NoCacheBBlockDB, NoCacheSpliceDB
 
 cli_args = dict(
    loglevel='INFO',
@@ -214,7 +212,11 @@ BBDir = collections.namedtuple('BBDir', ('bblockspec', 'direction'))
 def _bbspec(bb, nc):
    return list(BBDir(*x) for x in zip(bb, nc))
 
-def build_worms_setup_from_cli_args(argv, parser=None):
+def build_worms_setup_from_cli_args(
+   argv,
+   parser=None,
+   construct_databases=True,
+):
    arg = get_cli_args(argv, parser)
 
    numeric_level = getattr(logging, arg.loglevel.upper(), None)
@@ -224,7 +226,7 @@ def build_worms_setup_from_cli_args(argv, parser=None):
 
    if arg.config_file == [""]:
       arg.config_file = []
-   arg.topology = Topology(arg.topology)
+   arg.topology = worms.topology.Topology(arg.topology)
    if not arg.config_file:
       if not arg.geometry or not arg.geometry[0]:
          print('--geometry not specified')
@@ -245,7 +247,7 @@ def build_worms_setup_from_cli_args(argv, parser=None):
       for cfile in arg.config_file:
          with open(cfile) as inp:
             lines = inp.readlines()
-            assert len(lines) is 2
+            assert len(lines) == 2
 
             def orient(a, b):
                return (a or "_") + (b or "_")
@@ -304,16 +306,23 @@ def build_worms_setup_from_cli_args(argv, parser=None):
          arg.output_only_connected = True
 
    kw = Bunch(vars(arg))
-   if arg.disable_cache:
-      kw.db = NoCacheBBlockDB(**kw), NoCacheSpliceDB(**kw)
-   else:
-      kw.db = CachingBBlockDB(**kw), CachingSpliceDB(**kw)
+   if construct_databases:
+      if arg.disable_cache:
+         kw.database = worms.database.Databases(
+            worms.database.NoCacheBBlockDB(**kw),
+            worms.database.NoCacheSpliceDB(**kw),
+         )
+      else:
+         kw.database = worms.database.Databases(
+            worms.database.CachingBBlockDB(**kw),
+            worms.database.CachingSpliceDB(**kw),
+         )
+      kw.db = kw.database  # depricated
+      kw.database.bblockdb.report()
 
    # print("-------------- arg ---------------")
    # for k, v in kw.items():
    #    print("   ", k, v)
    # print("-----------------------------------")
-
-   kw.db[0].report()
 
    return crit, kw

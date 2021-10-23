@@ -10,6 +10,6 @@ def get_sphere_samples(sym=None):
       "O": "sphere_oct_asu.pickle",
       "T": "sphere_tet_asu.pickle",
    }
-   fn = os.path.join(path, "sphere", fnmap[sym])
+   fn = os.path.join(path, "misc", "sphere", fnmap[sym])
    with open(fn, "rb") as inp:
       return _pickle.load(inp)

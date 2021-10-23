@@ -7,11 +7,11 @@ import numba.types as nt
 from worms.homog import is_homog_xform
 from worms import util
 from worms.bblock import chain_of_ires, _BBlock
+
 from logging import warning
 import concurrent.futures as cf
-from worms.util import InProcessExecutor, jit
+from worms.util import InProcessExecutor, jit, helix_range
 from worms.criteria import cyclic
-from worms.edge import _helix_range
 
 vertex_xform_dtype = np.float32
 
@@ -176,11 +176,11 @@ def vertex_single(bbstate, bbid, din, dout, min_seg_len, verbosity=0):
    chain1 = chain_of_ires(bb, ires1)
 
    if ires0[0] == -1:
-      assert len(ires0) is 1
+      assert len(ires0) == 1
    else:
       assert np.all(ires0 >= 0)
    if ires1[0] == -1:
-      assert len(ires1) is 1
+      assert len(ires1) == 1
    else:
       assert np.all(ires1 >= 0)
 
@@ -240,6 +240,9 @@ def _check_bbires_inorder(ibblock, ires):
    return True
 
 def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0, **kw):
+
+   from worms.util.jitutil import unique_key_int32s, contig_idx_breaks
+
    dirn_map = {"N": 0, "C": 1, "_": 2}
    din = dirn_map[dirn[0]]
    dout = dirn_map[dirn[1]]
@@ -273,10 +276,11 @@ def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0, **kw):
    # not true as some pruned from validity checks
    # assert _check_bbires_inorder(ibblock, ires[:, 1])
 
+
    inout = np.stack(
          [
-               util.unique_key_int32s(ibblock, ires[:, 0]),
-               util.unique_key_int32s(ibblock, ires[:, 1]),
+               unique_key_int32s(ibblock, ires[:, 0]),
+               unique_key_int32s(ibblock, ires[:, 1]),
          ],
          axis=-1,
    ).astype(
@@ -300,7 +304,7 @@ def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0, **kw):
    # assert inout.shape == inout2.shape
    # assert np.all(inout == inout2)
 
-   inbreaks = util.contig_idx_breaks(inout[:, 0])
+   inbreaks = contig_idx_breaks(inout[:, 0])
    assert inbreaks.dtype == np.int32
    assert np.all(inbreaks <= len(inout))
 
@@ -313,7 +317,7 @@ def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0, **kw):
    helixend = np.zeros(dtype=np.float32, shape=(len(bbs), MAX_HELIX, 4))
 
    for ibb, bb in enumerate(bbs):
-      hrange, helixof = _helix_range(bb.ss)
+      hrange, helixof = helix_range(bb.ss)
       numh = 0
       for ih, (lb, ub) in enumerate(hrange):
          if ub - lb < minsize: continue

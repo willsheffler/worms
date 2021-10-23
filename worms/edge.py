@@ -5,7 +5,7 @@ import numpy as np
 import numba as nb
 import numba.types as nt
 from collections import defaultdict, namedtuple
-from worms.util import contig_idx_breaks, jit, InProcessExecutor, NonFuture
+from worms.util import jit, InProcessExecutor, NonFuture, helix_range
 import concurrent.futures as cf
 from tqdm import tqdm
 
@@ -128,6 +128,7 @@ def get_allowed_splices(
    pbar_interval=10.0,
    **kw,
 ):
+   from worms.util.jitutil import contig_idx_breaks
    assert (u.dirn[1] + v.dirn[0]) == 1, "get_allowed_splices dirn mismatch (must be N->C or C->N)"
 
    # note: this is duplicated in edge_batch.py and they need to be the same
@@ -275,7 +276,6 @@ def get_allowed_splices(
                key1 = vblks[iblk1].filehash  # N-term side
                splicedb.add(params, key0, key1, result)
                if np.random.random() < cache_sync:
-                  print("sync_to_disk splices data")
                   splicedb.sync_to_disk()
 
          if swapped:
@@ -378,28 +378,7 @@ def _index_of_map(ary, mx):
          map[v] = i
    return map
 
-@jit
-def _helix_range(ss):
-   helixof = np.zeros_like(ss, dtype=np.int32) - 1
-   nhelix = 0
-   prevh = 0
-   # 72 is 'H'
-   for i in range(len(ss)):
-      if ss[i] == 72 and prevh == 0:
-         nhelix += 1
-      prevh = ss[i] == 72
-   hrange = np.zeros((nhelix, 2), dtype=np.int32)
-   nhelix = 0
-   for i in range(len(ss)):
-      if ss[i] == 72 and prevh == 0:  # starth
-         hrange[nhelix, 0] = i
-      elif ss[i] != 72 and prevh == 1:  # endh
-         hrange[nhelix, 1] = i
-         nhelix += 1
-      if ss[i] == 72:
-         helixof[i] = nhelix
-      prevh = ss[i] == 72
-   return hrange, helixof
+_helix_range = jit(helix_range)
 
 @jit
 def _jit_splice_metrics(

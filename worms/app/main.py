@@ -5,16 +5,15 @@ from time import time
 import concurrent.futures as cf
 import traceback
 
-from worms import Bunch
+from worms.util import Bunch
 
-import pyrosetta
 import blosc
 # from xbin import gu_xbin_indexer, numba_xbin_indexer
 from worms import PING
 
 from worms.cli import build_worms_setup_from_cli_args
 from worms.ssdag import simple_search_dag
-from worms.search import grow_linear
+
 from worms.util import run_and_time
 from worms import util
 from worms.filters.clash import prune_clashes
@@ -43,7 +42,6 @@ def worms_main(argv):
 
    tstart = time()
 
-   pyrosetta.init("-mute all -beta -preserve_crystinfo --prevent_repacking")
    blosc.set_releasegil(True)
 
    criteria_list, kw = build_worms_setup_from_cli_args(argv)
@@ -51,7 +49,7 @@ def worms_main(argv):
    try:
       construct_global_ssdag_and_run(criteria_list, kw)
    except Exception as e:
-      bbdb = kw["db"][0]
+      bbdb = kw.database[0]
       bbdb.clear()
       raise e
 
@@ -146,7 +144,7 @@ def construct_global_ssdag_and_run(
          for msg in log:
             print(msg)
    print("======================== done ========================")
-   return Bunch(log=log, ssdag=_global_shared_ssdag, database=kw['db'])
+   return Bunch(log=log, ssdag=_global_shared_ssdag, database=kw.database)
 
 def run_all_mbblocks(
    criteria,
@@ -168,9 +166,9 @@ def run_all_mbblocks(
 
    bbs_states = [[b._state for b in bb] for bb in bbs]
 
-   # kw['db'][0].clear_bblocks()  # remove cached BBlocks
-   kw["db"][0].clear()
-   kw["db"][1].clear()
+   # kw.database.bblockdb.clear_bblocks()  # remove cached BBlocks
+   kw.database.bblockdb.clear()
+   kw.database.splicedb.clear()
 
    with exe as pool:
       mseg = merge_segment
@@ -377,6 +375,8 @@ def search_single_stage(
    lbl="",
    **kw,
 ):
+   from worms.search.linear import grow_linear
+
    kw = Bunch(kw)
    if kw["run_cache"]:
       if os.path.exists(kw["run_cache"] + lbl + ".pickle"):

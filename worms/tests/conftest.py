@@ -2,20 +2,14 @@ import pytest
 import os
 import sys
 from os.path import join, dirname, abspath, exists
+from deferred_import import deferred_import
 
+# is there a better way?
 sys.path.insert(0, os.path.dirname(__file__) + "/../..")
+
+pyrosetta = deferred_import('pyrosetta')
+
 from worms.database import CachingBBlockDB, CachingSpliceDB
-
-try:
-   import pyrosetta
-
-   pyrosetta.init(
-      "-corrections:beta_nov16 -mute all -preserve_crystinfo -symmetry::symmetry_definition dummy")
-   HAVE_PYROSETTA = True
-   print("pyrosetta initialized successfully!")
-except ImportError:
-   print("no module pyrosetta")
-   HAVE_PYROSETTA = False
 
 @pytest.fixture(scope="session")
 def bbdb(datadir):

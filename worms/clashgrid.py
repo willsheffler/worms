@@ -1,14 +1,11 @@
 import numpy as np
-
-from pyrosetta import pose_from_file
-
 from worms import util
 
 class ClashGrid:
    def __init__(self, pdbfile, clashdis=3.5, spacing=0.5, **kw):
       self.clashdis = clashdis
       self.spacing = spacing
-      bbdb = kw["db"][0]
+      bbdb = kw.database.bblockdb
       print("ClashGrid: reading pose from bbdb", pdbfile)
       # pose takes too much mem and too hard to serialize, dont store
       pose = bbdb.pose(pdbfile)

@@ -1,7 +1,7 @@
 from collections import namedtuple
 import numpy as np
 from numpy.lib import index_tricks
-from worms.util import jit, expand_array_if_needed
+from worms.util import jit
 
 SearchStats = namedtuple(
    "SearchStats", ["total_samples", "n_last_bb_same_as", "n_redundant_results", 'best_score'])
@@ -11,20 +11,6 @@ def zero_search_stats():
                       np.ones(1, dtype="f8") * 9e9)
 
 ResultJIT = namedtuple("ResultJIT", ["pos", "idx", "err", "stats"])
-
-@jit
-def expand_results(result, nresults):
-   if len(result[0]) <= nresults:
-      result = ResultJIT(
-         expand_array_if_needed(result[0], nresults),
-         expand_array_if_needed(result[1], nresults),
-         expand_array_if_needed(result[2], nresults),
-         result.stats,
-      )
-   result.idx[nresults] = result.idx[nresults - 1]
-   result.pos[nresults] = result.pos[nresults - 1]
-   result.err[nresults] = result.err[nresults - 1]
-   return result
 
 def remove_duplicate_results(results):
    h = np.array([hash(row.data.tobytes()) for row in results.idx])
@@ -48,12 +34,20 @@ class ResultTable(dict):
       self.err = other.err
       self.stats = other.stats
 
+   def __len__(self):
+      assert len(self.idx) == len(self.pos) == len(self.err)
+      return len(self.idx)
+
    def add(self, name, val):
       self.table[name] = val
 
    def update(self, order):
       for k, v in self.table.items():
          self.table[k] = v[order]
+
+   def remove_redundant(self, thresh=0.1):
+      for ir, (idx, pos) in zip(self.idx, self.pos):
+         pass
 
    def close_without_stats(self, other):
       # print('idxtype', type(self.idx), type(other.idx))

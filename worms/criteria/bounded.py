@@ -119,7 +119,7 @@ class AxesIntersect(WormCriteria):
 
       tgtdang = np.pi / NFOLD / 2
       endsymangle = 2 * np.pi / NFOLD
-      print('AxesIntersect.jit_lossfunc endsymangle', endsymangle)
+      # print('AxesIntersect.jit_lossfunc endsymangle', endsymangle)
 
       @jit
       def func(pos, idx, verts):

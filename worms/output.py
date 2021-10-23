@@ -10,6 +10,12 @@ from worms.filters.db_filters import run_db_filters
 from worms.filters.db_filters import get_affected_positions
 from worms.ssdag import graph_dump_pdb
 
+from deferred_import import deferred_import
+
+pyrosetta = deferred_import('pyrosetta')
+ros = deferred_import('pyrosetta.rosetta')
+util = deferred_import('worms.util.rosetta_utils')
+
 def getmem():
    mem = psutil.Process(os.getpid()).memory_info().rss / 2**20
    return f"{int(mem):5}"
@@ -20,7 +26,7 @@ def filter_and_output_results(
    result,
    output_from_pose,
    merge_bblock,
-   db,
+   database,
    output_symmetric,
    output_centroid,
    output_prefix,
@@ -141,22 +147,22 @@ def filter_and_output_results(
             process = psutil.Process(os.getpid())
             gc.collect()
             mem_before = process.memory_info().rss / float(2**20)
-            db[0].clear()
+            database.bblockdb.clear()
             gc.collect()
             mem_after = process.memory_info().rss / float(2**20)
-            print("clear db", mem_before, mem_after, mem_before - mem_after)
+            print("clear database", mem_before, mem_after, mem_before - mem_after)
 
          # if iresult % 10 == 0:
          if iresult % 1 == 0:
             PING('mbb%i' % merge_bblock, print_pings)
             process = psutil.Process(os.getpid())
-            if hasattr(db[0], "_poses_cache"):
+            if hasattr(database.bblockdb, "_poses_cache"):
                print(merge_bblock, iresult, Ntotal)
                print(
                   f"mbb{merge_bblock:04} dumping results {iresult} of {Ntotal}",
                   "pose_cache",
-                  sys.getsizeof(db[0]._poses_cache),
-                  len(db[0]._poses_cache),
+                  sys.getsizeof(database.bblockdb._poses_cache),
+                  len(database.bblockdb._poses_cache),
                   f"{process.memory_info().rss / float(2**20):,}mb",
                )
 
@@ -182,7 +188,7 @@ def filter_and_output_results(
             # print(getmem(), 'MEM make_pose_crit before')
             PING('mbb%i' % merge_bblock, print_pings)
             pose, prov = make_pose_crit(
-               db[0],
+               database.bblockdb,
                ssdag,
                criteria,
                result.idx[iresult],
@@ -214,7 +220,7 @@ def filter_and_output_results(
             PING('mbb%i' % merge_bblock, print_pings)
             # gross....
             (jstr, jstr1, _, grade, sp, mc, mcnh, mhc, _, _, _) = run_db_filters(
-               db, criteria, ssdag, iresult, result.idx[iresult], pose, prov, **kw)
+               database, criteria, ssdag, iresult, result.idx[iresult], pose, prov, **kw)
          except Exception as e:
             print("error in db_filters:")
             print(traceback.format_exc())
@@ -436,7 +442,7 @@ def filter_and_output_results(
                detail['isite'].append(v.isite[result.idx[iresult, j]].tolist())
                detail['ichain'].append(v.ichain[result.idx[iresult, j]].tolist())
                if fname not in seenit:
-                  for e in db[0]._alldb:
+                  for e in database.bblockdb._alldb:
                      if e['file'] == fname:
                         tmp.append(e)
                   seenit.add(fname)

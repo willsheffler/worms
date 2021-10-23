@@ -2,22 +2,25 @@ import string
 from json import dumps
 import numpy as np
 import numba as nb
+
+import worms
 from worms import util
 from worms.util import jit
-from worms.vis import format_atom
 from worms.filters.clash import _chain_bounds
 import numba.types as nt
+
 from worms import homog as hm
 from worms.util import hash_str_to_int
+
 from scipy.spatial import ConvexHull
 
 def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
 
    json = dumps(entry)
-   chains = util.get_chain_bounds(pose)
+   chains = worms.util.rosetta_utils.get_chain_bounds(pose)
    ss = np.frombuffer(ss.encode(), dtype="i1")
-   ncac = util.get_bb_coords(pose)
-   cb = util.get_cb_coords(pose)
+   ncac = worms.util.rosetta_utils.get_bb_coords(pose)
+   cb = worms.util.rosetta_utils.get_cb_coords(pose)
    stubs = _ncac_to_stubs(ncac)
    com = np.mean(cb, axis=0)
    rg = np.sqrt(np.sum((cb - com)**2) / len(cb))
@@ -26,13 +29,13 @@ def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
    assert len(pose) == len(stubs)
    assert len(pose) == len(ss)
    conn = _make_connections_array(entry["connections"], chains)
-   if len(conn) is 0:
+   if len(conn) == 0:
       print("bad conn info!", pdbfile)
       assert 0
       return None, pdbfile  # new, missing
-   if ncac.shape[-1] is 4:
+   if ncac.shape[-1] == 4:
       ncac = ncac.astype(np.float64)
-   elif ncac.shape[-1] is 3:
+   elif ncac.shape[-1] == 3:
       tmp = np.ones((ncac.shape[0], 3, 4), dtype=np.float64)
       tmp[..., :3] = ncac
       ncac = tmp
@@ -202,6 +205,34 @@ class _BBlock:
          self.hull,
       )
 
+      def __setstate__(self, state):
+         (
+            self.json,
+            self.connections,
+            self.file,
+            self.filehash,
+            snnnelf.components,
+            self.protocol,
+            self.name,
+            self.classes,
+            self.validated,
+            self._type,
+            self.base,
+            self.basehash,
+            self.ncac,
+            self.cb,
+            self.chains,
+            self.ss,
+            self.stubs,
+            self.com,
+            self.rg,
+            self.numhull,
+            self.hull,
+         ) = state
+
+      def __getstate__(self):
+         return self._state
+
 def bblock_dump_pdb(
       out,
       bblock,
@@ -213,6 +244,8 @@ def bblock_dump_pdb(
       anum=1,
       rnum=1,
 ):
+   from worms.vis import format_atom
+
    close = False
    if isinstance(out, str):
       out = open(out, "w")
@@ -371,7 +404,7 @@ def _get_connection_residues(entry, chain_bounds):
       try:
          return sorted(int(i) for i in r)
       except ValueError:
-         assert len(r) is 1
+         assert len(r) == 1
          r = r[0]
    if r.count(","):
       c2, r = r.split(",")

@@ -1,23 +1,15 @@
-"""TODO: Summary
+"""
+functions for assembling multichain poses from segments spliced in various directions
 """
 
 import os
 import itertools as it
 from collections import defaultdict, OrderedDict, namedtuple
+from deferred_import import deferred_import
 
-import numpy as np
-
-from worms import util
-
-try:
-   import pyrosetta
-   from pyrosetta import rosetta as ros
-   from pyrosetta import rosetta as ros
-
-   rm_lower_t = ros.core.pose.remove_lower_terminus_type_from_pose_residue
-   rm_upper_t = ros.core.pose.remove_upper_terminus_type_from_pose_residue
-except ImportError:
-   pass
+pyrosetta = deferred_import('pyrosetta')
+ros = deferred_import('pyrosetta.rosetta')
+util = deferred_import('worms.util.rosetta_utils')
 
 class AnnoPose:
    def __init__(self, pose, iseg, srcpose, src_lb, src_ub, cyclic_entry):
@@ -48,23 +40,23 @@ class AnnoPose:
 CyclicTrim = namedtuple("CyclicTrim", "sym_seg_from sym_seg_to".split())
 
 def contort_pose_chains(
-      pose,
-      chains,
-      nseg,
-      ir_en,
-      ir_ex,
-      pl_en,
-      pl_ex,
-      chain_start,
-      chain_end,
-      position=None,
-      pad=(0, 0),
-      iseg=None,
-      cyclictrim=None,
-      last_seg_entrypol=None,
-      first_seg_exitpol=None,
-      sym_ir=None,
-      sym_pol=None,
+   pose,
+   chains,
+   nseg,
+   ir_en,
+   ir_ex,
+   pl_en,
+   pl_ex,
+   chain_start,
+   chain_end,
+   position=None,
+   pad=(0, 0),
+   iseg=None,
+   cyclictrim=None,
+   last_seg_entrypol=None,
+   first_seg_exitpol=None,
+   sym_ir=None,
+   sym_pol=None,
 ):
    """make pose chains from 'segment' info
 
@@ -256,6 +248,9 @@ def _dump_chainlist(cl, tag='cl', ich=0):
 def _cyclic_permute_chains(chainslist, entrypol, exitpol):
    """rearrange segments in a cylic structure so chainbreak is at chain boundary
    """
+   rm_lower_t = ros.core.pose.remove_lower_terminus_type_from_pose_residue
+   rm_upper_t = ros.core.pose.remove_upper_terminus_type_from_pose_residue
+
    n2c = 'N' == entrypol[-1]
 
    # print('polarity', polarity)
@@ -326,6 +321,10 @@ def make_contorted_pose(
     full_output_segs=[],
 ):  # yapf: disable
    """there be dragons here"""
+
+   rm_lower_t = ros.core.pose.remove_lower_terminus_type_from_pose_residue
+   rm_upper_t = ros.core.pose.remove_upper_terminus_type_from_pose_residue
+
    nseg = len(entryexits)
    entryexits, rest = zip(*entryexits)
    for ap in it.chain(*entryexits, *rest):

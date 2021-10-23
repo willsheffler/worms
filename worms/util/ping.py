@@ -1,13 +1,16 @@
-import os, traceback
+import os, traceback, sys
 
 def PING(
    message='',
    printit=True,
    ntraceback=-1,
    skip_process=True,
-   flush=False,
+   flush=True,
+   exit=False,
 ):
-   message = str(message)
+   message = str(message) if message else '<no msg>'
+
+   return message
 
    stack = traceback.extract_stack()
    framestrs = list()
@@ -21,19 +24,7 @@ def PING(
       # print('   ', ix, x)
    msg = 'PING ' + message + ' FROM ' + '/'.join(framestrs)
    if printit:
-      print(msg, flush=True)
+      print(msg, flush=flush)
+   if exit:
+      sys.exit()
    return msg
-
-def foo():
-   bar()
-
-def bar():
-   baz()
-
-def baz():
-   PING('hello from baz')
-
-if __name__ == '__main__':
-   print('-' * 80)
-   foo()
-   print('-' * 80)

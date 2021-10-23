@@ -1,5 +1,5 @@
-"""TODO: Summary
-"""
+raise DeprecationWarning('this is from worms v1 and should not be used any longer')
+
 import multiprocessing
 import os
 import itertools as it
@@ -8,15 +8,14 @@ from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from numpy.linalg import inv
 
-try:
-   import pyrosetta
-   from pyrosetta import rosetta as ros
-   from pyrosetta.rosetta.core import scoring
-except ImportError:
-   print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-   print("pyrosetta not available, worms won't work")
-   print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 from worms import util
+
+from deferred_import import deferred_import
+
+pyrosetta = deferred_import('pyrosetta')
+ros = deferred_import('pyrosetta.rosetta')
+util = deferred_import('worms.util.rosetta_utils')
+
 import inspect
 
 from worms.pose_contortions import make_contorted_pose, contort_pose_chains, AnnoPose

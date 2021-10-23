@@ -1,3 +1,5 @@
+raise DeprecationWarning('this is from worms v1 and should not be used any longer')
+
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
 from time import perf_counter

@@ -27,4 +27,4 @@ dependencies:
  - pip
  - pip:
    - pytest-sugar
-
+   - deferred-import

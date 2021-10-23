@@ -1,6 +1,6 @@
 import numpy as np, random
 from worms import util
-from worms.bunch import Bunch
+from worms.util import Bunch
 from worms.homog import numba_axis_angle_cen, hrot, angle
 
 def make_helixconf_filter(criteria, **kw):

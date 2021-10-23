@@ -4,7 +4,9 @@ from rpxdock.search import make_plugs
 # from rpxdock.util import NOCACHE as cache
 from rpxdock.util import GLOBALCACHE as cache
 import worms
+from worms import rosetta_init
 from worms.filters.db_filters import get_affected_positions
+from worms.rosetta_init import rosetta_init_safe
 
 def main():
    arg, criteria = setup()
@@ -34,7 +36,7 @@ def main():
 
 def setup():
    prof = rp.Timer(verbose=False).start()
-   pyrosetta.init("-mute all -beta -preserve_crystinfo --prevent_repacking")
+   rosetta_init_safe("-mute all -beta -preserve_crystinfo --prevent_repacking")
    blosc.set_releasegil(True)
    prof.checkpoint('pyrosetta init')
 
@@ -117,7 +119,7 @@ def plug_dock(wresult, ssdag, criteria, max_dock=-1, **kw):
          label, bbnames = make_label(ssdag, idx, **arg)
          futures.append(
             pool.submit(plug_dock_one, hole, search, sampler, pose, prov, label, bbnames, enddir,
-                        iresult, **arg.sub(db=None, dont_store_body_in_results=True)))
+                        iresult, **arg.sub(database=None, dont_store_body_in_results=True)))
       results, plugs, profs = zip(*[f.result() for f in futures])
    arg.prof.merge(profs)
 

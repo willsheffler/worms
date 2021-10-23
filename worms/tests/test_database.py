@@ -8,7 +8,7 @@ from os.path import dirname
 import numba as nb
 from worms.tests import only_if_pyrosetta, only_if_pyrosetta_distributed
 
-only_if_pyrosetta = pytest.mark.skipif("not HAVE_PYROSETTA")
+only_if_pyrosetta = pytest.importskip('pyrosetta')
 
 # WTF was I thinking.... relying on too much context...
 # test_db_files = [

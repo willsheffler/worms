@@ -8,7 +8,8 @@ from random import shuffle
 
 import numpy as np
 
-from worms import Vertex, Edge
+from worms.vertex import Vertex
+from worms.edge import Edge
 from worms.edge import _jit_splice_metrics, _splice_respairs, _analysis
 from worms.bblock import BBlockWrap
 from worms.util import InProcessExecutor, hash_str_to_int
@@ -111,5 +112,6 @@ def precompute_splicedb(db, bbpairs, **kw):
       spdb.add(params, pdbkey0, pdbkey1, val)
 
    spdb.sync_to_disk()
+
    print("precompute_splicedb done")
    sys.stdout.flush()
