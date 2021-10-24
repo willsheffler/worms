@@ -1,5 +1,5 @@
 import sys, os
-from worms.app import worms_main
+from worms.app.main import worms_main
 
 if __name__ == "__main__":
    print("RUNNING WORMS CWD", os.getcwd())

@@ -1,6 +1,8 @@
+import blosc, sys
+
 from deferred_import import deferred_import
 
-pyrosetta = deferred_import('pyrosetta'), blosc, sys
+pyrosetta = deferred_import('worms.rosetta_init')
 from worms.cli import build_worms_setup_from_cli_args
 from worms.ssdag import simple_search_dag
 from worms.search import grow_linear

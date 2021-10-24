@@ -13,7 +13,7 @@ from deferred_import import deferred_import
 
 import worms
 
-pyrosetta = deferred_import('pyrosetta')
+pyrosetta = deferred_import('worms.rosetta_init')
 
 logging.basicConfig(level=logging.INFO)
 Databases = collections.namedtuple('Databases', ('bblockdb', 'splicedb'))
@@ -88,8 +88,8 @@ def _read_dbfiles(bbdb, dbfiles, dbroot=""):
    for entry in bbdb._alldb:
       if "name" not in entry:
          entry["name"] = ""
-      entry["file"] = entry["file"].replace("__DATADIR__",
-                                            os.path.relpath(os.path.dirname(__file__) + "/data"))
+      entry["file"] = entry["file"].replace("__PDBDIR__", worms.data.pdb_dir)
+
    bbdb._dictdb = {e["file"]: e for e in bbdb._alldb}
    bbdb._key_to_pdbfile = {worms.util.hash_str_to_int(e["file"]): e["file"] for e in bbdb._alldb}
 
@@ -173,9 +173,13 @@ class NoCacheSpliceDB:
       pass
 
    def merge_into_self(self, other):
-      keys1 = set(self._cache.keys())
-      keys2 = set(other._cache.keys())
-      self._cache.update({k: other._cache[k] for k in keys2 - keys1})
+      keysself = set(self._cache.keys())
+      keysother = set(other._cache.keys())
+      self._cache.update({k: other._cache[k] for k in keysother - keysself})
+      for k in keysself.intersection(keysother):
+         vself = self._cache[k]
+         vother = other._cache[k]
+         vself.update(vother)
 
    def __str__(self):
       degree = [len(v) for v in self._cache]
@@ -412,11 +416,12 @@ class CachingSpliceDB:
       self._cache.clear()
 
    def __str__(self):
+      degree = [len(v) for v in self._cache]
       return os.linesep.join([
-         f'CachingSpliceDB',
-         f'   dbfiles: {self.dbfiles}',
-         f'   dbroot: {self.dbroot}',
-         f'   dbfiles: {len(self.dbfiles)}',
+         f'NoCacheSpliceDB',
+         f'   num lhs: {len(self._cache)}',
+         f'   npairs: {sum(degree)}',
+         f'   num rhs: {degree}',
       ])
 
 class CachingBBlockDB:

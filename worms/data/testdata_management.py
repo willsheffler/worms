@@ -3,7 +3,7 @@ import os, pickle
 from worms.util.util import datetimetag
 from worms.util.ping import PING
 
-data_dir = os.path.dirname(__file__)
+from worms.data.data import data_dir
 
 def get_test_path(path):
    assert not path.startswith('/')

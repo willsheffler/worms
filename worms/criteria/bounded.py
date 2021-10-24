@@ -14,6 +14,7 @@ from worms.homog import (
    numba_line_line_closest_points_pa,
    numba_line_line_distance_pa,
 )
+from worms import PING
 from worms.util import jit
 from worms.merge.wye import wye_merge
 
@@ -219,21 +220,25 @@ class AxesIntersect(WormCriteria):
    def symfile_modifiers(self, segpos):
       if self.xtal:
          x, cell_dist = self.alignment(segpos, out_cell_spacing=True)
+         if cell_dist is None: return None
          return dict(scale_positions=cell_dist * self.cell_dist_scale)
       else:
          return dict()
 
    def crystinfo(self, segpos):
       # CRYST1   85.001   85.001   85.001  90.00  90.00  90.00 P 21 3
-      if self.xtal is None:
-         return None
+      if self.xtal is None: return None
       # print("hi")
       spacegroup = dict(I432='I 4 3 2', )
-      try:
+      # try:
+      if True:
          xtal = spacegroup[self.xtal]
-      except Exception:
-         xtal = self.xtal
+      # except Exception:
+      #    xtal = self.xtal
+
       x, cell_dist = self.alignment(segpos, out_cell_spacing=True)
+      if cell_dist is None: return None
+
       cell_dist = abs(cell_dist * self.cell_dist_scale)
       return cell_dist, cell_dist, cell_dist, 90, 90, 90, xtal
 
@@ -245,6 +250,7 @@ class AxesIntersect(WormCriteria):
       # print('bounded.py:symops xtal:', self.xtal)
 
       x, cell_dist = self.alignment(segpos, out_cell_spacing=True)
+      if cell_dist is None: return None
       # print('    cell dist', cell_dist)
       if self.xtal.replace(' ', '') == 'I432':
          ops = (
@@ -264,7 +270,10 @@ class AxesIntersect(WormCriteria):
 
    def alignment(self, segpos, out_cell_spacing=False, debug=0, **kw):
       if hm.angle_degrees(self.tgtaxis1[1], self.tgtaxis2[1]) < 0.1:
-         return np.eye(4)
+         PING('axes parallel??')
+         assert False
+         # return np.eye(4)
+         return None
       cen1 = segpos[self.from_seg][..., :, 3]
       cen2 = segpos[self.to_seg][..., :, 3]
       ax1 = segpos[self.from_seg][..., :, 2]
@@ -294,16 +303,6 @@ class AxesIntersect(WormCriteria):
       # print('newax', xalign @ ax1)
       # print('newax', xalign @ ax2)
 
-      if out_cell_spacing:
-         # cell spacing = dist to Dx origin * 2
-         x, y, z, _ = xalign @ segpos[-1][:, 3]
-         # TODO what is this? why 2.0?
-         if abs(x - y) >= 2.0: return None, None
-         if abs(y - z) >= 2.0: return None, None
-         if abs(z - x) >= 2.0: return None, None
-         cell_spacing = 4 * (x + y + z) / 3
-         return xalign, cell_spacing
-
       if debug:
          print(
             "angs",
@@ -328,7 +327,15 @@ class AxesIntersect(WormCriteria):
          #     raise AssertionError('hm.align_vectors sucks')
 
       if out_cell_spacing:
+         # cell spacing = dist to Dx origin * 2
+         x, y, z, _ = xalign @ segpos[-1][:, 3]
+         # TODO what is this? why 2.0?
+         if abs(x - y) >= 2.0: return None, None
+         if abs(y - z) >= 2.0: return None, None
+         if abs(z - x) >= 2.0: return None, None
+         cell_spacing = 4 * (x + y + z) / 3
          return xalign, cell_spacing
+
       return xalign
 
    def merge_segment(self, **kw):

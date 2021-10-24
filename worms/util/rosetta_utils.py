@@ -2,11 +2,12 @@
 little rosetta pose related utils
 '''
 
-import functools
+import functools, os, re
 import numpy as np
 from deferred_import import deferred_import
 
-ros = deferred_import('pyrosetta.rosetta')
+ros = deferred_import('worms.rosetta_init')
+from worms.data import data_dir
 
 def numpy_stub_from_rosetta_stub(rosstub):
    npstub = np.zeros((4, 4))
@@ -17,7 +18,7 @@ def numpy_stub_from_rosetta_stub(rosstub):
    npstub[..., 3, 3] = 1.0
    return npstub
 
-def rosetta_stub_from_numpy_stub(npstub, ros):
+def rosetta_stub_from_numpy_stub(npstub):
    rosstub = ros.core.kinematics.Stub()
    rosstub.M.xx = npstub[0, 0]
    rosstub.M.xy = npstub[0, 1]
@@ -33,7 +34,7 @@ def rosetta_stub_from_numpy_stub(npstub, ros):
    rosstub.v.z = npstub[2, 3]
    return rosstub
 
-def get_bb_stubs(ros, pose, which_resi=None):
+def get_bb_stubs(pose, which_resi=None):
    if which_resi is None:
       which_resi = list(range(1, pose.size() + 1))
    npstubs, n_ca_c = [], []
@@ -91,18 +92,18 @@ def pose_bounds(pose, lb, ub):
                        str(len(pose)))
    return lb, ub
 
-def subpose(ros, pose, lb, ub=-1):
+def subpose(pose, lb, ub=-1):
    lb, ub = pose_bounds(pose, lb, ub)
    p = ros.core.pose.Pose()
    ros.core.pose.append_subpose_to_pose(p, pose, lb, ub)
    return p
 
-def xform_pose(ros, xform, pose, lb=1, ub=-1):
+def xform_pose(xform, pose, lb=1, ub=-1):
    lb, ub = pose_bounds(pose, lb, ub)
    xform = rosetta_stub_from_numpy_stub(xform.reshape(4, 4))
    ros.protocols.sic_dock.xform_pose(pose, xform, lb, ub)
 
-def splice_poses(ros, pose_c, pose_n, ires_c, ires_n):
+def splice_poses(pose_c, pose_n, ires_c, ires_n):
    new = subpose(pose_c, 1, ires_c)
    ros.core.pose.append_subpose_to_pose(new, pose_n, ires_n + 1, len(pose_n))
 
@@ -113,7 +114,7 @@ def splice_poses(ros, pose_c, pose_n, ires_c, ires_n):
 
    return new
 
-def worst_CN_connect(ros, p):
+def worst_CN_connect(p):
    for ir in range(1, len(p)):
       worst = 0
       if (p.residue(ir).is_protein() and p.residue(ir + 1).is_protein()
@@ -143,20 +144,8 @@ def no_overlapping_residues(p):
             return False
    return True
 
-def trim_pose(ros, pose, resid, direction, pad=0):
+def trim_pose(pose, resid, direction, pad=0):
    """trim end of pose from direction, leaving <=pad residues beyond resid
-
-    Args:
-        pose (TYPE): Description
-        resid (TYPE): Description
-        direction (TYPE): Description
-        pad (int, optional): Description
-
-    Returns:
-        TYPE: Description
-
-    Raises:
-        ValueError: Description
     """
    if direction not in "NC":
       raise ValueError("direction must be 'N' or 'C'")
@@ -185,8 +174,7 @@ def trim_pose(ros, pose, resid, direction, pad=0):
 #     pose.set_xyz(ros.core.id.AtomID(io, ires), crd)
 
 def symfile_path(name):
-   path, _ = os.path.split(__file__)
-   return os.path.join(path, "rosetta_symdef", name + ".sym")
+   return os.path.join(data_dir, "rosetta_symdef", name + ".sym")
 
 @functools.lru_cache()
 def get_symfile_contents(name):
@@ -195,7 +183,7 @@ def get_symfile_contents(name):
       return f.read()
 
 @functools.lru_cache()
-def get_symdata(ros, name):
+def get_symdata(name):
    if name is None:
       return None
    ss = ros.std.stringstream(get_symfile_contents(name))
@@ -203,7 +191,7 @@ def get_symdata(ros, name):
    d.read_symmetry_data_from_stream(ss)
    return d
 
-def get_symdata_modified(ros, name, string_substitutions=None, scale_positions=None):
+def get_symdata_modified(name, string_substitutions=None, scale_positions=None):
    symfilestr = get_symfile_contents(name)
    if scale_positions is not None:
       if string_substitutions is None:

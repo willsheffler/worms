@@ -2,6 +2,9 @@ import os, pickle, lzma
 import worms
 
 data_dir = os.path.dirname(__file__)
+pdb_dir = os.path.join(data_dir, 'pdb')
+database_dir = os.path.join(data_dir, 'databases')
+json_dir = os.path.join(data_dir, 'databases', 'json')
 
 def get_testing_database(dbname):
    return worms.load(os.path.join(data_dir, 'databases', dbname + '.pickle.xz'))

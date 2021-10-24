@@ -46,12 +46,13 @@ def worms_main(argv):
 
    criteria_list, kw = build_worms_setup_from_cli_args(argv)
 
-   try:
+   # try:
+   if True:
       construct_global_ssdag_and_run(criteria_list, kw)
-   except Exception as e:
-      bbdb = kw.database[0]
-      bbdb.clear()
-      raise e
+   # except Exception as e:
+   #    bbdb = kw.database[0]
+   #    bbdb.clear()
+   #    raise e
 
    print('worms_main done, time:', time() - tstart)
 
@@ -200,7 +201,7 @@ def run_all_mbblocks(
       fiter = cf.as_completed(futures)  # type: ignore
 
       for f in fiter:
-         print(merge_bblock, 'f in fiter', flush=True)
+         PING(f'{merge_bblock} f in fiter')
          log.extend(f.result())
       if pbar and log:
          log = [""] * len(futures) + log
@@ -221,7 +222,8 @@ def run_one_mbblock(
    print('run_one_mbblock', kw.merge_bblock)
    print('=' * 80, flush=True)
 
-   try:
+   # try:
+   if True:
       if bbs_states is not None:
          kw["bbs"] = [tuple(_BBlock(*s) for s in bb) for bb in bbs_states]
 
@@ -258,13 +260,13 @@ def run_one_mbblock(
 
       return log
 
-   except Exception as e:
-      print("error on mbb" + str(kw["merge_bblock"]))
-      print(type(e))
-      print(traceback.format_exc())
-      print(e)
-      sys.stdout.flush()
-      return []
+   # except Exception as e:
+   #    print("error on mbb" + str(kw["merge_bblock"]))
+   #    print(type(e))
+   #    print(traceback.format_exc())
+   #    print(e)
+   #    sys.stdout.flush()
+   #    return []
 
 def search_all_stages(
    criteria,
@@ -303,15 +305,15 @@ def search_all_stages(
          **kw,
       )
       results.append(single_stage_result)
-      if not hasattr(crit, "produces_no_results") and len(results[-1][2].idx) is 0:
+      if not hasattr(crit, "produces_no_results") and len(results[-1][2].idx) == 0:
          print("mbb", kw["merge_bblock"], "no results at stage", i)
          return None, None, None
 
    # todo: this whole block is very protocol-specific... needs refactoring
-   if len(results) is 1:
+   if len(results) == 1:
       assert merge is None
       return results[0][1:]
-   elif len(results) is 2:
+   elif len(results) == 2:
       assert merge is not None
       mseg = merge_segment
       if mseg is None:
@@ -338,7 +340,7 @@ def search_all_stages(
       rslt = merge(criteria, ssdag, ssdA, rsltA, critB, ssdB, rsltB, **kw)
       return ssdag, rslt, logA + logB
 
-   elif len(results) is 3:
+   elif len(results) == 3:
       # hacky: assume 3stage is brigde protocol
       assert merge is not None
       _, _, _, logA = results[0]

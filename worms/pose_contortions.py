@@ -7,8 +7,7 @@ import itertools as it
 from collections import defaultdict, OrderedDict, namedtuple
 from deferred_import import deferred_import
 
-pyrosetta = deferred_import('pyrosetta')
-ros = deferred_import('pyrosetta.rosetta')
+ros = deferred_import('worms.rosetta_init')
 util = deferred_import('worms.util.rosetta_utils')
 
 class AnnoPose:
@@ -407,8 +406,8 @@ def make_contorted_pose(
    assert util.worst_CN_connect(pose) < 0.5
    assert util.no_overlapping_adjacent_residues(pose)
 
-   if cryst_info:
-      ci = pyrosetta.rosetta.core.io.CrystInfo()
+   if cryst_info is not None:
+      ci = ros.core.io.CrystInfo()
       ci.A(cryst_info[0])  # cell dimensions
       ci.B(cryst_info[1])
       ci.C(cryst_info[2])
@@ -416,7 +415,7 @@ def make_contorted_pose(
       ci.beta(cryst_info[4])
       ci.gamma(cryst_info[5])
       ci.spacegroup(cryst_info[6])  # sace group
-      pi = pyrosetta.rosetta.core.pose.PDBInfo(pose)
+      pi = ros.core.pose.PDBInfo(pose)
       pi.set_crystinfo(ci)
       pose.pdb_info(pi)
 

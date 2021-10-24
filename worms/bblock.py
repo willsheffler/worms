@@ -53,8 +53,17 @@ def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
 
    ca = ncac[:, 1, :]
    hullcoord = np.array([np.mean(ca[i - 3:i + 4], axis=0) for i in range(3, len(ca) - 4)])
-   hull_obj = ConvexHull(hullcoord[:, :3])
-   hull = hullcoord[hull_obj.vertices, :3]
+   print(hullcoord.shape, len(hullcoord))
+   # assert 0
+
+   from scipy.spatial.qhull import QhullError
+
+   try:
+      hull_obj = ConvexHull(hullcoord[:, :3])
+      hull = hullcoord[hull_obj.vertices, :3]
+   except (QhullError, IndexError):
+      hull = np.empty((0, 3))
+
    numhull = len(hull)
    # print(hull.shape)
    # print(numhull)
@@ -379,11 +388,12 @@ def chain_of_ires(bb, ires):
    return chain
 
 def _make_connections_array(entries, chain_bounds):
-   try:
+   # try:
+   if True:
       reslists = [_get_connection_residues(e, chain_bounds) for e in entries]
-   except Exception as e:
-      print("make_connections_array failed on", entries, "error was:", e)
-      return np.zeros((0, 0))
+   # except Exception as e:
+   # print("make_connections_array failed on", entries, "error was:", e)
+   # return np.zeros((0, 0))
 
    order = np.argsort([x[0] for x in reslists])
    mx = max(len(x) for x in reslists)

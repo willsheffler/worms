@@ -1,33 +1,18 @@
-"""TODO: Summary
-
-Attributes:
-    numcom (int): Description
-    numline (int): Description
-    numray (int): Description
-    numseg (int): Description
-    numvec (int): Description
-    showme_state (TYPE): Description
+"""for use with pymol installed as lib from -c schrodinger
 """
 import tempfile
 import numpy as np
+import time
 from collections import defaultdict
 from worms import homog as hm
 from worms import util
 from logging import info
 from functools import singledispatch
 
-try:
-   from pymol import cmd
-   from pymol import cgo
-except ImportError:
-   info("pymol not available!")
+from deferred_import import deferred_import
 
-# try:
-from pyrosetta.rosetta.core.pose import Pose
-# except ImportError:
-# assert 0, 'NO ROSETTA
-#
-# Pose = MagicMock()
+pymol = deferred_import('pymol')
+pyrosetta = deferred_import('worms.rosetta_init')
 
 _atom_record_format = (
    "ATOM  {atomi:5d} {atomn:^4}{idx:^1}{resn:3s} {chain:1}{resi:4d}{insert:1s}   "
@@ -50,21 +35,18 @@ def format_atom(
    return _atom_record_format.format(**locals())
 
 def is_rosetta_pose(to_show):
-   return isinstance(to_show, Pose)
+   return isinstance(to_show, pyrosetta.Pose)
 
 def pymol_load_pose(pose, name):
-   from pymol import cmd
 
    tmpdir = tempfile.mkdtemp()
    fname = tmpdir + "/" + name + ".pdb"
    pose.dump_pdb(fname)
-   cmd.load(fname)
+   pymol.cmd.load(fname)
 
 def pymol_xform(name, xform):
-   from pymol import cmd
-
-   assert name in cmd.get_object_list()
-   cmd.transform_object(name, xform.flatten())
+   assert name in pymol.cmd.get_object_list()
+   pymol.cmd.transform_object(name, xform.flatten())
 
 @singledispatch
 def pymol_load(to_show, state=None, name=None, **kw):
@@ -75,7 +57,7 @@ def pymol_load(to_show, state=None, name=None, **kw):
 # print('!!!!! MagicMock passed to singledispatch register')
 # return state
 
-@pymol_load.register(Pose)
+@pymol_load.register(pyrosetta.Pose)
 def _(to_show, state=None, name=None, **kw):
    name = name or "rif_thing"
    state["seenit"][name] += 1
@@ -102,7 +84,6 @@ def _(to_show, state=None, name=None, **kw):
    name = name or "worms_thing"
    state["seenit"][name] += 1
    name += "_%i" % state["seenit"][name]
-   from pymol import cmd
 
    tmpdir = tempfile.mkdtemp()
    fname = tmpdir + "/" + name + ".pdb"
@@ -120,7 +101,7 @@ def _(to_show, state=None, name=None, **kw):
                z=a[2],
             )
             out.write(line)
-   cmd.load(fname)
+   pymol.cmd.load(fname)
    return state
 
 # def pymol_load_OLD(to_show, state=None, name=None, **kw):
@@ -173,19 +154,15 @@ def showme_pymol(what, headless=False, block=False, **kw):
     Returns:
         TYPE: Description
     """
-   import pymol
-
    pymol.pymol_argv = ["pymol"]
    if headless:
       pymol.pymol_argv = ["pymol", "-c"]
    if not showme_state["launched"]:
       pymol.finish_launching()
       showme_state["launched"] = 1
-   from pymol import cmd
 
    r = pymol_load(what, showme_state, **kw)
-   # cmd.set('internal_gui_width', '20')
-   import time
+   # pymol.cmd.set('internal_gui_width', '20')
 
    while block:
       time.sleep(1)
@@ -224,18 +201,18 @@ def showcom(sel="all"):
    global numcom
    c = com(sel)
    print("Center of mass: ", c)
-   cgo = [
+   showcgo = [
       pymol.cgo.COLOR,
       1.0,
       1.0,
       1.0,
-      cgo.SPHERE,
+      pymol.cgo.SPHERE,
       c[0],
       c[1],
       c[2],
       1.0,
    ]  # white sphere with 3A radius
-   cmd.load_cgo(cgo, "com%i" % numcom)
+   pymol.cmd.load_cgo(showcgo, "com%i" % numcom)
    numcom += 1
 
 def cgo_sphere(c, r=1, col=(1, 1, 1)):
@@ -250,7 +227,7 @@ def cgo_sphere(c, r=1, col=(1, 1, 1)):
         TYPE: Description
     """
    # white sphere with 3A radius
-   return [cgo.COLOR, col[0], col[1], col[2], cgo.SPHERE, c[0], c[1], c[2], r]
+   return [pymol.cgo.COLOR, col[0], col[1], col[2], pymol.cgo.SPHERE, c[0], c[1], c[2], r]
 
 def showsphere(c, r=1, col=(1, 1, 1), lbl=""):
    """TODO: Summary
@@ -261,14 +238,14 @@ def showsphere(c, r=1, col=(1, 1, 1), lbl=""):
         col (tuple, optional): Description
         lbl (str, optional): Description
     """
-   v = cmd.get_view()
+   v = pymol.cmd.get_view()
    if not lbl:
       global numvec
       lbl = "sphere%i" % numvec
       numvec += 1
    mycgo = cgo_sphere(c=c, r=r, col=col)
-   cmd.load_cgo(mycgo, lbl)
-   cmd.set_view(v)
+   pymol.cmd.load_cgo(mycgo, lbl)
+   pymol.cmd.set_view(v)
 
 def showvecfrompoint(a, c, col=(1, 1, 1), lbl=""):
    """TODO: Summary
@@ -283,32 +260,32 @@ def showvecfrompoint(a, c, col=(1, 1, 1), lbl=""):
       global numray
       lbl = "ray%i" % numray
       numray += 1
-   cmd.delete(lbl)
-   v = cmd.get_view()
+   pymol.cmd.delete(lbl)
+   v = pymol.cmd.get_view()
    OBJ = [
-      cgo.BEGIN,
-      cgo.LINES,
-      cgo.COLOR,
+      pymol.cgo.BEGIN,
+      pymol.cgo.LINES,
+      pymol.cgo.COLOR,
       col[0],
       col[1],
       col[2],
-      cgo.VERTEX,
+      pymol.cgo.VERTEX,
       c[0],
       c[1],
       c[2],
-      cgo.VERTEX,
+      pymol.cgo.VERTEX,
       c[0] + a[0],
       c[1] + a[1],
       c[2] + a[2],
-      cgo.END,
+      pymol.cgo.END,
    ]
-   cmd.load_cgo(OBJ, lbl)
-   # cmd.load_cgo([cgo.COLOR, col[0],col[1],col[2],
-   #             cgo.SPHERE,   c[0],       c[1],       c[2],    0.08,
-   #             cgo.CYLINDER, c[0],       c[1],       c[2],
+   pymol.cmd.load_cgo(OBJ, lbl)
+   # pymol.cmd.load_cgo([pymol.cgo.COLOR, col[0],col[1],col[2],
+   #             pymol.cgo.SPHERE,   c[0],       c[1],       c[2],    0.08,
+   #             pymol.cgo.CYLINDER, c[0],       c[1],       c[2],
    #                       c[0] + a[0], c[1] + a[1], c[2] + a[2], 0.02,
    #               col[0],col[1],col[2],col[0],col[1],col[2],], lbl)
-   cmd.set_view(v)
+   pymol.cmd.set_view(v)
 
 def cgo_segment(c1, c2, col=(1, 1, 1)):
    """TODO: Summary
@@ -338,7 +315,7 @@ def cgo_segment(c1, c2, col=(1, 1, 1)):
       c2[2],
       cgo.END,
    ]
-   # cmd.load_cgo([cgo.COLOR, col[0],col[1],col[2],
+   # pymol.cmd.load_cgo([cgo.COLOR, col[0],col[1],col[2],
    #             cgo.CYLINDER, c1[0],     c1[1],     c1[2],
    #                           c2[0],     c2[1],     c2[2], 0.02,
    #               col[0],col[1],col[2],col[0],col[1],col[2],], lbl)
@@ -357,14 +334,14 @@ def showsegment(c1, c2, col=(1, 1, 1), lbl=""):
       global numseg
       lbl = "seg%i" % numseg
       numseg += 1
-   cmd.delete(lbl)
-   v = cmd.get_view()
-   cmd.load_cgo(cgo_segment(c1=c1, c2=c2, col=col), lbl)
-   # cmd.load_cgo([cgo.COLOR, col[0],col[1],col[2],
+   pymol.cmd.delete(lbl)
+   v = pymol.cmd.get_view()
+   pymol.cmd.load_cgo(cgo_segment(c1=c1, c2=c2, col=col), lbl)
+   # pymol.cmd.load_cgo([cgo.COLOR, col[0],col[1],col[2],
    #             cgo.CYLINDER, c1[0],     c1[1],     c1[2],
    #                           c2[0],     c2[1],     c2[2], 0.02,
    #               col[0],col[1],col[2],col[0],col[1],col[2],], lbl)
-   cmd.set_view(v)
+   pymol.cmd.set_view(v)
 
 def cgo_cyl(c1, c2, r, col=(1, 1, 1), col2=None):
    """TODO: Summary
@@ -413,10 +390,10 @@ def showcyl(c1, c2, r, col=(1, 1, 1), col2=None, lbl=""):
       global numseg
       lbl = "seg%i" % numseg
       numseg += 1
-   cmd.delete(lbl)
-   v = cmd.get_view()
-   cmd.load_cgo(cgo_cyl(c1=c1, c2=c2, r=r, col=col, col2=col2), lbl)
-   cmd.set_view(v)
+   pymol.cmd.delete(lbl)
+   v = pymol.cmd.get_view()
+   pymol.cmd.load_cgo(cgo_cyl(c1=c1, c2=c2, r=r, col=col, col2=col2), lbl)
+   pymol.cmd.set_view(v)
 
 def showline(a, c, col=(1, 1, 1), lbl=""):
    """TODO: Summary
@@ -431,8 +408,8 @@ def showline(a, c, col=(1, 1, 1), lbl=""):
       global numline
       lbl = "line%i" % numline
       numline += 1
-   cmd.delete(lbl)
-   v = cmd.get_view()
+   pymol.cmd.delete(lbl)
+   v = pymol.cmd.get_view()
    OBJ = [
       cgo.BEGIN,
       cgo.LINES,
@@ -450,8 +427,8 @@ def showline(a, c, col=(1, 1, 1), lbl=""):
       c[2] + a[2],
       cgo.END,
    ]
-   cmd.load_cgo(OBJ, lbl)
-   cmd.set_view(v)
+   pymol.cmd.load_cgo(OBJ, lbl)
+   pymol.cmd.set_view(v)
 
 def cgo_lineabs(a, c, col=(1, 1, 1)):
    """TODO: Summary
@@ -495,11 +472,11 @@ def showlineabs(a, c, col=(1, 1, 1), lbl=""):
       global numline
       lbl = "line%i" % numline
       numline += 1
-   cmd.delete(lbl)
-   v = cmd.get_view()
+   pymol.cmd.delete(lbl)
+   v = pymol.cmd.get_view()
    cgo = cgo_lineabs(a, c, col)
-   cmd.load_cgo(cgo, lbl)
-   cmd.set_view(v)
+   pymol.cmd.load_cgo(cgo, lbl)
+   pymol.cmd.set_view(v)
 
 def show_with_axis(worms, idx=0):
    """TODO: Summary
@@ -543,7 +520,6 @@ def show_with_z_axes(worms, idx=0, only_connected=0, **kw):
    axis1 = x_from[..., :, 2] * 100
    axis2 = x_to[..., :, 2] * 100
    showme(pose)
-   import pymol
 
    pymol.finish_launching()
    showline(axis1, cen1)

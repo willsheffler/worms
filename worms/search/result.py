@@ -1,7 +1,7 @@
 from collections import namedtuple
 import numpy as np
 from numpy.lib import index_tricks
-from worms.util import jit
+import worms
 
 SearchStats = namedtuple(
    "SearchStats", ["total_samples", "n_last_bb_same_as", "n_redundant_results", 'best_score'])
@@ -26,9 +26,8 @@ def subset_result(results, ok):
       stats=results.stats,
    )
 
-class ResultTable(dict):
+class ResultTable(worms.Bunch):
    def __init__(self, other):
-      self.table = dict()
       self.idx = other.idx
       self.pos = other.pos
       self.err = other.err
@@ -39,11 +38,18 @@ class ResultTable(dict):
       return len(self.idx)
 
    def add(self, name, val):
-      self.table[name] = val
+      self[name] = val
 
-   def update(self, order):
-      for k, v in self.table.items():
-         self.table[k] = v[order]
+   def update(self, array_index):
+      for k, v in self.items():
+         # TODO this is kinda hacky... maybe back to self.table?
+         if not isinstance(v, np.ndarray):
+            continue
+         assert len(array_index) == len(v)
+         # print(k)
+         # print(v)
+         # print(array_index)
+         self[k] = v[array_index]
 
    def remove_redundant(self, thresh=0.1):
       for ir, (idx, pos) in zip(self.idx, self.pos):
@@ -63,10 +69,6 @@ class ResultTable(dict):
       # print('ResultTable.__eq__', idxeq, poseq, erreq, statseq)
 
       return idxeq and poseq and erreq
-
-   # def __getattr__(self, k):
-   # if k in ('idx','pos','err','stats'):
-   # return self.table[k]
 
    def __getstate__(self):
       return self.idx, self.pos, self.err, self.stats

@@ -1,6 +1,6 @@
 """TODO: Summary
 """
-import sys, os, re, itertools, operator, datetime
+import sys, os, operator, datetime
 import numba, numpy as np
 from hashlib import sha1
 

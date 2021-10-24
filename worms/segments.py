@@ -1,4 +1,5 @@
 raise DeprecationWarning('this is from worms v1 and should not be used any longer')
+assert False
 
 import multiprocessing
 import os
@@ -12,8 +13,7 @@ from worms import util
 
 from deferred_import import deferred_import
 
-pyrosetta = deferred_import('pyrosetta')
-ros = deferred_import('pyrosetta.rosetta')
+ros = deferred_import('worms.rosetta_init')
 util = deferred_import('worms.util.rosetta_utils')
 
 import inspect

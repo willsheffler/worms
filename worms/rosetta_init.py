@@ -1,9 +1,20 @@
 import sys
-from pyrosetta import rosetta, init
+from pyrosetta import *
+from pyrosetta.rosetta import *
 
-_initargs = "-corrections:beta_nov16 -mute all -preserve_crystinfo -symmetry::symmetry_definition dummy -beta --prevent_repacking"
+_initargs = ' '.join([
+   "-mute all",
+   "-corrections:beta_nov16",
+   "-beta",
+   "-preserve_crystinfo",
+   "-symmetry::symmetry_definition dummy",
+   # "--prevent_repacking",
+])
+
 print('============================ ROSETTA INIT ============================')
+
 init(_initargs)
+
 print('======================================================================')
 sys.stdout.flush()
 sys.stderr.flush()

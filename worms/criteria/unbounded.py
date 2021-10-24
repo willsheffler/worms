@@ -106,15 +106,16 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
          Xalign[..., :, 3] = -Xalign @ cen1
          cell_dist = (Xalign @ cen2)[..., 1]
       else:
-         try:
+         # try:
+         if True:
             Xalign = hm.align_vectors(ax1, ax2, self.tgtaxis1, self.tgtaxis2)
-         except AssertionError as e:
-            print("align_vectors error")
-            print("   ", ax1)
-            print("   ", ax2)
-            print("   ", self.tgtaxis1)
-            print("   ", self.tgtaxis2)
-            raise e
+         # except AssertionError as e:
+         #    print("align_vectors error")
+         #    print("   ", ax1)
+         #    print("   ", ax2)
+         #    print("   ", self.tgtaxis1)
+         #    print("   ", self.tgtaxis2)
+         #    raise e
          Xalign[..., :, 3] = -Xalign @ cen1  ## move from_seg cen1 to origin
          cen2_0 = Xalign @ cen2  # moving cen2 by Xalign
          D = np.stack([self.tgtaxis1[:3], self.tgtaxis2_isects, self.tgtaxis2[:3]]).T

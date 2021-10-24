@@ -1,3 +1,6 @@
+import math
+import sys
+
 from pyrosetta.rosetta.utility import vector1_unsigned_long
 from pyrosetta.rosetta.core import *
 from pyrosetta.rosetta.core.scoring.dssp import *
@@ -11,10 +14,8 @@ from pyrosetta import rosetta
 from pyrosetta import toolbox
 from pyrosetta.toolbox import *
 from pyrosetta.toolbox import generate_resfile
-import math
-import sys
 
-init()
+import worms.rosetta_init
 
 def PRINTDBG(msg):
    # print(msg)
@@ -30,12 +31,12 @@ class ContactAnalyzer:
    # in the PDB-info of the pose if a filename is not provided. That falls back to amino acid sequence if the pose doesn't
    # contain a name.
    def write_resfile(
-         self,
-         output_pose,
-         close_to_junction,
-         input_pose_maps=[],
-         resfile_name=None,
-         operation="ANYAA",
+      self,
+      output_pose,
+      close_to_junction,
+      input_pose_maps=[],
+      resfile_name=None,
+      operation="ANYAA",
    ):
       affected_positions, lost_contact_positions, new_contact_positions = self.get_affected_positions(
          output_pose, input_pose_maps)

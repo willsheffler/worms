@@ -2,18 +2,14 @@ import sys, collections, os, psutil, gc, json, traceback
 
 # from pympler.asizeof import asizeof
 
-from pyrosetta import rosetta as ros
-
 from worms import util, Bunch, PING
 from worms.ssdag_pose import make_pose_crit
-from worms.filters.db_filters import run_db_filters
-from worms.filters.db_filters import get_affected_positions
 from worms.ssdag import graph_dump_pdb
 
 from deferred_import import deferred_import
 
-pyrosetta = deferred_import('pyrosetta')
-ros = deferred_import('pyrosetta.rosetta')
+db_filters = deferred_import('worms.filters.db_filters')
+ros = deferred_import('worms.rosetta_init')
 util = deferred_import('worms.util.rosetta_utils')
 
 def getmem():
@@ -96,6 +92,8 @@ def filter_and_output_results(
          crystinfo = None
          if hasattr(criteria, "crystinfo"):
             crystinfo = criteria.crystinfo(segpos=result.pos[iresult])
+            if crystinfo is None:
+               continue
             if crystinfo[0] < kw.xtal_min_cell_size: continue
             if crystinfo[0] > kw.xtal_max_cell_size: continue
 
@@ -137,6 +135,7 @@ def filter_and_output_results(
          crystinfo = None
          if hasattr(criteria, "crystinfo"):
             crystinfo = criteria.crystinfo(segpos=result.pos[iresult])
+            if crystinfo is None: continue
             if crystinfo[0] < kw.xtal_min_cell_size: continue
             if crystinfo[0] > kw.xtal_max_cell_size: continue
 
@@ -216,16 +215,17 @@ def filter_and_output_results(
          seenpose[pose.size()].append(pose)
 
          # print(getmem(), 'MEM dbfilters before')
-         try:
+         # try:
+         if True:
             PING('mbb%i' % merge_bblock, print_pings)
             # gross....
-            (jstr, jstr1, _, grade, sp, mc, mcnh, mhc, _, _, _) = run_db_filters(
+            (jstr, jstr1, _, grade, sp, mc, mcnh, mhc, _, _, _) = db_filters.run_db_filters(
                database, criteria, ssdag, iresult, result.idx[iresult], pose, prov, **kw)
-         except Exception as e:
-            print("error in db_filters:")
-            print(traceback.format_exc())
-            print(e)
-            continue
+         # except Exception as e:
+         #    print("error in db_filters:")
+         #    print(traceback.format_exc())
+         #    print(e)
+         #    continue
          # print(getmem(), 'MEM dbfilters after')
 
          if output_only_AAAA and grade != "AAAA":
@@ -343,7 +343,7 @@ def filter_and_output_results(
          PING('mbb%i' % merge_bblock, print_pings)
 
          # print(getmem(), 'MEM get_affected_positions before')
-         mod, new, lost, junct = get_affected_positions(cenpose, prov)
+         mod, new, lost, junct = db_filters.get_affected_positions(cenpose, prov)
          # print(getmem(), 'MEM get_affected_positions after')
 
          if output_short_fnames:

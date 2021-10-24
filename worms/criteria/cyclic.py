@@ -8,11 +8,15 @@ from worms.filters.helixconf_jit import make_helixconf_filter
 
 import worms.homog as hm
 from worms.homog import numba_axis_angle_cen, hrot
-# from xbin import gu_xbin_indexer, numba_xbin_indexer
+# from xbin import gu_xbin_indexer, numba_xbin_indexpyrosettaer
 from copy import deepcopy
 from worms.merge.concat import merge_results_concat
 
 import warnings
+
+from deferred_import import deferred_import
+
+pyrosetta = deferred_import('worms.rosetta_init')
 
 def make_hash_table(*__arg__, **__kw__):
    raise NotImplementedError('khash_cffi needs updating for numba 0.49+')
@@ -86,8 +90,8 @@ class Cyclic(WormCriteria):
       if self.fixori_segment is not None:
          raise NotImplementedError
          from worms.util.rosetta_utils import get_bb_stubs
-         from pyrosetta import pose_from_file  # type: ignore
-         self.reference_structure = pose_from_file(reference_structure)
+
+         self.reference_structure = pyrosetta.pose_from_file(reference_structure)
          self.target_structure = pose_from_file(target_structure)
          assert self.reference_structure.sequence() == self.target_structure.sequence()
          refstub = get_bb_stubs(self.reference_structure, which_resi=[7])[0].squeeze()

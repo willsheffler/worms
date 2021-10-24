@@ -3,9 +3,12 @@
 
 import os, imp, pytest
 
+HAVE_PYROSETTA = False
+
 try:
    imp.find_module('pyrosetta')
    only_if_pyrosetta = lambda _: _
+   HAVE_PYROSETTA = True
    try:
       imp.find_module('pyrosetta.distributed')
       only_if_pyrosetta_distributed = lambda _: _

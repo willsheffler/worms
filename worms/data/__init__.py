@@ -1,2 +1,2 @@
 from worms.data.data import *
-from worms.data.datapaths import *
+from worms.data.testdata_management import *

@@ -8,18 +8,16 @@
    #CC Het:CCY
 	#N_ D3_N
 
---tolerance 1.0
-
---output_from_pose 1
---nbblocks 2
+--nbblocks 8
 --monte_carlo 0
 --parallel 0
---verbosity 2
---disable_cache 0
---cachedirs ./wormscache
 --shuffle_bblocks 0
---merge_segment 1
---no_duplicate_bases 0
+
+--tolerance 1.0
+--max_score0 3
+--max_score0sym 10
+--full_score0sym 0
+
 --splice_rms_range 5
 --splice_max_rms 1.0
 --splice_ncontact_cut 8
@@ -27,12 +25,16 @@
 --splice_nhelix_contacted_cut 1
 --splice_max_chain_length 750
 
---xtal_min_cell_size 0
+--verbosity 2
+--output_from_pose 1
+--disable_cache 0
+--cachedirs ./wormscache
+--merge_segment 1
+--no_duplicate_bases 0
+
+--xtal_min_cell_size 100
 --xtal_max_cell_size 99999
 
---max_score0 10
---max_score0sym 30
-# --full_score0sym 1
 --max_clash_check 10000000
 --max_com_redundancy 4
 --output_only_AAAA 0

@@ -84,8 +84,8 @@ def _remove_already_cached(spdb, bbpairs, params):
             ret.append((pdb0, pdb1))
    return ret
 
-def precompute_splicedb(db, bbpairs, **kw):
-   bbdb, spdb = db
+def precompute_splicedb(database, bbpairs, **kw):
+   bbdb, spdb = database
 
    # note: this is duplicated in edge.py and they need to be the same
    params = (

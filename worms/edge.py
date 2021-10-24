@@ -9,15 +9,6 @@ from worms.util import jit, InProcessExecutor, NonFuture, helix_range
 import concurrent.futures as cf
 from tqdm import tqdm
 
-try:
-   # this is such bullshit...
-   from pyrosetta import pose_from_file
-   from pyrosetta.rosetta.core.scoring.dssp import Dssp
-
-   HAVE_PYROSETTA = True
-except ImportError:
-   HAVE_PYROSETTA = False
-
 def Edge(u, ublks, v, vblks, verbosity=0, **kw):
 
    splices, nout, nent, analysis = get_allowed_splices(u, ublks, v, vblks, verbosity=verbosity,
