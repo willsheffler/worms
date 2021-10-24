@@ -60,7 +60,7 @@ def test_conftest_pdbfile(db_bblock_caching_v0):
    assert len(db_bblock_caching_v0.query("all")) == 12
 
 def test_splicedb_merge(db_splice_caching_v0):
-   raise NotImplemented
+   raise NotImplementedError
 
 if __name__ == '__main__':
    from tempfile import TemporaryDirectory

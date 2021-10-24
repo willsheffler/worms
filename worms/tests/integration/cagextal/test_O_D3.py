@@ -8,14 +8,14 @@ def setup_test_databases(criteria, **kw):
 
    bbdb = worms.data.get_testing_database('main_test_database')
    #      # kw.database = pickle.load(inp)
-   #      # bbdb = worms.database.NoCacheBBlockDB(**kw)
+   #      # bbdb = worms.database.BBlockDB(**kw)
    #      # bbdb.load_all_bblocks()
    #
    #      # pdb = list(bbdb._dictdb.keys())[0]
    #      # bb = bbdb.bblock(pdb)
    #      # print(bbdb)
 
-   spdb = worms.database.NoCacheSpliceDB(**kw)
+   spdb = worms.database.SpliceDB(**kw)
    print(spdb)
    worms.data.dump(spdb, 'spdb_before')
 

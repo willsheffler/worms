@@ -364,7 +364,7 @@ def intersect_planes(plane1, plane2):
    return isect, status
 
 def axis_ang_cen_of_eig(xforms, debug=False):
-   raise NotImplemented('this is a bad way to get rotation axis')
+   raise NotImplementedError('this is a bad way to get rotation axis')
    axis, angle = axis_angle_of(xforms)
    # # seems to numerically unstable
    ev, cen = np.linalg.eig(xforms)

@@ -295,7 +295,7 @@ def search_all_stages(
       lbl = f"stage{i}"
       if kw["merge_bblock"] is not None:
          lbl = f'stage{i}_mbb{kw["merge_bblock"]:04}'
-      print('main.py:search_all_stages: results.append( search_single_stage(')
+      PING('start search_single_stage')
       single_stage_result = search_single_stage(
          crit,
          monte_carlo=monte_carlo[i],

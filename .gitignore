@@ -51,6 +51,7 @@ coverage.xml
 *,cover
 .hypothesis/
 *.decompressed
+*_CANDIDATE
 
 # Translations
 *.mo

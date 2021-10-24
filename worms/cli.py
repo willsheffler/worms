@@ -205,7 +205,7 @@ def get_cli_args(argv=None, parser_=None):
    arg = parser_.parse_args(argv)
    if hasattr(arg, "parallel") and arg.parallel < 0:
       arg.parallel = util.cpu_count()
-   return arg
+   return worms.Bunch(vars(arg))
 
 BBDir = collections.namedtuple('BBDir', ('bblockspec', 'direction'))
 
@@ -213,28 +213,30 @@ def _bbspec(bb, nc):
    return list(BBDir(*x) for x in zip(bb, nc))
 
 def build_worms_setup_from_cli_args(
-   argv,
+   argv=None,
    parser=None,
    construct_databases=True,
 ):
-   arg = get_cli_args(argv, parser)
+   if argv is None: argv = sys.argv[1:]
 
-   numeric_level = getattr(logging, arg.loglevel.upper(), None)
+   kw = get_cli_args(argv, parser)
+
+   numeric_level = getattr(logging, kw.loglevel.upper(), None)
    if not isinstance(numeric_level, int):
-      raise ValueError('Invalid log level: %s' % arg.loglevel)
+      raise ValueError('Invalid log level: %s' % kw.loglevel)
    logging.getLogger().setLevel(numeric_level)
 
-   if arg.config_file == [""]:
-      arg.config_file = []
-   arg.topology = worms.topology.Topology(arg.topology)
-   if not arg.config_file:
-      if not arg.geometry or not arg.geometry[0]:
+   if kw.config_file == [""]:
+      kw.config_file = []
+   kw.topology = worms.topology.Topology(kw.topology)
+   if not kw.config_file:
+      if not kw.geometry or not kw.geometry[0]:
          print('--geometry not specified')
          sys.exit()
-      crit = eval("".join(arg.geometry))
-      bb = arg.bbconn[1::2]
-      nc = arg.bbconn[0::2]
-      arg.topology.check_nc(nc)
+      crit = eval("".join(kw.geometry))
+      bb = kw.bbconn[1::2]
+      nc = kw.bbconn[0::2]
+      kw.topology.check_nc(nc)
       crit.bbspec = _bbspec(bb, nc)
       assert len(nc) == len(bb)
       assert crit.from_seg < len(bb)
@@ -244,7 +246,7 @@ def build_worms_setup_from_cli_args(
       crit = [crit]
    else:
       crit = []
-      for cfile in arg.config_file:
+      for cfile in kw.config_file:
          with open(cfile) as inp:
             lines = inp.readlines()
             assert len(lines) == 2
@@ -255,7 +257,7 @@ def build_worms_setup_from_cli_args(
             bbnc = eval(lines[0])
             bb = [x[0] for x in bbnc]
             nc = [x[1] for x in bbnc]
-            arg.topology.check_nc(nc)
+            kw.topology.check_nc(nc)
 
             crit0 = eval(lines[1])
             crit0.bbspec = _bbspec(bb, nc)
@@ -266,48 +268,47 @@ def build_worms_setup_from_cli_args(
                assert crit0.origin_seg < len(bb)
             crit.append(crit0)
 
-   # oh god... fix these huge assumptions about Criteria
+   # TODO oh god... fix these huge assumptions about Criteria
    for c in crit:
-      # c.tolerance = arg.tolerance
-      c.lever = arg.lever
-      c.rot_tol = c.tolerance / arg.lever
+      # c.tolerance = kw.tolerance
+      c.lever = kw.lever
+      c.rot_tol = c.tolerance / kw.lever
 
-   if arg.max_score0 > 9e8:
-      arg.max_score0 = 2.0 * len(crit[0].bbspec)
+   if kw.max_score0 > 9e8:
+      kw.max_score0 = 2.0 * len(crit[0].bbspec)
 
-   if arg.merge_bblock < 0:
-      arg.merge_bblock = None
-   if arg.only_merge_bblocks == [-1]:
-      arg.only_merge_bblocks = []
-   if arg.only_bblocks == [-1]:
-      arg.only_bblocks = []
-   if arg.only_ivertex == [-1]:
-      arg.only_ivertex = []
-   if arg.only_outputs == [-1]:
-      arg.only_outputs = []
-   if arg.bblock_ranges == [-1]:
-      arg.bblock_ranges = []
-   elif arg.shuffle_bblocks:
+   if kw.merge_bblock < 0:
+      kw.merge_bblock = None
+   if kw.only_merge_bblocks == [-1]:
+      kw.only_merge_bblocks = []
+   if kw.only_bblocks == [-1]:
+      kw.only_bblocks = []
+   if kw.only_ivertex == [-1]:
+      kw.only_ivertex = []
+   if kw.only_outputs == [-1]:
+      kw.only_outputs = []
+   if kw.bblock_ranges == [-1]:
+      kw.bblock_ranges = []
+   elif kw.shuffle_bblocks:
       print("you probably shouldnt use --shuffle_bblocks with --bblock_ranges ")
       sys.exit(0)
-   if arg.merge_segment == -1:
-      arg.merge_segment = None
-   arg.tolerance = min(arg.tolerance, 9e8)
+   if kw.merge_segment == -1:
+      kw.merge_segment = None
+   kw.tolerance = min(kw.tolerance, 9e8)
 
-   if arg.dbfiles == [""]:
+   if kw.dbfiles == [""]:
       assert 0, "no --dbfiles specified"
 
-   if len(arg.nbblocks) == 1:
-      arg.nbblocks *= 100
-   if arg.output_only_connected != 'auto':
-      if arg.output_only_connected in ('', 0, '0', 'false', 'False'):
-         arg.output_only_connected = False
+   if len(kw.nbblocks) == 1:
+      kw.nbblocks *= 100
+   if kw.output_only_connected != 'auto':
+      if kw.output_only_connected in ('', 0, '0', 'false', 'False'):
+         kw.output_only_connected = False
       else:
-         arg.output_only_connected = True
+         kw.output_only_connected = True
 
-   kw = Bunch(vars(arg))
    if construct_databases:
-      if arg.disable_cache:
+      if kw.disable_cache:
          kw.database = worms.database.Databases(
             worms.database.NoCacheBBlockDB(**kw),
             worms.database.NoCacheSpliceDB(**kw),
