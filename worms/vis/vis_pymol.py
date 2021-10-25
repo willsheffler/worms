@@ -12,7 +12,6 @@ from functools import singledispatch
 from deferred_import import deferred_import
 
 pymol = deferred_import('pymol')
-pyrosetta = deferred_import('worms.rosetta_init')
 
 _atom_record_format = (
    "ATOM  {atomi:5d} {atomn:^4}{idx:^1}{resn:3s} {chain:1}{resi:4d}{insert:1s}   "
@@ -35,7 +34,7 @@ def format_atom(
    return _atom_record_format.format(**locals())
 
 def is_rosetta_pose(to_show):
-   return isinstance(to_show, pyrosetta.Pose)
+   return isinstance(to_show, worms.rosetta_init.Pose)
 
 def pymol_load_pose(pose, name):
 
@@ -57,7 +56,7 @@ def pymol_load(to_show, state=None, name=None, **kw):
 # print('!!!!! MagicMock passed to singledispatch register')
 # return state
 
-@pymol_load.register(pyrosetta.Pose)
+@pymol_load.register(worms.rosetta_init.Pose)
 def _(to_show, state=None, name=None, **kw):
    name = name or "rif_thing"
    state["seenit"][name] += 1

@@ -1,4 +1,5 @@
-import os, json, shutil, collections, tarfile, tempfile
+import os, json, shutil, collections, tarfile, tempfile, itertools
+from collections.abc import Iterable
 import worms
 
 def print_collisions():
@@ -12,13 +13,18 @@ def print_collisions():
             print(dictdb[dup])
          print()
 
-def localize_fname(fname):
-   return fname.replace('/', '\\')
+def make_bblock_archive(
+   dbfiles,
+   target='localdb',
+   dbname=None,
+   nbblocks=9e9,
+   overwrite=False,
+):
+   'produce an lzma tarball with one json file and all the pdbs referenced'
 
-def open_txz_database(fname):
-   pass
+   def localize_fname(fname):
+      return fname.replace('/', '\\')
 
-def make_packed_bblockdb(dbfiles, target='localdb', dbname=None, nbblocks=9e9, overwrite=False):
    if target.endswith('.txz'):
       target = target[:-4]
    if target.endswith('.tar.xz'):
@@ -27,45 +33,113 @@ def make_packed_bblockdb(dbfiles, target='localdb', dbname=None, nbblocks=9e9, o
       dbname = os.path.basename(target)
 
    alldb, dictdb, k2pdb = worms.database.read_bblock_dbfiles(dbfiles)
+   fnames = [e['file'] for e in alldb]
+   assert len(fnames) == len(set(fnames))
+
    os.makedirs(os.path.dirname(target), exist_ok=True)
    mode = 'w:xz' if overwrite else 'x:xz'
+   fname = target + '.txz'
    with tarfile.open(target + '.txz', mode) as tarball:
       for i, e in enumerate(alldb):
          f = e['file']
-         newf = os.path.join(dbname, localize_fname(f))
+         newf = os.sep.join(dbname, localize_fname(f))
          print(f'copying {int(i / len(alldb) * 100)   }% {newf}')
-         # shutil.copyfile(f, os.path.join(target, newf))
+         # shutil.copyfile(f, os.sep.join(target, newf))
          tarball.add(f, newf)
          e['file'] = newf
          tmpfile = tempfile.mkstemp()[1]
          with open(tmpfile, 'w') as out:
             json.dump(alldb, out, indent=2)
-         tarball.add(tmpfile, os.path.join(dbname, dbname + '.json'))
+         tarball.add(tmpfile, os.sep.join(dbname, dbname + '.json'))
+      assert len(set(tarball.getnames())) == len(tarball.getnames())
+   return fname
 
-   # fnames = {e['file'] for e in alldb}
-   # basenames = {os.path.basename(e['file']) for e in alldb}
-   # assert len(alldb) == len(fnames)
-   # assert len(alldb) == len(basenames)
+def read_bblock_archive(fname):
+   '''read bblock archive(s)'''
+   if isinstance(fname, (str, )):
+      return _read_bblock_archive_one(fname)
+   else:
+      return _read_bblock_archive_many(fname)
+
+def _read_bblock_archive_one(fname):
+   'read json and pdb contents from tarball'
+   with tempfile.TemporaryDirectory() as tmpdir:
+      with tarfile.open(fname, 'r:xz') as inp:
+         names = inp.getnames()
+         inp.extractall(tmpdir)
+      assert len(set(names)) == len(names), 'duplicate names in tarfile'
+
+      dbname = None
+      bblocks = None
+      pdbs = dict()
+      for fn in names:
+         s = fn.split(os.sep)
+         if len(s) == 1:
+            assert dbname is None
+            dbname = s[0]
+         else:
+            assert 2 == len(s)
+            assert s[0] == dbname
+            if fn.endswith('.json'):
+               assert bblocks is None
+               with open(os.sep.join([tmpdir, fn]), 'r') as inp:
+                  bblocks = json.load(inp)
+            else:
+               assert fn.endswith('.pdb')
+               with open(os.sep.join([tmpdir, fn])) as inp:
+                  pdbs[fn] = inp.read()
+
+   assert dbname is not None
+   assert bblocks is not None
+   assert len(pdbs)
+   assert list(sorted(pdbs.keys())) == list(sorted(e['file'] for e in bblocks))
+
+   return dbname, bblocks, pdbs
+
+def _read_bblock_archive_many(fnames, dbname=None):
+   'read json and pdb contents from tarball, merging multiple archives'
+   mapped = list(map(_read_bblock_archive_one, fnames))
+   names0 = [x[0] for x in mapped]
+   bblocks0 = [x[1] for x in mapped]
+   pdb_contents0 = [x[2] for x in mapped]
+
+   dbname = '/'.join(names0)
+   bblocks = list(itertools.chain(*bblocks0))
+   pdb_contents = dict()
+   for d in pdb_contents0:
+      pdb_contents.update(d)
+   ndups = len(bblocks) - len(pdb_contents)
+   if ndups > 0:
+      print(f'WARNING {ndups} ({int(ndups/len(bblocks)*100)}%) duplicate pdbs reading archives:')
+      for i, n in enumerate(fnames):
+         print(f' {len(bblocks0[i]):5} {n}')
+
+   return dbname, bblocks, pdb_contents
+
+# def make_bblockdb(fname):
 
 if __name__ == '__main__':
-   dbfiles = [
-      '/home/swang523/Crystal_engineering/worms/8-16-21_cage_xtal/input/selected_good.json'
-   ]
-   # make_packed_bblockdb(dbfiles, '/home/sheffler/tmp/cagextal_selected_good', overwrite=True)
+   # dbfiles = [
+   # '/home/swang523/Crystal_engineering/worms/8-16-21_cage_xtal/input/selected_good.json'
+   # ]
+   # fname = make_bblock_archive(dbfiles, '/home/sheffler/tmp/cagextal_selected_good',
+   # overwrite=True)
 
-   with tarfile.open('/home/sheffler/tmp/cagextal_selected_good.txz') as inp:
-      db = json.load(inp.extractfile('cagextal_selected_good/cagextal_selected_good.json'))
+   dbarc = '/home/sheffler/tmp/cagextal_selected_good.txz'
 
-      # print(inp.getmembers()
+   t = worms.Timer().start()
 
-      strs = {name: inp.extractfile(name).read() for name in inp.getnames()}
+   name, bbdb, pdb_contents = read_bblock_archive(dbarc)
+   print(name, len(bbdb), sum(len(v) for v in pdb_contents.values()) / 1000_000, 'M')
+   # for k, v in pdb_contents.items():
+   # print(len(v), k)
+   t.checkpoint('read archive')
+   # assert 0
 
-      # import pyrosetta
-      # pyrosetta.init()
-      # pose = pyrosetta.Pose()
-      # pyrosetta.rosetta.core.import_pose.pose_from_pdbstring(pose, pdb1)
-      # pose.dump_pdb('/home/sheffler/tmp/cagextal_selected_good/foo.pdb')
+   name, bbdb, pdb_contents = read_bblock_archive([dbarc, dbarc, dbarc])
+   print(name, len(bbdb), sum(len(v) for v in pdb_contents.values()) / 1000_000, 'M')
+   # for k, v in pdb_contents.items():
+   # print(len(v), k)
+   t.checkpoint('read multiple')
 
-   print(len(strs))
-   for k, v in strs.items():
-      print(len(v), k)
+   print(t.report())

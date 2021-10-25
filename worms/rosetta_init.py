@@ -30,3 +30,8 @@ def rosetta_init_safe(args):
 
 def is_rosetta_initialized():
    return _initargs is None
+
+def pose_from_str(s):
+   p = worms.rosetta_init.Pose()
+   worms.rosetta_init.core.import_pose.pose_from_pdbstring(p, pdbs[k])
+   return p

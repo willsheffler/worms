@@ -2,16 +2,15 @@ import os, random, functools
 from deferred_import import deferred_import
 import worms
 
-pyrosetta = deferred_import('worms.rosetta_init')
-
 class BBlockDB:
    def __init__(
-      self,
-      dbfiles=[],
-      cachedirs=[],
-      dbroot='',
-      null_base_names=['', '?', 'n/a', 'none'],
-      **_,
+         self,
+         dbfiles=[],
+         cachedirs=[],
+         dbroot='',
+         null_base_names=['', '?', 'n/a', 'none'],
+         pdb_contents=dict(),
+         **_,
    ):
       self.dbfiles = dbfiles
       self.dbroot = dbroot + "/" if dbroot and not dbroot.endswith("/") else dbroot
@@ -20,6 +19,7 @@ class BBlockDB:
       self.cachedirs = worms.database.get_cachedirs(cachedirs)
       self._bblock_cache = dict()
       self.null_base_names = null_base_names
+      self.pdb_contents = pdb_contents
       self.bblocks_accessed = set()
       self.poses_accessed = set()
 
@@ -72,15 +72,18 @@ class BBlockDB:
       return None
 
    @functools.lru_cache(128)
-   def _cached_pose(self, pdbfile):
+   def get_pose(self, pdbfile):
       posefile = self.posefile(pdbfile)
       if posefile:
          with open(posefile, "rb") as f:
             return pickle.load(f)
       else:
          print("reading pdb", pdbfile)
-         assert os.path.exists(self.dbroot + pdbfile)
-         return pyrosetta.pose_from_file(self.dbroot + pdbfile)
+         if pbdfile in self.pdb_contents:
+            return worms.rosetta_init.pose_from_str(self.pdb_contents[pdbfile])
+         else:
+            assert os.path.exists(self.dbroot + pdbfile)
+            return worms.rosetta_init.pose_from_file(self.dbroot + pdbfile)
 
    def pose(self, pdbfile):
       """load pose from _bblock_cache, read from file if not in memory. only reads"""
@@ -89,7 +92,7 @@ class BBlockDB:
       if isinstance(pdbfile, np.ndarray):
          pdbfile = str(bytes(pdbfile), "utf-8")
       self.poses_accessed.add(pdbfile)
-      return self._cached_pose(pdbfile)
+      return self.get_pose(pdbfile)
 
    def bblock(self, pdbkey):
       if isinstance(pdbkey, list):
@@ -105,7 +108,7 @@ class BBlockDB:
          pdbfile = self._key_to_pdbfile[pdbkey]
          pose = self.pose(pdbfile)
          entry = self._dictdb[pdbfile]
-         ss = pyrosetta.rosetta.core.scoring.dssp.Dssp(pose).get_dssp_secstruct()
+         ss = worms.rosetta_init.core.scoring.dssp.Dssp(pose).get_dssp_secstruct()
          bblock = worms.bblock.BBlock(entry, pdbfile, pdbkey, pose, ss, self.null_base_names)
          self._bblock_cache[pdbkey] = bblock
       self.bblocks_accessed.add(self._key_to_pdbfile[pdbkey])

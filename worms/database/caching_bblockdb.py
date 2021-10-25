@@ -1,12 +1,9 @@
 import os, json, random, sys, logging, time, pickle, functools
 import concurrent.futures as cf, numpy as np
 from logging import info, warning, error
-from deferred_import import deferred_import
 from tqdm import tqdm
 
 import worms
-
-pyrosetta = deferred_import('worms.rosetta_init')
 
 logging.basicConfig(level=logging.INFO)
 
@@ -31,17 +28,18 @@ class CachingBBlockDB:
       ])
 
    def __init__(
-      self,
-      cachedirs=None,
-      dbfiles=[],
-      load_poses=False,
-      nprocs=1,
-      lazy=True,
-      read_new_pdbs=False,
-      verbosity=0,
-      dbroot="",
-      null_base_names=[],
-      **kw,
+         self,
+         cachedirs=None,
+         dbfiles=[],
+         load_poses=False,
+         nprocs=1,
+         lazy=True,
+         read_new_pdbs=False,
+         verbosity=0,
+         dbroot="",
+         null_base_names=[],
+         pdb_contents=dict(),
+         **kw,
    ):
       """Stores building block structures and ancillary data
       """
@@ -60,6 +58,7 @@ class CachingBBlockDB:
       self._alldb = []
       self._holding_lock = False
       self.dbfiles = dbfiles
+      self.pdb_contents = pdb_contents
       print('database.py: read database files from', self.dbroot)
       for f in dbfiles:
          print('   ', f)
@@ -151,8 +150,12 @@ class CachingBBlockDB:
       pdbfile = worms.database.sanitize_pdbfile(pdbfile)
       if not pdbfile in self._poses_cache:
          if not self.load_cached_pose_into_memory(pdbfile):
-            assert os.path.exists(self.dbroot + pdbfile)
-            self._poses_cache[pdbfile] = pyrosetta.pose_from_file(self.dbroot + pdbfile)
+            if pdbfile in self.pdb_contents:
+               self._poses_cache[pdbfile] = worms.rosetta_init.pose_from_str(pdbfile)
+            else:
+               assert os.path.exists(self.dbroot + pdbfile)
+               pdbpath = os.sep.join(self.dbroot + pdbfile)
+               self._poses_cache[pdbfile] = worms.rosetta_init.pose_from_file(pdbpath)
       return self._poses_cache[pdbfile]
 
    def savepose(self, pdbfile):
@@ -353,7 +356,7 @@ class CachingBBlockDB:
          read_pdb = False
          # info('CachingBBlockDB.build_pdb_data reading %s' % pdbfile)
          pose = self.pose(pdbfile)
-         ss = pyrosetta.rosetta.core.scoring.dssp.Dssp(pose).get_dssp_secstruct()
+         ss = worms.rosetta_init.core.scoring.dssp.Dssp(pose).get_dssp_secstruct()
          bblock = worms.bblock.BBlock(entry, pdbfile, pdbkey, pose, ss, self.null_base_names)
          self._bblock_cache[pdbkey] = bblock
          # print(cachefile)

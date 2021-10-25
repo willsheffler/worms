@@ -1,4 +1,7 @@
 from math import sqrt, acos
+
+import worms
+
 from worms.criteria.base import *
 from worms import util
 from worms.util import Bunch
@@ -13,10 +16,6 @@ from copy import deepcopy
 from worms.merge.concat import merge_results_concat
 
 import warnings
-
-from deferred_import import deferred_import
-
-pyrosetta = deferred_import('worms.rosetta_init')
 
 def make_hash_table(*__arg__, **__kw__):
    raise NotImplementedError('khash_cffi needs updating for numba 0.49+')
@@ -91,7 +90,7 @@ class Cyclic(WormCriteria):
          raise NotImplementedError
          from worms.util.rosetta_utils import get_bb_stubs
 
-         self.reference_structure = pyrosetta.pose_from_file(reference_structure)
+         self.reference_structure = worms.rosetta_init.pose_from_file(reference_structure)
          self.target_structure = pose_from_file(target_structure)
          assert self.reference_structure.sequence() == self.target_structure.sequence()
          refstub = get_bb_stubs(self.reference_structure, which_resi=[7])[0].squeeze()

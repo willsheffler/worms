@@ -3,13 +3,9 @@ import os
 import sys
 from os.path import join, dirname, abspath, exists
 from deferred_import import deferred_import
-
+import worms
 # is there a better way?
 # sys.path.insert(0, os.path.dirname(__file__) + "/../..")
-
-pyrosetta = deferred_import('worms.rosetta_init')
-
-import worms
 
 fixture = pytest.fixture(scope="session")
 
@@ -50,7 +46,7 @@ def db_caching_bblock_v0_fullsize_prots(datadir):
 ######################## pose stuff ###############################
 
 def get_pose(pdbdir, fname):
-   return pyrosetta.pose_from_file(join(pdbdir, fname))
+   return worms.rosetta_init.pose_from_file(join(pdbdir, fname))
    # return tmp.pose(join(pdbdir, fname))
 
 @fixture
