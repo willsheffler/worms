@@ -48,8 +48,11 @@ def test_cagextal_O_D3():
    testname, criteria_list, kw = setup_this_testfunc()
 
    print('calling worms main', criteria_list)
-   kw.return_raw_result = True
+   # kw.return_raw_result = True
+   kw.return_raw_result = False
+   # kw.only_merge_bblocks = [2]
    rundata = worms.app.main.construct_global_ssdag_and_run(criteria_list, kw)
+   assert 0
 
    # print(kw.database.splicedb)
    # assert 0
@@ -69,7 +72,7 @@ def test_cagextal_O_D3():
       fail = fail or len(newresults) != len(refresults)
       if not fail:
          for a, b in zip(newresults, refresults):
-            fail = fail or a.close_without_stats(b)
+            fail = fail or a.approx_equal(b)
 
    if fail:
       record_new_testresults = True

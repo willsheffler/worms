@@ -5,6 +5,7 @@ from time import time
 import concurrent.futures as cf
 import traceback
 
+import worms
 from worms.util import Bunch
 
 import blosc
@@ -18,9 +19,6 @@ from worms.util import run_and_time
 from worms import util
 from worms.filters.clash import prune_clashes
 from worms.filters.geometry import check_geometry
-from worms.bblock import _BBlock
-from worms.clashgrid import ClashGrid
-from worms.output import filter_and_output_results
 
 _global_shared_ssdag = None
 
@@ -61,7 +59,7 @@ def construct_global_ssdag_and_run(
    kw,
 ):
    print("construct_global_ssdag_and_run,", len(criteria_list), "criteria, args:")
-   orig_output_prefix = kw["output_prefix"]
+   orig_output_prefix = kw.output_prefix
    log = list()
 
    for icrit, criteria in enumerate(criteria_list):
@@ -69,78 +67,74 @@ def construct_global_ssdag_and_run(
          assert len(criteria_list) is len(kw["config_file"])
          name = os.path.basename(kw["config_file"][icrit])
          name = name.replace(".config", "")
-         kw["output_prefix"] = orig_output_prefix + "_" + name
+         kw.output_prefix = orig_output_prefix + "_" + name
       print("================== start job", icrit, "======================")
-      print("output_prefix:", kw["output_prefix"])
+      print("output_prefix:", kw.output_prefix)
       print("criteria:", criteria)
       print("bbspec:", criteria.bbspec, flush=True)
 
-      if kw["precache_splices"]:
+      if kw.precache_splices:  # default
          PING("precaching splices")
-         merge_bblock = kw["merge_bblock"]
-         del kw["merge_bblock"]
-         pbar = kw["pbar"]
-         del kw["pbar"]
+         merge_bblock = kw.merge_bblock
+         del kw.merge_bblock
          ssd = simple_search_dag(
             criteria,
             merge_bblock=None,
             precache_only=True,
-            pbar=True,
             **kw,
          )
-         kw["bbs"] = ssd.bblocks
-         if kw["only_bblocks"]:
-            assert len(kw["bbs"]) is len(kw["only_bblocks"])
-            for i, bb in enumerate(kw["bbs"]):
-               kw["bbs"][i] = [bb[kw["only_bblocks"][i]]]
+         kw.bbs = ssd.bblocks
+         if kw.only_bblocks:
+            assert len(kw.bbs) is len(kw.only_bblocks)
+            for i, bb in enumerate(kw.bbs):
+               kw.bbs[i] = [bb[kw.only_bblocks[i]]]
             print("modified bblock numbers (--only_bblocks)")
-            print("   ", [len(b) for b in kw["bbs"]])
-         kw["merge_bblock"] = merge_bblock
-         kw["pbar"] = pbar
+            print("   ", [len(b) for b in kw.bbs])
+         kw.merge_bblock = merge_bblock
          if kw["precache_splices_and_quit"]:
             return Bunch(log=log)
 
       global _global_shared_ssdag
-      if "bbs" in kw and (len(kw["bbs"]) > 2 or kw["bbs"][0] is not kw["bbs"][1]):
-
-         merge_bblock = kw["merge_bblock"]
-         del kw["merge_bblock"]
+      if "bbs" in kw and (len(kw.bbs) > 2 or kw.bbs[0] is not kw.bbs[1]):
+         merge_bblock = kw.merge_bblock
+         del kw.merge_bblock
          ssd = simple_search_dag(criteria, merge_bblock=0, print_edge_summary=True, **kw)
          _global_shared_ssdag = ssd.ssdag
          assert _global_shared_ssdag is not None
-         kw["merge_bblock"] = merge_bblock
+         kw.merge_bblock = merge_bblock
          PING("memuse for global _global_shared_ssdag:")
          _global_shared_ssdag.report_memory_use()
          assert _global_shared_ssdag
       else:
-         PING(
-            'failed\n      if "bbs" in kw and (len(kw["bbs"]) > 2 or kw["bbs"][0] is not kw["bbs"][1]):'
-         )
+         PING('failed\n      if "bbs" in kw and (len(kw.bbs) > 2 or kw.bbs[0] is not kw.bbs[1]):')
          assert 0
          ####
 
          #
 
-      if _global_shared_ssdag is not None:
-         if not "bbs" in kw:
-            kw["bbs"] = _global_shared_ssdag.bbs
-         assert len(_global_shared_ssdag.bbs) == len(kw["bbs"])
-         for a, b in zip(_global_shared_ssdag.bbs, kw["bbs"]):
-            for aa, bb in zip(a, b):
-               assert aa is bb
-         PING('_global_shared_ssdag complete')
-      else:
+      if _global_shared_ssdag is None:
          assert 0, 'no _global_shared_ssdag??'
+      if not "bbs" in kw:
+         kw.bbs = _global_shared_ssdag.bbs
+      assert len(_global_shared_ssdag.bbs) == len(kw.bbs)
+      for a, b in zip(_global_shared_ssdag.bbs, kw.bbs):
+         for aa, bb in zip(a, b):
+            assert aa is bb
+      PING('_global_shared_ssdag complete')
 
-      if kw["context_structure"]:
+      if kw.context_structure:
          print('have context_structure')
-         kw["context_structure"] = ClashGrid(kw["context_structure"], **kw)
+         kw.context_structure = worms.clashgrid.ClashGrid(kw.context_structure, **kw)
       else:
-         kw["context_structure"] = None
+         kw.context_structure = None
 
-      log = run_all_mbblocks(criteria, **kw)
+      log = run_all_mbblocks(
+         criteria,
+         **kw,
+      )
+
       PING('run_all_mbblocks returned')
-      if kw["pbar"]:
+      if kw.pbar:
          print("======================== logs ========================")
          for msg in log:
             print(msg)
@@ -218,18 +212,24 @@ def run_one_mbblock(
    **kw,
 ):
    kw = Bunch(kw)
-   print('=' * 80)
-   print('run_one_mbblock', kw.merge_bblock)
-   print('=' * 80, flush=True)
+   print(
+      '======================= run_one_mbblock',
+      kw.merge_bblock,
+      '=======================',
+   )
 
    # try:
    if True:
       if bbs_states is not None:
-         kw["bbs"] = [tuple(_BBlock(*s) for s in bb) for bb in bbs_states]
+         kw.bbs = [tuple(worms.bblock._BBlock(*s) for s in bb) for bb in bbs_states]
 
       ssdag, result1, log = search_all_stages(criteria, **kw)
+
       if result1 is None:
          return []
+
+      if True:
+         result1 = worms.filters.prune_duplicates_on_segpos(result1)
 
       if disable_clash_check:
          result2 = result1
@@ -240,28 +240,29 @@ def run_one_mbblock(
 
       log = []
       if True:  # len(result3.idx) > 0:
-         msg = f'mbb{kw["merge_bblock"]:04} nresults after clash/geom check {len(result3.idx):,}'
+         msg = f'mbb{kw.merge_bblock:04} nresults after clash/geom check {len(result3.idx):,}'
          log.append("    " + msg)
          print(log[-1])
 
-      if not return_raw_result:
-         log += filter_and_output_results(criteria, ssdag, result3, **kw)
-      elif return_raw_result:
-         # print('!' * 60)
-         # print('returning raw result')
-         # print('!' * 60)
+      if return_raw_result:
          return [result3]
-      else:
-         print('logical impossibility')
 
-      if not kw["pbar"]:
-         print(f'completed: mbb{kw["merge_bblock"]:04}')
+      r = worms.output.filter_and_output_results(
+         criteria,
+         ssdag,
+         result3,
+         **kw,
+      )
+      log += r
+
+      if not kw.pbar:
+         print(f'completed: mbb{kw.merge_bblock:04}')
          sys.stdout.flush()
 
       return log
 
    # except Exception as e:
-   #    print("error on mbb" + str(kw["merge_bblock"]))
+   #    print("error on mbb" + str(kw.merge_bblock))
    #    print(type(e))
    #    print(traceback.format_exc())
    #    print(e)
@@ -281,7 +282,7 @@ def search_all_stages(
    if hasattr(criteria, "stages"):
       stages, merge = criteria.stages(bbs=bbs, **kw)
    if len(stages) > 1:
-      assert kw["merge_bblock"] is not None
+      assert kw.merge_bblock is not None
 
    assert len(monte_carlo) in (1, len(stages))
    if len(monte_carlo) != len(stages):
@@ -293,9 +294,10 @@ def search_all_stages(
       if callable(crit):
          crit = crit(*results[-1][:-1])  # TODO wtf is this?
       lbl = f"stage{i}"
-      if kw["merge_bblock"] is not None:
-         lbl = f'stage{i}_mbb{kw["merge_bblock"]:04}'
+      if kw.merge_bblock is not None:
+         lbl = f'stage{i}_mbb{kw.merge_bblock:04}'
       PING('start search_single_stage')
+
       single_stage_result = search_single_stage(
          crit,
          monte_carlo=monte_carlo[i],
@@ -304,9 +306,10 @@ def search_all_stages(
          merge_segment=merge_segment,
          **kw,
       )
+
       results.append(single_stage_result)
       if not hasattr(crit, "produces_no_results") and len(results[-1][2].idx) == 0:
-         print("mbb", kw["merge_bblock"], "no results at stage", i)
+         print("mbb", kw.merge_bblock, "no results at stage", i)
          return None, None, None
 
    # todo: this whole block is very protocol-specific... needs refactoring

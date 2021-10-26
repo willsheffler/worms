@@ -1,18 +1,14 @@
 import string
 from json import dumps
+from deferred_import import deferred_import
+
 import numpy as np
-import numba as nb
+import numba
+from scipy.spatial import ConvexHull
 
 import worms
-from worms import util
-from worms.util import jit
 from worms.filters.clash import _chain_bounds
-import numba.types as nt
-
-from worms import homog as hm
-from worms.util import hash_str_to_int
-
-from scipy.spatial import ConvexHull
+from worms.bblock.bbutil import make_connections_array, ncac_to_stubs
 
 def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
 
@@ -21,14 +17,14 @@ def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
    ss = np.frombuffer(ss.encode(), dtype="i1")
    ncac = worms.util.rosetta_utils.get_bb_coords(pose)
    cb = worms.util.rosetta_utils.get_cb_coords(pose)
-   stubs = _ncac_to_stubs(ncac)
+   stubs = ncac_to_stubs(ncac)
    com = np.mean(cb, axis=0)
    rg = np.sqrt(np.sum((cb - com)**2) / len(cb))
 
    assert len(pose) == len(ncac)
    assert len(pose) == len(stubs)
    assert len(pose) == len(ss)
-   conn = _make_connections_array(entry["connections"], chains)
+   conn = make_connections_array(entry["connections"], chains)
    if len(conn) == 0:
       print("bad conn info!", pdbfile)
       assert 0
@@ -44,7 +40,7 @@ def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
    assert cb.shape == (len(pose), 4)
 
    if entry["base"] in null_base_names: basehash = 0
-   else: basehash = hash_str_to_int(entry["base"])
+   else: basehash = worms.util.hash_str_to_int(entry["base"])
 
    def npfb(s):
       if isinstance(s, list):
@@ -53,7 +49,7 @@ def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
 
    ca = ncac[:, 1, :]
    hullcoord = np.array([np.mean(ca[i - 3:i + 4], axis=0) for i in range(3, len(ca) - 4)])
-   print(hullcoord.shape, len(hullcoord))
+   worms.PING(f'hullcoord shape {hullcoord.shape}')
    # assert 0
 
    from scipy.spatial.qhull import QhullError
@@ -100,29 +96,29 @@ def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
    return bblock
 
 
-@nb.experimental.jitclass(
+@numba.experimental.jitclass(
     (
-        ("json", nt.int8[:]),
-        ("connections", nt.int32[:, :]),
-        ("file", nt.int8[:]),
-        ("filehash", nt.int64),
-        ("components", nt.int8[:]),
-        ("protocol", nt.int8[:]),
-        ("name", nt.int8[:]),
-        ("classes", nt.int8[:]),
-        ("validated", nt.boolean),
-        ("_type", nt.int8[:]),
-        ("base", nt.int8[:]),
-        ("basehash", nt.int64),
-        ("ncac", nt.float64[:, :, :]),
-        ("cb", nt.float64[:, :]),
-        ("chains", nt.int32[:, :]),
-        ("ss", nt.int8[:]),
-        ("stubs", nt.float64[:, :, :]),
-        ("com", nt.float64[:]),
-        ("rg", nt.float64),
-        ('numhull', nt.int64),
-        ('hull', nt.float64[:,:]),
+        ("json",        numba.types.int8[:]),
+        ("connections", numba.types.int32[:, :]),
+        ("file",        numba.types.int8[:]),
+        ("filehash",    numba.types.int64),
+        ("components",  numba.types.int8[:]),
+        ("protocol",    numba.types.int8[:]),
+        ("name",        numba.types.int8[:]),
+        ("classes",     numba.types.int8[:]),
+        ("validated",   numba.types.boolean),
+        ("_type",       numba.types.int8[:]),
+        ("base",        numba.types.int8[:]),
+        ("basehash",    numba.types.int64),
+        ("ncac",        numba.types.float64[:, :, :]),
+        ("cb",          numba.types.float64[:, :]),
+        ("chains",      numba.types.int32[:, :]),
+        ("ss",          numba.types.int8[:]),
+        ("stubs",       numba.types.float64[:, :, :]),
+        ("com",         numba.types.float64[:]),
+        ("rg",          numba.types.float64),
+        ('numhull',     numba.types.int64),
+        ('hull',        numba.types.float64[:,:]),
     )
 )  # yapf: disable
 class _BBlock:
@@ -308,63 +304,6 @@ def bblock_dump_pdb(
       out.close()
    return chain, anum, rnum
 
-def _ncac_to_stubs(ncac):
-   """
-        Vector const & center,
-        Vector const & a,
-        Vector const & b,
-        Vector const & c
-    )
-    {
-        Vector e1( a - b);
-        e1.normalize();
-
-        Vector e3( cross( e1, c - b ) );
-        e3.normalize();
-
-        Vector e2( cross( e3,e1) );
-        M.col_x( e1 ).col_y( e2 ).col_z( e3 );
-        v = center;
-    """
-   assert ncac.shape[1:] == (3, 4)
-   stubs = np.zeros((len(ncac), 4, 4), dtype=np.float64)
-   ca2n = (ncac[:, 0] - ncac[:, 1])[..., :3]
-   ca2c = (ncac[:, 2] - ncac[:, 1])[..., :3]
-   # tgt1 = ca2n + ca2c  # thought this might make
-   # tgt2 = ca2n - ca2c  # n/c coords match better
-   tgt1 = ca2n  # rosetta style
-   tgt2 = ca2c  # seems better
-   a = tgt1
-   a /= np.linalg.norm(a, axis=-1)[:, None]
-   c = np.cross(a, tgt2)
-   c /= np.linalg.norm(c, axis=-1)[:, None]
-   b = np.cross(c, a)
-   assert np.allclose(np.sum(a * b, axis=-1), 0)
-   assert np.allclose(np.sum(b * c, axis=-1), 0)
-   assert np.allclose(np.sum(c * a, axis=-1), 0)
-   assert np.allclose(np.linalg.norm(a, axis=-1), 1)
-   assert np.allclose(np.linalg.norm(b, axis=-1), 1)
-   assert np.allclose(np.linalg.norm(c, axis=-1), 1)
-   stubs[:, :3, 0] = a
-   stubs[:, :3, 1] = b
-   stubs[:, :3, 2] = c
-   stubs[:, :3, 3] = ncac[:, 1, :3]
-   stubs[:, 3, 3] = 1
-   return stubs
-
-def bb_splice_res(bb, dirn):
-   r = []
-   for iconn in range(bb.n_connections):
-      if bb.conn_dirn(iconn) == dirn:
-         r.append(bb.conn_resids(iconn))
-   return np.concatenate(r)
-
-def bb_splice_res_N(bb):
-   return splice_res(bb, 0)
-
-def bb_splice_res_C(bb):
-   return splice_res(bb, 1)
-
 class BBlockWrap:
    def __init__(self, _bblock):
       self._bblock = _bblock
@@ -374,84 +313,3 @@ class BBlockWrap:
 
    def __getstate__(self):
       return self._bblock._state
-
-@jit
-def chain_of_ires(bb, ires):
-   chain = np.empty_like(ires)
-   for i, ir in enumerate(ires):
-      if ir < 0:
-         chain[i] = -1
-      else:
-         for c in range(len(bb.chains)):
-            if bb.chains[c, 0] <= ir < bb.chains[c, 1]:
-               chain[i] = c
-   return chain
-
-def _make_connections_array(entries, chain_bounds):
-   # try:
-   if True:
-      reslists = [_get_connection_residues(e, chain_bounds) for e in entries]
-   # except Exception as e:
-   # print("make_connections_array failed on", entries, "error was:", e)
-   # return np.zeros((0, 0))
-
-   order = np.argsort([x[0] for x in reslists])
-   mx = max(len(x) for x in reslists)
-   conn = np.zeros((len(reslists), mx + 2), "i4") - 1
-   for i, iord in enumerate(order):
-      conn[i, 0] = entries[iord]["direction"] == "C"
-      conn[i, 1] = len(reslists[iord]) + 2
-      conn[i, 2:conn[i, 1]] = reslists[iord]
-   return conn
-
-def _get_connection_residues(entry, chain_bounds):
-   """should return sorted list of resi positions"""
-   chain_bounds[-1][-1]
-   r, c, d = entry["residues"], int(entry["chain"]), entry["direction"]
-   if isinstance(r, str) and r.startswith("["):
-      r = eval(r)
-   if isinstance(r, list):
-      try:
-         return sorted(int(i) for i in r)
-      except ValueError:
-         assert len(r) == 1
-         r = r[0]
-   if r.count(","):
-      c2, r = r.split(",")
-      assert int(c2) == c
-   b, e = r.split(":")
-   if b == "-":
-      b = 0
-   if e == "-":
-      e = -1
-   nres = chain_bounds[c - 1][1] - chain_bounds[c - 1][0]
-   b = int(b) if b else 0
-   e = int(e) if e else nres
-   if e < 0:
-      e += nres
-   return np.array(range(*chain_bounds[c - 1])[b:e], dtype="i4")
-
-def bblock_components(bblock):
-   return eval(bytes(bblock.components))
-
-def bblock_str(bblock):
-   return "\n".join([
-      "jitclass BBlock(",
-      "    file=" + str(bytes(bblock.file)),
-      "    components=" + str(bblock_components(bblock)),
-      "    protocol=" + str(bytes(bblock.protocol)),
-      "    name=" + str(bytes(bblock.name)),
-      "    classes=" + str(bytes(bblock.classes)),
-      "    validated=" + str(bblock.validated),
-      "    _type=" + str(bytes(bblock._type)),
-      "    base=" + str(bytes(bblock.base)),
-      "    ncac=array(shape=" + str(bblock.ncac.shape) + ", dtype=" + str(bblock.ncac.dtype) +
-      ")",
-      "    chains=" + str(bblock.chains),
-      "    ss=array(shape=" + str(bblock.ss.shape) + ", dtype=" + str(bblock.ss.dtype) + ")",
-      "    stubs=array(shape=" + str(bblock.stubs.shape) + ", dtype=" +
-      str(bblock.connections.dtype) + ")",
-      "    connectionsZ=array(shape=" + str(bblock.connections.shape) + ", dtype=" +
-      str(bblock.connections.dtype) + ")",
-      ")",
-   ])

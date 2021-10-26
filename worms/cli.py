@@ -310,8 +310,8 @@ def build_worms_setup_from_cli_args(
    if construct_databases:
       if kw.disable_cache:
          kw.database = worms.database.Databases(
-            worms.database.NoCacheBBlockDB(**kw),
-            worms.database.NoCacheSpliceDB(**kw),
+            worms.database.BBlockDB(**kw),
+            worms.database.SpliceDB(**kw),
          )
       else:
          kw.database = worms.database.Databases(

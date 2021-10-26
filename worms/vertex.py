@@ -6,7 +6,7 @@ import numba as nb
 import numba.types as nt
 from worms.homog import is_homog_xform
 from worms import util
-from worms.bblock import chain_of_ires, _BBlock
+from worms.bblock import _BBlock
 
 from logging import warning
 import concurrent.futures as cf
@@ -142,7 +142,7 @@ class _Vertex:
       # ('min_seg_len', nt.int32),
 
 @jit
-def _check_inorder(ires):
+def _check_inorder_nodups(ires):
    for i in range(len(ires) - 1):
       if ires[i] > ires[i + 1]:
          return False
@@ -153,19 +153,26 @@ def vertex_single(bbstate, bbid, din, dout, min_seg_len, verbosity=0):
    bb = _BBlock(*bbstate)
    ires0, ires1 = [], []
    isite0, isite1 = [], []
-   for i in range(bb.n_connections):
-      ires = bb.conn_resids(i)
-      if bb.conn_dirn(i) == din:
+   for isite in range(bb.n_connections):
+      ires = bb.conn_resids(isite)
+      if bb.conn_dirn(isite) == din:
          ires0.append(ires)
-         isite0.append(np.repeat(i, len(ires)))
-      if bb.conn_dirn(i) == dout:
+         isite0.append(np.repeat(isite, len(ires)))
+      if bb.conn_dirn(isite) == dout:
          ires1.append(ires)
-         isite1.append(np.repeat(i, len(ires)))
+         isite1.append(np.repeat(isite, len(ires)))
    dirn = "NC_"[din] + "NC_"[dout]
    if din < 2 and not ires0 or dout < 2 and not ires1:
       if verbosity > 0:
          warning("invalid vertex " + dirn + " " + bytes(bb.file).decode())
       return None
+
+   # print('ires0', ires0)
+   # for _ in ires0:
+   #    print('   ', _)
+   # print('ires1', ires1)
+   # for _ in ires1:
+   #    print('   ', _)
 
    dummy = [np.array([-1], dtype="i4")]
    ires0 = np.concatenate(ires0 or dummy)
@@ -193,8 +200,12 @@ def vertex_single(bbstate, bbid, din, dout, min_seg_len, verbosity=0):
    else:
       stub1 = bb.stubs[ires1]
 
-   assert _check_inorder(ires0)
-   assert _check_inorder(ires1)
+   assert _check_inorder_nodups(ires0), ires0
+   assert _check_inorder_nodups(ires1), ires1
+
+   # print(ires1)
+   # import sys
+   # sys.exit()
 
    stub0inv, stub1 = np.broadcast_arrays(stub0inv[:, None], stub1)
    ires = np.stack(np.broadcast_arrays(ires0[:, None], ires1), axis=-1)
@@ -238,6 +249,18 @@ def _check_bbires_inorder(ibblock, ires):
             return False
          prev[ibblock[i]] = ires[i]
    return True
+
+@jit
+def chain_of_ires(bb, ires):
+   chain = np.empty_like(ires)
+   for i, ir in enumerate(ires):
+      if ir < 0:
+         chain[i] = -1
+      else:
+         for c in range(len(bb.chains)):
+            if bb.chains[c, 0] <= ir < bb.chains[c, 1]:
+               chain[i] = c
+   return chain
 
 def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0, **kw):
 

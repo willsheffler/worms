@@ -212,6 +212,16 @@ class AxesIntersect(WormCriteria):
 
          score = geomscore
 
+         # if idx[0] == 102 and idx[1] == 7487:  # and idx[2] == 322:
+         #    print(
+         #       "bounded.py",
+         #       idx,
+         #       score,
+         #       verts[0].ibblock.shape,
+         #       verts[1].ibblock.shape,
+         #       verts[2].ibblock.shape,
+         #    )
+
          # print('bounded.py:jit_lossfunc DONE')
          return score
 
@@ -255,11 +265,11 @@ class AxesIntersect(WormCriteria):
       if self.xtal.replace(' ', '') == 'I432':
          ops = (
             hm.hrot([1, 1, 1], 120),
-            # hm.hrot([1, 1, 1], 240),
+            hm.hrot([1, 1, 1], 240),
             hm.hrot([1, 1, 0], 180),
             hm.hrot([1, 0, 0], 90),
-            # hm.hrot([1, 0, 0], 180),
-            # hm.hrot([1, 0, 0], 270),
+            hm.hrot([1, 0, 0], 180),
+            hm.hrot([1, 0, 0], 270),
             hm.hrot([1, -1, 0], 180, [cell_dist / 4] * 3),
          )
          # for op in ops:

@@ -1,4 +1,4 @@
-import sys, collections, os, psutil, gc, json, traceback
+import sys, collections, os, psutil, gc, json, traceback, copy
 
 # from pympler.asizeof import asizeof
 
@@ -258,28 +258,15 @@ def filter_and_output_results(
             )
             continue
 
-         symfilestr = None
-         if hasattr(criteria, "symfile_modifiers"):
-            PING('mbb%i' % merge_bblock, print_pings)
-            symdata, symfilestr = util.get_symdata_modified(
-               criteria.symname,
-               **criteria.symfile_modifiers(segpos=result.pos[iresult]),
-            )
-         else:
-            PING('mbb%i' % merge_bblock, print_pings)
-            symdata = util.get_symdata(criteria.symname)
-
          PING('mbb%i' % merge_bblock, print_pings)
 
-         # print(getmem(), 'MEM poses and score0sym before')
-         sympose = cenpose.clone()
-
-         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
          # symops = None
+
          symops = criteria.symops(segpos=result.pos[iresult])
-
+         sympose = cenpose.clone()
+         symfilestr = None
          score0sym = -1
-
+         symdata = None
          if symops is not None:
             orig = sympose.clone()
             # fn = f"RAW_{merge_bblock:04}_{iresult:04}_"
@@ -295,19 +282,27 @@ def filter_and_output_results(
                # ptmp.dump_pdb('ptmp%i.pdb'%i)
                ros.core.pose.append_pose_to_pose(sympose, ptmp)
                # sympose.dump_pdb('sympose%i.pdb'%i)
-            # sympose.dump_pdb('fn023480yfnt.pdb' )
-
-            # assert 0
 
             score0sym = sf(sympose)
-         elif symdata:
+            # if score0sym < max_score0sym:
+            #    sympose.dump_pdb(f'symops_{merge_bblock}_{iresult}.pdb')
+
+         else:
+            if hasattr(criteria, "symfile_modifiers"):
+               PING('mbb%i' % merge_bblock, print_pings)
+               symdata, symfilestr = util.get_symdata_modified(
+                  criteria.symname,
+                  **criteria.symfile_modifiers(segpos=result.pos[iresult]),
+               )
+            else:
+               PING('mbb%i' % merge_bblock, print_pings)
+               symdata = util.get_symdata(criteria.symname)
+
             PING('mbb%i' % merge_bblock, print_pings)
             usecryst = pose.pdb_info() and pose.pdb_info().crystinfo().A() > 0
             # usecryst = False  # MakeLatticeMover hangs sometimes
             if usecryst:
-               print('-' * 60)
-               print('using MakeLatticeMover')
-               print('-' * 60)
+               print('---------------- using MakeLatticeMover -------------------')
                ros.protocols.cryst.MakeLatticeMover().apply(sympose)
             else:
                ros.core.pose.symmetry.make_symmetric_pose(sympose, symdata)
@@ -322,8 +317,6 @@ def filter_and_output_results(
                   sym_asym_pose.dump_pdb('full_score0_sym_fail.pdb')
                   assert 0
             # print(getmem(), 'MEM poses and score0sym after')
-         else:
-            score0sym = -1
 
          if score0sym >= max_score0sym:
             print(f"mbb{merge_bblock:06} {iresult:04} score0sym fail", score0sym, "rms", rms,
@@ -428,47 +421,8 @@ def filter_and_output_results(
          #
 
          if True:
-            PING('mbb%i' % merge_bblock, print_pings)
-            # make json files with bblocks for single result
-            tmp, seenit = list(), set()
-            detail = dict(bblock=list(), ires=list(), isite=list(), ichain=list())
-            for j in range(len(ssdag.verts)):
-               v = ssdag.verts[j]
-               ibb = v.ibblock[result.idx[iresult, j]]
-               bb = ssdag.bbs[j][ibb]
-               fname = str(bytes(bb.file), 'utf-8')
-               detail['bblock'].append(fname)
-               detail['ires'].append(v.ires[result.idx[iresult, j]].tolist())
-               detail['isite'].append(v.isite[result.idx[iresult, j]].tolist())
-               detail['ichain'].append(v.ichain[result.idx[iresult, j]].tolist())
-               if fname not in seenit:
-                  for e in database.bblockdb._alldb:
-                     if e['file'] == fname:
-                        tmp.append(e)
-                  seenit.add(fname)
-
-            for e in tmp:
-               ires = list()
-               isite = list()
-               for i in range(len(detail['ires'])):
-                  if e['file'] == detail['bblock'][i]:
-                     ires.append(detail['ires'][i])
-                     isite.append(detail['isite'][i])
-               for ic in isite:
-                  if ic[0] is not -1: e['connections'][ic[0]]['residues'].clear()
-                  if ic[1] is not -1: e['connections'][ic[1]]['residues'].clear()
-               for ir, ic in zip(ires, isite):
-                  if ic[0] is not -1: e['connections'][ic[0]]['residues'].append(ir[0])
-                  if ic[1] is not -1: e['connections'][ic[1]]['residues'].append(ir[1])
-
-            tmp = tmp.copy()
-            print(detail)
-
-            jsonfname = 'tmp_%i_%i.json' % (iresult, os.getpid())
-            print('output bblocks to', jsonfname)
-            with open(jsonfname, 'w') as out:
-               json.dump(tmp, out, indent=4)
-               out.write('\n')
+            make_json_for_result(ssdag, database, merge_bblock, result, iresult, print_pings,
+                                 output_prefix)
 
          print(getmem(), 'MEM dump pdb after')
 
@@ -485,3 +439,74 @@ def filter_and_output_results(
          files=files_output)
    else:
       return Bunch(log=[], files=[])
+
+def make_json_for_result(ssdag, database, merge_bblock, result, iresult, print_pings,
+                         output_prefix):
+   PING('mbb%i' % merge_bblock, print_pings)
+   # make json files with bblocks for single result
+   newdb = list()
+   # detail = Bunch(bblock=list(), ires=list(), isite=list(), ichain=list(), direction=list())
+   for iseg in range(len(ssdag.verts)):
+      v = ssdag.verts[iseg]
+      ivert = result.idx[iresult, iseg]
+      ibb = v.ibblock[ivert]
+      bb = ssdag.bbs[iseg][ibb]
+      fname = str(bytes(bb.file), 'utf-8')
+      dbentry = copy.deepcopy(database.bblockdb._dictdb[fname])
+
+      conn = dbentry['connections']
+      conn.clear()
+
+      # detail.bblock.append(fname)
+      # detail.ires.append(v.ires[ivert].tolist())
+      # detail.isite.append(v.isite[ivert].tolist())
+      # detail.ichain.append(v.ichain[ivert].tolist())
+      # detail.direction.append("NC_"[ssdag.verts[iseg].dirn[0]] + "NC_"[ssdag.verts[iseg].dirn[1]])
+      # assert fname not in seenit
+      # for dbentry in database.bblockdb._alldb:
+      #    if dbentry['file'] == fname:
+      #       newdb.append(copy.deepcopy(dbentry))
+      # seenit.add(fname)
+      dirn = "NC_"[v.dirn[0]] + "NC_"[v.dirn[1]]
+      if dirn[0] != '_':
+         conn.append(
+            dict(
+               chain=int(v.ichain[ivert][0]),
+               direction=dirn[0],
+               residues=[int(v.ires[ivert][0])],
+            ))
+      if dirn[1] != '_':
+         conn.append(
+            dict(
+               chain=int(v.ichain[ivert][1]),
+               direction=dirn[1],
+               residues=[int(v.ires[ivert][1])],
+            ))
+
+      newdb.append(dbentry)
+
+   # for iseg, dbentry in enumerate(newdb):
+
+   # assert 0
+   # for dbentry in newdb:
+   #    ires = list()
+   #    isite = list()
+   #    for i in range(len(detail['ires'])):
+   #       if dbentry['file'] == detail['bblock'][i]:
+   #          ires.append(detail['ires'][i])
+   #          isite.append(detail['isite'][i])
+   #    for ic in isite:
+   #       if ic[0] is not -1: dbentry['connections'][ic[0]]['residues'].clear()
+   #       if ic[1] is not -1: dbentry['connections'][ic[1]]['residues'].clear()
+   #    for ir, ic in zip(ires, isite):
+   #       if ic[0] is not -1: dbentry['connections'][ic[0]]['residues'].append(ir[0])
+   #       if ic[1] is not -1: dbentry['connections'][ic[1]]['residues'].append(ir[1])
+
+   # newdb = newdb.copy()
+
+   jsonfname = output_prefix + '_replicate_result__mbb%04i_%04i.json' % (merge_bblock, iresult)
+   print('output bblocks to', jsonfname)
+   assert not os.path.exists(jsonfname)
+   with open(jsonfname, 'w') as out:
+      json.dump(newdb, out, indent=4)
+      out.write('\n')

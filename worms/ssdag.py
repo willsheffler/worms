@@ -53,18 +53,30 @@ class SearchSpaceDag:
       assert len(self.bbs) == len(self.verts) == len(self.edges) + 1
 
    def get_bases(self, idx):
+      # print('!' * 80)
       assert len(idx) == len(self.verts)
       bases = list()
-      for i in range(len(idx)):
-         bb = self.bbs[i][self.verts[i].ibblock[idx[i]]]
+      # print('get bases idx', idx)
+      for iseg in range(len(idx)):
+         segidx = idx[iseg]
+         segbbs = self.bbs[iseg]
+         segverts = self.verts[iseg]
+         # print('iseg', iseg)
+         # print('    segidx', segidx)
+         # print('    nsegbbs', len(segbbs))
+         # print('    ibbshape', segverts.ibblock.shape)
+         ibb = segverts.ibblock[segidx]
+         # print('    ibb', ibb)
+         bb = segbbs[ibb]
          bases.append(bytes(bb.base).decode("utf-8"))
+      # print('!' * 80, flush=True)
       return bases
 
    def get_base_hashes(self, idx):
       assert len(idx) == len(self.verts)
       bases = list()
-      for i in range(len(idx)):
-         bb = self.bbs[i][self.verts[i].ibblock[idx[i]]]
+      for iseg in range(len(idx)):
+         bb = self.bbs[iseg][self.verts[iseg].ibblock[idx[iseg]]]
          bases.append(bb.basehash)
       return bases
 
@@ -80,6 +92,14 @@ class SearchSpaceDag:
       print("SearchSpaceDag sizes:")
       print(f"    vertex sizes: {sum(sizevert):8,}", sizevert)
       print(f"    edge sizes:   {sum(sizeedge):8,}", sizeedge)
+
+   def __str__(self):
+      return os.linesep.join([
+         'SimpleSpaceDag',
+         f'    bblocks {[len(_) for _ in self.bbs]}',
+         f'    verts {[_.ibblock.shape for _ in self.verts]}',
+         f'    edges {[_.splices.shape for _ in self.edges]}',
+      ])
 
 def simple_search_dag(
    criteria,
@@ -108,6 +128,9 @@ def simple_search_dag(
    print_splice_fail_summary=True,
    **kw,
 ):
+
+   worms.PING(f'simple_search_dag mbb={merge_bblock}', printit=True, emphasis=1)
+
    kw = Bunch(kw)
    bbdb, spdb = database
    queries, directions = zip(*criteria.bbspec)
@@ -150,7 +173,7 @@ def simple_search_dag(
             bbs = bbs_sliced
 
          for ibb, bb in enumerate(bbs):
-            print("bblocks", ibb)
+            print("bblocks", ibb, len(bb))
             for b in bb:
                print("   ", bytes(b.file).decode("utf-8"))
 
@@ -288,8 +311,8 @@ def simple_search_dag(
       isnone = [i for i in range(len(verts)) if verts[i] is None]
       for i, inone in enumerate(isnone):
          verts[inone] = verts_new[i]
-         if source:
-            print('use new vertex', inone)
+         # if source:
+         #    print('use new vertex', inone)
       if only_ivertex:
          # raise NotImplementedError
          print("!!!!!!! using one ivertex !!!!!", only_ivertex, len(verts),
@@ -404,6 +427,10 @@ def simple_search_dag(
       spdb.sync_to_disk()
 
    ssdag = SearchSpaceDag(criteria.bbspec, bbs, verts, edges)
+   worms.PING(f'created ssdag mbb {merge_bblock}', printit=True, emphasis=1)
+   print(ssdag)
+   print('!' * 80, flush=True)
+
    # print('simple_search_dag returning', flush=True)
    return Bunch(ssdag=ssdag, prof=(tdb, tvertex, tedge))
 

@@ -28,18 +28,17 @@ class CachingBBlockDB:
       ])
 
    def __init__(
-         self,
-         cachedirs=None,
-         dbfiles=[],
-         load_poses=False,
-         nprocs=1,
-         lazy=True,
-         read_new_pdbs=False,
-         verbosity=0,
-         dbroot="",
-         null_base_names=[],
-         pdb_contents=dict(),
-         **kw,
+      self,
+      cachedirs=None,
+      dbfiles=[],
+      load_poses=False,
+      nprocs=1,
+      lazy=True,
+      read_new_pdbs=False,
+      verbosity=0,
+      dbroot="",
+      null_base_names=[],
+      **kw,
    ):
       """Stores building block structures and ancillary data
       """
@@ -58,12 +57,18 @@ class CachingBBlockDB:
       self._alldb = []
       self._holding_lock = False
       self.dbfiles = dbfiles
-      self.pdb_contents = pdb_contents
       print('database.py: read database files from', self.dbroot)
       for f in dbfiles:
          print('   ', f)
-      self._alldb, self._dictdb, self._key_to_pdbfile = worms.database.read_bblock_dbfiles(
-         dbfiles, self.dbroot)
+      (
+         self._alldb,
+         self._dictdb,
+         self._key_to_pdbfile,
+         self.pdb_contents,
+      ) = worms.database.read_bblock_dbfiles(
+         dbfiles,
+         self.dbroot,
+      )
       if len(self._alldb) != len(self._dictdb):
          dups = len(self._alldb) - len(self._dictdb)
          warning("!" * 100)
@@ -153,8 +158,8 @@ class CachingBBlockDB:
             if pdbfile in self.pdb_contents:
                self._poses_cache[pdbfile] = worms.rosetta_init.pose_from_str(pdbfile)
             else:
-               assert os.path.exists(self.dbroot + pdbfile)
-               pdbpath = os.sep.join(self.dbroot + pdbfile)
+               pdbpath = os.sep.join([self.dbroot, pdbfile])
+               assert os.path.exists(pdbpath)
                self._poses_cache[pdbfile] = worms.rosetta_init.pose_from_file(pdbpath)
       return self._poses_cache[pdbfile]
 

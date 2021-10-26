@@ -55,12 +55,13 @@ class ResultTable(worms.Bunch):
       for ir, (idx, pos) in zip(self.idx, self.pos):
          pass
 
-   def close_without_stats(self, other):
-      # print('idxtype', type(self.idx), type(other.idx))
-      # print('postype', type(self.pos), type(other.pos))
-      # print('errtype', type(self.err), type(other.err))
+   def approx_equal(self, other):
+      # print('idxtype', self.idx.shape, other.idx.shape)
+      # print('postype', self.pos.shape, other.pos.shape)
+      # print('errtype', self.err.shape, other.err.shape)
       # print('statstype', type(self.stats), type(other.stats))
-
+      if self.idx.shape != other.idx.shape:
+         return False
       idxeq = np.allclose(self.idx, other.idx)
       poseq = np.allclose(self.pos, other.pos)
       erreq = np.allclose(self.err, other.err)

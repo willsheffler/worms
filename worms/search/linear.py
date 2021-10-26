@@ -43,9 +43,7 @@ def grow_linear(
    debug=False,
    **kw,
 ):
-   print('-' * 60)
    PING('grow_linear begin')
-   print('-' * 60)
    verts = ssdag.verts
    edges = ssdag.edges
    loss_threshold = tolerance

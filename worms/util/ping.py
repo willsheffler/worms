@@ -7,11 +7,9 @@ def PING(
    skip_process=True,
    flush=True,
    exit=False,
+   emphasis=0,
 ):
    message = str(message) if message else '<no msg>'
-
-   return message
-
    stack = traceback.extract_stack()
    framestrs = list()
    for iframe, frame in enumerate(stack[1:ntraceback]):  # 0 is ping func, skip
@@ -23,6 +21,8 @@ def PING(
       # for ix, x in enumerate(frame):
       # print('   ', ix, x)
    msg = 'PING ' + message + ' FROM ' + '/'.join(framestrs)
+   for i in range(emphasis):
+      msg = '!' * 80 + '\n' + msg + '\n' + '!' * 80
    if printit:
       print(msg, flush=flush)
    if exit:

@@ -11,6 +11,8 @@ from functools import singledispatch
 
 from deferred_import import deferred_import
 
+import worms
+
 pymol = deferred_import('pymol')
 
 _atom_record_format = (

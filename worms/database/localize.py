@@ -13,6 +13,9 @@ def print_collisions():
             print(dictdb[dup])
          print()
 
+def localize_fname(fname):
+   return fname.replace('/', '\\')
+
 def make_bblock_archive(
    dbfiles,
    target='localdb',
@@ -22,35 +25,35 @@ def make_bblock_archive(
 ):
    'produce an lzma tarball with one json file and all the pdbs referenced'
 
-   def localize_fname(fname):
-      return fname.replace('/', '\\')
-
    if target.endswith('.txz'):
       target = target[:-4]
    if target.endswith('.tar.xz'):
       target = target[:-7]
    if dbname is None:
       dbname = os.path.basename(target)
+   if isinstance(dbfiles, str):
+      dbfiles = [dbfiles]
 
    alldb, dictdb, k2pdb = worms.database.read_bblock_dbfiles(dbfiles)
    fnames = [e['file'] for e in alldb]
    assert len(fnames) == len(set(fnames))
 
-   os.makedirs(os.path.dirname(target), exist_ok=True)
+   if os.path.dirname(target) != '':
+      os.makedirs(os.path.dirname(target), exist_ok=True)
    mode = 'w:xz' if overwrite else 'x:xz'
    fname = target + '.txz'
    with tarfile.open(target + '.txz', mode) as tarball:
       for i, e in enumerate(alldb):
+         if i % 100 == 0: print(f'    progress {int(i / len(alldb) * 100)   }%')
          f = e['file']
-         newf = os.sep.join(dbname, localize_fname(f))
-         print(f'copying {int(i / len(alldb) * 100)   }% {newf}')
-         # shutil.copyfile(f, os.sep.join(target, newf))
+         newf = os.sep.join([dbname, localize_fname(f)])
+
          tarball.add(f, newf)
          e['file'] = newf
          tmpfile = tempfile.mkstemp()[1]
-         with open(tmpfile, 'w') as out:
-            json.dump(alldb, out, indent=2)
-         tarball.add(tmpfile, os.sep.join(dbname, dbname + '.json'))
+      with open(tmpfile, 'w') as out:
+         json.dump(alldb, out, indent=2)
+      tarball.add(tmpfile, os.sep.join([dbname, dbname + '.json']))
       assert len(set(tarball.getnames())) == len(tarball.getnames())
    return fname
 

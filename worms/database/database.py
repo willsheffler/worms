@@ -20,14 +20,16 @@ def flatten_path(pdbfile):
 
 def read_bblock_dbfiles(dbfiles, dbroot=''):
    alldb = []
+   pdb_contents = dict()
    for dbfile in dbfiles:
-      with open(dbfile) as f:
-         try:
+      if dbfile.endswith('.txz'):
+         _, db, pdbs = worms.database.localize.read_bblock_archive(dbfile)
+         alldb.extend(db)
+         pdb_contents.update(pdbs)
+      else:
+         with open(dbfile) as f:
             alldb.extend(json.load(f))
-         except json.decoder.JSONDecodeError as e:
-            print("ERROR on json file:", dbfile)
-            print(e)
-            sys.exit()
+
    for entry in alldb:
       if "name" not in entry:
          entry["name"] = ""
@@ -45,7 +47,7 @@ def read_bblock_dbfiles(dbfiles, dbroot=''):
          print("pdb file pdb_files_missing:", entry["file"])
          print('!' * 60)
    assert not pdb_files_missing
-   return alldb, dictdb, key_to_pdbfile
+   return alldb, dictdb, key_to_pdbfile, pdb_contents
 
 def get_cachedirs(cachedirs):
    cachedirs = cachedirs or []

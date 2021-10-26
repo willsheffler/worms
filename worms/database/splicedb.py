@@ -116,7 +116,7 @@ class CachingSpliceDB:
       return self.cachepath(params, pdbkey).replace(".pickle", "_list.pickle")
 
    def sync_to_disk(self, dirty_only=True):
-      PING('CachingSpliceDB sync_to_disk')
+      worms.PING('CachingSpliceDB sync_to_disk')
       for i in range(10):
          keys = list(self._dirty) if dirty_only else self.cache.keys()
          for key in keys:
@@ -140,7 +140,7 @@ class CachingSpliceDB:
       if len(self._dirty):
          print(self._dirty)
          print("warning: some caches unsaved", len(self._dirty))
-      PING('CachingSpliceDB sync_to_disk DONE')
+      worms.PING('CachingSpliceDB sync_to_disk DONE')
 
    def clear(self):
       self._cache.clear()

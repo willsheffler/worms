@@ -62,6 +62,9 @@ def test_conftest_pdbfile(db_bblock_caching_v0):
 def test_splicedb_merge(db_splice_caching_v0):
    raise NotImplementedError
 
+def test_bblockdb_merge(db_bblock_caching_v0):
+   raise NotImplementedError
+
 if __name__ == '__main__':
    from tempfile import TemporaryDirectory
    tmp = TemporaryDirectory()

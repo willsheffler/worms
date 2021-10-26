@@ -305,10 +305,11 @@ def get_allowed_splices(
 
    return valid_splices, nout, nent, bblock_pair_analysis
 
-
-@nb.experimental.jitclass(
-    (("splices", nt.int32[:, :]), ("nout", nt.int32), ("nent", nt.int32))
-)  # yapf: disable
+@nb.experimental.jitclass((
+   ("splices", nt.int32[:, :]),
+   ("nout", nt.int32),
+   ("nent", nt.int32),
+))
 class _Edge:
    """contains junction scores
     """

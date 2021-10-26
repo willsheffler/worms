@@ -11,21 +11,25 @@
 --xtal_max_cell_size 9e9
 
 --tolerance 1.0
---max_score0 3
---max_score0sym 10
+--max_score0 10
+--max_score0sym 30
 
---nbblocks 8
---monte_carlo 0
---parallel 0
---verbosity 2
+# new cache stuff must be read with parallel 0!!!
+--nbblocks 32
+--parallel 6
+
 --disable_cache 0
+
+--monte_carlo 0
+--verbosity 2
+
 --cachedirs ./testcache
 
 --shuffle_bblocks 0
 
 --merge_segment 1
 --no_duplicate_bases 0
---splice_rms_range 5
+--splice_rms_range 4
 --splice_max_rms 1.0
 --splice_ncontact_cut 20
 --splice_ncontact_no_helix_cut 2
@@ -37,18 +41,30 @@
 --max_com_redundancy 4
 --output_only_AAAA 0
 --dbfiles
+   #      /home/swang523/Crystal_engineering/worms/8-16-21_cage_xtal/input/selected_good.json
+   #    	/home/sheffler/src/worms/test_cases/8-11-21_restricted_cage/input/c2.database.20210202.txt
+   #    	/home/sheffler/src/worms/test_cases/8-11-21_restricted_cage/input/c3.database.20210127.txt
+   #    	/home/sheffler/src/worms/test_cases/8-11-21_restricted_cage/input/c4.database.20210114.txt
+   #      /home/sheffler/src/worms/test_cases/8-11-21_restricted_cage/input/cage_comp_O4-11.txt
+   #      /home/sheffler/src/worms/test_cases/8-11-21_restricted_cage/input/good_heterodimers.database.20210124.txt 
+   #      /home/sheffler/src/worms/test_cases/yang_fixori/input/local_HFuse_het_2chain_2arm_database.Sh13-5+1-AI_2.20180905.txt
 
-    	/home/sheffler/src/worms/test_cases/8-11-21_restricted_cage/input/c2.database.20210202.txt
 
-    	/home/sheffler/src/worms/test_cases/8-11-21_restricted_cage/input/c3.database.20210127.txt
-
-    	/home/sheffler/src/worms/test_cases/8-11-21_restricted_cage/input/c4.database.20210114.txt
-    	
-      /home/sheffler/src/worms/test_cases/8-11-21_restricted_cage/input/cage_comp_O4-11.txt
-    	
-      /home/sheffler/src/worms/test_cases/8-11-21_restricted_cage/input/good_heterodimers.database.20210124.txt 
-    	
-      /home/sheffler/src/worms/test_cases/yang_fixori/input/local_HFuse_het_2chain_2arm_database.Sh13-5+1-AI_2.20180905.txt
-    	
-      /home/sheffler/src/worms/worms/data/test_cases/8-11-21_restricted_cage/input/d3test.json
-      
+      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0004_0003.json
+      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0005_0001.json
+      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0011_0000.json
+      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0011_0002.json
+      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0012_0000.json
+      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0013_0002.json
+      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0017_0001.json
+      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0020_0003.json
+      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0021_0001.json
+      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0021_0009.json
+       /home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0022_0000.json
+      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0022_0001.json
+      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0022_0004.json
+      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0023_0002.json
+      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0026_0001.json
+      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0028_0011.json
+      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0029_0001.json
+      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0031_0005.json

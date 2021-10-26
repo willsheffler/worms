@@ -1,19 +1,13 @@
 from worms.util import PING
 
-
 def foo():
-    return bar()
-
+   return bar()
 
 def bar():
-    return baz()
-
+   return baz()
 
 def baz():
-    return PING('hello from baz', printit=False)
-
+   return PING('hello from baz', printit=False)
 
 if __name__ == '__main__':
-    print('-' * 80)
-    print(foo())
-    print('-' * 80)
+   print(foo())

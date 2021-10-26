@@ -1,21 +1,27 @@
-import os, random, functools
-from deferred_import import deferred_import
+import os, random, functools, pickle
+import numpy as np
 import worms
 
 class BBlockDB:
    def __init__(
-         self,
-         dbfiles=[],
-         cachedirs=[],
-         dbroot='',
-         null_base_names=['', '?', 'n/a', 'none'],
-         pdb_contents=dict(),
-         **_,
+      self,
+      dbfiles=[],
+      cachedirs=[],
+      dbroot='',
+      null_base_names=['', '?', 'n/a', 'none'],
+      **_,
    ):
       self.dbfiles = dbfiles
       self.dbroot = dbroot + "/" if dbroot and not dbroot.endswith("/") else dbroot
-      self._alldb, self._dictdb, self._key_to_pdbfile = worms.database.read_bblock_dbfiles(
-         dbfiles, self.dbroot)
+      (
+         self._alldb,
+         self._dictdb,
+         self._key_to_pdbfile,
+         self.pdb_contents,
+      ) = worms.database.read_bblock_dbfiles(
+         dbfiles,
+         self.dbroot,
+      )
       self.cachedirs = worms.database.get_cachedirs(cachedirs)
       self._bblock_cache = dict()
       self.null_base_names = null_base_names
@@ -79,7 +85,7 @@ class BBlockDB:
             return pickle.load(f)
       else:
          print("reading pdb", pdbfile)
-         if pbdfile in self.pdb_contents:
+         if pdbfile in self.pdb_contents:
             return worms.rosetta_init.pose_from_str(self.pdb_contents[pdbfile])
          else:
             assert os.path.exists(self.dbroot + pdbfile)
