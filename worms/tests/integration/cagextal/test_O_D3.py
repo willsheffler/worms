@@ -30,7 +30,7 @@ def setup_this_testfunc(testname='auto'):
    if testname == 'auto':
       testname = [fn[3] for fn in inspect.stack()[1:] if fn[3].startswith('test_')][0]
    print('SETTING UP TEST', testname)
-   argv = ['@' + worms.data.get_test_path(f'{testname}/config/{testname}.flags')]
+   argv = ['@' + worms.data.test_file_path(f'{testname}/config/{testname}.flags')]
 
    criteria_list, kw = worms.cli.build_worms_setup_from_cli_args(argv, construct_databases=True)
    assert len(criteria_list) == 1

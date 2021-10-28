@@ -19,35 +19,37 @@ def flatten_path(pdbfile):
    return pdbfile.replace(os.sep, "__") + ".pickle"
 
 def read_bblock_dbfiles(dbfiles, dbroot=''):
-   alldb = []
+   dbentries = []
    pdb_contents = dict()
    for dbfile in dbfiles:
       if dbfile.endswith('.txz'):
-         _, db, pdbs = worms.database.localize.read_bblock_archive(dbfile)
-         alldb.extend(db)
+         _, db, pdbs = worms.database.archive.read_bblock_archive(dbfile)
+         dbentries.extend(db)
          pdb_contents.update(pdbs)
       else:
          with open(dbfile) as f:
-            alldb.extend(json.load(f))
+            dbentries.extend(json.load(f))
+   return parse_bblock_database_entries(dbentries, dbroot, pdb_contents)
 
-   for entry in alldb:
+def parse_bblock_database_entries(dbentries, dbroot='', pdb_contents=dict()):
+   for entry in dbentries:
       if "name" not in entry:
          entry["name"] = ""
       entry["file"] = entry["file"].replace("__PDBDIR__", worms.data.pdb_dir)
 
-   dictdb = {e["file"]: e for e in alldb}
-   key_to_pdbfile = {worms.util.hash_str_to_int(e["file"]): e["file"] for e in alldb}
+   dictdb = {e["file"]: e for e in dbentries}
+   key_to_pdbfile = {worms.util.hash_str_to_int(e["file"]): e["file"] for e in dbentries}
 
-   assert len(alldb), 'no db entries'
+   assert len(dbentries), 'no db entries'
    pdb_files_missing = False
-   for entry in alldb:
-      if not os.path.exists(dbroot + entry["file"]):
+   for entry in dbentries:
+      if not (os.path.exists(dbroot + entry["file"]) or entry['file'] in pdb_contents):
          pdb_files_missing = True
          print('!' * 60)
          print("pdb file pdb_files_missing:", entry["file"])
          print('!' * 60)
    assert not pdb_files_missing
-   return alldb, dictdb, key_to_pdbfile, pdb_contents
+   return dbentries, dictdb, key_to_pdbfile, pdb_contents
 
 def get_cachedirs(cachedirs):
    cachedirs = cachedirs or []

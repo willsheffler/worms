@@ -1,0 +1,79 @@
+[
+    {
+        "file": "/home/jlubner/scaffolds/helical_bundles/validated_Cx_for_worms/HFuse_2L4HC2-23_2_0177.pdb",
+        "name": "HFuse_2L4HC2-23_2_0177",
+        "class": [
+            "C2_N"
+        ],
+        "type": "HFuse_C2_N",
+        "base": "2L4HC2-23",
+        "components": [
+            "DHR79"
+        ],
+        "validated": true,
+        "protocol": "Hfuse",
+        "connections": [
+            {
+                "chain": 0,
+                "direction": "N",
+                "residues": [
+                    13
+                ]
+            }
+        ]
+    },
+    {
+        "file": "/home/sheffler/src/worms/test_cases/helix_ori/dbfile_pdbs/Sh13-5+1-AI_2_Sh13-5+1-AI_2_DHR76_AB_A_0001_0001_Sh13-5+1-AI_2_DHR64_BA_B_0001_0003.pdb",
+        "name": "HFuse_Sh13-5+1-AI_2_2c_2a_0496",
+        "class": [
+            "Het"
+        ],
+        "type": "HFuse_het_C2_C-N",
+        "base": "Sh13-5+1-AI_2",
+        "components": [
+            "DHR76",
+            "DHR64"
+        ],
+        "validated": false,
+        "protocol": "Hfuse_asym",
+        "connections": [
+            {
+                "chain": 0,
+                "direction": "C",
+                "residues": [
+                    269
+                ]
+            },
+            {
+                "chain": 1,
+                "direction": "N",
+                "residues": [
+                    562
+                ]
+            }
+        ]
+    },
+    {
+        "file": "/home/swang523/scaffolds/D3/denovo/D3s_for_xtal/D3_AL09.pdb",
+        "name": "D3_AL09",
+        "class": [
+            "D3_C"
+        ],
+        "type": "D3_C",
+        "base": "base_scaffold",
+        "components": [
+            ""
+        ],
+        "validated": true,
+        "protocol": "Hfuse",
+        "connections": [
+            {
+                "chain": 0,
+                "direction": "C",
+                "residues": [
+                    131
+                ]
+            }
+        ]
+    }
+]

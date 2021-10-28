@@ -1,4 +1,6 @@
 import os, pickle
+
+from numpy.lib.twodim_base import triu_indices_from
 import worms
 
 class SpliceDB:
@@ -103,7 +105,7 @@ class CachingSpliceDB:
       self._cache[k][pdbkey1] = val
 
    def cachepath(self, params, pdbkey):
-      # stock hash ok for tuples of numbers (?)
+      # vanilla hash ok for tuples of numbers (?)
       prm = "%016x" % abs(hash(params))
       key = "%016x.pickle" % pdbkey
       for d in self.cachedirs:
@@ -119,7 +121,9 @@ class CachingSpliceDB:
       worms.PING('CachingSpliceDB sync_to_disk')
       for i in range(10):
          keys = list(self._dirty) if dirty_only else self.cache.keys()
+         didit = {k: False for k in keys}
          for key in keys:
+            if didit[key]: continue
             cachefile = self.cachepath(*key)
             if os.path.exists(cachefile + ".lock"):
                continue
@@ -137,6 +141,9 @@ class CachingSpliceDB:
                   pickle.dump(data, out)
             os.remove(cachefile + ".lock")
             self._dirty.remove(key)
+            didit[key] = True
+         if all(didit.values()): break
+
       if len(self._dirty):
          print(self._dirty)
          print("warning: some caches unsaved", len(self._dirty))

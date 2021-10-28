@@ -1,7 +1,7 @@
-from time import time
+from time import perf_counter as time
 from collections import Counter
 import concurrent.futures as cf
-import _pickle
+import pickle
 import os
 
 import numpy as np
@@ -141,7 +141,7 @@ def simple_search_dag(
 
       if use_saved_bblocks and os.path.exists(savename):
          with open(savename, "rb") as inp:
-            bbnames_list = _pickle.load(inp)
+            bbnames_list = pickle.load(inp)
          # for i, l in enumerate(bbnames_list)
          # if len(l) >= nbblocks[i]:
          # assert 0, f"too many bblocks in {savename}"
@@ -198,7 +198,7 @@ def simple_search_dag(
       if use_saved_bblocks and not os.path.exists(savename):
          bbnames = [[bytes(b.file).decode("utf-8") for b in bb] for bb in bbs]
          with open(savename, "wb") as out:
-            _pickle.dump(bbnames, out)
+            pickle.dump(bbnames, out)
 
    else:
       bbs = bbs.copy()

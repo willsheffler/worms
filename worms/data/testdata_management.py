@@ -3,21 +3,7 @@ import os, pickle
 from worms.util.util import datetimetag
 from worms.util.ping import PING
 
-from worms.data.data import data_dir
-
-def get_test_path(path):
-   assert not path.startswith('/')
-   return os.path.join(data_dir, 'test_cases', path)
-
-# def save_test_stuff(tag, stuff):
-#    fname = w.data.get_test_path(tag) + '.pickle'
-#    with open(fname, 'wb') as out:
-#       pickle.dump(stuff, out)
-#
-# def get_test_stuff(tag):
-#    fname = get_test_path(tag) + '.pickle'
-#    with open(fname, 'rb') as inp:
-#       return pickle.load(inp)
+from worms.data.data import data_dir, test_file_path
 
 def get_latest_resulttables_path(tag, candidates_ok=False):
    path = get_timestamped_test_dir_latest(tag, candidates_ok=candidates_ok)
@@ -36,14 +22,14 @@ def get_latest_resulttables(tag, candidates_ok=False):
 
 def make_timestamped_test_dir(tag, candidate=True):
    timetag = datetimetag()
-   testpath = get_test_path(tag)
+   testpath = test_file_path(tag)
    path = os.path.join(testpath, timetag)
    if candidate: path += '_CANDIDATE'
    os.makedirs(path, exist_ok=True)
    return path + '/'
 
 def get_timestamped_test_dirs(tag, candidates_ok=False):
-   testpath = get_test_path(tag)
+   testpath = test_file_path(tag)
    dirs = os.listdir(testpath)
    dirs = [f for f in dirs if os.path.isdir(os.path.join(testpath, f))]
    dirs = sorted(map(str, dirs))
@@ -56,7 +42,7 @@ def get_timestamped_test_dirs(tag, candidates_ok=False):
    return dirs
 
 def get_timestamped_test_dir_latest(tag, candidates_ok=False):
-   testpath = get_test_path(tag)
+   testpath = test_file_path(tag)
    dirs = get_timestamped_test_dirs(tag, candidates_ok=candidates_ok)
    if len(dirs) == 0:
       return None

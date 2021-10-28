@@ -59,12 +59,6 @@ def test_construct_database_from_pdbs(tmpdir, jsondir):
 def test_conftest_pdbfile(db_bblock_caching_v0):
    assert len(db_bblock_caching_v0.query("all")) == 12
 
-def test_splicedb_merge(db_splice_caching_v0):
-   raise NotImplementedError
-
-def test_bblockdb_merge(db_bblock_caching_v0):
-   raise NotImplementedError
-
 if __name__ == '__main__':
    from tempfile import TemporaryDirectory
    tmp = TemporaryDirectory()
@@ -72,4 +66,5 @@ if __name__ == '__main__':
 
    test_construct_database_from_pdbs(tmpdir, worms.data.json_dir)
    # test_splicedb_merge()
-   test_conftest_pdbfile()
+   # from worms.tests.conftest import db_bblock_caching_v0
+   # test_conftest_pdbfile(db_bblock_caching_v0())

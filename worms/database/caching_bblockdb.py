@@ -60,6 +60,7 @@ class CachingBBlockDB:
       print('database.py: read database files from', self.dbroot)
       for f in dbfiles:
          print('   ', f)
+
       (
          self._alldb,
          self._dictdb,
@@ -156,7 +157,8 @@ class CachingBBlockDB:
       if not pdbfile in self._poses_cache:
          if not self.load_cached_pose_into_memory(pdbfile):
             if pdbfile in self.pdb_contents:
-               self._poses_cache[pdbfile] = worms.rosetta_init.pose_from_str(pdbfile)
+               contents = self.pdb_contents[pdbfile]
+               self._poses_cache[pdbfile] = worms.rosetta_init.pose_from_str(contents)
             else:
                pdbpath = os.sep.join([self.dbroot, pdbfile])
                assert os.path.exists(pdbpath)

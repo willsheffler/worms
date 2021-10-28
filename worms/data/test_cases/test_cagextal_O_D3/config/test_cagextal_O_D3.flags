@@ -41,6 +41,10 @@
 --max_com_redundancy 4
 --output_only_AAAA 0
 --dbfiles
+   cagextal_O_D3_18results.txz
+
+   #/home/sheffler/src/worms_unittests/cagextal_O_D3/merged.json
+
    #      /home/swang523/Crystal_engineering/worms/8-16-21_cage_xtal/input/selected_good.json
    #    	/home/sheffler/src/worms/test_cases/8-11-21_restricted_cage/input/c2.database.20210202.txt
    #    	/home/sheffler/src/worms/test_cases/8-11-21_restricted_cage/input/c3.database.20210127.txt
@@ -50,21 +54,4 @@
    #      /home/sheffler/src/worms/test_cases/yang_fixori/input/local_HFuse_het_2chain_2arm_database.Sh13-5+1-AI_2.20180905.txt
 
 
-      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0004_0003.json
-      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0005_0001.json
-      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0011_0000.json
-      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0011_0002.json
-      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0012_0000.json
-      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0013_0002.json
-      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0017_0001.json
-      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0020_0003.json
-      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0021_0001.json
-      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0021_0009.json
-       /home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0022_0000.json
-      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0022_0001.json
-      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0022_0004.json
-      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0023_0002.json
-      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0026_0001.json
-      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0028_0011.json
-      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0029_0001.json
-      #/home/sheffler/src/worms_unittests/cagextal_O_D3/worms_replicate_result__mbb0031_0005.json
+   

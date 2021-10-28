@@ -1,6 +1,6 @@
 import sys
 import os
-import _pickle
+import pickle
 from time import time
 import concurrent.futures as cf
 import traceback
@@ -386,7 +386,7 @@ def search_single_stage(
    if kw["run_cache"]:
       if os.path.exists(kw["run_cache"] + lbl + ".pickle"):
          with (open(kw["run_cache"] + lbl + ".pickle", "rb")) as inp:
-            ssdag, result = _pickle.load(inp)
+            ssdag, result = pickle.load(inp)
             return criteria, ssdag, result, ["from run cache " + lbl]
 
    PING('call simple_search_dag')
@@ -420,6 +420,6 @@ def search_single_stage(
 
    if kw["run_cache"]:
       with (open(kw["run_cache"] + lbl + ".pickle", "wb")) as out:
-         _pickle.dump((ssdag, result), out)
+         pickle.dump((ssdag, result), out)
 
    return criteria, ssdag, result, log

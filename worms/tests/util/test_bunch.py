@@ -1,4 +1,4 @@
-import _pickle
+import pickle
 from argparse import Namespace
 from rpxdock.util import Bunch
 
@@ -6,10 +6,10 @@ def test_bunch_pickle(tmpdir):
    x = Bunch(dict(a=2, b="bee"))
    x.c = "see"
    with open(tmpdir + "/foo", "wb") as out:
-      _pickle.dump(x, out)
+      pickle.dump(x, out)
 
    with open(tmpdir + "/foo", "rb") as inp:
-      y = _pickle.load(inp)
+      y = pickle.load(inp)
 
    assert x == y
    assert y.a == 2

@@ -13,11 +13,12 @@ def print_collisions():
             print(dictdb[dup])
          print()
 
-def localize_fname(fname):
+def archive_fname(fname):
    return fname.replace('/', '\\')
 
 def make_bblock_archive(
-   dbfiles,
+   dbfiles=None,
+   dbcontents=None,
    target='localdb',
    dbname=None,
    nbblocks=9e9,
@@ -25,34 +26,36 @@ def make_bblock_archive(
 ):
    'produce an lzma tarball with one json file and all the pdbs referenced'
 
+   if dbfiles:
+      assert not dbcontents
+      if isinstance(dbfiles, str):
+         dbfiles = [dbfiles]
+      dbcontents, _, _ = worms.database.read_bblock_dbfiles(dbfiles)
+      fnames = [e['file'] for e in dbcontents]
+      assert len(fnames) == len(set(fnames))
+
    if target.endswith('.txz'):
       target = target[:-4]
    if target.endswith('.tar.xz'):
       target = target[:-7]
    if dbname is None:
       dbname = os.path.basename(target)
-   if isinstance(dbfiles, str):
-      dbfiles = [dbfiles]
-
-   alldb, dictdb, k2pdb = worms.database.read_bblock_dbfiles(dbfiles)
-   fnames = [e['file'] for e in alldb]
-   assert len(fnames) == len(set(fnames))
 
    if os.path.dirname(target) != '':
       os.makedirs(os.path.dirname(target), exist_ok=True)
    mode = 'w:xz' if overwrite else 'x:xz'
    fname = target + '.txz'
    with tarfile.open(target + '.txz', mode) as tarball:
-      for i, e in enumerate(alldb):
-         if i % 100 == 0: print(f'    progress {int(i / len(alldb) * 100)   }%')
+      for i, e in enumerate(dbcontents):
+         if i % 100 == 0: print(f'    progress {int(i / len(dbcontents) * 100)   }%')
          f = e['file']
-         newf = os.sep.join([dbname, localize_fname(f)])
+         newf = os.sep.join([dbname, archive_fname(f)])
 
          tarball.add(f, newf)
          e['file'] = newf
          tmpfile = tempfile.mkstemp()[1]
       with open(tmpfile, 'w') as out:
-         json.dump(alldb, out, indent=2)
+         json.dump(dbcontents, out, indent=2)
       tarball.add(tmpfile, os.sep.join([dbname, dbname + '.json']))
       assert len(set(tarball.getnames())) == len(tarball.getnames())
    return fname
@@ -77,11 +80,12 @@ def _read_bblock_archive_one(fname):
       pdbs = dict()
       for fn in names:
          s = fn.split(os.sep)
-         if len(s) == 1:
+         if len(s) == 1:  # just a directory could be included
             assert dbname is None
             dbname = s[0]
          else:
-            assert 2 == len(s)
+            if dbname is None:
+               dbname = s[0]
             assert s[0] == dbname
             if fn.endswith('.json'):
                assert bblocks is None
