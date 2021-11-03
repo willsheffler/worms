@@ -5,7 +5,7 @@ import worms
 from worms.criteria.base import *
 from worms import util
 from worms.util import Bunch
-from worms.filters.helixconf_jit import make_helixconf_filter
+
 # khash_cffi needs updating for numba 0.49+
 # from worms.criteria import make_hash_table, WheelHashCriteria
 
@@ -117,7 +117,7 @@ class Cyclic(WormCriteria):
       fixori_target = self.fixori_target.astype(np.float32)
       fixori_tolerance = np.radians(self.fixori_tolerance)
 
-      helixconf_filter = make_helixconf_filter(self, **kw)
+      helixconf_filter = worms.filters.helixconf_jit.make_helixconf_filter(self, **kw)
 
       @util.jit  # type: ignore
       def lossfunc(pos, idx, verts, debug=False):

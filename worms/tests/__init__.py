@@ -3,6 +3,8 @@
 
 import os, imp, pytest
 
+from worms.tests.common import *
+
 HAVE_PYROSETTA = False
 
 try:

@@ -1,13 +1,15 @@
-import os, sys
+import os, sys, types
 from posixpath import expanduser
-import numpy as np
-import numba as nb
-import types
+from time import perf_counter
+import numpy as np, numba as nb
 
-from worms.util import jit, InProcessExecutor, PING
+from worms.util import jit, InProcessExecutor, PING, Bunch
+
 from worms.vertex import _Vertex, vertex_xform_dtype
+
 from worms.edge import _Edge
 from random import random
+
 import concurrent.futures as cf
 from worms.search.result import ResultJIT, zero_search_stats
 from multiprocessing import cpu_count
@@ -44,6 +46,7 @@ def grow_linear(
    **kw,
 ):
    PING('grow_linear begin')
+   kw = Bunch(kw)
    verts = ssdag.verts
    edges = ssdag.edges
    loss_threshold = tolerance
@@ -88,6 +91,7 @@ def grow_linear(
          splice_position=np.eye(4, dtype=vertex_xform_dtype),
          max_linear=max_linear,
          debug=debug,
+         timer=kw.timer,
       )
       futures = list()
       if monte_carlo:
@@ -130,11 +134,13 @@ def grow_linear(
                total=len(futures),
             )
          PING('for f in fiter')
+         kw.timer.checkpoint('grow_linear')
          for f in fiter:
             # print('linear.py:grow_linear:f in fiter',flush=True)
             results.append(f.result())
             # print('linear.py:grow_linear:f in fiter DONE',flush=True)
          # print('linear.py:grow_linear for f in fiter DONE', flush=True)
+         kw.timer.checkpoint('grow_linear jobsdone')
    tot_stats = zero_search_stats()
    for i in range(len(tot_stats)):
       tot_stats[i][0] += sum([r.stats[i][0] for r in results])
@@ -163,6 +169,7 @@ def _grow_linear_start(
    verts_pickleable,
    edges_pickleable,
    debug,
+   timer,
    **kwargs,
 ):
    # debug = True
@@ -198,6 +205,8 @@ def _grow_linear_start(
    # assert 0
    from worms.util.jitutil import expand_results
    if debug: PING('_grow_linear_start calling _grow_linear_recurse')
+   timer.checkpoint('_grow_linear_start')
+   # tt = perf_counter()
    nresults, result, _ = _grow_linear_recurse(
       result=result,
       bb_base=bb_base,
@@ -208,7 +217,8 @@ def _grow_linear_start(
       expand_results=expand_results,
       **kwargs,
    )
-
+   # print('!!!!!!!!!!!!!!!!!!!!!!!!!', perf_counter() - tt)
+   timer.checkpoint('_grow_linear_recurse')
    if debug:
       PING('_grow_linear_start calling _grow_linear_recurse DONE')
       print('nresults', nresults)
@@ -254,7 +264,8 @@ def _last_bb_mismatch(result, verts, ivertex, nresults, last_bb_same_as):
       return True
    return False
 
-@jit
+# _grow_linear_recurse_jit = jit(_grow_linear_recurse)
+
 def _grow_linear_recurse(
    result,
    bb_base,

@@ -1,13 +1,16 @@
 __all__ = ("Bunch", "bunchify", "unbunchify")
 
 class Bunch(dict):
-   def __init__(self, __arg_or_ns=None, **kw):
+   def __init__(self, __arg_or_ns=None, strict__=False, **kw):
+      # self['strict__'] = strict__
       if __arg_or_ns is not None:
          try:
             super().__init__(__arg_or_ns)
          except TypeError:
             super().__init__(vars(__arg_or_ns))
       self.update(kw)
+      if strict__:
+         self['strict__'] = True
 
    def __contains__(self, k):
       try:
@@ -16,6 +19,11 @@ class Bunch(dict):
          return False
 
    def __getattr__(self, k):
+      if k == 'strict__':
+         return self['strict__']
+      if 'strict__' in self and self['strict__'] and not k in self:
+         raise KeyError(f'Bunch is missing value for key {k}')
+
       try:
          # Throws exception if not in prototype chain
          return object.__getattribute__(self, k)

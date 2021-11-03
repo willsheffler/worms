@@ -1,18 +1,21 @@
-import sys
+import sys, random, numpy as np, numba as nb, numba.types as nt
 from time import time
-import random
-import numpy as np
-import numba as nb
-import numba.types as nt
 from collections import defaultdict, namedtuple
-from worms.util import jit, InProcessExecutor, NonFuture, helix_range
+import worms
+from worms.util import jit, jitclass, InProcessExecutor, NonFuture, helix_range
 import concurrent.futures as cf
 from tqdm import tqdm
 
 def Edge(u, ublks, v, vblks, verbosity=0, **kw):
 
-   splices, nout, nent, analysis = get_allowed_splices(u, ublks, v, vblks, verbosity=verbosity,
-                                                       **kw)
+   splices, nout, nent, analysis = get_allowed_splices(
+      u,
+      ublks,
+      v,
+      vblks,
+      verbosity=verbosity,
+      **kw,
+   )
    maxentries = max(len(_) for _ in splices)
    splice_ary = np.zeros((len(splices), maxentries + 1), dtype=np.int32) - 1
    for i, a in enumerate(splice_ary):
@@ -293,19 +296,16 @@ def get_allowed_splices(
       splicedb.sync_to_disk()
 
    if pairs_with_no_valid_splices:
-      print(
-         "pairs with no valid splices: ",
-         pairs_with_no_valid_splices,
-         "of",
-         len(outblk_res) * len(inblk_res),
-      )
+      worms.PING(
+         f"pairs with no valid splices: {pairs_with_no_valid_splices}"
+         f" of {len(outblk_res) * len(inblk_res)}", )
       # assert pairs_with_no_valid_splices < len(outblk_res) * len(
       # inblk_res
       # ), 'no valid splices'
 
    return valid_splices, nout, nent, bblock_pair_analysis
 
-@nb.experimental.jitclass((
+@jitclass((
    ("splices", nt.int32[:, :]),
    ("nout", nt.int32),
    ("nent", nt.int32),

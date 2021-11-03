@@ -1,11 +1,11 @@
 import os, json, random, sys, logging, time, pickle, functools
 import concurrent.futures as cf, numpy as np
-from logging import info, warning, error
+# from logging import info, warning, error
 from tqdm import tqdm
 
 import worms
 
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
 
 class CachingBBlockDB:
    """stores Poses and BBlocks in a disk cache"""
@@ -45,7 +45,7 @@ class CachingBBlockDB:
       self.null_base_names = null_base_names
       self.cachedirs = worms.database.get_cachedirs(cachedirs)
       self.dbroot = dbroot + "/" if dbroot and not dbroot.endswith("/") else dbroot
-      print("CachingBBlockDB cachedirs:", self.cachedirs)
+      worms.PING(f"CachingBBlockDB cachedirs: {self.cachedirs}")
       self.load_poses = load_poses
       os.makedirs(self.cachedirs[0] + "/poses", exist_ok=True)
       os.makedirs(self.cachedirs[0] + "/bblock", exist_ok=True)
@@ -57,10 +57,7 @@ class CachingBBlockDB:
       self._alldb = []
       self._holding_lock = False
       self.dbfiles = dbfiles
-      print('database.py: read database files from', self.dbroot)
-      for f in dbfiles:
-         print('   ', f)
-
+      worms.PING(f'database.py: read database files from {self.dbroot}')
       (
          self._alldb,
          self._dictdb,
@@ -75,7 +72,7 @@ class CachingBBlockDB:
          warning("!" * 100)
          warning("DIRE WARNING: %6i duplicate pdb files in database" % dups)
          warning("!" * 100)
-      info("loading %i db entries" % len(self._alldb))
+      worms.PING("loading %i db entries" % len(self._alldb))
       self.n_new_entries = 0
       self.n_missing_entries = len(self._alldb)
       if not self.lazy:
@@ -153,12 +150,15 @@ class CachingBBlockDB:
 
    def pose(self, pdbfile):
       """load pose from _bblock_cache, read from file if not in memory"""
+      import worms
       pdbfile = worms.database.sanitize_pdbfile(pdbfile)
       if not pdbfile in self._poses_cache:
          if not self.load_cached_pose_into_memory(pdbfile):
+            import worms.rosetta_init
             if pdbfile in self.pdb_contents:
                contents = self.pdb_contents[pdbfile]
                self._poses_cache[pdbfile] = worms.rosetta_init.pose_from_str(contents)
+               self._poses_cache[pdbfile].dump_pdb('aaa.pdb')
             else:
                pdbpath = os.sep.join([self.dbroot, pdbfile])
                assert os.path.exists(pdbpath)
@@ -374,7 +374,7 @@ class CachingBBlockDB:
             try:
                with open(posefile, "wb") as f:
                   pickle.dump(pose, f)
-                  info("dumped _bblock_cache files for %s" % pdbfile)
+                  worms.PING("dumped _bblock_cache files for %s" % pdbfile)
             except OSError as e:
                print("not saving", posefile)
 

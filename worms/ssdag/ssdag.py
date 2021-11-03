@@ -8,7 +8,7 @@ import numpy as np
 import worms
 from worms import Bunch
 from worms.vertex import Vertex
-from worms.bblock import bblock_dump_pdb, _BBlock
+from worms.bblock import _BBlock
 from worms.util import InProcessExecutor
 
 def _validate_bbs_verts(bbs, verts):
@@ -95,7 +95,7 @@ class SearchSpaceDag:
 
    def __str__(self):
       return os.linesep.join([
-         'SimpleSpaceDag',
+         'SearchSpaceDag',
          f'    bblocks {[len(_) for _ in self.bbs]}',
          f'    verts {[_.ibblock.shape for _ in self.verts]}',
          f'    edges {[_.splices.shape for _ in self.edges]}',
@@ -172,23 +172,25 @@ def simple_search_dag(
                bbs_sliced.append(bb[lb:ub])
             bbs = bbs_sliced
 
-         for ibb, bb in enumerate(bbs):
-            print("bblocks", ibb, len(bb))
-            for b in bb:
-               print("   ", bytes(b.file).decode("utf-8"))
+         if verbosity > 0:
+            for ibb, bb in enumerate(bbs):
+               print("bblocks", ibb, len(bb))
+               for b in bb:
+                  print("   ", bytes(b.file).decode("utf-8"))
 
       bases = [Counter(bytes(b.base).decode("utf-8") for b in bbs0) for bbs0 in bbs]
       assert len(bbs) == len(queries)
       for i, v in enumerate(bbs):
          assert len(v) > 0, 'no bblocks for query: "' + queries[i] + '"'
-      print("bblock queries:", str(queries))
-      print("bblock numbers:", [len(b) for b in bbs])
-      print("bblocks id:", [id(b) for b in bbs])
-      print("bblock0 id ", [id(b[0]) for b in bbs])
-      print("base_counts:")
-      for query, basecount in zip(queries, bases):
-         counts = " ".join(f"{k}: {c}" for k, c in basecount.items())
-         print(f"   {query:10}", counts)
+      if verbosity > 0:
+         print("bblock queries:", str(queries))
+         print("bblock numbers:", [len(b) for b in bbs])
+         print("bblocks id:", [id(b) for b in bbs])
+         print("bblock0 id ", [id(b[0]) for b in bbs])
+         print("base_counts:")
+         for query, basecount in zip(queries, bases):
+            counts = " ".join(f"{k}: {c}" for k, c in basecount.items())
+            print(f"   {query:10}", counts)
 
       if criteria.is_cyclic:
          # for a, b in zip(bbs[criteria.from_seg], bbs[criteria.to_seg]):
@@ -249,7 +251,7 @@ def simple_search_dag(
          **kw,
       )
    if precache_only:
-      return Bunch(bblocks=bbs)
+      return Bunch(bblocks=bbs, strict__=True)
 
    verts = [None] * len(queries)
    edges = [None] * len(queries[1:])
@@ -428,11 +430,12 @@ def simple_search_dag(
 
    ssdag = SearchSpaceDag(criteria.bbspec, bbs, verts, edges)
    worms.PING(f'created ssdag mbb {merge_bblock}', printit=True, emphasis=1)
-   print(ssdag)
-   print('!' * 80, flush=True)
+   if verbosity > 0:
+      print(ssdag)
+      print('!' * 80, flush=True)
 
    # print('simple_search_dag returning', flush=True)
-   return Bunch(ssdag=ssdag, prof=(tdb, tvertex, tedge))
+   return Bunch(ssdag=ssdag, prof=(tdb, tvertex, tedge), strict__=True)
 
 def _print_edge_summary(edges):
    print("splice stats: ", end="")
@@ -441,46 +444,3 @@ def _print_edge_summary(edges):
       ntot = e.nout * e.nent
       print(f"({nsplices:,} {nsplices*100.0/ntot:5.2f}%)", end=" ")
    print()
-
-def graph_dump_pdb(
-      out,
-      ssdag,
-      idx,
-      pos,
-      join="splice",
-      xalign=np.eye(4),
-      trim=True,
-      crystinfo=None,
-):
-   # print('graph_dump_pdb')
-
-   close = False
-   if isinstance(out, str):
-      out = open(out, "w")
-      close = True
-
-   # print(crystinfo, flush=True)
-
-   cryst1 = 'CRYST1  %7.3f  %7.3f  %7.3f  90.00  90.00  90.00 ' % crystinfo[:3] + crystinfo[6]
-   out.write(cryst1 + '\n')
-
-   assert len(idx) == len(pos)
-   assert idx.ndim == 1
-   assert pos.ndim == 3
-   assert pos.shape[-2:] == (4, 4)
-   chain, anum, rnum = 0, 1, 1
-   for i, tup in enumerate(zip(ssdag.bbs, ssdag.verts, idx, pos)):
-      bbs, vert, ivert, x = tup
-      chain, anum, rnum = bblock_dump_pdb(
-         out=out,
-         bblock=bbs[vert.ibblock[ivert]],
-         dirn=vert.dirn if trim else (2, 2),
-         splice=vert.ires[ivert] if trim else (-1, -1),
-         pos=xalign @ x,
-         chain=chain,
-         anum=anum,
-         rnum=rnum,
-         join=join,
-      )
-   if close:
-      out.close()

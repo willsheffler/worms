@@ -6,6 +6,11 @@ __author__ = """Will Sheffler"""
 __email__ = "willsheffler@gmail.com"
 __version__ = "0.2.0"
 
+import sys
+if 'pytest' in sys.modules:
+   os.environ['NUMBA_DISABLE_JIT'] = '1'
+   assert 0
+
 from worms.util.bunch import Bunch
 from worms.util.ping import PING
 from worms.util.timer import Timer
@@ -27,6 +32,7 @@ rosetta_init = deferred_import('worms.rosetta_init')
 search = deferred_import('worms.search')
 ssdag = deferred_import('worms.ssdag')
 ssdag_pose = deferred_import('worms.ssdag_pose')
+tests = deferred_import('worms.tests')
 topology = deferred_import('worms.topology')
 util = deferred_import('worms.util')
 vertex = deferred_import('worms.vertex')

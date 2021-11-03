@@ -51,9 +51,11 @@ class ResultTable(worms.Bunch):
          # print(array_index)
          self[k] = v[array_index]
 
-   def remove_redundant(self, thresh=0.1):
-      for ir, (idx, pos) in zip(self.idx, self.pos):
-         pass
+   def sort_on_idx(self):
+      order = np.lexsort(np.flip(self.idx.T, axis=0))
+      self.idx = self.idx[order]
+      self.pos = self.pos[order]
+      self.err = self.err[order]
 
    def approx_equal(self, other):
       # print('idxtype', self.idx.shape, other.idx.shape)
@@ -62,12 +64,11 @@ class ResultTable(worms.Bunch):
       # print('statstype', type(self.stats), type(other.stats))
       if self.idx.shape != other.idx.shape:
          return False
+
       idxeq = np.allclose(self.idx, other.idx)
       poseq = np.allclose(self.pos, other.pos)
       erreq = np.allclose(self.err, other.err)
       # statseq = self.stats == other.stats
-
-      # print('ResultTable.__eq__', idxeq, poseq, erreq, statseq)
 
       return idxeq and poseq and erreq
 

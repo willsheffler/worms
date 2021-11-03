@@ -3,7 +3,7 @@ import numpy as np
 from multiprocessing import cpu_count
 from tqdm import tqdm
 
-from worms.util import jit, InProcessExecutor
+from worms.util import priority_jit, InProcessExecutor
 from worms.search.result import ResultJIT
 from worms.clashgrid import ClashGrid
 
@@ -100,7 +100,7 @@ def prune_clashes(
       rslt.stats,
    )
 
-@jit
+@priority_jit
 def _chain_bounds(dirn, ires, chains, spliced_only=False, trim=8):
    "return bounds for only spliced chains, with spliced away sequence removed"
    chains = np.copy(chains)
@@ -134,7 +134,7 @@ def _chain_bounds(dirn, ires, chains, spliced_only=False, trim=8):
    else:
       return chains
 
-@jit
+@priority_jit
 def _has_ca_clash(position, ncacs, i, ichntrm, j, jchntrm, thresh, step=1):
    for ichain in range(len(ichntrm)):
       ilb, iub = ichntrm[ichain]
@@ -149,7 +149,7 @@ def _has_ca_clash(position, ncacs, i, ichntrm, j, jchntrm, thresh, step=1):
                   return True
    return False
 
-@jit
+@priority_jit
 def _check_all_chain_clashes(dirns, iress, idx, pos, chn, ncacs, thresh, approx):
    pos = pos.astype(np.float64)
 

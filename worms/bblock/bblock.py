@@ -7,8 +7,8 @@ import numba
 from scipy.spatial import ConvexHull
 
 import worms
-from worms.filters.clash import _chain_bounds
 from worms.bblock.bbutil import make_connections_array, ncac_to_stubs
+from worms.util import jitclass
 
 def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
 
@@ -96,7 +96,7 @@ def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
    return bblock
 
 
-@numba.experimental.jitclass(
+@jitclass(
     (
         ("json",        numba.types.int8[:]),
         ("connections", numba.types.int32[:, :]),
@@ -237,72 +237,6 @@ class _BBlock:
 
       def __getstate__(self):
          return self._state
-
-def bblock_dump_pdb(
-      out,
-      bblock,
-      dirn=(2, 2),
-      splice=(-1, -1),
-      join="splice",
-      pos=np.eye(4),
-      chain=0,
-      anum=1,
-      rnum=1,
-):
-   from worms.vis import format_atom
-
-   close = False
-   if isinstance(out, str):
-      out = open(out, "w")
-      close = True
-
-   chains0 = _chain_bounds(dirn, splice, bblock.chains, trim=0)
-   if dirn[0] == 2 and dirn[1] == 2:
-      chains = chains0
-   else:
-      sponly = _chain_bounds(dirn, splice, bblock.chains, trim=0, spliced_only=1)
-      # chains will have insplice at first ops, outsplice at last pos
-      # either could be none
-      chains = list()
-      chains.append(sponly[0] if dirn[0] < 2 else None)
-      for c in chains0:
-         if np.all(sponly[0] == c) or np.all(sponly[-1] == c):
-            continue
-         chains.append(c)
-      if len(sponly) > 1 or chains[0] is None:
-         chains.append(sponly[-1] if dirn[1] < 2 else None)
-
-   aname = [" N  ", " CA ", " C  "]
-   for ic, lbub in enumerate(chains):
-      if lbub is None:
-         continue
-      for i in range(*lbub):
-         for j in (0, 1, 2):
-            xyz = pos @ bblock.ncac[i, j]
-            out.write(
-               format_atom(
-                  atomi=anum,
-                  atomn=aname[j],
-                  resn="GLY",
-                  chain=string.ascii_uppercase[chain],
-                  resi=rnum,
-                  x=xyz[0],
-                  y=xyz[1],
-                  z=xyz[2],
-                  occ=1.0,
-               ))
-            anum += 1
-         rnum += 1
-      if join == "bb":
-         continue
-      if join == "splice" and ic + 1 == len(chains) and dirn[1] < 2:
-         continue
-      chain += 1
-   if join == "bb":
-      chain += 1
-   if close:
-      out.close()
-   return chain, anum, rnum
 
 class BBlockWrap:
    def __init__(self, _bblock):

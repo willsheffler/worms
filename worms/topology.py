@@ -76,7 +76,7 @@ class Topology:
             assert nc[a][0] != nc[b][1]
 
    def check_nc_linear(self, nc):
-      print("check_nc_linear:", nc)
+      # print("check_nc_linear:", nc)
       for x in nc:
          assert len(x) is 2, "all conns should have two chars N C or _"
       assert nc[0][0] is "_", "first connection should begin with _"

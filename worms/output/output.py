@@ -4,7 +4,7 @@ import sys, collections, os, psutil, gc, json, traceback, copy
 
 from worms import util, Bunch, PING
 from worms.ssdag_pose import make_pose_crit
-from worms.ssdag import graph_dump_pdb
+from worms.output.dumppdb import graph_dump_pdb
 
 from deferred_import import deferred_import
 
@@ -436,9 +436,9 @@ def filter_and_output_results(
    if nresults:
       return Bunch(
          log=["nresults output: " + str(nresults), 'npdbs_dumped: ' + str(npdbs_dumped)],
-         files=files_output)
+         files=files_output, strict__=True)
    else:
-      return Bunch(log=[], files=[])
+      return Bunch(log=[], files=[], strict__=True)
 
 def make_json_for_result(ssdag, database, merge_bblock, result, iresult, print_pings,
                          output_prefix):

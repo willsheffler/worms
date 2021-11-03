@@ -70,6 +70,8 @@ def read_bblock_archive(fname):
 def _read_bblock_archive_one(fname):
    'read json and pdb contents from tarball'
    with tempfile.TemporaryDirectory() as tmpdir:
+      if not os.path.exists(fname) and fname.count('/') == 0:
+         fname = worms.data.get_database_archive_path(fname)
       with tarfile.open(fname, 'r:xz') as inp:
          names = inp.getnames()
          inp.extractall(tmpdir)

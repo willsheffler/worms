@@ -26,7 +26,12 @@ class _TimerGetter:
       return getattr(self, name)
 
 class Timer:
-   def __init__(self, name='Timer', verbose=False):
+   def __init__(
+      self,
+      name='Timer',
+      verbose=False,
+      start=True,
+   ):
       self.name = name
       self.verbose = verbose
       self.sum = _TimerGetter(self, numpy.sum)
@@ -34,6 +39,9 @@ class Timer:
       self.min = _TimerGetter(self, numpy.min)
       self.max = _TimerGetter(self, numpy.max)
       self.median = _TimerGetter(self, numpy.median)
+      self._start = None
+      if start:
+         self.start()
 
    def start(self):
       return self.__enter__()
@@ -42,13 +50,19 @@ class Timer:
       return self.__exit__()
 
    def __enter__(self):
+      if self._start:
+         raise ValueError('Timer already started')
       if self.verbose: log.debug(f'{self.name} intialized')
-      self.start = time.perf_counter()
-      self.last = self.start
+      self._start = time.perf_counter()
+      self.last = self._start
       self.checkpoints = collections.defaultdict(list)
       return self
 
-   def checkpoint(self, name='untracked', verbose=False):
+   def checkpoint(
+      self,
+      name='untracked',
+      verbose=False,
+   ):
       t = time.perf_counter()
       self.checkpoints[name].append(t - self.last)
       self.last = t
@@ -57,8 +71,13 @@ class Timer:
                    f'time {self.checkpoints[name][-1]}')
       return self
 
-   def __exit__(self, type=None, value=None, traceback=None):
-      self.checkpoints['total'].append(time.perf_counter() - self.start)
+   def __exit__(
+      self,
+      type=None,
+      value=None,
+      traceback=None,
+   ):
+      self.checkpoints['total'].append(time.perf_counter() - self._start)
       if self.verbose: log.debug(f'{self.name} finished')
       if self.verbose: self.report()
       return self
@@ -73,7 +92,11 @@ class Timer:
    def alltimes(self, name):
       return self.checkpoints[name]
 
-   def report_dict(self, order='longest', summary='sum'):
+   def report_dict(
+      self,
+      order='longest',
+      summary='sum',
+   ):
       if not callable(summary):
          if summary not in _summary_types:
             raise ValueError('unknown summary type: ' + str(summary))
@@ -86,8 +109,15 @@ class Timer:
       else:
          raise ValueError('Timer, unknown order: ' + order)
 
-   def report(self, order='longest', summary='sum', namelen=None, precision='10.5f', printme=True,
-              scale=1.0):
+   def report(
+      self,
+      order='longest',
+      summary='sum',
+      namelen=None,
+      precision='10.5f',
+      printme=True,
+      scale=1.0,
+   ):
       if namelen is None:
          namelen = max(len(n) for n in self.checkpoints)
       lines = [f"Times(order={order}, summary={summary}):"]
@@ -103,7 +133,7 @@ class Timer:
    def total(self):
       if 'total' in self.checkpoints:
          return sum(self.checkpoints['total'])
-      return time.perf_counter() - self.start
+      return time.perf_counter() - self._start
 
    def __str__(self):
       return self.report(printme=False)

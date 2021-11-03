@@ -15,26 +15,6 @@ import worms
 
 pymol = deferred_import('pymol')
 
-_atom_record_format = (
-   "ATOM  {atomi:5d} {atomn:^4}{idx:^1}{resn:3s} {chain:1}{resi:4d}{insert:1s}   "
-   "{x:8.3f}{y:8.3f}{z:8.3f}{occ:6.2f}{b:6.2f}\n")
-
-def format_atom(
-   atomi=0,
-   atomn="ATOM",
-   idx=" ",
-   resn="RES",
-   chain="A",
-   resi=0,
-   insert=" ",
-   x=0,
-   y=0,
-   z=0,
-   occ=0,
-   b=0,
-):
-   return _atom_record_format.format(**locals())
-
 def is_rosetta_pose(to_show):
    return isinstance(to_show, worms.rosetta_init.Pose)
 
@@ -92,7 +72,7 @@ def _(to_show, state=None, name=None, **kw):
    with open(fname, "w") as out:
       for i, a1 in enumerate(to_show.reshape(-1, 3, 4)):
          for j, a in enumerate(a1):
-            line = format_atom(
+            line = worms.output.format_atom(
                atomi=3 * i + j,
                resn="GLY",
                resi=i,

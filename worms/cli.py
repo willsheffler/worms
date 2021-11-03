@@ -2,6 +2,7 @@ import sys, argparse, collections, logging
 
 import worms
 from worms import Bunch, PING
+
 from worms.criteria import *
 
 cli_args = dict(
@@ -217,6 +218,7 @@ def build_worms_setup_from_cli_args(
    parser=None,
    construct_databases=True,
 ):
+
    if argv is None: argv = sys.argv[1:]
 
    kw = get_cli_args(argv, parser)
@@ -244,6 +246,7 @@ def build_worms_setup_from_cli_args(
       if isinstance(crit, Cyclic) and crit.origin_seg is not None:
          assert crit.origin_seg < len(bb)
       crit = [crit]
+
    else:
       crit = []
       for cfile in kw.config_file:
@@ -319,7 +322,6 @@ def build_worms_setup_from_cli_args(
             worms.database.CachingSpliceDB(**kw),
          )
       kw.db = kw.database  # depricated
-      kw.database.bblockdb.report()
 
    # print("-------------- arg ---------------")
    # for k, v in kw.items():

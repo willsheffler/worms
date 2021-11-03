@@ -10,7 +10,7 @@ from worms.bblock import _BBlock
 
 from logging import warning
 import concurrent.futures as cf
-from worms.util import InProcessExecutor, jit, helix_range
+from worms.util import InProcessExecutor, jit, jitclass, helix_range
 from worms.criteria import cyclic
 
 vertex_xform_dtype = np.float32
@@ -18,7 +18,7 @@ vertex_xform_dtype = np.float32
 MAX_HELIX = 50
 MAX_HULL = 200
 
-@nb.experimental.jitclass(
+@jitclass(
       (
             ("x2exit", nb.typeof(vertex_xform_dtype(0))[:, :, :]),
             ("x2orig", nb.typeof(vertex_xform_dtype(0))[:, :, :]),

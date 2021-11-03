@@ -8,7 +8,7 @@ from worms.util import jit, InProcessExecutor
 from worms.search.result import ResultTable
 from worms.data.sphere import get_sphere_samples
 from worms.filters.clash import _chain_bounds
-from worms.vis.plot import plot3d, scatter
+# from worms.vis.plot import plot3d, scatter
 
 def check_geometry(ssdag, crit, rslt, max_porosity, max_com_redundancy, **kw):
    zheight = np.zeros_like(rslt.err)
@@ -99,7 +99,7 @@ def check_geometry(ssdag, crit, rslt, max_porosity, max_com_redundancy, **kw):
    r.add("porosity", porosity)
 
    print(
-      f'mbb{kw["merge_bblock"]:04} geometry: removing',
+      f'mbb{kw["merge_bblock"]} geometry: removing',
       np.sum(remove_me != 0),
       " of",
       len(remove_me),

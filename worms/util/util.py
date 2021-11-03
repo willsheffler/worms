@@ -2,9 +2,22 @@
 """
 import sys, os, operator, datetime, json
 import numba, numpy as np
+from numba.experimental.jitclass.base import JitClassType
 from hashlib import sha1
 
 jit = numba.njit(nogil=True, fastmath=True)
+priority_jit = numba.njit(nogil=True, fastmath=True)
+# jitcache = numba.njit(nogil=True, fastmath=True, cache=True)  # seems to fail or not help
+jitclass = numba.experimental.jitclass
+
+disabled_jit = lambda f: f
+disabled_priority_jit = lambda f: f
+disabled_jitclass = lambda *a: lambda x: x
+
+def _disable_jit():
+   jit = disabled_jit
+   priority_jit = disabled_priority_jit
+   jitclass = disabled_jitclass
 
 def helix_range(ss):
    helixof = np.zeros_like(ss, dtype=np.int32) - 1

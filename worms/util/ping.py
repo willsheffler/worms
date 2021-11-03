@@ -8,7 +8,9 @@ def PING(
    flush=True,
    exit=False,
    emphasis=0,
+   **kw,
 ):
+   return
    message = str(message) if message else '<no msg>'
    stack = traceback.extract_stack()
    framestrs = list()

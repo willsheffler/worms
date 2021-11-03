@@ -15,8 +15,8 @@
 --max_score0sym 30
 
 # new cache stuff must be read with parallel 0!!!
---nbblocks 32
---parallel 6
+--nbblocks 999
+--parallel 0
 
 --disable_cache 0
 

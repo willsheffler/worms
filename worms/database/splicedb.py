@@ -72,7 +72,7 @@ class CachingSpliceDB:
    def __init__(self, cachedirs=None, **kw):
       cachedirs = worms.database.get_cachedirs(cachedirs)
       self.cachedirs = [os.path.join(x, "splices") for x in cachedirs]
-      print("CachingSpliceDB cachedirs:", self.cachedirs)
+      worms.PING(f"CachingSpliceDB cachedirs: {self.cachedirs}")
       self._cache = dict()
       self._dirty = set()
 

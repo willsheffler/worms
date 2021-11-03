@@ -28,6 +28,9 @@ def test_file_json(fname, mode='r'):
    fname = test_file_path(fname)
    return load_json(fname)
 
+def get_database_archive_path(dbname):
+   return os.path.join(database_dir, dbname)
+
 def get_testing_database(dbname):
    return worms.load(os.path.join(data_dir, 'databases', dbname + '.pickle.xz'))
 
