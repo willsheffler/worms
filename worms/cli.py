@@ -80,6 +80,7 @@ cli_args = dict(
    output_from_pose=1,
    output_symmetric=1,
    output_prefix="./worms",
+   output_suffix="",
    output_centroid=0,
    output_only_AAAA=0,
    output_short_fnames=0,

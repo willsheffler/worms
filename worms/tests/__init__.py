@@ -3,7 +3,7 @@
 
 import os, imp, pytest
 
-from worms.tests.common import *
+from worms.tests.common_test_utils import *
 
 HAVE_PYROSETTA = False
 

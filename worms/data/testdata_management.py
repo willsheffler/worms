@@ -6,10 +6,11 @@ from worms.util.ping import PING
 from worms.data.data import data_dir, test_file_path
 
 def get_latest_testresult_path(tag, candidates_ok=False):
+
    path = get_timestamped_test_dir_latest(tag, candidates_ok=candidates_ok)
    if path is None:
       return None
-   fname = os.path.join(path, 'reference_results.pickle')
+   fname = os.path.join(path, f'{tag}_reference_results.pickle')
    return fname
 
 def get_latest_testresult(tag, candidates_ok=False):
@@ -29,6 +30,7 @@ def make_timestamped_test_dir(tag, candidate=True):
    return path + '/'
 
 def get_timestamped_test_dirs(tag, candidates_ok=False):
+   assert '/' not in tag
    testpath = test_file_path(tag)
    dirs = os.listdir(testpath)
    dirs = [f for f in dirs if os.path.isdir(os.path.join(testpath, f))]

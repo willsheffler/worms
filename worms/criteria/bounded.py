@@ -15,7 +15,7 @@ from worms.homog import (
    numba_line_line_distance_pa,
 )
 from worms import PING
-from worms.util import jit
+from worms.util import jit, generic_equals
 from worms.merge.wye import wye_merge
 
 DIHEDRAL_ROT_TOL = 1.0
@@ -83,6 +83,33 @@ class AxesIntersect(WormCriteria):
       self.segs = segs
       self.xtal = xtal
       self.cell_dist_scale = 1.0
+
+   def __eq__(self, other):
+      return all([
+         type(self) == type(other),
+         self.symname == other.symname,
+         self.from_seg == other.from_seg,
+         generic_equals(self.tgtaxis1, other.tgtaxis1),
+         generic_equals(self.tgtaxis2, other.tgtaxis2),
+         # self.tgtaxis1[0] == other.tgtaxis1[0],
+         # self.tgtaxis2[0] == other.tgtaxis2[0],
+         # np.allclose(self.tgtaxis1[1], other.tgtaxis1[1]),
+         # np.allclose(self.tgtaxis1[1], other.tgtaxis1[1]),
+         # np.allclose(self.tgtaxis2[2], other.tgtaxis2[2]),
+         # np.allclose(self.tgtaxis2[2], other.tgtaxis2[2]),
+         self.tgtangle == other.tgtangle,
+         self.tolerance == other.tolerance,
+         self.lever == other.lever,
+         self.to_seg == other.to_seg,
+         self.rot_tol == other.rot_tol,
+         self.nondistinct_axes == other.nondistinct_axes,
+         generic_equals(self.sym_axes, other.sym_axes),
+         self.is_cyclic == other.is_cyclic,
+         self.origin_seg == other.origin_seg,
+         self.segs == other.segs,
+         self.xtal == other.xtal,
+         self.cell_dist_scale == other.cell_dist_scale,
+      ])
 
    def score(self, segpos, verbosity=False, **kw):
       cen1 = segpos[self.from_seg][..., :, 3]

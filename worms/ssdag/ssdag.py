@@ -7,6 +7,7 @@ import os
 import numpy as np
 import worms
 from worms import Bunch
+from worms.util.util import generic_equals
 from worms.vertex import Vertex
 from worms.bblock import _BBlock
 from worms.util import InProcessExecutor
@@ -35,6 +36,14 @@ class SearchSpaceDag:
       self.bbs = tuple(bbs)
       self.verts = tuple(verts)
       self.edges = tuple(edges)
+
+   def __eq__(self, other):
+      return all([
+         generic_equals(self.bbspec, other.bbspec),
+         generic_equals(self.bbs, other.bbs),
+         generic_equals(self.verts, other.verts),
+         generic_equals(self.edges, other.edges),
+      ])
 
    def __getstate__(self):
       return (

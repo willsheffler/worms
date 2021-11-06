@@ -14,6 +14,32 @@ disabled_jit = lambda f: f
 disabled_priority_jit = lambda f: f
 disabled_jitclass = lambda *a: lambda x: x
 
+def generic_equals(this, that, checktypes=False, debug=False):
+   if debug:
+      print('generic_equals on types', type(this), type(that))
+   if checktypes and type(this) != type(that):
+      return False
+   if isinstance(this, (str, bytes)):  # don't want to iter over strs
+      return this == that
+   if isinstance(this, dict):
+      if len(this) != len(that):
+         return False
+      for k in this:
+         if k not in that:
+            return False
+         if not generic_equals(this[k], that[k], checktypes, debug):
+            return False
+   if hasattr(this, '__iter__'):
+      return all(generic_equals(x, y, checktypes, debug) for x, y in zip(this, that))
+   if isinstance(this, np.ndarray):
+      return np.allclose(this, that)
+   if debug:
+      print('!!!!!!!!!!', type(this))
+      if this != that:
+         print(this)
+         print(that)
+   return this == that
+
 def _disable_jit():
    jit = disabled_jit
    priority_jit = disabled_priority_jit

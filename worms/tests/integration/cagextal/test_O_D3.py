@@ -18,8 +18,6 @@ def test_cagextal_O_D3():
    # reference results in that dir
    # flags: worms/data/test_cases/<testname>/config/<testname>.flags
 
-   should pdbs get checked in??? can reliably regenerate them?
-
    worms.tests.generic_integration_test('test_cagextal_O_D3')
 
 if __name__ == '__main__':

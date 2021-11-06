@@ -99,6 +99,24 @@ class Cyclic(WormCriteria):
 
       self.bbspec = None  # should be filled in elsewhere
 
+   def __eq__(self, other):
+      return all(
+         type(self) == type(other),
+         self.symmetry == other.symmetry,
+         self.tolerance == other.tolerance,
+         self.from_seg == other.from_seg,
+         self.origin_seg == other.origin_seg,
+         self.lever == other.lever,
+         self.to_seg == other.to_seg,
+         self.min_radius == other.min_radius,
+         self.nfold == other.nfold,
+         self.min_sep2 == other.min_sep2,
+         self.fixori_segment == other.fixori_segment,
+         self.fixori_tolerance == other.fixori_tolerance,
+         self.fixori_target == other.fixori_target,
+         self.bbspec == other.bbspec,
+      )
+
    def jit_lossfunc(self, **kw):
       kw = Bunch(**kw)
 

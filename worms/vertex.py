@@ -12,6 +12,7 @@ from logging import warning
 import concurrent.futures as cf
 from worms.util import InProcessExecutor, jit, jitclass, helix_range
 from worms.criteria import cyclic
+from worms.util.util import generic_equals
 
 vertex_xform_dtype = np.float32
 
@@ -140,6 +141,9 @@ class _Vertex:
       # ('ibblock' , nt.int32[:]),
       # ('dirn'    , nt.int32[:]),
       # ('min_seg_len', nt.int32),
+
+   def __eq__(self, other):
+      return generic_equals(self._state, other._state)
 
 @jit
 def _check_inorder_nodups(ires):

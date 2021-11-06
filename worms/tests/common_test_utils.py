@@ -1,3 +1,4 @@
+import pickle, os
 import worms
 
 def generic_integration_test(testname):
@@ -10,32 +11,55 @@ def generic_integration_test(testname):
 
    refpath, refdat = worms.data.get_latest_testresult(testname, candidates_ok=False)
 
+   refresult = None
    if refdat is None:
       fail = True
    else:
       refcrit, refssd, refresult = refdat
+      assert refcrit == criteria
+      assert refssd == ssdag
       fail = not newresult.approx_equal(refresult)
 
    if fail:
-      record_new_testresults(testname, criteria, ssdag, newresult, **kw)
+      make_candidate_test_results(
+         testname,
+         criteria,
+         ssdag,
+         newresult,
+         refresult,
+         **kw,
+      )
+   if fail:
       assert 0, f'TEST FAIL {testname}'
    print(f'TEST PASS {testname}')
 
-def record_new_testresults(testname, criteria, ssdag, newresult, **kw):
+def make_candidate_test_results(
+   testname,
+   criteria,
+   ssdag,
+   newresult,
+   refresult,
+   warn=True,
+   **kw,
+):
    kw = worms.Bunch(**kw)
    new_test_dir = worms.data.make_timestamped_test_dir(testname, candidate=True)
    new_resulttable_file = worms.data.get_latest_testresult_path(testname, candidates_ok=True)
 
-   print('===============================================')
-   print('INSPECT THIS NEW TEST DIR AND REMOVE OR ACCEPT:')
-   print(new_test_dir)
-   print('===============================================')
+   if warn:
+      print('!' * 33, 'TEST FAILED', '!' * 34)
+      print('INSPECT THIS NEW TEST DIR AND REMOVE OR ACCEPT:')
+      print(new_test_dir)
+      print('!' * 80)
 
    with open(new_resulttable_file, 'wb') as out:
       pickle.dump((criteria, ssdag, newresult), out)
 
-   kw.output_prefix = os.path.join(new_test_dir, 'testname')
+   kw.output_prefix = os.path.join(new_test_dir, testname)
    worms.app.output_simple(criteria, ssdag, newresult, **kw)
+   if refresult is not None:
+      kw.output_suffix = os.path.join('_REF')
+      worms.app.output_simple(criteria, ssdag, newresult, **kw)
 
 def setup_test_databases(criteria, **kw):
    kw = worms.Bunch(kw)

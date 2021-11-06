@@ -6,6 +6,8 @@ from worms.util import jit, jitclass, InProcessExecutor, NonFuture, helix_range
 import concurrent.futures as cf
 from tqdm import tqdm
 
+from worms.util.util import generic_equals
+
 def Edge(u, ublks, v, vblks, verbosity=0, **kw):
 
    splices, nout, nent, analysis = get_allowed_splices(
@@ -339,6 +341,9 @@ class _Edge:
    @property
    def memuse(self):
       return self.splices.size * self.splices.itemsize
+
+   def __eq__(self, other):
+      return generic_equals(self._state, other._state)
 
 @jit
 def _chainbounds_of_ires(chains, ires):

@@ -9,6 +9,7 @@ from scipy.spatial import ConvexHull
 import worms
 from worms.bblock.bbutil import make_connections_array, ncac_to_stubs
 from worms.util import jitclass
+from worms.util.util import generic_equals
 
 def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
 
@@ -216,7 +217,7 @@ class _BBlock:
             self.connections,
             self.file,
             self.filehash,
-            snnnelf.components,
+            self.components,
             self.protocol,
             self.name,
             self.classes,
@@ -237,6 +238,34 @@ class _BBlock:
 
       def __getstate__(self):
          return self._state
+
+   def __eq__(self, other):
+      # return generic_equals(self._state, other._state)
+      # dunno if it's safe to ignore ncac, chains and stubs
+      # but they make the comparison slow
+      return all([
+         generic_equals(self.json, other.json),
+         generic_equals(self.connections, other.connections),
+         generic_equals(self.file, other.file),
+         generic_equals(self.filehash, other.filehash),
+         generic_equals(self.components, other.components),
+         generic_equals(self.protocol, other.protocol),
+         generic_equals(self.name, other.name),
+         generic_equals(self.classes, other.classes),
+         generic_equals(self.validated, other.validated),
+         generic_equals(self._type, other._type),
+         generic_equals(self.base, other.base),
+         generic_equals(self.basehash, other.basehash),
+         # generic_equals(self.ncac, other.ncac),
+         generic_equals(self.cb, other.cb),
+         # generic_equals(self.chains, other.chains),
+         generic_equals(self.ss, other.ss),
+         # generic_equals(self.stubs, other.stubs),
+         generic_equals(self.com, other.com),
+         generic_equals(self.rg, other.rg),
+         generic_equals(self.numhull, other.numhull),
+         generic_equals(self.hull, other.hull),
+      ])
 
 class BBlockWrap:
    def __init__(self, _bblock):

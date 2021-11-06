@@ -33,7 +33,8 @@ def output_simple(
    criteria,
    ssdag,
    result,
-   output_prefix,
+   output_prefix='',
+   output_suffix='',
    **kw,
 ):
    kw = worms.Bunch(kw)
@@ -50,7 +51,7 @@ def output_simple(
          if crystinfo[0] < kw.xtal_min_cell_size: continue
          if crystinfo[0] > kw.xtal_max_cell_size: continue
 
-      fname = f'{output_prefix}_nopose_{iresult:04}.pdb'
+      fname = f'{output_prefix}_{iresult:04}_{output_suffix}.pdb'
       # print('align_ax1', xalign @ segpos[0, :, 2])
       # print('align_ax2', xalign @ segpos[-1, :, 2])
       # print(fname)
