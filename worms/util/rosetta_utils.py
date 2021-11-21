@@ -8,6 +8,7 @@ from deferred_import import deferred_import
 
 ros = deferred_import('worms.rosetta_init')
 from worms.data import data_dir
+from worms.homog import hrot
 
 def numpy_stub_from_rosetta_stub(rosstub):
    npstub = np.zeros((4, 4))
@@ -76,20 +77,20 @@ def get_cb_coords(pose, which_resi=None):
    return np.stack(cbs).astype("f8")
 
 def get_chain_bounds(pose):
-   ch = np.array([pose.chain(i + 1) for i in range(len(pose))])
+   ch = np.array([pose.chain(i + 1) for i in range(pose.size())])
    chains = list()
    for i in range(ch[-1]):
       chains.append((np.sum(ch <= i), np.sum(ch <= i + 1)))
    assert chains[0][0] == 0
-   assert chains[-1][-1] == len(pose)
+   assert chains[-1][-1] == pose.size()
    return chains
 
 def pose_bounds(pose, lb, ub):
    if ub < 0:
-      ub = len(pose) + 1 + ub
-   if lb < 1 or ub > len(pose):
+      ub = pose.size() + 1 + ub
+   if lb < 1 or ub > pose.size():
       raise ValueError("lb/ub " + str(lb) + "/" + str(ub) + " out of bounds for pose with len " +
-                       str(len(pose)))
+                       str(pose.size()))
    return lb, ub
 
 def subpose(pose, lb, ub=-1):
@@ -149,14 +150,14 @@ def trim_pose(pose, resid, direction, pad=0):
     """
    if direction not in "NC":
       raise ValueError("direction must be 'N' or 'C'")
-   if not 0 < resid <= len(pose):
-      raise ValueError("resid %i out of bounds %i" % (resid, len(pose)))
+   if not 0 < resid <= pose.size():
+      raise ValueError("resid %i out of bounds %i" % (resid, pose.size()))
    p = ros.core.pose.Pose()
    if direction == "N":
-      lb, ub = max(resid - pad, 1), len(pose)
+      lb, ub = max(resid - pad, 1), pose.size()
    elif direction == "C":
-      lb, ub = 1, min(resid + pad, len(pose))
-   # print('_trim_pose lbub', lb, ub, 'len', len(pose), 'resid', resid)
+      lb, ub = 1, min(resid + pad, pose.size())
+   # print('_trim_pose lbub', lb, ub, 'len', pose.size(), 'resid', resid)
    ros.core.pose.append_subpose_to_pose(p, pose, lb, ub)
    return p, lb, ub
 
@@ -221,7 +222,7 @@ def infer_cyclic_symmetry(pose):
 
 def residue_coords(p, ir, n=3):
    crd = (p.residue(ir).xyz(i) for i in range(1, n + 1))
-   return np.stack([c.x, c.y, c.z, 1] for c in crd)
+   return np.stack([[c.x, c.y, c.z, 1] for c in crd])
 
 def residue_sym_err(p, ang, ir, jr, n=1, axis=[0, 0, 1], verbose=0):
    mxdist = 0

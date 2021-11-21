@@ -1,3 +1,4 @@
+from worms.util.util import generic_equals
 from . import WormCriteria, Ux, Uz
 import numpy as np
 from worms import homog as hm  ## python library that Will wrote to do geometry things
@@ -16,7 +17,9 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
       to_seg=-1,
       space_group_str=None,
       cell_dist_scale=1.0,
-      tgtaxis2_isects=[0, 1, 0],
+      tgtaxis2_isects=None,
+      tgtcen1=None,
+      tgtcen2=None,
    ):
       """ Worms criteria for non-intersecting axes re: unbounded things
 
@@ -60,6 +63,38 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
       self.is_cyclic = False
       self.origin_seg = None
       self.tgtaxis2_isects = tgtaxis2_isects
+
+   def __eq__(self, other):
+
+      self.cell_dist_scale
+      self.space_group_str
+      self.target_angle
+      self.tgtaxis2_isects
+
+      return all([
+         type(self) == type(other),
+         self.symname == other.symname,
+         self.from_seg == other.from_seg,
+         generic_equals(self.tgtaxis1, other.tgtaxis1),
+         generic_equals(self.tgtaxis2, other.tgtaxis2),
+         # self.tgtaxis1[0] == other.tgtaxis1[0],
+         # self.tgtaxis2[0] == other.tgtaxis2[0],
+         # np.allclose(self.tgtaxis1[1], other.tgtaxis1[1]),
+         # np.allclose(self.tgtaxis1[1], other.tgtaxis1[1]),
+         # np.allclose(self.tgtaxis2[2], other.tgtaxis2[2]),
+         # np.allclose(self.tgtaxis2[2], other.tgtaxis2[2]),
+         self.tolerance == other.tolerance,
+         self.lever == other.lever,
+         self.to_seg == other.to_seg,
+         self.rot_tol == other.rot_tol,
+         self.is_cyclic == other.is_cyclic,
+         self.origin_seg == other.origin_seg,
+         self.cell_dist_scale == other.cell_dist_scale,
+         self.cell_dist_scale == other.cell_dist_scale,
+         self.space_group_str == other.space_group_str,
+         self.target_angle == other.target_angle,
+         generic_equals(self.tgtaxis2_isects, other.tgtaxis2_isects),
+      ])
 
    def score(self, segpos, **kw):
       ax1 = segpos[self.from_seg][..., :, 2]
@@ -158,22 +193,47 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
 def Sheet_P321(c3=None, c2=None, **kw):
    if c3 is None or c2 is None:
       raise ValueError("must specify ...?")
-   return AxesAngle("Sheet_P321_C3_C2_depth3_1comp", Uz, Ux, from_seg=c3, to_seg=c2, **kw)
+   return AxesAngle(
+      "Sheet_P321_C3_C2_depth3_1comp",
+      Uz,
+      Ux,
+      from_seg=c3,
+      to_seg=c2,
+      tgtaxis2_isects=[0, 1, 0],
+      **kw,
+   )
 
 ##this is currently identical to the D3 format...how do we change it to make it an array?
 
 def Sheet_P4212(c4=None, c2=None, **kw):
    ##should there be options for multiple C2's?
    if c4 is None or c2 is None:
-      raise ValueError("must specify ...?")  # one or two of c4, c2
+      raise ValueError("must specify ...?")  # one or two of c4, c2P4212
 
 #"Sheet_P4212_C4_C2_depth3_1comp",
-   return AxesAngle('P4212_C4_C2_6', Uz, Ux, from_seg=c4, to_seg=c2, cell_dist_scale=2.0, **kw)
+   return AxesAngle(
+      'P4212_C4_C2_6',
+      Uz,
+      Ux,
+      from_seg=c4,
+      to_seg=c2,
+      cell_dist_scale=2.0,
+      tgtaxis2_isects=[0, 1, 0],
+      **kw,
+   )
 
 def Sheet_P6(c6=None, c2=None, **kw):
    if c6 is None or c2 is None:
       raise ValueError("must specify ...?")  # one or two of c6, c2
-   return AxesAngle("Sheet_P6_C6_C2_depth3_1comp", Uz, Uz, from_seg=c6, to_seg=c2, **kw)
+   return AxesAngle(
+      "Sheet_P6_C6_C2_depth3_1comp",
+      Uz,
+      Uz,
+      from_seg=c6,
+      to_seg=c2,
+      tgtaxis2_isects=[0, 1, 0],
+      **kw,
+   )
 
 def Sheet_P6_C3_C2(c3=None, c2=None, **kw):
    if c3 is None or c2 is None:
@@ -189,10 +249,13 @@ def Crystal_P213_C3_C3(c3a=None, c3b=None, **kw):
       "Crystal_P213_C3_C3_depth3_1comp",
       [1, 1, 1, 0],
       [-1, -1, 1, 0],
+      tgtcen1=[0, 0, 0],
+      tgtcen2=[-0.5, -0.5, 0],
       from_seg=c3a,
       to_seg=c3b,
       space_group_str="P 21 3",
       cell_dist_scale=2.0,  # for some reason, this one needs this
+      tgtaxis2_isects=[0, 1, 0],
       **kw,
    )
    # dihedral angle = 70.5288
@@ -200,22 +263,27 @@ def Crystal_P213_C3_C3(c3a=None, c3b=None, **kw):
 #### IN PROGRESS ####
 # I just normalized all the angles, but I don't think you can do this...might need to check the angle between them. Print and check that it is correct.
 def Crystal_P4132_C2_C3(c2a=None, c3b=None, **kw):
-   if c3a is None or c3b is None:
+   if c2a is None or c3b is None:
       raise ValueError("must specify ...?")  # one or two of c6, c2
    # return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
    return AxesAngle(
       "Crystal_P4132_C2_C3_depth3_1comp",
-      [0, -1, 1, 0],
-      [-1, -1, 0, 0],
+      Vec(0, -0.707107, 0.707107),
+      Vec(0.57735, -0.57735, 0.57735),
+      tgtcen1=Vec(0.375, -0.125, -0.125),
+      tgtcen2=Vec(0.333333, 0.166667, -0.166667),
       from_seg=c2a,
       to_seg=c3b,
       space_group_str="P 41 3 2",
-      **kw,
+      cell_dist_scale=4,
+      tgtaxis2_isects=None,
+      # aiersntoiarsnteio**kw,
    )
    # dihedral angle = 35.2644
 
 def Crystal_I213_C2_C3(c2a=None, c3b=None, **kw):
-   if c3a is None or c3b is None:
+   # produces much output, but chashes -- probably misalignment?
+   if c2a is None or c3b is None:
       raise ValueError("must specify ...?")  # one or two of c6, c2
    # return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
    return AxesAngle(
@@ -225,6 +293,7 @@ def Crystal_I213_C2_C3(c2a=None, c3b=None, **kw):
       from_seg=c2a,
       to_seg=c3b,
       space_group_str="I 21 3",
+      cell_dist_scale=4.0,  # guess
       **kw,
    )
    # dihedral angle = 54.7356
@@ -245,7 +314,7 @@ def Crystal_I432_C2_C4(c2a=None, c4b=None, **kw):
    # dihedral angle = 45
 
 def Crystal_F432_C3_C4(c3a=None, c4b=None, **kw):
-   if c3a is None or c3b is None:
+   if c3a is None or c4b is None:
       raise ValueError("must specify ...?")  # one or two of c6, c2
    # return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
    return AxesAngle(
@@ -312,6 +381,7 @@ def Sheet_P4212_from_ws_0127(c4=None, c2=None, **kw):
       from_seg=c4,
       to_seg=c2,
       cell_dist_scale=2.0,
+      tgtaxis2_isects=[0, 1, 0],
       **kw,
    )
 

@@ -119,19 +119,19 @@ def make_junct_strs(db, criteria, ssdag, idx):
    return junct_str, junct_str1
 
 def run_db_filters(
-      databases,
-      criteria,
-      ssdag,
-      iresult,
-      idx,
-      pose,
-      prov,
-      postfilt_splice_max_rms,
-      postfilt_splice_rms_length,
-      postfilt_splice_ncontact_cut,
-      postfilt_splice_ncontact_no_helix_cut,
-      postfilt_splice_nhelix_contacted_cut,
-      **kw,
+   databases,
+   criteria,
+   ssdag,
+   iresult,
+   idx,
+   pose,
+   prov,
+   postfilt_splice_max_rms,
+   postfilt_splice_rms_length,
+   postfilt_splice_ncontact_cut,
+   postfilt_splice_ncontact_no_helix_cut,
+   postfilt_splice_nhelix_contacted_cut,
+   **kw,
 ):
    bbdb, _ = databases
    AV = AlignmentValidator(
@@ -144,7 +144,7 @@ def run_db_filters(
    final_segment_map = []
    filter = "Pass"
 
-   # AV.test_pair_alignment and prefiltering don't agree perfectly,
+   # AV.testing_pair_alignment and prefiltering don't agree perfectly,
    # but in this case, I trust the prefilter numbers
    super_grade = "A"
    # for i in range(len(idx) - 1):
@@ -185,7 +185,7 @@ def run_db_filters(
    # assert 1 <= (resN - ofstN) <= len(pi1._pose)
    # assert 1 <= (resC - ofstC) <= len(pi2._pose)
 
-   # test, result = AV.test_pair_alignment(
+   # test, result = AV.testing_pair_alignment(
    #     pi1, pi2, resN - ofstN, resC - ofstC
    # )
    # if test is None:

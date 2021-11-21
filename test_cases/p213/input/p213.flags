@@ -1,0 +1,75 @@
+
+--geometry Crystal_P213_C3_C3(c3a=0,c3b=-1)
+--bbconn      
+   _N C3_N
+   C_ C3_C
+
+# --geometry Octahedral(c2=0,c3=-1, xtal="I 4 3 2")
+# --bbconn      
+#    _C C2_C
+#    NN Het:NNY
+# 	C_ D3_C
+# 
+# 	#_N C2_N
+#    #CC Het:CCY
+# 	#N_ D3_N
+
+--nbblocks 4
+--monte_carlo 0
+--parallel 0
+--shuffle_bblocks 0
+
+--tolerance 1.0
+--max_score0 3
+--max_score0sym 10
+--full_score0sym 0
+
+--splice_rms_range 5
+--splice_max_rms 1.0
+--splice_ncontact_cut 8
+--splice_ncontact_no_helix_cut 2
+--splice_nhelix_contacted_cut 1
+--splice_max_chain_length 750
+
+--verbosity 2
+--output_from_pose 0
+--disable_cache 0
+--cachedirs ./wormscache
+--merge_segment 1
+--no_duplicate_bases 0
+
+--xtal_min_cell_size 100
+--xtal_max_cell_size 99999
+
+--max_clash_check 10000000
+--max_com_reduworms_mbb0000__0004.pdbndancy 4
+--output_only_AAAA 0
+--dbfiles
+
+   #updated: 2018-09-10
+#    #sym hb
+    /home/yhsia/helixfuse/2018-07-09_sym/processing/database/HFuse_Cx_database.20180711.txt
+#    #sym george
+#    /home/yhsia/helixfuse/cyc_george/processing/database/HFuse_Gcyc_database.20180817.txt
+#    #asym zibo
+#    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-103_2.20180516.txt
+#    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-112_2.20180516.txt
+#    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-127_2.20180516.txt
+#    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-131_2.20180516.txt
+#    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-13_2.20180516.txt
+#    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-15_2.20180516.txt
+#    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-34_2.20180516.txt
+#    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-37_2.20180516.txt
+#    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-39_2.20180516.txt
+#    /home/yhsia/helixfuse/asym_zibo_combine/processing/database/HFuse_het_2chain_2arm_database.ZCON-9_2.20180516.txt
+#    #asym sherry
+#    /home/yhsia/helixfuse/asym_sh_combine/processing/database/HFuse_het_3chain_2arm_database.Sh13_3.20180516.txt
+#    /home/yhsia/helixfuse/asym_sh_combine/processing/database/HFuse_het_3chain_2arm_database.Sh29_3.20180516.txt
+#    /home/yhsia/helixfuse/asym_sh_combine/processing/database/HFuse_het_3chain_2arm_database.Sh34_3.20180516.txt
+#    /home/yhsia/helixfuse/asym_sh_combine/processing/database/HFuse_het_3chain_3arm_database.Sh13_3.20180516.txt
+#    /home/yhsia/helixfuse/asym_sh_combine/processing/database/HFuse_het_3chain_3arm_database.Sh29_3.20180516.txt
+#    /home/yhsia/helixfuse/asym_sh_combine/processing/database/HFuse_het_3chain_3arm_database.Sh34_3.20180516.txt
+#    #asym sherry dimers
+#    /home/yhsia/helixfuse/2018-09-04_asym_sh_hetc2/combine/processing/database/HFuse_het_2chain_2arm_database.Sh13-5+1-AI_2.20180905.txt
+#    /home/yhsia/helixfuse/2018-09-04_asym_sh_hetc2/combine/processing/database/HFuse_het_2chain_2arm_database.Sh29-5+1-CI_2.20180905.txt
+# 

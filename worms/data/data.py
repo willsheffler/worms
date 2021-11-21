@@ -1,10 +1,10 @@
 import os, pickle, lzma, json
 import worms
 
-data_dir = os.path.dirname(__file__)
-pdb_dir = os.path.join(data_dir, 'pdb')
-database_dir = os.path.join(data_dir, 'databases')
-json_dir = os.path.join(data_dir, 'databases', 'json')
+data_dir = os.path.abspath(os.path.dirname(__file__))
+pdb_dir = os.path.abspath(os.path.join(data_dir, 'pdb'))
+database_dir = os.path.abspath(os.path.join(data_dir, 'databases'))
+json_dir = os.path.abspath(os.path.join(data_dir, 'databases', 'json'))
 
 def data_file_path(fname):
    assert not fname.startswith('/')
@@ -19,12 +19,12 @@ def data_file_contents(fname, mode='r'):
    with open(fname, mode) as inp:
       return inp.read()
 
-def test_file_contents(fname, mode='r'):
+def get_test_file_contents(fname, mode='r'):
    fname = test_file_path(fname)
    with open(fname, mode) as inp:
       return inp.read()
 
-def test_file_json(fname, mode='r'):
+def get_test_json(fname, mode='r'):
    fname = test_file_path(fname)
    return load_json(fname)
 

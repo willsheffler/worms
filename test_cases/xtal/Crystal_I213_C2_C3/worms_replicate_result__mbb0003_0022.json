@@ -1,0 +1,48 @@
+[
+    {
+        "file": "pdbs/\\\\home\\\\yhsia\\\\helixfuse\\\\2018-07-09_sym\\\\output\\\\2L4HC2-23_2\\\\DHR08\\\\2L4HC2-23_2_asu_DHR08_BA_0001_0002.pdb",
+        "name": "HFuse_2L4HC2-23_2_0001",
+        "class": [
+            "C2_N"
+        ],
+        "type": "HFuse_C2_N",
+        "base": "2L4HC2-23",
+        "components": [
+            "DHR08"
+        ],
+        "validated": false,
+        "protocol": "Hfuse",
+        "connections": [
+            {
+                "chain": 0,
+                "direction": "N",
+                "residues": [
+                    51
+                ]
+            }
+        ]
+    },
+    {
+        "file": "pdbs/\\\\home\\\\yhsia\\\\helixfuse\\\\2018-07-09_sym\\\\output\\\\2L6HC3-12_3\\\\DHR49\\\\2L6HC3-12_3_asu_DHR49_AB_0001_0001.pdb",
+        "name": "HFuse_2L6HC3-12_3_0001",
+        "class": [
+            "C3_C"
+        ],
+        "type": "HFuse_C3_C",
+        "base": "2L6HC3-12",
+        "components": [
+            "DHR49"
+        ],
+        "validated": false,
+        "protocol": "Hfuse",
+        "connections": [
+            {
+                "chain": 0,
+                "direction": "C",
+                "residues": [
+                    129
+                ]
+            }
+        ]
+    }
+]

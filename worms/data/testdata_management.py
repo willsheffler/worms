@@ -17,7 +17,10 @@ def get_latest_testresult(tag, candidates_ok=False):
    fname = get_latest_testresult_path(tag, candidates_ok=candidates_ok)
    try:
       with open(fname, 'rb') as inp:
-         return fname, pickle.load(inp)
+         try:
+            return fname, pickle.load(inp)
+         except AttributeError:
+            return fname, None
    except (TypeError, FileNotFoundError):
       return fname, None
 

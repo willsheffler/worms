@@ -1,6 +1,6 @@
 import pickle
 from argparse import Namespace
-from rpxdock.util import Bunch
+from worms import Bunch
 
 def test_bunch_pickle(tmpdir):
    x = Bunch(dict(a=2, b="bee"))
@@ -60,6 +60,7 @@ def test_bunch_sub():
 def test_bunch_items():
    b = Bunch(dict(item='item'))
    b.attr = 'attr'
+   print(list(b.items()))
    assert len(list(b.items())) == 2
    assert list(b) == ['item', 'attr']
    assert list(b.keys()) == ['item', 'attr']

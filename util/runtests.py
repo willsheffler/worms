@@ -70,7 +70,7 @@ def testfile_of(path, bname):
    if os.path.exists(t):
       return t
 
-def dispatch(file, pytest_args="--duration=5"):
+def dispatch(file, pytest_args=''):
    """for the love of god... clean me up"""
    file = os.path.relpath(file)
    path, bname = os.path.split(file)

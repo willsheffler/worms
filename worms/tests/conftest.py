@@ -25,7 +25,7 @@ def jsondir():
 def db_bblock_caching_v0(datadir):
    return worms.database.CachingBBlockDB(
       cachedirs=[str(".worms_pytest_cache")],
-      dbfiles=[os.path.join(datadir, "test_db_file.json")],
+      dbfiles=[os.path.join(datadir, 'databases', 'json', 'test_db_file.json')],
       lazy=False,
       read_new_pdbs=worms.tests.HAVE_PYROSETTA,
    )
@@ -38,7 +38,7 @@ def db_splice_caching_v0(datadir):
 def db_caching_bblock_v0_fullsize_prots(datadir):
    return worms.database.CachingBBlockDB(
       cachedirs=[str(".worms_pytest_cache")],
-      dbfiles=[os.path.join(datadir, "test_fullsize_prots.json")],
+      dbfiles=[os.path.join(datadir, 'databases', 'json', 'test_fullsize_prots.json')],
       lazy=False,
       read_new_pdbs=worms.tests.HAVE_PYROSETTA,
    )

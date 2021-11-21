@@ -1,22 +1,22 @@
 # -*- coding: utf-8 -*-
 """Unit test package for worms."""
 
-import os, imp, pytest
+import os, importlib, pytest
 
 from worms.tests.common_test_utils import *
 
 HAVE_PYROSETTA = False
 
-try:
-   imp.find_module('pyrosetta')
+pyros = importlib.machinery.PathFinder().find_spec('pyrosetta')
+if pyros:
    only_if_pyrosetta = lambda _: _
    HAVE_PYROSETTA = True
-   try:
-      imp.find_module('pyrosetta.distributed')
+   pyrosd = importlib.machinery.PathFinder().find_spec('pyrosetta.distributed')
+   if pyrosd:
       only_if_pyrosetta_distributed = lambda _: _
-   except ImportError:
+   else:
       only_if_pyrosetta_distributed = pytest.mark.skip
-except ImportError:
+else:
    only_if_pyrosetta = only_if_pyrosetta_distributed = pytest.mark.skip
 
 only_if_jit = lambda x: x

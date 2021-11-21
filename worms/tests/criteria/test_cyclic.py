@@ -1,4 +1,6 @@
-from worms import *
+from worms.criteria import Cyclic
+from worms.search.old_search import grow
+from worms.segments import Spliceable, Segment
 from .. import only_if_pyrosetta
 
 @only_if_pyrosetta

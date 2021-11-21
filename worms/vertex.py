@@ -142,8 +142,10 @@ class _Vertex:
       # ('dirn'    , nt.int32[:]),
       # ('min_seg_len', nt.int32),
 
-   def __eq__(self, other):
-      return generic_equals(self._state, other._state)
+   def equal_to(self, other):
+      with nb.objmode(eq='b1'):
+         eq = generic_equals(self._state, other._state)
+      return eq
 
 @jit
 def _check_inorder_nodups(ires):

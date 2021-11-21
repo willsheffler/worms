@@ -20,7 +20,7 @@ def _validate_bbs_verts(bbs, verts):
       assert 0 <= np.min(vert.ibblock)
       assert np.max(vert.ibblock) < len(bb)
 
-class SearchSpaceDag:
+class SearchSpaceDAG:
    """represents search space
     """
    def __init__(self, bbspec, bbs, verts, edges):
@@ -28,7 +28,7 @@ class SearchSpaceDag:
       assert isinstance(bbs[0][0], _BBlock)
       assert isinstance(verts[0], (worms.vertex._Vertex, type(None)))
       if not (len(edges) == 0 or all(isinstance(e, worms.edge._Edge) for e in edges)):
-         raise ValueError("Error bad SearchSpaceDag edges")
+         raise ValueError("Error bad SearchSpaceDAG edges")
       if bbspec:
          assert len(bbspec) == len(bbs)
       assert len(edges) == 0 or len(edges) + 1 == len(verts)
@@ -98,13 +98,13 @@ class SearchSpaceDag:
    def report_size(self):
       sizevert = [x.memuse for x in self.verts]
       sizeedge = [x.memuse for x in self.edges]
-      print("SearchSpaceDag sizes:")
+      print("SearchSpaceDAG sizes:")
       print(f"    vertex sizes: {sum(sizevert):8,}", sizevert)
       print(f"    edge sizes:   {sum(sizeedge):8,}", sizeedge)
 
    def __str__(self):
       return os.linesep.join([
-         'SearchSpaceDag',
+         'SearchSpaceDAG',
          f'    bblocks {[len(_) for _ in self.bbs]}',
          f'    verts {[_.ibblock.shape for _ in self.verts]}',
          f'    edges {[_.splices.shape for _ in self.edges]}',
@@ -437,7 +437,7 @@ def simple_search_dag(
       # )
       spdb.sync_to_disk()
 
-   ssdag = SearchSpaceDag(criteria.bbspec, bbs, verts, edges)
+   ssdag = SearchSpaceDAG(criteria.bbspec, bbs, verts, edges)
    worms.PING(f'created ssdag mbb {merge_bblock}', printit=True, emphasis=1)
    if verbosity > 0:
       print(ssdag)

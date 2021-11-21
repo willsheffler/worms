@@ -6,13 +6,14 @@ from time import perf_counter as clock
 import numpy as np
 # import pytest
 
-from worms import simple_search_dag, grow_linear, NullCriteria
+import worms as w
+from worms.criteria import NullCriteria
 from worms.util import InProcessExecutor
 from worms.database import CachingBBlockDB, CachingSpliceDB
 from worms.ssdag_pose import make_pose
-from worms.ssdag import graph_dump_pdb
+from worms.output import graph_dump_pdb
 # from worms.filters.clash import prune_clashes
-from worms.search import lossfunc_rand_1_in
+from worms.search.linear import lossfunc_rand_1_in
 
 logging.getLogger().setLevel(99)
 
@@ -54,7 +55,7 @@ def worm_grow_3(
       clash_check = dump_pdb * 100
    ttot = clock()
 
-   ssdag, (tdb, tvertex, tedge) = simple_search_dag(
+   ssdag, (tdb, tvertex, tedge) = worms.ssdag.simple_search_dag(
       [
          ("C3_N", "_N"),
          ("Het:NCy", "C_"),
@@ -79,7 +80,7 @@ def worm_grow_3(
    last_bb_same_as = -1
 
    tgrow = clock()
-   rslt = grow_linear(
+   rslt = w.search.grow_linear(
       ssdag,
       # loss_function=lf,
       loss_function=lossfunc_rand_1_in(1000),
@@ -153,6 +154,9 @@ def worm_grow_3(
       print("dumped %i structures" % min(dump_pdb, len(rslt.idx)), "time", clock() - tpdb)
 
 def main():
+
+   raise DeprecationWarning
+
    import argparse
    import glob
    import pyrosetta

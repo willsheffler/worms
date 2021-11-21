@@ -4,6 +4,7 @@ import concurrent.futures as cf, numpy as np
 from tqdm import tqdm
 
 import worms
+from worms import PING
 
 # logging.basicConfig(level=logging.INFO)
 
@@ -45,7 +46,7 @@ class CachingBBlockDB:
       self.null_base_names = null_base_names
       self.cachedirs = worms.database.get_cachedirs(cachedirs)
       self.dbroot = dbroot + "/" if dbroot and not dbroot.endswith("/") else dbroot
-      worms.PING(f"CachingBBlockDB cachedirs: {self.cachedirs}")
+      PING(f"CachingBBlockDB cachedirs: {self.cachedirs}")
       self.load_poses = load_poses
       os.makedirs(self.cachedirs[0] + "/poses", exist_ok=True)
       os.makedirs(self.cachedirs[0] + "/bblock", exist_ok=True)
@@ -57,7 +58,7 @@ class CachingBBlockDB:
       self._alldb = []
       self._holding_lock = False
       self.dbfiles = dbfiles
-      worms.PING(f'database.py: read database files from {self.dbroot}')
+      PING(f'database.py: read database files from {self.dbroot}')
       (
          self._alldb,
          self._dictdb,
@@ -69,10 +70,8 @@ class CachingBBlockDB:
       )
       if len(self._alldb) != len(self._dictdb):
          dups = len(self._alldb) - len(self._dictdb)
-         warning("!" * 100)
-         warning("DIRE WARNING: %6i duplicate pdb files in database" % dups)
-         warning("!" * 100)
-      worms.PING("loading %i db entries" % len(self._alldb))
+         print("WARNING: %6i duplicate pdb files in database" % dups)
+      PING("loading %i db entries" % len(self._alldb))
       self.n_new_entries = 0
       self.n_missing_entries = len(self._alldb)
       if not self.lazy:
@@ -158,9 +157,12 @@ class CachingBBlockDB:
             if pdbfile in self.pdb_contents:
                contents = self.pdb_contents[pdbfile]
                self._poses_cache[pdbfile] = worms.rosetta_init.pose_from_str(contents)
-               self._poses_cache[pdbfile].dump_pdb('aaa.pdb')
             else:
-               pdbpath = os.sep.join([self.dbroot, pdbfile])
+               pdbpath = os.path.join(self.dbroot, pdbfile)
+               # print('!!!!!!!!!!!!!!!!!!')
+               # print(pdbpath)
+               # print(self.dbroot)
+               # print(pdbfile)
                assert os.path.exists(pdbpath)
                self._poses_cache[pdbfile] = worms.rosetta_init.pose_from_file(pdbpath)
       return self._poses_cache[pdbfile]
@@ -223,14 +225,17 @@ class CachingBBlockDB:
       self._poses_cache, self._bblock_cache = data
 
    def load_cached_pose_into_memory(self, pdbfile):
+
+      from worms import rosetta_init
+
       posefile = self.posefile(pdbfile)
       try:
          with open(posefile, "rb") as f:
             try:
                self._poses_cache[pdbfile] = pickle.load(f)
                return True
-            except EOFError:
-               warning("corrupt pickled pose will be replaced", posefile)
+            except (EOFError, RuntimeError):
+               PING("corrupt pickled pose will be replaced", posefile)
                os.remove(posefile)
                return False
       except (OSError, FileNotFoundError):
@@ -282,6 +287,7 @@ class CachingBBlockDB:
       return os.path.join(self.cachedirs[0], "poses", worms.database.flatten_path(pdbfile))
 
    def load_pdbs_multiprocess(self, names, parallel=0):
+
       self.read_new_pdbs, tmp = True, self.read_new_pdbs
       data = self.clear_caches()
       needs_unlock = False
@@ -374,7 +380,7 @@ class CachingBBlockDB:
             try:
                with open(posefile, "wb") as f:
                   pickle.dump(pose, f)
-                  worms.PING("dumped _bblock_cache files for %s" % pdbfile)
+                  PING("dumped _bblock_cache files for %s" % pdbfile)
             except OSError as e:
                print("not saving", posefile)
 

@@ -23,9 +23,9 @@ def read_bblock_dbfiles(dbfiles, dbroot=''):
    pdb_contents = dict()
    for dbfile in dbfiles:
       if dbfile.endswith('.txz'):
-         _, db, pdbs = worms.database.archive.read_bblock_archive(dbfile)
-         dbentries.extend(db)
-         pdb_contents.update(pdbs)
+         arc = worms.database.archive.read_bblock_archive(dbfile)
+         dbentries.extend(arc.bblocks)
+         pdb_contents.update(arc.pdbs)
       else:
          with open(dbfile) as f:
             dbentries.extend(json.load(f))
@@ -43,11 +43,12 @@ def parse_bblock_database_entries(dbentries, dbroot='', pdb_contents=dict()):
    assert len(dbentries), 'no db entries'
    pdb_files_missing = False
    for entry in dbentries:
-      if not (os.path.exists(dbroot + entry["file"]) or entry['file'] in pdb_contents):
+      # print('database.py checking', entry['file'])
+      if not (os.path.exists(dbroot + entry['file']) or entry['file'] in pdb_contents):
          pdb_files_missing = True
-         print('!' * 60)
+         # print('!' * 60)
          print("pdb file pdb_files_missing:", entry["file"])
-         print('!' * 60)
+         # print('!' * 60)
    assert not pdb_files_missing
    return dbentries, dictdb, key_to_pdbfile, pdb_contents
 

@@ -22,9 +22,9 @@ def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
    com = np.mean(cb, axis=0)
    rg = np.sqrt(np.sum((cb - com)**2) / len(cb))
 
-   assert len(pose) == len(ncac)
-   assert len(pose) == len(stubs)
-   assert len(pose) == len(ss)
+   assert pose.size() == len(ncac)
+   assert pose.size() == len(stubs)
+   assert pose.size() == len(ss)
    conn = make_connections_array(entry["connections"], chains)
    if len(conn) == 0:
       print("bad conn info!", pdbfile)
@@ -38,7 +38,7 @@ def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
       ncac = tmp
    else:
       assert 0, "bad ncac"
-   assert cb.shape == (len(pose), 4)
+   assert cb.shape == (pose.size(), 4)
 
    if entry["base"] in null_base_names: basehash = 0
    else: basehash = worms.util.hash_str_to_int(entry["base"])
@@ -239,33 +239,35 @@ class _BBlock:
       def __getstate__(self):
          return self._state
 
-   def __eq__(self, other):
+   def equal_to(self, other):
       # return generic_equals(self._state, other._state)
       # dunno if it's safe to ignore ncac, chains and stubs
       # but they make the comparison slow
-      return all([
-         generic_equals(self.json, other.json),
-         generic_equals(self.connections, other.connections),
-         generic_equals(self.file, other.file),
-         generic_equals(self.filehash, other.filehash),
-         generic_equals(self.components, other.components),
-         generic_equals(self.protocol, other.protocol),
-         generic_equals(self.name, other.name),
-         generic_equals(self.classes, other.classes),
-         generic_equals(self.validated, other.validated),
-         generic_equals(self._type, other._type),
-         generic_equals(self.base, other.base),
-         generic_equals(self.basehash, other.basehash),
-         # generic_equals(self.ncac, other.ncac),
-         generic_equals(self.cb, other.cb),
-         # generic_equals(self.chains, other.chains),
-         generic_equals(self.ss, other.ss),
-         # generic_equals(self.stubs, other.stubs),
-         generic_equals(self.com, other.com),
-         generic_equals(self.rg, other.rg),
-         generic_equals(self.numhull, other.numhull),
-         generic_equals(self.hull, other.hull),
-      ])
+      with numba.objmode(eq='b1'):
+         eq = all([
+            generic_equals(self.json, other.json),
+            generic_equals(self.connections, other.connections),
+            generic_equals(self.file, other.file),
+            generic_equals(self.filehash, other.filehash),
+            generic_equals(self.components, other.components),
+            generic_equals(self.protocol, other.protocol),
+            generic_equals(self.name, other.name),
+            generic_equals(self.classes, other.classes),
+            generic_equals(self.validated, other.validated),
+            generic_equals(self._type, other._type),
+            generic_equals(self.base, other.base),
+            generic_equals(self.basehash, other.basehash),
+            # generic_equals(self.ncac, other.ncac),
+            generic_equals(self.cb, other.cb),
+            generic_equals(self.chains, other.chains),
+            generic_equals(self.ss, other.ss),
+            # generic_equals(self.stubs, other.stubs),
+            generic_equals(self.com, other.com),
+            generic_equals(self.rg, other.rg),
+            generic_equals(self.numhull, other.numhull),
+            generic_equals(self.hull, other.hull),
+         ])
+      return eq
 
 class BBlockWrap:
    def __init__(self, _bblock):

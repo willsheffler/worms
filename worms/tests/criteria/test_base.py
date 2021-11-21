@@ -1,5 +1,7 @@
 import pytest
-from worms import *
+from worms.criteria import NullCriteria
+from worms.segments import Spliceable, Segment
+from worms.search.old_search import grow
 from .. import only_if_pyrosetta
 
 @only_if_pyrosetta

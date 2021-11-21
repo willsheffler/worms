@@ -14,7 +14,7 @@ cli_args = dict(
    nbblocks=[64],
    use_saved_bblocks=0,
    monte_carlo=[0.0],
-   parallel=1,
+   parallel=0,
    verbosity=2,
    precache_splices=1,
    precache_splices_and_quit=0,
@@ -147,6 +147,8 @@ cli_args = dict(
    #
    print_splice_fail_summary=1,
    print_info_edges_with_no_splices=1,
+   #
+   save_minimal_replicate_database=0,
 )
 
 def add_argument_unless_exists(parser, *arg, **kw):

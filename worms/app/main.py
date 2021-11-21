@@ -60,7 +60,7 @@ def construct_global_ssdag_and_run(
 ):
    print("construct_global_ssdag_and_run,", len(criteria_list), "criteria, args:")
    orig_output_prefix = kw.output_prefix
-   kw.timer.checkpoint('top of construct_global_ssdag_and_run')
+   if kw.timer: kw.timer.checkpoint('top of construct_global_ssdag_and_run')
    log = list()
 
    for icrit, criteria in enumerate(criteria_list):
@@ -94,7 +94,8 @@ def construct_global_ssdag_and_run(
          kw.merge_bblock = merge_bblock
          if kw["precache_splices_and_quit"]:
             return Bunch(log=log)
-      kw.timer.checkpoint('precache_splices')
+      if kw.timer:
+         if kw.timer: kw.timer.checkpoint('precache_splices')
 
       global _global_shared_ssdag
       if "bbs" in kw and (len(kw.bbs) > 2 or kw.bbs[0] is not kw.bbs[1]):
@@ -111,7 +112,7 @@ def construct_global_ssdag_and_run(
          PING('failed\n      if "bbs" in kw and (len(kw.bbs) > 2 or kw.bbs[0] is not kw.bbs[1]):')
          assert 0
          ####
-      kw.timer.checkpoint('make _global_shared_ssdag')
+      if kw.timer: kw.timer.checkpoint('make _global_shared_ssdag')
       #
 
       if _global_shared_ssdag is None:
@@ -130,9 +131,9 @@ def construct_global_ssdag_and_run(
       else:
          kw.context_structure = None
 
-      kw.timer.checkpoint('construct_global_ssdag_and_run')
+      if kw.timer: kw.timer.checkpoint('construct_global_ssdag_and_run')
       log = run_all_mbblocks(criteria, **kw)
-      kw.timer.checkpoint('run_all_mbblocks')
+      if kw.timer: kw.timer.checkpoint('run_all_mbblocks')
 
       PING('run_all_mbblocks returned')
       if kw.pbar:
@@ -165,7 +166,7 @@ def run_all_mbblocks(
    # kw.database.bblockdb.clear_bblocks()  # remove cached BBlocks
    kw.database.bblockdb.clear()
    kw.database.splicedb.clear()
-   kw.timer.checkpoint('run_all_mbblocks')
+   if kw.timer: kw.timer.checkpoint('run_all_mbblocks')
 
    with exe as pool:
       mseg = merge_segment
@@ -191,7 +192,7 @@ def run_all_mbblocks(
             **kw,
          ) for i in merge_bblock_list
       ]
-      kw.timer.checkpoint('run_all_mbblocks: submit_jobs')
+      if kw.timer: kw.timer.checkpoint('run_all_mbblocks: submit_jobs')
       log = [f"split job over merge_segment={mseg}, n = {len(futures)}"]
       # print(log[-1])
 
@@ -204,7 +205,7 @@ def run_all_mbblocks(
          log = [""] * len(futures) + log
 
       print(merge_bblock, 'run_all_mbblocks done', flush=True)
-      kw.timer.checkpoint('run_all_mbblocks: finish_jobs')
+      if kw.timer: kw.timer.checkpoint('run_all_mbblocks: finish_jobs')
 
       return log
 
@@ -217,30 +218,30 @@ def run_one_mbblock(
 ):
    kw = Bunch(kw)
    print('================= run_one_mbblock', kw.merge_bblock, '=================')
-   kw.timer.checkpoint()
+   if kw.timer: kw.timer.checkpoint()
    # try:
    if True:
       if bbs_states is not None:
          kw.bbs = [tuple(worms.bblock._BBlock(*s) for s in bb) for bb in bbs_states]
 
       ssdag, result1, log = search_all_stages(criteria, **kw)
-      kw.timer.checkpoint('search_all_stages')
+      if kw.timer: kw.timer.checkpoint('search_all_stages')
 
       if result1 is None:
          return []
 
       if True:
          result1 = worms.filters.prune_duplicates_on_segpos(result1)
-      kw.timer.checkpoint('prune_duplicates_on_segpos')
+      if kw.timer: kw.timer.checkpoint('prune_duplicates_on_segpos')
 
       if disable_clash_check:
          result2 = result1
       else:
          result2 = prune_clashes(ssdag, criteria, result1, **kw)
-      kw.timer.checkpoint('prune_clashes')
+      if kw.timer: kw.timer.checkpoint('prune_clashes')
 
       result3 = check_geometry(ssdag, criteria, result2, **kw)
-      kw.timer.checkpoint('check_geometry')
+      if kw.timer: kw.timer.checkpoint('check_geometry')
 
       log = []
       if True:  # len(result3.idx) > 0:
@@ -251,7 +252,7 @@ def run_one_mbblock(
       if return_raw_result:
          return [result3]
 
-      kw.timer.checkpoint('run_one_mbblock')
+      if kw.timer: kw.timer.checkpoint('run_one_mbblock')
       r = worms.output.filter_and_output_results(
          criteria,
          ssdag,
@@ -259,7 +260,7 @@ def run_one_mbblock(
          **kw,
       )
       log += r
-      kw.timer.checkpoint('filter_and_output_results')
+      if kw.timer: kw.timer.checkpoint('filter_and_output_results')
 
       if not kw.pbar:
          print(f'completed: mbb{kw.merge_bblock:04}')
@@ -285,12 +286,12 @@ def search_all_stages(
    kw = Bunch(kw)
    stages = [(criteria, bbs)]
    merge = None
-   kw.timer.checkpoint()
+   if kw.timer: kw.timer.checkpoint()
    if hasattr(criteria, "stages"):
       stages, merge = criteria.stages(bbs=bbs, **kw)
    if len(stages) > 1:
       assert kw.merge_bblock is not None
-   kw.timer.checkpoint('search_all_stages: get stages')
+   if kw.timer: kw.timer.checkpoint('search_all_stages: get stages')
    assert len(monte_carlo) in (1, len(stages))
    if len(monte_carlo) != len(stages):
       monte_carlo *= len(stages)
@@ -305,7 +306,7 @@ def search_all_stages(
          lbl = f'stage{i}_mbb{kw.merge_bblock:04}'
       PING('start search_single_stage')
 
-      kw.timer.checkpoint('search_all_stages')
+      if kw.timer: kw.timer.checkpoint('search_all_stages')
       single_stage_result = search_single_stage(
          crit,
          monte_carlo=monte_carlo[i],
@@ -314,7 +315,7 @@ def search_all_stages(
          merge_segment=merge_segment,
          **kw,
       )
-      kw.timer.checkpoint('search_single_stage')
+      if kw.timer: kw.timer.checkpoint('search_single_stage')
 
       results.append(single_stage_result)
       if not hasattr(crit, "produces_no_results") and len(results[-1][2].idx) == 0:
@@ -350,7 +351,7 @@ def search_all_stages(
 
       assert len(ssdag.verts) == len(criteria.bbspec)
       rslt = merge(criteria, ssdag, ssdA, rsltA, critB, ssdB, rsltB, **kw)
-      kw.timer.checkpoint('search_all_stages')
+      if kw.timer: kw.timer.checkpoint('search_all_stages')
       return ssdag, rslt, logA + logB
 
    elif len(results) == 3:
@@ -379,7 +380,7 @@ def search_all_stages(
 
       rslt = merge(criteria, critC, ssdag, ssdB, ssdC, rsltC, **kw)
 
-      kw.timer.checkpoint('search_all_stages')
+      if kw.timer: kw.timer.checkpoint('search_all_stages')
       return ssdag, rslt, logA + logB + logC
 
    else:
@@ -401,7 +402,7 @@ def search_single_stage(
             return criteria, ssdag, result, ["from run cache " + lbl]
 
    PING('call simple_search_dag')
-   kw.timer.checkpoint('search_single_stage')
+   if kw.timer: kw.timer.checkpoint('search_single_stage')
    ssd = simple_search_dag(
       criteria,
       source=_global_shared_ssdag,
@@ -410,7 +411,7 @@ def search_single_stage(
    )
    ssdag = ssd.ssdag
    print(ssdag)
-   kw.timer.checkpoint('simple_search_dag')
+   if kw.timer: kw.timer.checkpoint('simple_search_dag')
 
    PING('call grow_linear')
    result, tsearch = run_and_time(
@@ -421,7 +422,7 @@ def search_single_stage(
       lbl=lbl,
       **kw,
    )
-   kw.timer.checkpoint('grow_linear')
+   if kw.timer: kw.timer.checkpoint('grow_linear')
    PING('call grow_linear done')
 
    Nsparse = result.stats.total_samples[0]
@@ -441,5 +442,5 @@ def search_single_stage(
    if kw["run_cache"]:
       with (open(kw["run_cache"] + lbl + ".pickle", "wb")) as out:
          pickle.dump((ssdag, result), out)
-   kw.timer.checkpoint('search_single_stage')
+   if kw.timer: kw.timer.checkpoint('search_single_stage')
    return criteria, ssdag, result, log

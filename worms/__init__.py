@@ -6,10 +6,10 @@ __author__ = """Will Sheffler"""
 __email__ = "willsheffler@gmail.com"
 __version__ = "0.2.0"
 
-import sys
-if 'pytest' in sys.modules:
-   os.environ['NUMBA_DISABLE_JIT'] = '1'
-   assert 0
+import sys, os
+
+#if 'pytest' in sys.modules:
+#   os.environ['NUMBA_DISABLE_JIT'] = '1'
 
 from worms.util.bunch import Bunch
 from worms.util.ping import PING

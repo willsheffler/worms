@@ -246,7 +246,7 @@ def get_allowed_splices(
          analysis = (-1, ) * _len_analysis
          if len(result[-1]) == _len_analysis:
             result, analysis = result
-         cached = not (len(result) is 5 and isinstance(result[0], np.ndarray))
+         cached = not (len(result) == 5 and isinstance(result[0], np.ndarray))
          if not cached:
             # is newly computed result, not from cache
             rms, nclash, ncontact, ncnh, nhc = result
@@ -342,8 +342,10 @@ class _Edge:
    def memuse(self):
       return self.splices.size * self.splices.itemsize
 
-   def __eq__(self, other):
-      return generic_equals(self._state, other._state)
+   def equal_to(self, other):
+      with nb.objmode(eq='b1'):
+         eq = generic_equals(self._state, other._state)
+      return eq
 
 @jit
 def _chainbounds_of_ires(chains, ires):

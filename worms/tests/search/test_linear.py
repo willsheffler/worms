@@ -1,5 +1,8 @@
 from worms.search.linear import grow_linear
-from worms import Vertex, Edge, CachingBBlockDB, SearchSpaceDAG
+from worms.vertex import Vertex
+from worms.edge import Edge
+from worms.database import CachingBBlockDB
+from worms.ssdag import SearchSpaceDAG
 import pytest
 import numpy as np
 import os
@@ -23,8 +26,8 @@ def _expand_inout_indices(verts, indices):
    new[:, -1] = indices[:, -1]
    return new
 
-def test_linear_search_two(bbdb_fullsize_prots):
-   bbs = bbdb_fullsize_prots.query("all")
+def test_linear_search_two(db_caching_bblock_v0_fullsize_prots):
+   bbs = db_caching_bblock_v0_fullsize_prots.query("all")
    u = Vertex(bbs, "_C")
    v = Vertex(bbs, "N_")
    verts = (u, v)
@@ -92,8 +95,8 @@ def test_linear_search_two(bbdb_fullsize_prots):
    ])
 
 @only_if_jit
-def test_linear_search_three(bbdb_fullsize_prots):
-   bbs = bbdb_fullsize_prots.query("all")
+def test_linear_search_three(db_caching_bblock_v0_fullsize_prots):
+   bbs = db_caching_bblock_v0_fullsize_prots.query("all")
    u = Vertex(bbs, "_C")
    v = Vertex(bbs, "NC")
    w = Vertex(bbs, "N_")
@@ -196,7 +199,7 @@ def test_linear_search_three(bbdb_fullsize_prots):
    ])
 
 if __name__ == "__main__":
-   bbdb_fullsize_prots = CachingBBlockDB(
+   db_caching_bblock_v0_fullsize_prots = CachingBBlockDB(
       cachedirs=[str(".worms_pytest_cache")],
       dbfiles=[os.path.join("worms/data/test_fullsize_prots.json")],
       lazy=False,
@@ -204,4 +207,4 @@ if __name__ == "__main__":
       nprocs=1,
    )
 
-   test_linear_search_two(bbdb_fullsize_prots)
+   test_linear_search_two(db_caching_bblock_v0_fullsize_prots)

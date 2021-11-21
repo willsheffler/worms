@@ -87,7 +87,7 @@ def filter_audit():
          for j, jr in enumerate(splice_res_n):
             # if nclash[i, j] > 0: continue
 
-            # test, result = av.test_pair_alignment(pi1, pi2, ir + 1, jr + 1)
+            # test, result = av.testing_pair_alignment(pi1, pi2, ir + 1, jr + 1)
             # if test is not None:
             # post_rms[i, j] = result
             pose = splice_poses(pose1, pose2, ir, jr)

@@ -1,6 +1,6 @@
 """TODO: Summary
 """
-import sys, os, operator, datetime, json
+import sys, os, operator, datetime, json, functools
 import numba, numpy as np
 from numba.experimental.jitclass.base import JitClassType
 from hashlib import sha1
@@ -33,6 +33,8 @@ def generic_equals(this, that, checktypes=False, debug=False):
       return all(generic_equals(x, y, checktypes, debug) for x, y in zip(this, that))
    if isinstance(this, np.ndarray):
       return np.allclose(this, that)
+   if hasattr(this, 'equal_to'):
+      return this.equal_to(that)
    if debug:
       print('!!!!!!!!!!', type(this))
       if this != that:
@@ -91,37 +93,6 @@ def datetime_from_tag(tag):
    assert 0 < vals[4] <= 60  # minute
    assert 0 < vals[5] <= 60  # second
    return datetime.datetime(*vals)
-
-def bigprod(iterable):
-   return functools.reduce(operator.mul, iterable, 1)
-
-# I dont remember what this was for
-# class MultiRange:
-#    def __init__(self, nside):
-#       """TODO: Summary
-#
-#         Args:
-#             nside (TYPE): Description
-#         """
-#       self.nside = np.array(nside, dtype="i")
-#       self.psum = np.concatenate([np.cumprod(self.nside[1:][::-1])[::-1], [1]])
-#       assert np.all(self.psum > 0)
-#       assert bigprod(self.nside[1:]) < 2**63
-#       self.len = bigprod(self.nside)
-#
-#    def __getitem__(self, idx):
-#       """
-#         """
-#       if isinstance(idx, slice):
-#          return (self[i] for i in range(self.len)[idx])
-#       if idx >= self.len:
-#          raise StopIteration
-#       return tuple((idx // self.psum) % self.nside)
-#
-#    def __len__(self):
-#       """
-#         """
-#       return self.len
 
 def first_duplicate(segs):
    for i in range(len(segs) - 1, 0, -1):

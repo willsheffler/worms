@@ -14,7 +14,7 @@ from worms import util
 pr.init('-mute all')
 
 template = """
-{"file": "__DATADIR__/%s",
+{"file": "__PDBDIR__/%s",
     "name": "%s" ,
     "class": ["%s"],
     "type": "?" ,

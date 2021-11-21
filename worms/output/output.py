@@ -2,6 +2,7 @@ import sys, collections, os, psutil, gc, json, traceback, copy
 
 # from pympler.asizeof import asizeof
 
+import worms
 from worms import util, Bunch, PING
 from worms.ssdag_pose import make_pose_crit
 from worms.output.dumppdb import graph_dump_pdb
@@ -44,6 +45,9 @@ def filter_and_output_results(
    print_pings = debug
    files_output = list()
 
+   numfail = Bunch(xalign=0, crystinfo=0, cell_to_small=0, cell_to_big=0, duplicate_bases=0,
+                   make_pose_crit=0, redundant=0, only_AAAA=0, score0=0, score0sym=0)
+
    PING('mbb%i' % merge_bblock, print_pings)
 
    sf = ros.core.scoring.ScoreFunctionFactory.create_score_function("score0")
@@ -80,34 +84,46 @@ def filter_and_output_results(
          info_file.write("\n")
 
    nresults, npdbs_dumped = 0, 0
+
+   result_json = list()
+
    if not output_from_pose:
 
       PING('mbb%i no pose output' % merge_bblock, print_pings)
       for iresult in range(min(max_output, len(result.idx))):
          PING('mbb%i' % merge_bblock, print_pings)
+
          segpos = result.pos[iresult]
          xalign = criteria.alignment(segpos)
-         if xalign is None: continue
+         if xalign is None:
+            numfail.xalign += 1
+            continue
 
          crystinfo = None
          if hasattr(criteria, "crystinfo"):
             crystinfo = criteria.crystinfo(segpos=result.pos[iresult])
             if crystinfo is None:
+               numfail.crystinfo += 1
                continue
-            if crystinfo[0] < kw.xtal_min_cell_size: continue
-            if crystinfo[0] > kw.xtal_max_cell_size: continue
+            if crystinfo[0] < kw.xtal_min_cell_size:
+               numfail.cell_to_small += 1
+               continue
+            if crystinfo[0] > kw.xtal_max_cell_size:
+               numfail.cell_to_big += 1
+               continue
 
          fname = "%s_%04i" % (head, iresult)
          # print('align_ax1', xalign @ segpos[0, :, 2])
          # print('align_ax2', xalign @ segpos[-1, :, 2])
          # print(fname)
          # print(result.err[iresult], fname)
+         # assert not os.path.exists(fname + '.pdb')
          graph_dump_pdb(
             fname + ".pdb",
             ssdag,
             result.idx[iresult],
             result.pos[iresult],
-            join="bb",
+            join="splice",
             trim=True,
             xalign=xalign,
             crystinfo=crystinfo,
@@ -115,6 +131,17 @@ def filter_and_output_results(
          npdbs_dumped += 1
          nresults += 1
          files_output.append(fname + '.pdb')
+
+         result_json.append(
+            make_json_for_result(
+               ssdag,
+               database,
+               merge_bblock,
+               result,
+               iresult,
+               print_pings,
+               output_prefix,
+            ))
          # assert 0
 
    else:
@@ -128,16 +155,22 @@ def filter_and_output_results(
       seenpose = collections.defaultdict(lambda: list())
       for iresult in _stuff:
          PING('mbb%i' % merge_bblock, print_pings)
+
          if only_outputs and iresult not in only_outputs:
             print('output skipping', iresult)
+            nfail_only_output += 1
             continue
 
          crystinfo = None
          if hasattr(criteria, "crystinfo"):
             crystinfo = criteria.crystinfo(segpos=result.pos[iresult])
-            if crystinfo is None: continue
-            if crystinfo[0] < kw.xtal_min_cell_size: continue
-            if crystinfo[0] > kw.xtal_max_cell_size: continue
+            if crystinfo:
+               if crystinfo[0] < kw.xtal_min_cell_size:
+                  numfail.cell_to_small += 1
+                  continue
+               if crystinfo[0] > kw.xtal_max_cell_size:
+                  numfail.cell_to_big += 1
+                  continue
 
          # print(getmem(), 'MEM ================ top of loop ===============')
 
@@ -181,6 +214,7 @@ def filter_and_output_results(
                if criteria.is_cyclic:
                   bases[-1] = "(" + bases[-1] + ")"
                print("duplicate bases fail", merge_bblock, iresult, bases)
+               numfail.duplicate_bases += 1
                continue
 
          try:
@@ -200,6 +234,7 @@ def filter_and_output_results(
          except ValueError as e:
             print("error in make_pose_crit:")
             print(e)
+            numfail.make_pose_crit += 1
             continue
 
          redundant = False
@@ -211,7 +246,9 @@ def filter_and_output_results(
             # print('!' * 100
             print('SKIPPING REDUNDANT OUTPUT')
             redundant = True
-         if redundant: continue
+         if redundant:
+            numfail.redundant += 1
+            continue
          seenpose[pose.size()].append(pose)
 
          # print(getmem(), 'MEM dbfilters before')
@@ -230,6 +267,7 @@ def filter_and_output_results(
 
          if output_only_AAAA and grade != "AAAA":
             print(f"mbb{merge_bblock:04} {iresult:06} bad grade", grade)
+            numfail.only_AAAA += 1
             continue
 
          # print(getmem(), 'MEM rms before')
@@ -256,6 +294,7 @@ def filter_and_output_results(
                "grade",
                grade,
             )
+            numfail.score0 += 1
             continue
 
          PING('mbb%i' % merge_bblock, print_pings)
@@ -288,23 +327,26 @@ def filter_and_output_results(
             #    sympose.dump_pdb(f'symops_{merge_bblock}_{iresult}.pdb')
 
          else:
-            if hasattr(criteria, "symfile_modifiers"):
-               PING('mbb%i' % merge_bblock, print_pings)
-               symdata, symfilestr = util.get_symdata_modified(
-                  criteria.symname,
-                  **criteria.symfile_modifiers(segpos=result.pos[iresult]),
-               )
-            else:
-               PING('mbb%i' % merge_bblock, print_pings)
-               symdata = util.get_symdata(criteria.symname)
+            usecryst = pose.pdb_info() and pose.pdb_info().crystinfo().A() > 0
+            usecryst &= crystinfo is not None
 
             PING('mbb%i' % merge_bblock, print_pings)
-            usecryst = pose.pdb_info() and pose.pdb_info().crystinfo().A() > 0
+
             # usecryst = False  # MakeLatticeMover hangs sometimes
             if usecryst:
                print('---------------- using MakeLatticeMover -------------------')
+               print('cell size', crystinfo[0], pose.pdb_info().crystinfo().A())
                ros.protocols.cryst.MakeLatticeMover().apply(sympose)
             else:
+               if hasattr(criteria, "symfile_modifiers"):
+                  PING('mbb%i' % merge_bblock, print_pings)
+                  symdata, symfilestr = util.get_symdata_modified(
+                     criteria.symname,
+                     **criteria.symfile_modifiers(segpos=result.pos[iresult]),
+                  )
+               else:
+                  PING('mbb%i' % merge_bblock, print_pings)
+                  symdata = util.get_symdata(criteria.symname)
                ros.core.pose.symmetry.make_symmetric_pose(sympose, symdata)
             score0sym = sfsym(sympose)
             if full_score0sym and not usecryst:
@@ -321,6 +363,7 @@ def filter_and_output_results(
          if score0sym >= max_score0sym:
             print(f"mbb{merge_bblock:06} {iresult:04} score0sym fail", score0sym, "rms", rms,
                   "grade", grade)
+            numfail.score0sym += 1
             continue
 
          # mbbstr = "None"
@@ -398,6 +441,17 @@ def filter_and_output_results(
                out.write(symfilestr)
          nresults += 1
 
+         result_json.append(
+            make_json_for_result(
+               ssdag,
+               database,
+               merge_bblock,
+               result,
+               iresult,
+               print_pings,
+               output_prefix,
+            ))
+
          # !!!!!!!!!!!!!!!!!!!!!!!!!!!!
          # assert 0
 
@@ -420,10 +474,6 @@ def filter_and_output_results(
             out.write("Closure error: " + str(rms) + "\n")
          #
 
-         if True:
-            make_json_for_result(ssdag, database, merge_bblock, result, iresult, print_pings,
-                                 output_prefix)
-
          print(getmem(), 'MEM dump pdb after')
 
       if info_file is not None:
@@ -433,7 +483,26 @@ def filter_and_output_results(
 
    PING('mbb%i' % merge_bblock, print_pings)
 
+   numfail.nsuccess = nresults
+
+   print(f'{" filter_and_output_results stats ":$^80}')
+   for k, v in numfail.items():
+      print('   ', k, v)
+   print('$' * 80)
+
    if nresults:
+      if kw.save_minimal_replicate_database:
+         raise NotImplementedError
+         print('save_minimal_replicate_database nresults', len(result_json))
+
+         arcfile = f'{head}_minimal_replicate_database.txz'
+         worms.database.merge.merge_json_databases(
+            result_json,
+            dump_archive=arcfile,
+            overwrite=True,
+            pdb_contents=database.bblockdb.pdb_contents,
+         )
+
       return Bunch(
          log=["nresults output: " + str(nresults), 'npdbs_dumped: ' + str(npdbs_dumped)],
          files=files_output, strict__=True)
@@ -506,7 +575,9 @@ def make_json_for_result(ssdag, database, merge_bblock, result, iresult, print_p
 
    jsonfname = output_prefix + '_replicate_result__mbb%04i_%04i.json' % (merge_bblock, iresult)
    print('output bblocks to', jsonfname)
-   assert not os.path.exists(jsonfname)
+   if os.path.exists(jsonfname):
+      print('warning: overwriting file', jsonfname)
    with open(jsonfname, 'w') as out:
       json.dump(newdb, out, indent=4)
       out.write('\n')
+   return jsonfname

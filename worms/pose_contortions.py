@@ -2,8 +2,7 @@
 functions for assembling multichain poses from segments spliced in various directions
 """
 
-import os
-import itertools as it
+import os, numpy as np, itertools as it
 from collections import defaultdict, OrderedDict, namedtuple
 from deferred_import import deferred_import
 
@@ -141,7 +140,7 @@ def contort_pose_chains(
    if ch_en == ch_ex:
       assert len(rest) + 1 == len(chains)
       p, l1, u1 = util.trim_pose(chains[ch_en], ir_en, pl_en, pad[0])
-      iexit1 = ir_ex - (pl_ex == "C") * (len(chains[ch_en]) - len(p))
+      iexit1 = ir_ex - (pl_ex == "C") * (len(chains[ch_en]) - p.size())
       p, l2, u2 = util.trim_pose(p, iexit1, pl_ex, pad[1] - 1)
       lb = l1 + l2 - 1 + chain_start[ch_en]
       ub = l1 + u2 - 1 + chain_start[ch_en]
@@ -366,12 +365,12 @@ def make_contorted_pose(
       prev_source, prev_chain = sources[0], chains[0]
       for chain, source in zip(chains[1:], sources[1:]):
          assert isinstance(chain, ros.core.pose.Pose)
-         rm_upper_t(pose, len(pose))
+         rm_upper_t(pose, pose.size())
          rm_lower_t(chain, 1)
-         splicepoints.append(len(pose))
+         splicepoints.append(pose.size())
          if make_chain_list:
             ret_chain_list.append(chain)
-         fixres = len(pose)
+         fixres = pose.size()
 
          ####################################################
 
@@ -434,8 +433,8 @@ def make_contorted_pose(
          assert cyclic_permute
          continue
       assert ub0 - lb0 == ub1 - lb1
-      assert 0 < lb0 <= len(psrc) and 0 < ub0 <= len(psrc)
-      assert 0 < lb1 <= len(pose) and 0 < ub1 <= len(pose)
+      assert 0 < lb0 <= psrc.size() and 0 < ub0 <= psrc.size()
+      assert 0 < lb1 <= pose.size() and 0 < ub1 <= pose.size()
       # if psrc.sequence()[lb0 - 1:ub0] != pose.sequence()[lb1 - 1:ub1]:
       # print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
       assert psrc.sequence()[lb0 - 1:ub0] == pose.sequence()[lb1 - 1:ub1]

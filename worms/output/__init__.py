@@ -1,2 +1,2 @@
-# from worms.output.output import *
+from worms.output.output import *
 from .dumppdb import *

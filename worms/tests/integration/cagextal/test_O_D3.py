@@ -1,15 +1,9 @@
-import sys, os, pickle, inspect
+import os
 
-# from worms.util.util import _disable_jit
-
-# _disable_jit()
-os.environ['NUMBA_DISABLE_JIT'] = '1'
+if __name__ == '__main__':
+   os.environ['NUMBA_DISABLE_JIT'] = '1'
 
 import worms
-
-# worms.util.util.jit = worms.util.disabled_jit
-# worms.util.util.jitclass = worms.util.disabled_jitclass
-# worms.util.util.priority_jit = worms.util.disabled_priority_jit
 
 def test_cagextal_O_D3():
 
@@ -22,4 +16,3 @@ def test_cagextal_O_D3():
 
 if __name__ == '__main__':
    test_cagextal_O_D3()
-# tmp_check_pdbout()

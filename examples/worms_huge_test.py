@@ -1,5 +1,6 @@
+from numba.core.errors import DeprecationError
 from worms import *
-from worms.data import poselib
+# from worms.data import poselib
 from worms.vis import showme
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
@@ -15,6 +16,7 @@ except ImportError:
    HAVE_PYROSETTA = False
 
 def main(nseg, workers=0):
+   raise DeprecationWarning
    pyrosetta.init("-corrections:beta_nov16 -mute all")
    helix = Spliceable(poselib.curved_helix, sites=[(1, "N"), ("-4:", "C")])
    dimer = Spliceable(poselib.c2, sites=[("1,:1", "N"), ("2,-1:", "C")])

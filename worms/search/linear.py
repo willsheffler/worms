@@ -134,13 +134,15 @@ def grow_linear(
                total=len(futures),
             )
          PING('for f in fiter')
-         kw.timer.checkpoint('grow_linear')
+         if 'timer' in kw:
+            kw.timer.checkpoint('grow_linear')
          for f in fiter:
             # print('linear.py:grow_linear:f in fiter',flush=True)
             results.append(f.result())
             # print('linear.py:grow_linear:f in fiter DONE',flush=True)
          # print('linear.py:grow_linear for f in fiter DONE', flush=True)
-         kw.timer.checkpoint('grow_linear jobsdone')
+         if 'timer' in kw:
+            kw.timer.checkpoint('grow_linear jobsdone')
    tot_stats = zero_search_stats()
    for i in range(len(tot_stats)):
       tot_stats[i][0] += sum([r.stats[i][0] for r in results])
@@ -205,7 +207,8 @@ def _grow_linear_start(
    # assert 0
    from worms.util.jitutil import expand_results
    if debug: PING('_grow_linear_start calling _grow_linear_recurse')
-   timer.checkpoint('_grow_linear_start')
+   if timer:
+      timer.checkpoint('_grow_linear_start')
    # tt = perf_counter()
    nresults, result, _ = _grow_linear_recurse(
       result=result,
@@ -218,7 +221,8 @@ def _grow_linear_start(
       **kwargs,
    )
    # print('!!!!!!!!!!!!!!!!!!!!!!!!!', perf_counter() - tt)
-   timer.checkpoint('_grow_linear_recurse')
+   if timer:
+      timer.checkpoint('_grow_linear_recurse')
    if debug:
       PING('_grow_linear_start calling _grow_linear_recurse DONE')
       print('nresults', nresults)

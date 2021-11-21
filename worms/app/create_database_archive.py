@@ -9,7 +9,12 @@ def main():
       print('making local copy of', dbfile)
       print('    ', dbname)
       print('    ', newfile)
-      worms.database.archive.make_bblock_archive(dbfile, newfile, dbname)
+      worms.database.archive.make_bblock_archive(
+         dbfiles=[dbfile],
+         target=newfile,
+         dbname=dbname,
+         overwrite=False,
+      )
 
 if __name__ == '__main__':
    main()

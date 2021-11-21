@@ -5,8 +5,8 @@ import numpy as np
 import pytest
 from worms import vis
 
-def test_Vertex_NC(bbdb):
-   bbs = bbdb.query("all")
+def test_Vertex_NC(db_bblock_caching_v0):
+   bbs = db_bblock_caching_v0.query("all")
    v = Vertex(bbs, "NC")
    assert v.len == 55
    assert v.x2exit.shape == (55, 4, 4)
@@ -25,8 +25,8 @@ def test_Vertex_NC(bbdb):
       vals = v.inout[v.inbreaks[i]:v.inbreaks[i + 1], 0]
       assert np.all(vals == i)
 
-def test_Vertex_CN(bbdb):
-   bbs = bbdb.query("all")
+def test_Vertex_CN(db_bblock_caching_v0):
+   bbs = db_bblock_caching_v0.query("all")
    v = Vertex(bbs, "CN")
    assert v.len == 55
    assert v.x2exit.shape == (55, 4, 4)
@@ -44,8 +44,8 @@ def test_Vertex_CN(bbdb):
       vals = v.inout[v.inbreaks[i]:v.inbreaks[i + 1], 0]
       assert np.all(vals == i)
 
-def test_Vertex__C(bbdb):
-   bbs = bbdb.query("all")
+def test_Vertex__C(db_bblock_caching_v0):
+   bbs = db_bblock_caching_v0.query("all")
    v = Vertex(bbs, "_C")
    assert v.len == 25
    assert v.x2exit.shape == (25, 4, 4)
@@ -69,8 +69,8 @@ def test_Vertex__C(bbdb):
       vals = v.inout[v.inbreaks[i]:v.inbreaks[i + 1], 0]
       assert np.all(vals == i)
 
-def test_Vertex_N_(bbdb):
-   bbs = bbdb.query("all")
+def test_Vertex_N_(db_bblock_caching_v0):
+   bbs = db_bblock_caching_v0.query("all")
    v = Vertex(bbs, "N_")
    assert v.len == 18
    assert v.x2exit.shape == (18, 4, 4)
@@ -93,8 +93,8 @@ def test_Vertex_N_(bbdb):
       vals = v.inout[v.inbreaks[i]:v.inbreaks[i + 1], 0]
       assert np.all(vals == i)
 
-def test_Vertex__N(bbdb):
-   bbs = bbdb.query("all")
+def test_Vertex__N(db_bblock_caching_v0):
+   bbs = db_bblock_caching_v0.query("all")
    v = Vertex(bbs, "_N")
    assert v.len == 18
    assert v.x2exit.shape == (18, 4, 4)
@@ -117,8 +117,8 @@ def test_Vertex__N(bbdb):
       vals = v.inout[v.inbreaks[i]:v.inbreaks[i + 1], 0]
       assert np.all(vals == i)
 
-def test_Vertex_C_(bbdb):
-   bbs = bbdb.query("all")
+def test_Vertex_C_(db_bblock_caching_v0):
+   bbs = db_bblock_caching_v0.query("all")
    v = Vertex(bbs, "N_")
    assert v.len == 18
    assert v.x2exit.shape == (18, 4, 4)

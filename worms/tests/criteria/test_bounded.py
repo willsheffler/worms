@@ -1,8 +1,14 @@
-from worms import *
+import operator
+from worms.criteria import *
+
+from worms.search.old_search import grow
+from worms.segments import Spliceable, Segment
+
 from worms.homog import hrot, htrans
 from .. import only_if_pyrosetta
-from worms.util import residue_sym_err
-from hm.sym import icosahedral_axes as IA
+from worms.util.rosetta_utils import residue_sym_err
+from worms.homog.sym import icosahedral_axes as IA
+from worms.util.rosetta_utils import no_overlapping_residues
 
 def test_geom_check():
    SX = Cyclic
@@ -64,7 +70,7 @@ def test_D3(c2pose, c3pose, c1pose):
    # assert 0
 
    p = w.pose(0, only_connected=0)
-   assert util.no_overlapping_residues(p)
+   assert no_overlapping_residues(p)
    # print(len(p))
 
    # print('foo')
@@ -85,7 +91,7 @@ def test_D3(c2pose, c3pose, c1pose):
    # print(w.scores)
    # show_with_z_axes(w, 0)
    p = w.pose(4, only_connected=0)
-   assert util.no_overlapping_residues(p)
+   assert no_overlapping_residues(p)
    # vis.showme(p)
    assert 1 > residue_sym_err(p, 180, 1, 13, 6, axis=[1, 0, 0])
    assert 1 > residue_sym_err(p, 120, 56, 65, 6, axis=[0, 0, 1])
@@ -100,7 +106,7 @@ def test_tet(c2pose, c3pose, c1pose):
    w = grow(segments, Tetrahedral(c3=-1, c2=0), thresh=2)
    assert len(w)
    p = w.pose(3, only_connected=0)
-   assert util.no_overlapping_residues(p)
+   assert no_overlapping_residues(p)
    assert 2.5 > residue_sym_err(p, 120, 86, 95, 6, axis=[1, 1, 1])
    assert 2.5 > residue_sym_err(p, 180, 2, 14, 6, axis=[1, 0, 0])
 
@@ -113,7 +119,7 @@ def test_tet33(c2pose, c3pose, c1pose):
    w = grow(segments, Tetrahedral(c3=-1, c3b=0), thresh=2)
    assert len(w) == 3
    p = w.pose(0, only_connected=0)
-   assert util.no_overlapping_residues(p)
+   assert no_overlapping_residues(p)
    assert 2.5 > residue_sym_err(p, 120, 2, 20, 6, axis=[1, 1, -1])
    assert 2.5 > residue_sym_err(p, 120, 87, 96, 6, axis=[1, 1, 1])
 
@@ -128,7 +134,7 @@ def test_oct(c2pose, c3pose, c4pose, c1pose):
    w = grow(segments, Octahedral(c3=-1, c2=0), thresh=1)
    assert len(w) == 1
    p = w.pose(0, only_connected=0)
-   assert util.no_overlapping_residues(p)
+   assert no_overlapping_residues(p)
    assert 1 > residue_sym_err(p, 120, 85, 94, 6, axis=[1, 1, 1])
    assert 1 > residue_sym_err(p, 180, 1, 13, 6, axis=[1, 1, 0])
 
@@ -150,7 +156,7 @@ def test_oct(c2pose, c3pose, c4pose, c1pose):
    assert p.sequence() == ("AIAAALAAIAAIAAALAAIAAIAAALAAIAAIAAALAAAAAAAAAAGA" +
                            "AAAAAAAAGAAAAAAAAAGAAAAAAAAAAGAAAAAAAAGAATAFLA" +
                            "AIPAINYTAFLAAIPAIN")
-   assert util.no_overlapping_residues(p)
+   assert no_overlapping_residues(p)
    # from socket import gethostname
    # p.dump_pdb(gethostname() + '.pdb')
    # assert np.allclose(p.residue(1).xyz('CA')[0], 33.0786722948)
@@ -168,7 +174,7 @@ def test_icos(c2pose, c3pose, c1pose):
    w = grow(segments, Icosahedral(c3=-1, c2=0), thresh=2)
    assert len(w) == 3
    p = w.pose(2, only_connected=0)
-   assert util.no_overlapping_residues(p)
+   assert no_overlapping_residues(p)
    # vis.showme(p)
    assert 2 > residue_sym_err(p, 120, 90, 99, 6, axis=IA[3])
    assert 2 > residue_sym_err(p, 180, 2, 14, 6, axis=IA[2])

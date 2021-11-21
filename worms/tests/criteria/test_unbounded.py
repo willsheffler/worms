@@ -1,13 +1,14 @@
-import pytest
-import pickle
+import pytest, pickle, time
 import numpy as np
 from worms.homog import hrot, htrans, axis_angle_of, axis_ang_cen_of
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from worms import *
 from worms.criteria.unbounded import *
-from hm.sym import icosahedral_axes as IA
-import time
+from worms.homog.sym import icosahedral_axes as IA
+from worms.segments import Spliceable, Segment
+from worms.search.old_search import grow
 from .. import only_if_pyrosetta
+from worms.util.rosetta_utils import no_overlapping_residues
 
 @only_if_pyrosetta
 def test_sheet_P6(c2pose, c6pose, c1pose):
@@ -28,7 +29,7 @@ def test_sheet_P6(c2pose, c6pose, c1pose):
    # q = w.sympose(0, )
    # q.dump_pdb('P6_symm.pdb')
    # p.dump_pdb('P6_asymm.pdb')
-   assert util.no_overlapping_residues(p)
+   assert no_overlapping_residues(p)
 
 @only_if_pyrosetta
 def test_sheet_P4212(c2pose, c4pose, c1pose):
@@ -52,7 +53,7 @@ def test_sheet_P4212(c2pose, c4pose, c1pose):
    # p.dump_pdb('P4212_asymm.pdb')
 
    # basic check on pose to make sure residues are not on top of each other
-   assert util.no_overlapping_residues(p)
+   assert no_overlapping_residues(p)
 
 # @pytest.mark.skip
 @only_if_pyrosetta
@@ -76,7 +77,7 @@ def test_sheet_P321(c2pose, c3pose, c1pose):
    # q.dump_pdb('P321_symm.pdb')
    # p.dump_pdb('P321_asymm.pdb')
 
-   assert util.no_overlapping_residues(p)
+   assert no_overlapping_residues(p)
 
    # print(len(p))
 
@@ -103,5 +104,5 @@ def test_crystal_P213(c3pose, c3_splay_pose, c1pose):
       # p.dump_pdb('p.pdb')
       # q.dump_pdb('P213_symm_%i.pdb' % i)
       # p.dump_pdb('P213_asymm_%i.pdb' % i)
-      assert util.no_overlapping_residues(p)
+      assert no_overlapping_residues(p)
    # basic check on pose to make sure residues are not on top of each other

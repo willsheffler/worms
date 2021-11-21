@@ -3,6 +3,8 @@
 
 import sys
 import os
+import functools
+import operator
 import _pickle as pickle
 import itertools as it
 import numpy as np
@@ -13,6 +15,32 @@ from concurrent.futures import ProcessPoolExecutor
 from worms.segments import Segment, Segments, Worms
 from worms.criteria import CriteriaList, Cyclic, WormCriteria
 from worms import util
+
+def bigprod(iterable):
+   return functools.reduce(operator.mul, iterable, 1)
+
+# I dont remember what this was for
+class MultiRange:
+   def __init__(self, nside):
+      self.nside = np.array(nside, dtype="i")
+      self.psum = np.concatenate([np.cumprod(self.nside[1:][::-1])[::-1], [1]])
+      assert np.all(self.psum > 0)
+      assert bigprod(self.nside[1:]) < 2**63
+      self.len = bigprod(self.nside)
+
+   def __getitem__(self, idx):
+      """
+        """
+      if isinstance(idx, slice):
+         return (self[i] for i in range(self.len)[idx])
+      if idx >= self.len:
+         raise StopIteration
+      return tuple((idx // self.psum) % self.nside)
+
+   def __len__(self):
+      """
+        """
+      return self.len
 
 class SimpleAccumulator:
    """TODO: Summary
@@ -39,7 +67,7 @@ class SimpleAccumulator:
    def checkpoint(self):
       """TODO: Summary
         """
-      if len(self.temporary) is 0:
+      if len(self.temporary) == 0:
          return
       if hasattr(self, "scores"):
          sc, li, lp = [self.scores], [self.lowidx], [self.lowpos]
@@ -431,8 +459,7 @@ def _get_chunk_end_seg(sizes, max_workers, memsize):
         TYPE: Description
     """
    end = len(sizes) - 1
-   while end > 1 and (util.bigprod(sizes[end:]) < max_workers
-                      or memsize <= 64 * util.bigprod(sizes[:end])):
+   while end > 1 and (bigprod(sizes[end:]) < max_workers or memsize <= 64 * bigprod(sizes[:end])):
       end -= 1
    return end
 
@@ -508,7 +535,7 @@ def grow(segments, criteria, *, thresh=2, expert=0, memsize=1e6, executor=None,
       matchlast = _check_topology(segments, criteria, expert)
       sizes = [len(s) for s in segments]
       end = _get_chunk_end_seg(sizes, max_workers, memsize)
-      ntot, chunksize, nchunks = (util.bigprod(x) for x in (sizes, sizes[:end], sizes[end:]))
+      ntot, chunksize, nchunks = (bigprod(x) for x in (sizes, sizes[:end], sizes[end:]))
       if max_samples is not None:
          max_samples = np.clip(chunksize * max_workers, max_samples, ntot)
       every_other = max(1, int(ntot / max_samples)) if max_samples else 1
@@ -568,7 +595,7 @@ def grow(segments, criteria, *, thresh=2, expert=0, memsize=1e6, executor=None,
 
    else:  # hash-based protocol...
 
-      assert len(criteria) is 1
+      assert len(criteria) == 1
       _check_topology(segments, criteria, expert)
 
       splitpoint = criteria.from_seg
@@ -580,7 +607,7 @@ def grow(segments, criteria, *, thresh=2, expert=0, memsize=1e6, executor=None,
       headsizes = [len(s) for s in head]
       headend = _get_chunk_end_seg(headsizes, max_workers, memsize)
       ntot, chunksize, nchunks = (
-         util.bigprod(x) for x in (headsizes, headsizes[:headend], headsizes[headend:]))
+         bigprod(x) for x in (headsizes, headsizes[:headend], headsizes[headend:]))
       if max_samples is not None:
          max_samples = np.clip(chunksize * max_workers, max_samples, ntot)
       every_other = max(1, int(ntot / max_samples)) if max_samples else 1
@@ -666,7 +693,7 @@ def grow(segments, criteria, *, thresh=2, expert=0, memsize=1e6, executor=None,
       tailsizes = [len(s) for s in tail]
       tailend = _get_chunk_end_seg(tailsizes, max_workers, memsize)
       ntot, chunksize, nchunks = (
-         util.bigprod(x) for x in (tailsizes, tailsizes[:tailend], tailsizes[tailend:]))
+         bigprod(x) for x in (tailsizes, tailsizes[:tailend], tailsizes[tailend:]))
       if max_samples is not None:
          max_samples = np.clip(chunksize * max_workers, max_samples, ntot)
       every_other = max(1, int(ntot / max_samples * 20)) if max_samples else 1
@@ -879,7 +906,7 @@ def _grow_chunks(ijob, context):
    os.environ["MKL_NUM_THREADS"] = "1"
    os.environ["NUMEXPR_NUM_THREADS"] = "1"
    sampsizes, njob, segments, end, _, _, _, every_other, max_results = context
-   samples = list(util.MultiRange(sampsizes)[ijob::njob * every_other])
+   samples = list(MultiRange(sampsizes)[ijob::njob * every_other])
    segpos, connpos = _chain_xforms(segments[:end])  # common data
    args = [samples, it.repeat(segpos), it.repeat(connpos), it.repeat(context)]
    chunks = list(map(_grow_chunk, *args))
@@ -965,7 +992,7 @@ def _grow(segments, criteria, accumulator, **kw):
          spl.body, spl.chains = None, None  # poses not pickleable...
 
    sizes = [len(s) for s in segments]
-   ntot = util.bigprod(sizes)
+   ntot = bigprod(sizes)
    with kw["executor"](**kw["executor_args"]) as pool:
       context = (
          sizes[kw["end"]:],

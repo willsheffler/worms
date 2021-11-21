@@ -1,9 +1,9 @@
 import json, itertools, pytest, numpy as np
-from worms import util
+from worms.util import jitutil as util
 
 def test_unique_key_int32s():
    a = np.array([1, 4, 7], dtype=np.int32)
-   k = util.jitutil._unique_key_int32s(a)
+   k = util._unique_key_int32s(a)
    assert list(k) == [0, 1, 2]
 
 @pytest.mark.skip()

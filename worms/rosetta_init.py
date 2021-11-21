@@ -2,6 +2,8 @@ import sys
 from pyrosetta import *
 from pyrosetta.rosetta import *
 
+core.pose.Pose.__len__ = core.pose.Pose.size
+
 _initargs = ' '.join([
    "-mute all",
    "-corrections:beta_nov16",

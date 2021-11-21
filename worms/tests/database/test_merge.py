@@ -1,8 +1,9 @@
 import worms
-from worms.data import test_file_json
+from worms.data import get_test_json
 from worms.database import merge_json_databases
 
 def test_json_database_merge():
+
    files = [
       'merge/worms_replicate_result__mbb0004_0003.json',
       'merge/worms_replicate_result__mbb0005_0001.json',
@@ -24,9 +25,22 @@ def test_json_database_merge():
       'merge/worms_replicate_result__mbb0031_0005.json',
    ]
 
-   jsondbs = [test_file_json(f) for f in files]
-   merged = merge_json_databases(jsondbs, dump_archive='cagextal_O_D3_minimal18.txz')
-   ref = test_file_json('merge/merged.json')
+   jsondbs = [get_test_json(f) for f in files]
+   merged = merge_json_databases(jsondbs,
+                                 # dump_archive='cagextal_O_D3_minimal18.txz',
+                                 # overwrite=True,
+                                 )
+   ref = get_test_json('merge/merged.json')
+   if False:
+      import json
+      with open('NEW_JSON_MERGE_RESULT.json', 'w') as out:
+         json.dump(merged, out)
+      print('=====================')
+      print(ref[0])
+      print('=====================')
+      print(merged[0])
+      print('=====================')
+
    assert ref == merged
 
 if __name__ == '__main__':

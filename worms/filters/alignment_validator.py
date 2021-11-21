@@ -88,14 +88,14 @@ class AlignmentValidator:
       pose_info = self._pose_infos[pose]
       return [i + 1 for i in range(0, pose.size()) if pose_info.dssp(i) == sse_type]
 
-   def test_pair_alignment(
-         self,
-         pose_info_n,
-         pose_info_c,
-         index_n1,
-         index_c1,
-         superimpose_rmsd=None,
-         superimpose_length=None,
+   def get_test_pair_alignment(
+      self,
+      pose_info_n,
+      pose_info_c,
+      index_n1,
+      index_c1,
+      superimpose_rmsd=None,
+      superimpose_length=None,
    ):
       index_n0 = index_n1 - 1
       index_c0 = index_c1 - 1

@@ -1,5 +1,5 @@
-raise DeprecationWarning('this is from worms v1 and should not be used any longer')
-assert False
+# raise DeprecationWarning('this is from worms v1 and should not be used any longer')
+# assert False
 
 import multiprocessing
 import os
@@ -56,9 +56,9 @@ class SpliceSite:
         Raises:
             ValueError: Description
         """
-      resid = id if id >= 0 else len(pose) + 1 + id
-      if not 0 < resid <= len(pose):
-         raise ValueError("resid " + str(resid) + " invalid for pose of size " + str(len(pose)))
+      resid = id if id >= 0 else pose.size() + 1 + id
+      if not 0 < resid <= pose.size():
+         raise ValueError("resid " + str(resid) + " invalid for pose of size " + str(pose.size()))
       return resid
 
    def _resids_impl(self, sele, spliceable):
@@ -92,7 +92,7 @@ class SpliceSite:
          # print(start, stop + 1, step)
          resids = set()
          for ir in range(start, stop + 1, step):
-            assert 0 < ir <= len(pose)
+            assert 0 < ir <= pose.size()
             resids.add(spliceable.start_of_chain[chain] + ir)
          return resids
       elif sele is None:
@@ -734,9 +734,9 @@ class Worms:
       self.positions = positions
       self.criteria = criteria
       self.detail = detail
-      self.score0 = scoring.ScoreFunctionFactory.create_score_function("score0")
-      if hasattr(scoring.symmetry, 'symmetrize_scorefunction'):
-         self.score0sym = scoring.symmetry.symmetrize_scorefunction(self.score0)
+      self.score0 = ros.core.scoring.ScoreFunctionFactory.create_score_function("score0")
+      if hasattr(ros.core.scoring.symmetry, 'symmetrize_scorefunction'):
+         self.score0sym = ros.core.scoring.symmetry.symmetrize_scorefunction(self.score0)
       else:
          self.score0sym = self.score0
       self.splicepoint_cache = {}
