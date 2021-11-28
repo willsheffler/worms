@@ -29,7 +29,7 @@
 --merge_segment 1
 --no_duplicate_bases 0
 
---xtal_min_cell_size 0
+--xtal_min_cell_size 50
 --xtal_max_cell_size 99999
 
 --max_clash_check 10000000
@@ -37,4 +37,5 @@
 --output_only_AAAA 0
 
 --dbfiles
-   /home/sheffler/data/worms/HFuse_Cx_database_20180711.txz
+  /home/sheffler/data/worms/HFuse_C4_database.20181017.txz
+  /home/sheffler/data/worms/HFuse_Cx_database.20190422.txz

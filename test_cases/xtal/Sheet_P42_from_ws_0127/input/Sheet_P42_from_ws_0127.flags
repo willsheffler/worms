@@ -1,11 +1,11 @@
---geometry Sheet_P42_from_ws_0127(c4=None, c2=None)
+--geometry Sheet_P42_from_ws_0127(c4=0, c2=-1)
 
 --bbconn      
-   _N C3_N
-   C_ C3_C
+   _N C4_N
+   C_ C2_C
 
 
---nbblocks 4
+--nbblocks 32
 --monte_carlo 0
 --parallel 0
 --shuffle_bblocks 0
@@ -37,4 +37,6 @@
 --output_only_AAAA 0
 
 --dbfiles
-   /home/sheffler/data/worms/HFuse_Cx_database_20180711.txz
+   /home/sheffler/data/worms/HFuse_Cx_database.20190422.txz
+   /home/yhsia/helixfuse/2018-10-12_sym_c4/fuse/processing/database/HFuse_C4_database.20181017.txt
+

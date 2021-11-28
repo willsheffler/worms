@@ -15,9 +15,9 @@ def make_pose_crit(
    full_output_segs=[],
 ):
    cryst_info = None
-   if hasattr(criteria, "crystinfo"):
-      cryst_info = criteria.crystinfo(segpos=positions)
-      assert cryst_info is not None
+   # if hasattr(criteria, "crystinfo"): # TODO should this be here in general?
+   #    cryst_info = criteria.crystinfo(segpos=positions)
+   #    assert cryst_info is not None
 
    return make_pose(
       bbdb=bbdb,

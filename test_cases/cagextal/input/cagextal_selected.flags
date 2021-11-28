@@ -39,4 +39,8 @@
 --max_com_redundancy 4
 --output_only_AAAA 0
 --dbfiles
-	/home/swang523/Crystal_engineering/worms/8-16-21_cage_xtal/input/selected_good.json
+  /home/swang523/Crystal_engineering/worms/8-16-21_cage_xtal/input/selected_good.json
+  /home/sheffler/data/worms/json/buildingblock_list_dihedrals2.txt	
+  /home/sheffler/data/worms/HFuse_Cx_database.20190422_only100.txz
+
+

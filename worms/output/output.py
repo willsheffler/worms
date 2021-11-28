@@ -327,7 +327,7 @@ def filter_and_output_results(
             #    sympose.dump_pdb(f'symops_{merge_bblock}_{iresult}.pdb')
 
          else:
-            usecryst = pose.pdb_info() and pose.pdb_info().crystinfo().A() > 0
+            usecryst = pose.pdb_info() is not None and pose.pdb_info().crystinfo().A() > 0
             usecryst &= crystinfo is not None
 
             PING('mbb%i' % merge_bblock, print_pings)

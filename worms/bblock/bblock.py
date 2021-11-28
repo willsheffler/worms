@@ -12,7 +12,6 @@ from worms.util import jitclass
 from worms.util.util import generic_equals
 
 def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
-
    json = dumps(entry)
    chains = worms.util.rosetta_utils.get_chain_bounds(pose)
    ss = np.frombuffer(ss.encode(), dtype="i1")
@@ -30,6 +29,10 @@ def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
       print("bad conn info!", pdbfile)
       assert 0
       return None, pdbfile  # new, missing
+   for c in conn:
+      # is jagged array, padding is -1 so must be ignored
+      assert np.all(c[:c[1]] >= 0), 'connection residues should all be positive at this point'
+
    if ncac.shape[-1] == 4:
       ncac = ncac.astype(np.float64)
    elif ncac.shape[-1] == 3:
@@ -123,6 +126,8 @@ def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
     )
 )  # yapf: disable
 class _BBlock:
+   '''member "connections" is a jagged array. elements start at position 2. position 0 encodes the (N/C) direction as 0, 1, or 2, decoded as "NC_", position 1 is the ending location of residue entries (so the number of residues is 2 less, leaving off the first two entries) see the member functions
+'''
    def __init__(
       self,
       json,

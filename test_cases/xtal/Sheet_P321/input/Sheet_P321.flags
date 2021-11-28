@@ -1,19 +1,20 @@
 --geometry Sheet_P321(c3=0, c2=-1)
 
 --bbconn      
-   _N C3_N
+   _C C3_C
+   NN Het:NNY
    C_ C2_C
 
 
---output_from_pose 1
---nbblocks 4
+--output_from_pose 0
+--nbblocks 16
 --monte_carlo 0
 --parallel 0
 --shuffle_bblocks 0
 
---tolerance 1.0
---max_score0 10
---max_score0sym 30
+--tolerance 4.0
+--max_score0 30
+--max_score0sym 100
 --full_score0sym 0
 
 --splice_rms_range 5
@@ -38,4 +39,5 @@
 --output_only_AAAA 0
 
 --dbfiles
-   /home/sheffler/data/worms/HFuse_Cx_database_20180711.txz
+  /home/sheffler/data/worms/HFuse_Cx_database.20190422.txz
+

@@ -89,6 +89,8 @@ _khash_ffi.c
 
 *.info
 *.pdb
+*.sym
+test_cases/xtal/*/*.json
 
 test_cases/*/*.pdb
 test_cases/*/*.json

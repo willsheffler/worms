@@ -5,7 +5,7 @@
    C_ C2_C
 
 
---nbblocks 4
+--nbblocks 32
 --monte_carlo 0
 --parallel 0
 --shuffle_bblocks 0
@@ -37,4 +37,6 @@
 --output_only_AAAA 0
 
 --dbfiles
-   /home/sheffler/data/worms/HFuse_Cx_database_20180711.txz
+
+  /home/sheffler/data/worms/HFuse_Cx_database.20190422.txz
+

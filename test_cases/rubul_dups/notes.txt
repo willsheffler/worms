@@ -1,3 +1,28 @@
+Crystal 
+    F23    T, C2   Worked before.... can't find tetrahedral bblocks
+    F23    T, C3   Worked before.... can't find tetrahedral bblocks
+    F23    T,  T   Worked before.... can't find tetrahedral bblocks
+    F432  C3, C4   numpy.linalg.LinAlgError: Singular matrix
+    I213  C2, C3   bad unit cell alignment
+    I432  C2, C4   bad unit cell alignment
+    I432  D3, C2   worms
+    P213  C3, C3   works great
+    P4132 C2, C3   bad unit cell alignment
+    P432  C4, C4   numpy.linalg.LinAlgError: Singular matrix
+    P432  D4, C3   works, sparse results
+Sheet
+    P321  C3, C2   no results, probably some bug
+    P4    C4, C2   worms great
+    P4212 C4, C2   works great
+    P6    C6, C2   works
+    P6    C6, C3   probably works...
+    P6    C3, C2   worms great
+
+
+
+
+
+
 /home/sheffler/tmp/worms_mbb0090__0001_RM20-C6f_6H2LD-8_DHR21_ex101_en395_HFuse_ZCON-103_2_2c_2a_0223_ex113_en178_HFuse_Sh29_3_3c_3a_1980_ex634_en77_HFuse_ZCON-37_2_2c_2a_1391_ex437_en339_HFuse_Sh29_3_3c_3a_1980_ex437_en339_AAAB_43_8_2_sym.pdb
 
 bblocks:
@@ -9,7 +34,7 @@ HFuse_Sh29_3_3c_3a_1980
 
 flags:
 
---geometry Cyclic(6, from_seg=2, origin_seg=0)
+--geometry Cyclic 6, from_seg=2, origin_seg=0)
 --bbconn
     _N C6_N
     CN Het:CNY

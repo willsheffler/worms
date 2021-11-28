@@ -3,8 +3,8 @@ from worms import homog as hm
 
 def make_connections_array(entries, chain_bounds):
    # try:
-   if True:
-      reslists = [get_connection_residues(e, chain_bounds) for e in entries]
+   # if True:
+   reslists = [get_connection_residues(e, chain_bounds) for e in entries]
    # except Exception as e:
    # print("make_connections_array failed on", entries, "error was:", e)
    # return np.zeros((0, 0))
@@ -20,14 +20,15 @@ def make_connections_array(entries, chain_bounds):
 
 def get_connection_residues(entry, chain_bounds):
    """should return sorted list of resi positions"""
-   chain_bounds[-1][-1]
+   # chain_bounds[-1][-1] # TODO removed
    r, c, d = entry["residues"], int(entry["chain"]), entry["direction"]
+   nres = chain_bounds[c - 1][1] - chain_bounds[c - 1][0]
    if isinstance(r, str) and r.startswith("["):
       r = eval(r)
    if isinstance(r, list):
       try:
-         return sorted(int(i) for i in r)
-      except ValueError:
+         return sorted(int(i if i >= 0 else i + nres) for i in r)
+      except (TypeError, ValueError):
          assert len(r) == 1
          r = r[0]
    if r.count(","):

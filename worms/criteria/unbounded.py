@@ -153,7 +153,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
          #    raise e
          Xalign[..., :, 3] = -Xalign @ cen1  ## move from_seg cen1 to origin
          cen2_0 = Xalign @ cen2  # moving cen2 by Xalign
-         D = np.stack([self.tgtaxis1[:3], self.tgtaxis2_isects, self.tgtaxis2[:3]]).T
+         D = np.stack([self.tgtaxis1[:3], self.tgtaxis2_isects[:3], self.tgtaxis2[:3]]).T
          A1offset, cell_dist, _ = np.linalg.inv(D) @ cen2_0[:3]
          # transform of A1 offest, cell distance (offset along other axis), and A2 offset (<-- we are ignoring this)
          Xalign[..., :, 3] = Xalign[..., :, 3] - (A1offset * self.tgtaxis1)
@@ -309,6 +309,8 @@ def Crystal_I432_C2_C4(c2a=None, c4b=None, **kw):
       from_seg=c2a,
       to_seg=c4b,
       space_group_str="I 4 3 2",
+      tgtaxis2_isects=[0, 1, 0],
+      cell_dist_scale=4.0,
       **kw,
    )
    # dihedral angle = 45
@@ -324,12 +326,13 @@ def Crystal_F432_C3_C4(c3a=None, c4b=None, **kw):
       from_seg=c3a,
       to_seg=c4b,
       space_group_str="F 4 3 2",
+      tgtaxis2_isects=[0, 1, 0],
       **kw,
    )
    # dihedral angle = 54.7356
 
 def Crystal_P432_C4_C4(c4a=None, c4b=None, **kw):
-   if c3a is None or c3b is None:
+   if c4a is None or c4b is None:
       raise ValueError("must specify ...?")  # one or two of c6, c2
    # return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
    return AxesAngle(
@@ -339,6 +342,7 @@ def Crystal_P432_C4_C4(c4a=None, c4b=None, **kw):
       from_seg=c4a,
       to_seg=c4b,
       space_group_str="P 4 3 2",
+      tgtaxis2_isects=[0, 1, 0],
       **kw,
    )
    # dihedral angle = 90
@@ -354,6 +358,7 @@ def Sheet_P42_from_ws_0127(c4=None, c2=None, **kw):
       from_seg=c4,
       to_seg=c2,
       cell_dist_scale=2.0,
+      tgtaxis2_isects=[0, 1, 0],
       **kw,
    )
 
@@ -367,6 +372,7 @@ def Sheet_P6_C3_C2_from_ws_0202(c3=None, c2=None, **kw):
       from_seg=c3,
       to_seg=c2,
       cell_dist_scale=2,
+      tgtaxis2_isects=[0, 1, 0],
       **kw,
    )
 
@@ -397,6 +403,7 @@ class Crystal_F23_T_C2(AxesAngle):
          to_seg=c2,
          space_group_str="F 2 3",
          cell_dist_scale=4.0,
+         tgtaxis2_isects=[0, 1, 0],
          **kw,
       )
 
@@ -510,6 +517,7 @@ class Crystal_F23_T_T(AxesAngle):
          to_seg=tb,
          space_group_str="F 2 3",
          cell_dist_scale=2.0,
+         tgtaxis2_isects=[0, 1, 0],
          **kw,
       )
 

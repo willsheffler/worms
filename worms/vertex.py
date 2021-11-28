@@ -16,8 +16,8 @@ from worms.util.util import generic_equals
 
 vertex_xform_dtype = np.float32
 
-MAX_HELIX = 50
-MAX_HULL = 200
+MAX_HELIX = 128
+MAX_HULL = 512
 
 @jitclass(
       (
@@ -173,12 +173,27 @@ def vertex_single(bbstate, bbid, din, dout, min_seg_len, verbosity=0):
          warning("invalid vertex " + dirn + " " + bytes(bb.file).decode())
       return None
 
-   # print('ires0', ires0)
-   # for _ in ires0:
-   #    print('   ', _)
-   # print('ires1', ires1)
-   # for _ in ires1:
-   #    print('   ', _)
+   nres = len(bb.ncac)
+   # assert len(bb.ncac) == len(bb.stubs)
+   # print('nres', nres, len(bb.stubs))
+   # print('ires0')
+   # print(ires0)
+   # print('ires1')
+   # print(ires1)
+   # print()
+
+   # for ary in ires0:
+   #    for i, ir in enumerate(ary):
+   #       if ir < 0:
+   #          ary[i] = nres + ir
+   #    assert np.all(ary >= 0)
+   #    assert np.all(ary < nres)
+   # for ary in ires1:
+   #    for i, ir in enumerate(ary):
+   #       if ir < 0:
+   #          ary[i] = nres + ir
+   #    assert np.all(ary >= 0)
+   #    assert np.all(ary < nres)
 
    dummy = [np.array([-1], dtype="i4")]
    ires0 = np.concatenate(ires0 or dummy)
@@ -191,6 +206,7 @@ def vertex_single(bbstate, bbid, din, dout, min_seg_len, verbosity=0):
    if ires0[0] == -1:
       assert len(ires0) == 1
    else:
+
       assert np.all(ires0 >= 0)
    if ires1[0] == -1:
       assert len(ires1) == 1

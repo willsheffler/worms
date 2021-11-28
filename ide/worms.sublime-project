@@ -46,9 +46,14 @@
 			"name": "cagextal",
 			"shell_cmd": "cd $folder/test_cases/8-11-21_restricted_cage; m *.pdb; rm *.json; rm *.info; rm *.sym ; python -mworms @input/cagextal.flags &> sublime_build.log"
 		},
+		// {	
+		// 	"name": "test_O_D3",
+		// 	"shell_cmd": "cd $folder; rm > /dev/null *.pdb; rm > /dev/null *.json; rm > /dev/null *.info; PYTHONPATH=. python worms/tests/integration/cagextal/test_O_D3.py  &> log/sublime_build.log"
+		// },
 		{	
-			"name": "test_O_D3",
-			"shell_cmd": "cd $folder; rm > /dev/null *.pdb; rm > /dev/null *.json; rm > /dev/null *.info; PYTHONPATH=. python worms/tests/integration/cagextal/test_O_D3.py  &> log/sublime_build.log"
+			"name": "test_database",
+			"shell_cmd": "cd $folder; rm > /dev/null *.pdb; rm > /dev/null *.json; rm > /dev/null *.info; PYTHONPATH=. python worms/tests/database/test_database.py  &> log/sublime_build.log"
+
 		}
 
 

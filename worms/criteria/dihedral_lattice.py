@@ -358,7 +358,11 @@ class DihedralCyclicLattice3D(WormCriteria):
          for i in range(len(c_tgt_axis_isect)):
             c_axis_isects = c_tgt_axis_isect[i, 0]
             c_tgt_axis = c_tgt_axis_isect[i, 1]
-            d = hm.numba_line_line_distance_pa(cn, ax, origin, c_axis_isects)
+
+            # d = hm.numba_line_line_distance_pa(cn, ax, origin, c_axis_isects)
+            p, q = hm.numba_line_line_closest_points_pa(cn, ax, origin, c_axis_isects)
+            d = np.linalg.norm(p - q)
+
             a = np.arccos(abs(np.sum(c_tgt_axis * ax)))
             mn = min(mn, np.sqrt(d**2 + (a * lever)**2))
          return mn
@@ -377,7 +381,11 @@ class DihedralCyclicLattice3D(WormCriteria):
          mn, mni = 9e9, None
          for i, _ in enumerate(self.c_tgt_axis_isect):
             c_axis_isects, c_tgt_axis = _
-            d = hm.numba_line_line_distance_pa(cn, ax, origin, c_axis_isects)
+
+            # d = hm.numba_line_line_distance_pa(cn, ax, origin, c_axis_isects)
+            p, q = hm.line_line_closest_points_pa(cn, ax, origin, c_axis_isects)
+            d = np.linalg.norm(p - q)
+
             a = np.arccos(abs(np.sum(c_tgt_axis * ax)))
             err = np.sqrt(d**2 + (a * self.lever)**2)
             if err < mn:
