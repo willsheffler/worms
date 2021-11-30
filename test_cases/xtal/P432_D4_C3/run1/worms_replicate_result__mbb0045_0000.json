@@ -1,0 +1,46 @@
+[
+    {
+        "file": "/home/sheffler/data/pdbs/acourbet_dihedrals/D_tj10C4_G1_178.pdb",
+        "name": "D_tj10C4_G1_178",
+        "type": "D4_N-C",
+        "class": "D4",
+        "base": "D_tj10C4_G1_178",
+        "components": [
+            ""
+        ],
+        "validated": true,
+        "protocol": "Alex_dihedral_axles",
+        "connections": [
+            {
+                "chain": 0,
+                "direction": "N",
+                "residues": [
+                    54
+                ]
+            }
+        ]
+    },
+    {
+        "file": "pdbs/\\\\home\\\\yhsia\\\\helixfuse\\\\2019-04-16_sym_r2\\\\output\\\\2L6HC3-13_3\\\\DHR76\\\\2L6HC3-13_3_asu_DHR76_AB_0001_0003.pdb",
+        "name": "HFuse_2L6HC3-13_3_0240",
+        "class": [
+            "C3_C"
+        ],
+        "type": "HFuse_C3_C",
+        "base": "2L6HC3-13",
+        "components": [
+            "DHR76"
+        ],
+        "validated": false,
+        "protocol": "Hfuse",
+        "connections": [
+            {
+                "chain": 0,
+                "direction": "C",
+                "residues": [
+                    161
+                ]
+            }
+        ]
+    }
+]

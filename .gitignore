@@ -87,12 +87,35 @@ _khash_ffi.c
 .worms_pytest_cache/bblock
 .worms_pytest_cache_disabled
 
-*.info
-*.pdb
-*.sym
-test_cases/xtal/*/*.json
-
-test_cases/*/*.pdb
-test_cases/*/*.json
+test_cases/*.info
+test_cases/*.sym
+test_cases/*.pdb
 test_cases/*/*.info
+test_cases/*/*.sym
+test_cases/*/*.pdb
+test_cases/*/*/*.info
+test_cases/*/*/*.sym
+test_cases/*/*/*.pdb
+test_cases/*/*/*/*.info
+test_cases/*/*/*/*.sym
+test_cases/*/*/*/*.pdb
+worms/data/test_cases/*.info
+worms/data/test_cases/*.sym
+worms/data/test_cases/*.pdb
+worms/data/test_cases/*/*.info
+worms/data/test_cases/*/*.sym
+worms/data/test_cases/*/*.pdb
+worms/data/test_cases/*/*/*.info
+worms/data/test_cases/*/*/*.sym
+worms/data/test_cases/*/*/*.pdb
+*_replicate_result_*.json
+
+tmp/
+output/
+log
+
+# test_cases/*/*.pdb
+# test_cases/*/*.json
+# test_cases/*/*.info
+
 wormscache

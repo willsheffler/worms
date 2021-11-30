@@ -1,0 +1,47 @@
+--geometry P432_D4_C3(d4=0, c3=-1)
+
+--bbconn      
+   _N D4_N-C
+   C_ C3_C
+
+# D2_N-C
+# D3_N-C
+# D4_N-C
+
+
+--nbblocks 16
+--monte_carlo 0
+--parallel 0
+--shuffle_bblocks 0
+
+--tolerance 4.0
+--max_score0 30
+--max_score0sym 100
+--full_score0sym 0
+
+--splice_rms_range 5
+--splice_max_rms 1.0
+--splice_ncontact_cut 8
+--splice_ncontact_no_helix_cut 2
+--splice_nhelix_contacted_cut 1
+--splice_max_chain_length 750
+
+--verbosity 2
+--output_from_pose 0
+--disable_cache 0
+--cachedirs ./wormscache
+--merge_segment 1
+--no_duplicate_bases 0
+
+--xtal_min_cell_size 100
+--xtal_max_cell_size 99999
+
+--max_clash_check 10000000
+--max_com_redundancy 4
+--output_only_AAAA   0
+
+--dbfiles
+   /home/sheffler/data/worms/json/buildingblock_list_dihedrals2.txt
+   /home/sheffler/data/worms/HFuse_Cx_database.20190422_only100.txz
+#  /home/sheffler/data/worms/HFuse_C4_database.20181017.txz
+#  /home/sheffler/data/worms/HFuse_Cx_database.20190422.txz
