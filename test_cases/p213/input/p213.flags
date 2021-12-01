@@ -42,7 +42,7 @@
 --xtal_max_cell_size 99999
 
 --max_clash_check 10000000
---max_com_reduworms_mbb0000__0004.pdbndancy 4
+--max_com_redundancy 4
 --output_only_AAAA 0
 --dbfiles
 
