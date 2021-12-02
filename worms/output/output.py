@@ -172,6 +172,9 @@ def filter_and_output_results(
                   numfail.cell_to_big += 1
                   continue
 
+                  # locally trying i432 cagextal -- issue with symops return none on xalign fail
+                  # digs trying p432 again
+
          # print(getmem(), 'MEM ================ top of loop ===============')
 
          if iresult % 100 == 0:
@@ -191,7 +194,7 @@ def filter_and_output_results(
             if hasattr(database.bblockdb, "_poses_cache"):
                print(merge_bblock, iresult, Ntotal)
                print(
-                  f"mbb{merge_bblock:04} dumping results {iresult} of {Ntotal}",
+                  f"mbb{merge_bblock:04} checking results {iresult} of {Ntotal}",
                   "pose_cache",
                   sys.getsizeof(database.bblockdb._poses_cache),
                   len(database.bblockdb._poses_cache),
@@ -302,6 +305,9 @@ def filter_and_output_results(
          # symops = None
 
          symops = criteria.symops(segpos=result.pos[iresult])
+         if symops == list():
+            numfail.xalign += 1
+            continue
          sympose = cenpose.clone()
          symfilestr = None
          score0sym = -1

@@ -287,9 +287,9 @@ class AxesIntersect(WormCriteria):
       # print('bounded.py:symops xtal:', self.xtal)
 
       x, cell_dist = self.alignment(segpos, out_cell_spacing=True)
-      if cell_dist is None: return None
+      if cell_dist is None: return list()
       # print('    cell dist', cell_dist)
-      if self.xtal.replace(' ', '') == 'I432':
+      if self.xtal.replace(' ', '').upper() == 'I432':
          ops = (
             hm.hrot([1, 1, 1], 120),
             hm.hrot([1, 1, 1], 240),
