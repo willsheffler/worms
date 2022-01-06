@@ -25,7 +25,6 @@ class BBlockDB:
       self.cachedirs = worms.database.get_cachedirs(cachedirs)
       self._bblock_cache = dict()
       self.null_base_names = null_base_names
-      self.pdb_contents = pdb_contents
       self.bblocks_accessed = set()
       self.poses_accessed = set()
 

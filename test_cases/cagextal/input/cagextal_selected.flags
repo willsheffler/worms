@@ -13,9 +13,9 @@
 --parallel 0
 --shuffle_bblocks 0
 
---tolerance 1.0
---max_score0 3
---max_score0sym 10
+--tolerance 2.0
+--max_score0 10
+--max_score0sym 30
 --full_score0sym 0
 
 --splice_rms_range 5

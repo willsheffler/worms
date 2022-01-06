@@ -1,3 +1,18 @@
+file: /home/acourbet/Fivans/pdb_database/D_tj10C4_G1_678.pdb
+type: Homo_D4_N-C
+base: D_tj10C4_G1_678
+components: []
+validated: true
+protocol: Alex_dihedral_axles
+connections:
+   chain: 1, direction: C, residues:[-1:],
+   chain: 1, direction: N, residues:[:1]
+  
+
+
+
+
+
 Crystal 
     F23    T, C2   Worked before.... can't find tetrahedral bblocks
     F23    T, C3   Worked before.... can't find tetrahedral bblocks

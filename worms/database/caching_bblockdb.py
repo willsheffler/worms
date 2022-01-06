@@ -104,11 +104,11 @@ class CachingBBlockDB:
    def get_json_entry(self, file):
       return self._dictdb[file]
 
-   def acquire_cachedir_lock(self, timeout=600):
+   def acquire_cachedir_lock(self, timeout=20):
       for i in range(timeout):
          if self.islocked_cachedir():
             if i % 10 == 0:
-               print(f"waiting {i}/600s to acquire_cachedir_lock")
+               print(f"waiting {i}/600s to acquire:", os.path.exists(self.cachedirs[0] + "/lock"))
             time.sleep(1)
          else:
             self.lock_cachedir()

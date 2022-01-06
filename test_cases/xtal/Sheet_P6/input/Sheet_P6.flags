@@ -1,9 +1,5 @@
 --geometry Sheet_P6(c6=0, c2=-1)
 
---bbconn      
-   _N C6_N
-   C_ C2_C
-
 
 --nbblocks 4
 --monte_carlo 0

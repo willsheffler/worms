@@ -557,7 +557,7 @@ def make_json_for_result(ssdag, database, merge_bblock, result, iresult, print_p
                direction=dirn[1],
                residues=[int(v.ires[ivert][1])],
             ))
-
+      dbentry['connections'].sort(key=lambda x: x['chain'])
       newdb.append(dbentry)
 
    # for iseg, dbentry in enumerate(newdb):

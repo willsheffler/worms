@@ -3,7 +3,7 @@ import numpy as np
 from worms import homog as hm
 from numpy.linalg import inv
 from worms.util import jit
-
+import worms
 # from worms.filters.helixconf_jit import make_helixconf_filter
 
 Ux = np.array([1, 0, 0, 0])
@@ -94,3 +94,13 @@ class NullCriteria(WormCriteria):
 
    def iface_rms(self, pose0, prov0, **kw):
       return -1
+
+   def __eq__(self, other):
+      return all([
+         self.from_seg == other.from_seg,
+         self.to_seg == other.to_seg,
+         self.origin_seg == other.origin_seg,
+         self.is_cyclic == other.is_cyclic,
+         self.tolerance == other.tolerance,
+         self.symname == other.symname,
+      ])

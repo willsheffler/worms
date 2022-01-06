@@ -707,37 +707,50 @@ def numba_intersect_planes(p1, n1, p2, n2, debug=False):
                2 = the two planes coincide
    """
    if debug: print('BEGIN numba_intersect_planes')
+   if debug: print('u = numba_cross(n1, n2)')
    u = numba_cross(n1, n2)
+   if debug: print('abs_u = np.abs(u)')
    abs_u = np.abs(u)
+   if debug: print('planes_parallel = np.sum(abs_u, axis=-1) < 0.000001')
    planes_parallel = np.sum(abs_u, axis=-1) < 0.000001
+   if debug: print('p2_in_plane1 = numba_point_in_plane(p1, n1, p2)')
    p2_in_plane1 = numba_point_in_plane(p1, n1, p2)
    if planes_parallel:
       if debug: print('END numba_intersect_planes None')
       return None
    # if p2_in_plane1:
    # return None
+   if debug: print('d1 = -np.sum(n1 * p1)')
    d1 = -np.sum(n1 * p1)
+   if debug: print('d2 = -np.sum(n2 * p2)')
    d2 = -np.sum(n2 * p2)
+   if debug: print('amax = np.argmax(abs_u)')
    amax = np.argmax(abs_u)
+
    if amax == 0:
+      if debug: print('    amax == 0')
       x = 0
       y = (d2 * n1[2] - d1 * n2[2]) / u[0]
       z = (d1 * n2[1] - d2 * n1[1]) / u[0]
    elif amax == 1:
+      if debug: print('   amax==1')
       x = (d1 * n2[2] - d2 * n1[2]) / u[1]
       y = 0
       z = (d2 * n1[0] - d1 * n2[0]) / u[1]
-
    elif amax == 2:
+      if debug: print('elif amax == 2:')
       x = (d2 * n1[1] - d1 * n2[1]) / u[2]
       y = (d1 * n2[0] - d2 * n1[0]) / u[2]
       z = 0
+   else:
+      return None
    isect = np.empty((4, 2), dtype=p1.dtype)
    isect[0, 0] = x
    isect[1, 0] = y
    isect[2, 0] = z
    isect[3, 0] = 1
-   isect[:3, 1] = u / np.sqrt(np.sum(u * u))
+   if debug: print('isect[:3, 1] = u / np.sqrt(np.sum(u * u))')
+   isect[:3, 1] = u[:3] / np.sqrt(np.sum(u * u))
    isect[3, 1] = 0
    if debug: print('END numba_intersect_planes', isect)
    return isect
@@ -781,6 +794,7 @@ def numba_axis_angle_cen(xform, debug=False):
    if debug: print('   c1 = (p1 + q1) / 2.0')
    c2 = (p2 + q2) / 2.0
    if debug: print('   c2 = (p2 + q2) / 2.0')
+
    isect = numba_intersect_planes(c1, n1, c2, n2, debug=debug)
    if debug: print('   isect = numba_intersect_planes(c1, n1, c2, n2)')
    if isect is None:
@@ -788,4 +802,5 @@ def numba_axis_angle_cen(xform, debug=False):
    else:
       ret = axis, angle, isect[:, 0]
    if debug: print('END numba_axis_angle_cen')
+
    return ret

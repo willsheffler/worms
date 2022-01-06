@@ -17,6 +17,8 @@ from tqdm import tqdm
 from time import time, perf_counter as clock
 from worms.search.result import remove_duplicate_results, ResultJIT
 
+from worms.util.jitutil import expand_results
+
 @jit
 def null_lossfunc(pos, idx, verts):
    return 0.0
@@ -205,7 +207,6 @@ def _grow_linear_start(
       # print('', flush=True)
 
    # assert 0
-   from worms.util.jitutil import expand_results
    if debug: PING('_grow_linear_start calling _grow_linear_recurse')
    if timer:
       timer.checkpoint('_grow_linear_start')
@@ -271,6 +272,7 @@ def _last_bb_mismatch(result, verts, ivertex, nresults, last_bb_same_as):
 # _grow_linear_recurse_jit = jit(_grow_linear_recurse)
 
 def _grow_linear_recurse(
+   *,
    result,
    bb_base,
    verts,
@@ -354,13 +356,10 @@ def _grow_linear_recurse(
          result.stats.n_last_bb_same_as[0] += 1
          if debug:
             print('     loss = loss_function(result.pos[nresults], result.idx[nresults], verts)')
+
          loss = loss_function(result.pos[nresults], result.idx[nresults], verts)
 
          if debug: print('     DONE loss = loss_function(...)')
-         # print('         loss', loss)
-         # print('         loss', loss)
-         # print('         loss', loss)
-         # print('         loss', loss)
 
          if loss < result.stats.best_score[0]:
             result.stats.best_score[0] = loss
@@ -422,8 +421,23 @@ def _grow_linear_recurse(
    if debug: print('   return nresults, result')
    return nresults, result, bbidx_prev
 
-def _grow_linear_mc_start(seconds, verts_pickleable, edges_pickleable, threadno, pbar, lbl,
-                          verbosity, merge_bblock, pbar_interval, debug, **kwargs):
+def _grow_linear_mc_start(
+   *,
+   seconds,
+   verts_pickleable,
+   edges_pickleable,
+   threadno,
+   pbar,
+   lbl,
+   verbosity,
+   merge_bblock,
+   pbar_interval,
+   debug,
+   timer,
+   **kwargs,
+):
+
+   # raise NotImplementedError('some features need adding to mc search version')
    tstart = time()
    verts = tuple([_Vertex(*vp) for vp in verts_pickleable])
    edges = tuple([_Edge(*ep) for ep in edges_pickleable])
@@ -456,8 +470,25 @@ def _grow_linear_mc_start(seconds, verts_pickleable, edges_pickleable, threadno,
       if "pbar_inst" in vars():
          pbar_inst.update(time() - last)
          last = time()
-      nresults, result = _grow_linear_mc(nbatch, result, verts, edges, bases=bases,
-                                         nresults=nresults, debug=debug, **kwargs)
+      nresults, result = _grow_linear_mc(
+         nbatch,
+         result,
+         verts,
+         edges,
+         bases=bases,
+         nresults=nresults,
+         debug=debug,
+         **kwargs,
+         # bb_base
+         # loss_function
+         # loss_threshold
+         # last_bb_same_as
+         # isplice
+         # splice_position
+         # max_linear
+         # timer
+         # ivertex_range
+      )
 
       iter += 1
       # remove duplicates every 10th iter
@@ -509,7 +540,7 @@ def _grow_linear_mc(
    bases,
    debug,
 ):
-   from worms.util.jitutil import expand_results
+
    for i in range(niter):
       nresults, result = _grow_linear_mc_recurse(
          result=result,
@@ -525,7 +556,7 @@ def _grow_linear_mc(
          ivertex_range=ivertex_range,
          splice_position=splice_position,
          bases=bases,
-         expand_results=expand_results,
+         # expand_results=expand_results,
          debug=debug,
       )
    return nresults, result
@@ -630,7 +661,7 @@ def _grow_linear_mc_recurse(
             ivertex_range=next_ivertex_range,
             splice_position=next_splicepos,
             bases=bases,
-            expand_results=expand_results,
+            # expand_results=expand_results,
             debug=debug,
          )
    return nresults, result

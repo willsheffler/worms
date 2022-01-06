@@ -9,6 +9,9 @@
 --nbblocks 4
 --shuffle_bblocks 0
 
+--cachedirs ./testcache
+
+
 --parallel 0
 
 --tolerance 1.0
@@ -38,10 +41,7 @@
 --splice_ncontact_no_helix_cut 1
 --splice_nhelix_contacted_cut 1
 --splice_max_chain_length 9999
+
 --dbfiles 
-#   input/local_HFuse_het_2chain_2arm_database.Sh13-5+1-AI_2.20180905.txt#
-#   input/local_HFuse_het_2chain_2arm_database.ZCON-9_2.20180516.txt.small.txt
-   input/worms_replicate_result__mbb0000_0000.json
+   helixori_1result.txz
 
-
---cachedirs ./wormscache

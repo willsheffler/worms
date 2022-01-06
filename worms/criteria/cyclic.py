@@ -100,7 +100,7 @@ class Cyclic(WormCriteria):
       self.bbspec = None  # should be filled in elsewhere
 
    def __eq__(self, other):
-      return all(
+      return all([
          type(self) == type(other),
          self.symmetry == other.symmetry,
          self.tolerance == other.tolerance,
@@ -113,9 +113,9 @@ class Cyclic(WormCriteria):
          self.min_sep2 == other.min_sep2,
          self.fixori_segment == other.fixori_segment,
          self.fixori_tolerance == other.fixori_tolerance,
-         self.fixori_target == other.fixori_target,
+         worms.util.generic_equals(self.fixori_target, other.fixori_target),
          self.bbspec == other.bbspec,
-      )
+      ])
 
    def jit_lossfunc(self, **kw):
       kw = Bunch(**kw)
@@ -202,9 +202,9 @@ class Cyclic(WormCriteria):
             # return 0
 
          err = sqrt(geomerr**2 + helixerr**2 + tgtaxiserr**2 + fixorierr**2)
-         if err < 5:
-            print('errors', err, 'geom', geomerr, 'hel', helixerr, 'tax', tgtaxiserr, 'ori',
-                  fixorierr)
+         # if err < 5:
+         # print('errors', err, 'geom', geomerr, 'hel', helixerr, 'tax', tgtaxiserr, 'ori',
+         # fixorierr)
 
          return err
 

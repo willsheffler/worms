@@ -111,7 +111,6 @@ worms/data/test_cases/*/*/*.pdb
 *_replicate_result_*.json
 
 tmp/
-output/
 log
 
 # test_cases/*/*.pdb
@@ -119,3 +118,4 @@ log
 # test_cases/*/*.info
 
 wormscache
+testcache

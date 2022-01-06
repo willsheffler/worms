@@ -41,7 +41,7 @@
 --output_only_AAAA   0
 
 --dbfiles
-   /home/sheffler/data/worms/json/buildingblock_list_dihedrals2.txt
+   /home/sheffler/data/worms/json/b txt
    /home/sheffler/data/worms/HFuse_Cx_database.20190422_only100.txz
 #  /home/sheffler/data/worms/HFuse_C4_database.20181017.txz
 #  /home/sheffler/data/worms/HFuse_Cx_database.20190422.txz

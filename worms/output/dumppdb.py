@@ -117,8 +117,9 @@ def graph_dump_pdb(
 
    # print(crystinfo, flush=True)
 
-   cryst1 = 'CRYST1  %7.3f  %7.3f  %7.3f  90.00  90.00  90.00 ' % crystinfo[:3] + crystinfo[6]
-   out.write(cryst1 + '\n')
+   if crystinfo:
+      cryst1 = 'CRYST1  %7.3f  %7.3f  %7.3f  90.00  90.00  90.00 ' % crystinfo[:3] + crystinfo[6]
+      out.write(cryst1 + '\n')
 
    assert len(idx) == len(pos)
    assert idx.ndim == 1

@@ -5,14 +5,18 @@ if __name__ == '__main__':
 
 import worms
 
-def test_p213():
+def test_helixori():
 
    # assumes
    # test dir worms/data/test_cases/<testname>/
    # reference results in that dir
    # flags: worms/data/test_cases/<testname>/config/<testname>.flags
 
-   worms.tests.generic_integration_test('test_p213')
+   worms.tests.generic_integration_test('test_helixori')
+
+def test_helixori_nullcriteria():
+   worms.tests.generic_integration_test('test_helixori_null')
 
 if __name__ == '__main__':
-   test_p213()
+   # test_helixori()
+   test_helixori_nullcriteria()

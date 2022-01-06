@@ -27,7 +27,11 @@
 		},
 		{
 			"name": "test_helix_ori",
-			"shell_cmd": "cd $folder/test_cases/helix_ori; m *.pdb; rm *.json; rm *.info; rm *.sym ; python -mworms @input/helix_ori_1.flags &> sublime_build.log"
+			"shell_cmd": "cd $folder/test_cases/helix_ori; rm *.pdb; rm *.json; rm *.info; rm *.sym ; python -mworms @input/helix_ori_1.flags &> $folder/log/sublime_build.log"
+		},
+		{
+			"name": "test_test_helixori",
+			"shell_cmd": "cd $folder; python worms/tests/integration/test_helixori.py &> $folder/log/sublime_build.log"
 		},
 		{
 			"name": "test_yang_hetc3",

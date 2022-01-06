@@ -9,6 +9,7 @@ def generic_integration_test(testname):
    ssdag, newresult = worms.app.run_simple(criteria, **kw)
    newresult.sort_on_idx()  # for repeatability
 
+   print('load ref from', worms.data.get_latest_testresult_path(testname, candidates_ok=False))
    refpath, refdat = worms.data.get_latest_testresult(testname, candidates_ok=False)
 
    refresult = None
