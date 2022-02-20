@@ -142,7 +142,7 @@ cli_args = dict(
    helixconf_both_ends_neighbor_helix=0,  # neighbor helix contacts must span helices
    #
    shuffle_output=0,
-   xtal_min_cell_size=0,
+   xtal_min_cell_size=100,
    xtal_max_cell_size=9e9,
    #
    print_splice_fail_summary=1,

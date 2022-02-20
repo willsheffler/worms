@@ -5,7 +5,7 @@
    C_ C3_C
 
 --output_from_pose 0
---nbblocks 4
+--nbblocks 1
 --monte_carlo 0
 --parallel 0
 --shuffle_bblocks 0
@@ -37,4 +37,4 @@
 --output_only_AAAA 0
 
 --dbfiles
-   /home/sheffler/data/worms/HFuse_Cx_database_20180711.txz
+   /home/sheffler/data/worms/HFuse_Cx_database.20190422_only100.txz

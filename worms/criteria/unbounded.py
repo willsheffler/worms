@@ -260,6 +260,27 @@ def Crystal_P213_C3_C3(c3a=None, c3b=None, **kw):
    )
    # dihedral angle = 70.5288
 
+def Crystal_I213_C3_C2(c3=0, c2=-1, **kw):
+   # produces much output, but chashes -- probably misalignment?
+   if c2 is None or c3 is None:
+      raise ValueError("must specify both c2 and c3?")
+   # SymElem("C2", axis=Vec(1, 0, 0), cen=Vec(0, 0, 0.25) * cell, col=[1, 0.7, 0.0]),
+   # SymElem("C3", axis=Vec(1, 1, 1) * 0.57735, cen=Vec(0, 0, 0) * cell, col=[0.1, 0.5, 1]),
+   return AxesAngle(
+      'Crystal_I213_C3_C2',
+      [1, 1, 1, 0],
+      [1, 0, 0, 0],
+      tgtcen2=[0, 0, 0.00],
+      tgtcen1=[0, 0, 0.25],
+      from_seg=c3,
+      to_seg=c2,
+      space_group_str="I 21 3",
+      cell_dist_scale=4.0,  # guess
+      tgtaxis2_isects=[0, 0, 1],
+      **kw,
+   )
+   # dihedral angle = 54.7356
+
 #### IN PROGRESS ####
 # I just normalized all the angles, but I don't think you can do this...might need to check the angle between them. Print and check that it is correct.
 def Crystal_P4132_C2_C3(c2a=None, c3b=None, **kw):
@@ -280,23 +301,6 @@ def Crystal_P4132_C2_C3(c2a=None, c3b=None, **kw):
       # aiersntoiarsnteio**kw,
    )
    # dihedral angle = 35.2644
-
-def Crystal_I213_C2_C3(c2a=None, c3b=None, **kw):
-   # produces much output, but chashes -- probably misalignment?
-   if c2a is None or c3b is None:
-      raise ValueError("must specify ...?")  # one or two of c6, c2
-   # return AxesAngle('Crystal_P213_C3_C3_depth3_1comp', [1,-1,1,0], [-1,1,1,0], from_seg=c3a, to_seg=c3b, **kw)
-   return AxesAngle(
-      "Crystal_I213_C2_C3_depth3_1comp",
-      [0, 0, 1, 0],
-      [-1, 1, 1, 0],
-      from_seg=c2a,
-      to_seg=c3b,
-      space_group_str="I 21 3",
-      cell_dist_scale=4.0,  # guess
-      **kw,
-   )
-   # dihedral angle = 54.7356
 
 def Crystal_I432_C2_C4(c2a=None, c4b=None, **kw):
    if c2a is None or c4b is None:
