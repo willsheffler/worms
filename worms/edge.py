@@ -41,7 +41,7 @@ def _analysis(nclash, rms, ncontact, ncnh, nhc, **kw):
    denominator = denominator if denominator else nclash.size
    denominator = denominator if denominator else 1
    f_clash_ok = np.sum(nclash == 0) / denominator
-   f_rms_ok = np.sum(rms <= kw["splice_max_rms"]) / rms.size
+   f_rms_ok = (np.sum(rms <= kw["splice_max_rms"]) / rms.size) if rms.size else 0
    f_ncontact_ok = np.sum(ncontact >= kw["splice_ncontact_cut"]) / denominator
    f_ncnh_ok = np.sum(ncnh >= kw["splice_ncontact_no_helix_cut"]) / denominator
    f_nhc_ok = np.sum(nhc >= kw["splice_nhelix_contacted_cut"]) / denominator
@@ -177,6 +177,9 @@ def get_allowed_splices(
    pairs_with_no_valid_splices = 0
    bblock_pair_analysis = list()
    tcache = 0
+   nosplice_no_clash = 0
+   nosplice_rms = 0
+   nosplice_contact = 0
 
    exe = InProcessExecutor()
    if parallel:
@@ -185,6 +188,9 @@ def get_allowed_splices(
    with exe as pool:
       futures = list()
       ofst0 = 0
+      n_contact = 0
+      n_no_clash = 0
+      n_rms = 0
       for iblk0, ires0 in outblk_res.items():
          blk0 = ublks[iblk0]
          key0 = blk0.filehash
@@ -263,9 +269,9 @@ def get_allowed_splices(
             )
             result = _splice_respairs(ok, ublks[iblk0], vblks[iblk1])
             if np.sum(ok) == 0:
-               print("N no clash", np.sum(nclash == 0))
-               print("N rms", np.sum(rms <= splice_max_rms))
-               print("N contact", np.sum(ncontact >= splice_ncontact_cut))
+               nosplice_no_clash += np.sum(nclash == 0)
+               nosplice_rms += np.sum(rms <= splice_max_rms)
+               nosplice_contact += np.sum(ncontact <= splice_ncontact_cut)
 
             if splicedb:
                key0 = ublks[iblk0].filehash  # C-term side
@@ -280,8 +286,8 @@ def get_allowed_splices(
             ires0, ires1 = ires1, ires0
             ofst0, ofst1 = ofst1, ofst0
 
-         bblock_pair_analysis.append((iblk0, iblk1, ofst0, ofst1, ires0, ires1) + analysis)
-         if len(result[0]) == 0:
+         bblock_pair_analysis.append((iblk0, iblk1, ofst0, ofst1, ires0, ires1) + tuple(analysis))
+         if isinstance(result[0], np.int32) or len(result[0]) == 0:
             pairs_with_no_valid_splices += 1
             continue
          index_of_ires0 = _index_of_map(ires0, np.max(result[0]))
@@ -304,6 +310,11 @@ def get_allowed_splices(
       # assert pairs_with_no_valid_splices < len(outblk_res) * len(
       # inblk_res
       # ), 'no valid splices'
+
+      print('pairs with no splices found failure modes')
+      print("nosplice_rms", nosplice_rms)
+      print("nosplice_contact", nosplice_contact)
+      print("nosplice_no_clash", nosplice_no_clash)
 
    return valid_splices, nout, nent, bblock_pair_analysis
 

@@ -1,22 +1,20 @@
 import os, sys, types
+from tqdm import tqdm
+from time import time, perf_counter as clock
 from posixpath import expanduser
 from time import perf_counter
 import numpy as np, numba as nb
 
-from worms.util import jit, InProcessExecutor, PING, Bunch
-
-from worms.vertex import _Vertex, vertex_xform_dtype
-
-from worms.edge import _Edge
 from random import random
-
 import concurrent.futures as cf
-from worms.search.result import ResultJIT, zero_search_stats
 from multiprocessing import cpu_count
-from tqdm import tqdm
-from time import time, perf_counter as clock
-from worms.search.result import remove_duplicate_results, ResultJIT
 
+import worms
+from worms.util import jit, InProcessExecutor, PING, Bunch
+from worms.edge import _Edge
+from worms.search.result import ResultJIT, zero_search_stats
+from worms.search.result import remove_duplicate_results, ResultJIT
+from worms.vertex import _Vertex, vertex_xform_dtype
 from worms.util.jitutil import expand_results
 
 @jit
@@ -289,6 +287,7 @@ def _grow_linear_recurse(
    bbidx_prev,
    expand_results,
    debug=False,
+   depth=0,
 ):
    """Takes a partially built 'worm' of length isplice and extends them by one based on ivertex_range
 
@@ -313,6 +312,7 @@ def _grow_linear_recurse(
 
    debug = False
    current_vertex = verts[isplice]
+   # print('grow_linear main loop', isplice, ivertex_range, nresults, flush=True)
    for ivertex in range(*ivertex_range):
       if not (last_bb_same_as >= 0 and isplice == len(edges)):
          basehash = bb_base[isplice][current_vertex.ibblock[ivertex]]
@@ -390,7 +390,7 @@ def _grow_linear_recurse(
          next_splicepos = splice_position @ current_vertex.x2exit[ivertex]
          iexit = current_vertex.exit_index[ivertex]
          allowed_entries = edges[isplice].allowed_entries(iexit)
-         for ienter in allowed_entries:
+         for iienter, ienter in enumerate(allowed_entries):
             next_ivertex_range = next_vertex.entry_range(ienter)
             if isplice + 1 == len(edges):
                if _last_bb_mismatch(result, verts, next_ivertex_range[0], nresults,
@@ -400,6 +400,10 @@ def _grow_linear_recurse(
             assert next_ivertex_range[1] >= 0, "ivrt rng err"
             assert next_ivertex_range[0] <= next_vertex.len, "ivrt rng err"
             assert next_ivertex_range[1] <= next_vertex.len, "ivrt rng err"
+            # if depth == 0:
+            # print('_grow_linear_recurse', depth, ivertex, ivertex_range[0], ivertex_range[1],
+            # '/', iienter, 'of', len(allowed_entries))
+
             nresults, result, bbidx_prev = _grow_linear_recurse(
                result=result,
                bb_base=bb_base,
@@ -417,6 +421,7 @@ def _grow_linear_recurse(
                bbidx_prev=bbidx_prev,
                expand_results=expand_results,
                debug=debug,
+               depth=depth + 1,
             )
    if debug: print('   return nresults, result')
    return nresults, result, bbidx_prev

@@ -370,7 +370,7 @@ class CachingBBlockDB:
          # info('CachingBBlockDB.build_pdb_data reading %s' % pdbfile)
          pose = self.pose(pdbfile)
          ss = worms.rosetta_init.core.scoring.dssp.Dssp(pose).get_dssp_secstruct()
-         bblock = worms.bblock.BBlock(entry, pdbfile, pdbkey, pose, ss, self.null_base_names)
+         bblock = worms.bblock.make_bblock(entry, pdbfile, pdbkey, pose, ss, self.null_base_names)
          self._bblock_cache[pdbkey] = bblock
          # print(cachefile)
          with open(cachefile, "wb") as f:

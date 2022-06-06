@@ -88,9 +88,15 @@ def construct_global_ssdag_and_run(
          if kw.only_bblocks:
             assert len(kw.bbs) is len(kw.only_bblocks)
             for i, bb in enumerate(kw.bbs):
-               kw.bbs[i] = [bb[kw.only_bblocks[i]]]
+               if isinstance(kw.only_bblocks[0], (list, tuple)):
+                  kw.bbs[i] = [bb[j] for j in kw.only_bblocks]
+               else:
+                  kw.bbs[i] = [bb[kw.only_bblocks[i]]]
             print("modified bblock numbers (--only_bblocks)")
             print("   ", [len(b) for b in kw.bbs])
+            print(kw.bbs)
+            assert 0
+
          kw.merge_bblock = merge_bblock
          if kw["precache_splices_and_quit"]:
             return Bunch(log=log)

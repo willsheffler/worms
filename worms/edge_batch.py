@@ -11,7 +11,7 @@ import numpy as np
 from worms.vertex import Vertex
 from worms.edge import Edge
 from worms.edge import _jit_splice_metrics, _splice_respairs, _analysis
-from worms.bblock import BBlockWrap
+from worms.bblock import BBlock
 from worms.util import InProcessExecutor, hash_str_to_int
 
 def _valid_splice_pairs(bbw0, bbw1, **kw):
@@ -52,8 +52,8 @@ def compute_splices(bbdb, bbpairs, verbosity, parallel, pbar, pbar_interval=10.0
    with exe as pool:
       futures = list()
       for bbpair in bbpairs_shuf:
-         bbw0 = BBlockWrap(bbdb.bblock(bbpair[0]))
-         bbw1 = BBlockWrap(bbdb.bblock(bbpair[1]))
+         bbw0 = BBlock(bbdb.bblock(bbpair[0]))
+         bbw1 = BBlock(bbdb.bblock(bbpair[1]))
          f = pool.submit(_valid_splice_pairs, bbw0, bbw1, **kw)
          f.bbpair = bbpair
          futures.append(f)

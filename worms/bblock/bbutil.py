@@ -51,7 +51,7 @@ def bblock_components(bblock):
 
 def bblock_str(bblock):
    return "\n".join([
-      "jitclass BBlock(",
+      "jitclass make_bblock(",
       "    file=" + str(bytes(bblock.file)),
       "    components=" + str(bblock_components(bblock)),
       "    protocol=" + str(bytes(bblock.protocol)),

@@ -2,7 +2,7 @@ raise DeprecationWarning('this is from worms v1 and should not be used any longe
 
 from worms import *
 from worms.data import poselib
-from worms.vis import showme
+from willutil.viz import showme
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
 from time import perf_counter

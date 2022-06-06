@@ -46,7 +46,7 @@ def test_sheet_P4212(c2pose, c4pose, c1pose):
    w = grow(segments, Sheet_P4212(c2=-1, c4=0), thresh=1)
    assert len(w) > 0
    # print(w.scores)
-   # vis.show_with_z_axes(w, 0)
+   # viz.show_with_z_axes(w, 0)
    p = w.pose(0, only_connected=0)
    # q = w.sympose(0, )
    # q.dump_pdb('P4212_symm.pdb')
@@ -71,7 +71,7 @@ def test_sheet_P321(c2pose, c3pose, c1pose):
    w = grow(segments, Sheet_P321(c2=-1, c3=0), thresh=1)
    assert len(w) > 0
    # print(w.scores)
-   # vis.show_with_z_axes(w, 0)
+   # viz.show_with_z_axes(w, 0)
    p = w.pose(0, only_connected=0)
    # q = w.sympose(0, )
    # q.dump_pdb('P321_symm.pdb')
@@ -97,7 +97,7 @@ def test_crystal_P213(c3pose, c3_splay_pose, c1pose):
    print(len(w))
 
    # print(w.scores)
-   # vis.show_with_z_axes(w, 0)
+   # viz.show_with_z_axes(w, 0)
    for i in range(1):
       p = w.pose(i, only_connected=0)
       # q = w.sympose(i, fullatom=True)

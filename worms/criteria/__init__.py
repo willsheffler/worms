@@ -1,4 +1,5 @@
 from worms.criteria.base import *
+from worms.criteria.null import NullCriteria
 # from .hash_util import * khash_cffi needs updating for numba 0.49+
 
 from worms.criteria.cyclic import *

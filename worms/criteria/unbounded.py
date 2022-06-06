@@ -20,6 +20,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
       tgtaxis2_isects=None,
       tgtcen1=None,
       tgtcen2=None,
+      **kw,
    ):
       """ Worms criteria for non-intersecting axes re: unbounded things
 
@@ -37,7 +38,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
             space_group_str: The target space group.
 
         """
-
+      super().__init__(**kw)
       self.symname = symname
       self.cell_dist_scale = cell_dist_scale
       self.tgtaxis1 = np.asarray(

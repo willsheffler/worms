@@ -11,7 +11,15 @@ from worms.bblock.bbutil import make_connections_array, ncac_to_stubs
 from worms.util import jitclass
 from worms.util.util import generic_equals
 
-def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
+def make_bblock(
+   entry: dict,
+   pdbfile: str,
+   filehash: int,
+   pose,
+   ss,
+   null_base_names,
+   **kw,
+):
    json = dumps(entry)
    chains = worms.util.rosetta_utils.get_chain_bounds(pose)
    ss = np.frombuffer(ss.encode(), dtype="i1")
@@ -46,11 +54,6 @@ def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
    if entry["base"] in null_base_names: basehash = 0
    else: basehash = worms.util.hash_str_to_int(entry["base"])
 
-   def npfb(s):
-      if isinstance(s, list):
-         s = "[" + ",".join(s) + "]"
-      return np.frombuffer(s.encode(), dtype="i1")
-
    ca = ncac[:, 1, :]
    hullcoord = np.array([np.mean(ca[i - 3:i + 4], axis=0) for i in range(3, len(ca) - 4)])
    worms.PING(f'hullcoord shape {hullcoord.shape}')
@@ -72,6 +75,8 @@ def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
    validated = entry["validated"]
    if validated in ("na", "NA"):
       validated = False
+
+   helixnum, helixresbeg, helixresend, helixbeg, helixend = worms.vertex.get_bb_helices(ss, ncac)
 
    bblock = _BBlock(
       json=npfb(json),
@@ -95,6 +100,11 @@ def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
       rg=rg,
       numhull=numhull,
       hull=hull,
+      helixnum=helixnum,
+      helixresbeg=helixresbeg,
+      helixresend=helixresend,
+      helixbeg=helixbeg,
+      helixend=helixend,
    )
 
    return bblock
@@ -122,7 +132,12 @@ def BBlock(entry, pdbfile, filehash, pose, ss, null_base_names, **kw):
         ("com",         numba.types.float64[:]),
         ("rg",          numba.types.float64),
         ('numhull',     numba.types.int64),
-        ('hull',        numba.types.float64[:,:]),
+        ('hull',        numba.types.float64[:,:] ),
+        ('helixnum'   , numba.types.int64        ),
+        ('helixresbeg', numba.types.int64[:]     ),
+        ('helixresend', numba.types.int64[:]     ),
+        ('helixbeg'   , numba.types.float64[:,:] ) ,
+        ('helixend'   , numba.types.float64[:,:] ),
     )
 )  # yapf: disable
 class _BBlock:
@@ -151,6 +166,11 @@ class _BBlock:
       rg,
       numhull,
       hull,
+      helixnum,
+      helixresbeg,
+      helixresend,
+      helixbeg,
+      helixend,
    ):
       self.json = json
       self.connections = connections
@@ -171,8 +191,16 @@ class _BBlock:
       self.stubs = stubs
       self.com = com
       self.rg = rg
+
       self.numhull = numhull
       self.hull = hull
+
+      self.helixnum = helixnum
+      self.helixresbeg = helixresbeg
+      self.helixresend = helixresend
+      self.helixbeg = helixbeg
+      self.helixend = helixend
+
       assert np.isnan(np.sum(self.ncac)) == False
       assert np.isnan(np.sum(self.cb)) == False
       assert np.isnan(np.sum(self.stubs)) == False
@@ -192,54 +220,18 @@ class _BBlock:
    @property
    def _state(self):
       # MUST stay same order as args to __init__!!!!!
-      return (
-         self.json,
-         self.connections,
-         self.file,
-         self.filehash,
-         self.components,
-         self.protocol,
-         self.name,
-         self.classes,
-         self.validated,
-         self._type,
-         self.base,
-         self.basehash,
-         self.ncac,
-         self.cb,
-         self.chains,
-         self.ss,
-         self.stubs,
-         self.com,
-         self.rg,
-         self.numhull,
-         self.hull,
-      )
+      return (self.json, self.connections, self.file, self.filehash, self.components,
+              self.protocol, self.name, self.classes, self.validated, self._type, self.base,
+              self.basehash, self.ncac, self.cb, self.chains, self.ss, self.stubs, self.com,
+              self.rg, self.numhull, self.hull, self.helixnum, self.helixresbeg, self.helixresend,
+              self.helixbeg, self.helixend)
 
       def __setstate__(self, state):
-         (
-            self.json,
-            self.connections,
-            self.file,
-            self.filehash,
-            self.components,
-            self.protocol,
-            self.name,
-            self.classes,
-            self.validated,
-            self._type,
-            self.base,
-            self.basehash,
-            self.ncac,
-            self.cb,
-            self.chains,
-            self.ss,
-            self.stubs,
-            self.com,
-            self.rg,
-            self.numhull,
-            self.hull,
-         ) = state
+         (self.json, self.connections, self.file, self.filehash, self.components, self.protocol,
+          self.name, self.classes, self.validated, self._type, self.base, self.basehash,
+          self.ncac, self.cb, self.chains, self.ss, self.stubs, self.com, self.rg, self.numhull,
+          self.hull, self.helixnum, self.helixresbeg, self.helixresend, self.helixbeg,
+          self.helixend) = state
 
       def __getstate__(self):
          return self._state
@@ -271,15 +263,97 @@ class _BBlock:
             generic_equals(self.rg, other.rg),
             generic_equals(self.numhull, other.numhull),
             generic_equals(self.hull, other.hull),
+            generic_equals(self.helixnum, self.helixnum),
+            generic_equals(self.helixresbeg, self.helixresbeg),
+            generic_equals(self.helixresend, self.helixresend),
+            generic_equals(self.helixbeg, self.helixbeg),
+            generic_equals(self.helixend, self.helixend),
          ])
       return eq
 
-class BBlockWrap:
+class BBlock:
    def __init__(self, _bblock):
       self._bblock = _bblock
+
+   @property
+   def ss(self):
+      # return np.array(self._bblock.ss)
+      return self._bblock.ss
+
+   @property
+   def ncac(self):
+      # return np.array(self._bblock.ncac)
+      return self._bblock.ncac
+
+   @property
+   def conn_directions(self):
+      n = self._bblock.n_connections
+      return [self._bblock.conn_dirn(i) for i in range(n)]
+
+   @property
+   def conn_residues(self):
+      n = self._bblock.n_connections
+      return [self._bblock.conn_resids(i) for i in range(n)]
+
+   @property
+   def connections(self):
+      return list(zip(self.conn_directions, self.conn_residues))
+
+   def helixinfo(self, reslb=0, resub=99999, trim=10):
+      hrb, hre = self._bblock.helixresbeg, self._bblock.helixresend
+      ok = np.logical_and(hrb <= resub + trim, hre >= reslb - trim)
+      return (
+         sum(ok),
+         hrb[ok],
+         hre[ok],
+         self._bblock.helixbeg[ok],
+         self._bblock.helixend[ok],
+      )
+
+   @property
+   def classes(self):
+      return unnpfb(self._bblock.classes)
+
+   @property
+   def is_cyclic(self):
+      c = self.classes
+      if len(c) < 4: return False
+      return all([
+         c[0] == 'C',
+         c[1].isdigit(),
+         c[2] == '_',
+         c[3] in 'CN',
+      ])
+
+   @property
+   def chains(self):
+      return list(self._bblock.chains)
 
    def __setstate__(self, state):
       self._bblock = _BBlock(*state)
 
    def __getstate__(self):
       return self._bblock._state
+
+   @property
+   def com(self):
+      return self._bblock.com
+
+   @property
+   def json(self):
+      return bytes(self._bblock.json).decode()
+      # self.components = components
+      # self.protocol = protocol
+      # self.name = name
+      # self.classes = classes
+      # self.validated = validated
+      # self._type = _type
+      # self.base = base
+
+def npfb(s):
+   if isinstance(s, list):
+      s = "[" + ",".join(s) + "]"
+   return np.frombuffer(s.encode(), dtype="i1")
+
+def unnpfb(fb):
+   return bytes(fb).decode()

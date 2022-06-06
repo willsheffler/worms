@@ -30,7 +30,7 @@ def test_extra_chain_handling_cyclic(c1pose, c2pose, c3hetpose):
 
    segments = [Segment([helix], "_C"), Segment([trimer], "NC"), Segment([helix], "N_")]
    w = grow(segments, Cyclic(6), thresh=3)
-   # vis.showme(w.pose(0))
+   # viz.showme(w.pose(0))
    assert len(w) == 1
    assert tuple(w.indices[0]) == (3, 7, 0)
    p, prov = w.pose(0, provenance=1, only_connected=0)

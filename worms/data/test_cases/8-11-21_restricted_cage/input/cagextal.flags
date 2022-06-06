@@ -12,8 +12,9 @@
 --monte_carlo 0
 --parallel 8
 --verbosity 2
---disable_cache 0
+
 --cachedirs ./testcache
+--disable_cache 1
 
 --shuffle_bblocks 0
 

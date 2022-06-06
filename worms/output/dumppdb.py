@@ -29,9 +29,11 @@ def bblock_dump_pdb(
       splice=(-1, -1),
       join="splice",
       pos=np.eye(4),
-      chain=0,
+      cnum=0,
       anum=1,
       rnum=1,
+      symchains=True,
+      **kw,
 ):
 
    close = False
@@ -55,7 +57,7 @@ def bblock_dump_pdb(
          trim=0,
          spliced_only=1,
       )
-      # chains will have insplice at first ops, outsplice at last pos
+      # chains will have insplice at first pos, outsplice at last pos
       # either could be none
       chains = list()
       chains.append(sponly[0] if dirn[0] < 2 else None)
@@ -66,10 +68,20 @@ def bblock_dump_pdb(
       if len(sponly) > 1 or chains[0] is None:
          chains.append(sponly[-1] if dirn[1] < 2 else None)
 
+   mnconn, mxconn = 9e9, 0
+   for ich, conn in bblock.connections:
+      mnconn = min(mnconn, np.min(conn))
+      mxconn = max(mnconn, np.max(conn))
+
    aname = [" N  ", " CA ", " C  "]
    for ic, lbub in enumerate(chains):
       if lbub is None:
          continue
+      if not symchains and bblock.is_cyclic:
+         # print('symchains', ic, lbub)
+         if lbub[0] > mxconn or lbub[1] < mnconn:
+            # print('dumpdb.py skip', ic, lbub)
+            continue
       for i in range(*lbub):
          for j in (0, 1, 2):
             xyz = pos @ bblock.ncac[i, j]
@@ -78,7 +90,7 @@ def bblock_dump_pdb(
                   atomi=anum,
                   atomn=aname[j],
                   resn="GLY",
-                  chain=string.ascii_uppercase[chain],
+                  chain=string.ascii_uppercase[cnum],
                   resi=rnum,
                   x=xyz[0],
                   y=xyz[1],
@@ -91,12 +103,12 @@ def bblock_dump_pdb(
          continue
       if join == "splice" and ic + 1 == len(chains) and dirn[1] < 2:
          continue
-      chain += 1
+      cnum += 1
    if join == "bb":
-      chain += 1
+      cnum += 1
    if close:
       out.close()
-   return chain, anum, rnum
+   return cnum, anum, rnum
 
 def graph_dump_pdb(
       out,
@@ -107,6 +119,7 @@ def graph_dump_pdb(
       xalign=np.eye(4),
       trim=True,
       crystinfo=None,
+      **kw,
 ):
    # print('graph_dump_pdb')
 
@@ -125,20 +138,20 @@ def graph_dump_pdb(
    assert idx.ndim == 1
    assert pos.ndim == 3
    assert pos.shape[-2:] == (4, 4)
-   chain, anum, rnum = 0, 1, 1
+   cnum, anum, rnum = 0, 1, 1
 
-   for i, tup in enumerate(zip(ssdag.bbs, ssdag.verts, idx, pos)):
-      bbs, vert, ivert, x = tup
-      chain, anum, rnum = bblock_dump_pdb(
+   for i, (bbs, vert, ivert, x) in enumerate(zip(ssdag.bblocks, ssdag.verts, idx, pos)):
+      cnum, anum, rnum = bblock_dump_pdb(
          out=out,
          bblock=bbs[vert.ibblock[ivert]],
          dirn=vert.dirn if trim else (2, 2),
          splice=vert.ires[ivert] if trim else (-1, -1),
          pos=xalign @ x,
-         chain=chain,
+         cnum=cnum,
          anum=anum,
          rnum=rnum,
          join=join,
+         **kw,
       )
    if close:
       out.close()

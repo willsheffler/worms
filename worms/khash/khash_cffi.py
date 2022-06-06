@@ -3,8 +3,6 @@
 import numba as nb
 import numpy as np
 
-# from numba import cffi_support
-
 import glob
 import os
 from cffi import FFI
@@ -40,9 +38,9 @@ if not "READTHEDOCS" in os.environ:
    _khash_size = _khash_ffi.lib.khash_int2int_size
    _khash_destroy = _khash_ffi.lib.khash_int2int_destroy
 
-   # cffi_support.register_module(_khash_ffi)
+nb.core.typing.cffi_utils.register_module(_khash_ffi)
 
-# @nb.experimental.jitclass((("hash", nb.types.voidptr), ))
+@nb.experimental.jitclass((("hash", nb.types.voidptr), ))
 class KHashi8i8:
    def __init__(self):
       self.hash = _khash_init()

@@ -4,7 +4,16 @@ from worms import homog as hm
 from worms.util import jit
 
 class F222_D2_D2(WormCriteria):
-   def __init__(self, d2a=0, d2b=-1, min_cell_size=20, max_cell_size=9999):
+   def __init__(
+      self,
+      d2a=0,
+      d2b=-1,
+      min_cell_size=20,
+      max_cell_size=9999,
+      **kw,
+   ):
+      super().__init__(**kw)
+
       assert d2a is 0
       self.from_seg = d2a
       self.to_seg = d2b

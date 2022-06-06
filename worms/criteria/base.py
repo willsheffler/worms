@@ -11,6 +11,9 @@ Uy = np.array([0, 1, 0, 0])
 Uz = np.array([0, 0, 1, 0])
 
 class WormCriteria(abc.ABC):
+   def __init__(self, bbspec=None):
+      self.bbspec = bbspec
+
    @abc.abstractmethod
    def score(self, **kw):
       pass
@@ -31,7 +34,12 @@ class WormCriteria(abc.ABC):
    )
 
 class CriteriaList(WormCriteria):
-   def __init__(self, children):
+   def __init__(
+      self,
+      children,
+      **kw,
+   ):
+      super().__init__(**kw)
       if isinstance(children, WormCriteria):
          children = [children]
       self.children = children
@@ -56,51 +64,3 @@ class CriteriaList(WormCriteria):
 
    def __iter__(self):
       return iter(self.children)
-
-class NullCriteria(WormCriteria):
-   def __init__(self, cyclic=1):
-      self.from_seg = 0
-      self.to_seg = -1
-      self.origin_seg = None
-      self.is_cyclic = False
-      self.tolerance = 9e8
-      self.symname = 'C%i' % cyclic if cyclic > 1 else None
-
-   def merge_segment(self, **kw):
-      return None
-
-   def score(self, segpos, **kw):
-      return np.zeros(segpos[-1].shape[:-2])
-
-   def alignment(self, segpos, **kw):
-      r = np.empty_like(segpos[-1])
-      r[..., :, :] = np.eye(4)
-      return r
-
-   def jit_lossfunc(self, **kw):
-      helixconf_filter = worms.filters.helixconf_jit.make_helixconf_filter(self, **kw)
-
-      @jit
-      def null_lossfunc(pos, idx, verts):
-         axis = np.array([0, 0, 1, 0])
-         cen = np.array([0, 0, 0, 1])
-         helixerr = helixconf_filter(pos, idx, verts, axis)
-         # if helixerr < 9e8:
-         # print('null_lossfunc', helixerr)
-         return helixerr
-         # return 0.0
-
-      return null_lossfunc
-
-   def iface_rms(self, pose0, prov0, **kw):
-      return -1
-
-   def __eq__(self, other):
-      return all([
-         self.from_seg == other.from_seg,
-         self.to_seg == other.to_seg,
-         self.origin_seg == other.origin_seg,
-         self.is_cyclic == other.is_cyclic,
-         self.tolerance == other.tolerance,
-         self.symname == other.symname,
-      ])

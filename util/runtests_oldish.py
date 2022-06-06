@@ -15,7 +15,6 @@ _overrides = {
 }
 
 _file_mappings = {
-   "motif_io.py": ["rpxdock/tests/motif/test_pairscore.py"],
    "rosetta.py": ["rpxdock/tests/test_body.py"],
    "bvh_algo.hpp": ["rpxdock/tests/bvh/test_bvh_nd.py"],
    "bvh.cpp": ["rpxdock/tests/bvh/test_bvh.py"],
@@ -52,15 +51,9 @@ _file_mappings = {
    "component.py": ['rpxdock/tests/score/test_scorefunc.py'],
    "xform_hier.py": ['rpxdock/tests/search/test_multicomp.py'],
    "lattice_hier.py": ['rpxdock/tests/search/test_multicomp.py'],
-   # "basic.py": ["rpxdock/tests/search/test_onecomp.py"],
+   "basic.py": ["rpxdock/tests/search/test_onecomp.py"],
    "dockspec.py": ["rpxdock/tests/search/test_onecomp.py"],
    "pymol.py": ["rpxdock/tests/test_homog.py"],
-   "ball_joint_build_db.py": ['rpxdock/tests/fragments/test_ball_joint.py'],
-   # "expand_xforms.cpp": ["rpxdock/tests/geom/test_expand_xforms.py"],
-   "HapoCH3.params": ['rpxdock/tests/rotamer/test_etable.py'],
-   "CH3.params": ['rpxdock/tests/rotamer/test_etable.py'],
-   "HackPack.hh": ['rpxdock/pack/_annealer.cpp'],
-   "TwoBodyTable.hh": ['rpxdock/pack/_annealer.cpp'],
 }
 _post = defaultdict(lambda: "")
 
@@ -77,7 +70,7 @@ def testfile_of(path, bname):
    if os.path.exists(t):
       return t
 
-def dispatch(file, pytest_args="--durations=5"):
+def dispatch(file, pytest_args=''):
    """for the love of god... clean me up"""
    file = os.path.relpath(file)
    path, bname = os.path.split(file)
@@ -102,10 +95,8 @@ def dispatch(file, pytest_args="--durations=5"):
 
    if not file_has_main(file) and bname.startswith("test_"):
       cmd = "pytest {pytest_args} {file}".format(**vars())
-   elif file.endswith(".py"):
-      cmd = "PYTHONPATH=. python " + file
-   elif file.split('.')[-1] in 'cpp hpp cc hh'.split():
-      cmd = 'PYTHONPATH=. python ide/compile_file.py ' + file
+   elif not file_has_main(file) and file.endswith(".py"):
+      cmd = "PYTHONPATH=. python " + os.path.dirname(file) + '/tests/test_' + bname
    else:
       cmd = "pytest {pytest_args}".format(**vars())
 

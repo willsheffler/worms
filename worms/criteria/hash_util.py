@@ -55,7 +55,14 @@ def make_hash_table(ssdag, rslt, gubinner):
    return keys, hash_table
 
 class WheelHashCriteria(WormCriteria):
-   def __init__(self, orig_criteria, binner, hash_table):
+   def __init__(
+      self,
+      orig_criteria,
+      binner,
+      hash_table,
+      **kw,
+   ):
+      super().__init__(**kw)
       self.orig_criteria = orig_criteria
       self.binner = binner
       self.hash_table = hash_table

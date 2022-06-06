@@ -22,11 +22,11 @@
 
 #--only_bblocks 0 1 0
 
---disable_cache 0
 
 --pbar 0
 
 --cachedirs ./testcache
+--disable_cache 1
 
 --lever 25
 

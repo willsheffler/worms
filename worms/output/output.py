@@ -46,7 +46,7 @@ def filter_and_output_results(
    files_output = list()
 
    numfail = Bunch(xalign=0, crystinfo=0, cell_to_small=0, cell_to_big=0, duplicate_bases=0,
-                   make_pose_crit=0, redundant=0, only_AAAA=0, score0=0, score0sym=0)
+                   make_pose_crit=0, redundant=0, only_AAAA=0, score0=0, score0sym=0, symops=0)
 
    PING('mbb%i' % merge_bblock, print_pings)
 
@@ -95,6 +95,7 @@ def filter_and_output_results(
 
          segpos = result.pos[iresult]
          xalign = criteria.alignment(segpos)
+         assert xalign is not None
          if xalign is None:
             numfail.xalign += 1
             continue
@@ -141,6 +142,7 @@ def filter_and_output_results(
                iresult,
                print_pings,
                output_prefix,
+               **kw,
             ))
          # assert 0
 
@@ -244,11 +246,12 @@ def filter_and_output_results(
          for seen in seenpose[pose.size()]:
             PING('mbb%i' % merge_bblock, print_pings)
             rmsd = ros.core.scoring.CA_rmsd(seen, pose, 1, 0)  # whole pose
-            # print('!' * 100)
-            print(f'    RMSD {iresult:04} {rmsd}')
-            # print('!' * 100
-            print('SKIPPING REDUNDANT OUTPUT')
-            redundant = True
+            if rmsd < 1.0:
+               # print('!' * 100)
+               print(f'    RMSD {iresult:04} {rmsd}')
+               # print('!' * 100
+               print('SKIPPING REDUNDANT OUTPUT')
+               redundant = True
          if redundant:
             numfail.redundant += 1
             continue
@@ -306,7 +309,7 @@ def filter_and_output_results(
 
          symops = criteria.symops(segpos=result.pos[iresult])
          if symops == list():
-            numfail.xalign += 1
+            numfail.symops += 1
             continue
          sympose = cenpose.clone()
          symfilestr = None
@@ -434,6 +437,7 @@ def filter_and_output_results(
          info_file.flush()
 
          # print(getmem(), 'MEM dump pdb before')
+         print('output', fname, flush=True)
          if symdata and output_symmetric:
             sympose.dump_pdb(fname + "_sym.pdb")
          if output_centroid:
@@ -494,7 +498,7 @@ def filter_and_output_results(
    print(f'{" filter_and_output_results stats ":$^80}')
    for k, v in numfail.items():
       print('   ', k, v)
-   print('$' * 80)
+   print('$' * 80, flush=True)
 
    if nresults:
       if kw.save_minimal_replicate_database:
@@ -515,8 +519,17 @@ def filter_and_output_results(
    else:
       return Bunch(log=[], files=[], strict__=True)
 
-def make_json_for_result(ssdag, database, merge_bblock, result, iresult, print_pings,
-                         output_prefix):
+def make_json_for_result(
+   ssdag,
+   database,
+   merge_bblock,
+   result,
+   iresult,
+   print_pings,
+   output_prefix,
+   **kw,
+):
+   if merge_bblock is None: merge_bblock = -1
    PING('mbb%i' % merge_bblock, print_pings)
    # make json files with bblocks for single result
    newdb = list()
@@ -527,6 +540,8 @@ def make_json_for_result(ssdag, database, merge_bblock, result, iresult, print_p
       ibb = v.ibblock[ivert]
       bb = ssdag.bbs[iseg][ibb]
       fname = str(bytes(bb.file), 'utf-8')
+      if fname.startswith(r'pdbs\\\\'):
+         fname = fname[4:].replace('\\\\', '/')
       dbentry = copy.deepcopy(database.bblockdb._dictdb[fname])
 
       conn = dbentry['connections']

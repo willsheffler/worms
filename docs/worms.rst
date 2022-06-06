@@ -85,10 +85,10 @@ worms\.vertex module
     :undoc-members:
     :show-inheritance:
 
-worms\.vis module
+worms\.viz module
 -----------------
 
-.. automodule:: worms.vis
+.. automodule:: worms.viz
     :members:
     :undoc-members:
     :show-inheritance:

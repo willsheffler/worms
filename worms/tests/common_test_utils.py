@@ -1,16 +1,28 @@
-import pickle, os
+import pickle, os, sys
+
 import worms
+
+import willutil as wu
 
 def generic_integration_test(testname):
 
    criteria, kw = setup_testfunc(testname)
    kw.verbosity = 0
 
+   # print('!' * 500)
+   # assert not 'pytest' in sys.modules
+   # if os.path.exists('TEST.pickle'):
+   #    ssdag, newresult = wu.load('TEST.pickle')
+   # else:
+   #    ssdag, newresult = worms.app.run_simple(criteria, **kw)
+   #    wu.save((ssdag, newresult), 'TEST.pickle')
+
    ssdag, newresult = worms.app.run_simple(criteria, **kw)
+
    newresult.sort_on_idx()  # for repeatability
 
    print('load ref from', worms.data.get_latest_testresult_path(testname, candidates_ok=False))
-   refpath, refdat = worms.data.get_latest_testresult(testname, candidates_ok=False)
+   _, refdat = worms.data.get_latest_testresult(testname, candidates_ok=False)
 
    refresult = None
    if refdat is None:
@@ -44,6 +56,7 @@ def make_candidate_test_results(
    **kw,
 ):
    kw = worms.Bunch(**kw)
+   kw.max_output = 999
    new_test_dir = worms.data.make_timestamped_test_dir(testname, candidate=True)
    new_resulttable_file = worms.data.get_latest_testresult_path(testname, candidates_ok=True)
 
@@ -57,12 +70,12 @@ def make_candidate_test_results(
       pickle.dump((criteria, ssdag, newresult), out)
 
    kw.output_prefix = os.path.join(new_test_dir, testname)
-   worms.app.output_simple(criteria, ssdag, newresult, **kw)
+   worms.app.output_simple(criteria, ssdag, newresult, symchains=False, **kw)
    if refresult is not None:
       kw.output_suffix = os.path.join('_REF')
-      worms.app.output_simple(criteria, ssdag, newresult, **kw)
+      worms.app.output_simple(criteria, ssdag, refresult, symchains=False, **kw)
 
-def setup_test_databases(criteria, **kw):
+def setup_test_databases(**kw):
    kw = worms.Bunch(kw)
 
    bbdb = worms.data.get_testing_database('main_test_database')

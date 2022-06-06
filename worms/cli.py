@@ -149,6 +149,8 @@ cli_args = dict(
    print_info_edges_with_no_splices=1,
    #
    save_minimal_replicate_database=0,
+   #
+   repeat_axis_check=False,
 )
 
 def add_argument_unless_exists(parser, *arg, **kw):

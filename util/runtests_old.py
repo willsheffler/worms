@@ -12,7 +12,7 @@ def dispatch(file, pytest_args="--duration=5"):
    dispatch = {
       "segments.py": ["tests/test_segments.py", "tests/test_search.py"],
       "database.py": ["tests/test_database.py"],
-      "vis.py": ["tests/test_edge.py"],
+      "viz.py": ["tests/test_edge.py"],
       "pose_contortions.py": [
          "tests/test_pose_contortions.py",
          "tests/test_segments.py",

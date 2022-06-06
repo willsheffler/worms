@@ -3,7 +3,7 @@ import _pickle
 import numpy as np
 from worms.homog import sym
 from worms.data import sphere
-from worms.vis import plot3d
+from willutil.viz import plot3d
 from worms.data.sphere import get_sphere_samples
 
 def prune_to_asu(pts, frames):

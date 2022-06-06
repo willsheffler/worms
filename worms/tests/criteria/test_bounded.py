@@ -57,15 +57,15 @@ def test_D3(c2pose, c3pose, c1pose):
    ]
    w = grow(segments, D3(c2=-1, c3=0), thresh=1)
 
-   # vis.show_with_z_axes(w, 0)
-   # vis.showme(w.pose(0))
+   # viz.show_with_z_axes(w, 0)
+   # viz.showme(w.pose(0))
    # assert 0
    # print(w.scores[:5])
    # print([len(s) for s in segments])
    # print(w.indices[:5])
    # for i in range(5):
-   # vis.showme(w.pose(i, join=False))
-   # vis.showme(w.sympose(i))
+   # viz.showme(w.pose(i, join=False))
+   # viz.showme(w.sympose(i))
 
    # assert 0
 
@@ -92,7 +92,7 @@ def test_D3(c2pose, c3pose, c1pose):
    # show_with_z_axes(w, 0)
    p = w.pose(4, only_connected=0)
    assert no_overlapping_residues(p)
-   # vis.showme(p)
+   # viz.showme(p)
    assert 1 > residue_sym_err(p, 180, 1, 13, 6, axis=[1, 0, 0])
    assert 1 > residue_sym_err(p, 120, 56, 65, 6, axis=[0, 0, 1])
 
@@ -175,6 +175,6 @@ def test_icos(c2pose, c3pose, c1pose):
    assert len(w) == 3
    p = w.pose(2, only_connected=0)
    assert no_overlapping_residues(p)
-   # vis.showme(p)
+   # viz.showme(p)
    assert 2 > residue_sym_err(p, 120, 90, 99, 6, axis=IA[3])
    assert 2 > residue_sym_err(p, 180, 2, 14, 6, axis=IA[2])

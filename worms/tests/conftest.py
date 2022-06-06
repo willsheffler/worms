@@ -1,10 +1,12 @@
 import pytest
 import os
-import sys
+
 from os.path import join, dirname, abspath, exists
 from deferred_import import deferred_import
 import worms
+
 # is there a better way?
+# import sys
 # sys.path.insert(0, os.path.dirname(__file__) + "/../..")
 
 fixture = pytest.fixture(scope="session")
@@ -23,16 +25,11 @@ def jsondir():
 
 @fixture
 def db_bblock_caching_v0(datadir):
-   return worms.database.CachingBBlockDB(
-      cachedirs=[str(".worms_pytest_cache")],
-      dbfiles=[os.path.join(datadir, 'databases', 'json', 'test_db_file.json')],
-      lazy=False,
-      read_new_pdbs=worms.tests.HAVE_PYROSETTA,
-   )
+   return worms.data.db_bblock_caching_v0(datadir)
 
 @fixture
 def db_splice_caching_v0(datadir):
-   return CachingSpliceDB(cachedirs=[str(".worms_pytest_cache")])
+   return worms.database.CachingSpliceDB(cachedirs=[str(".worms_pytest_cache")])
 
 @fixture
 def db_caching_bblock_v0_fullsize_prots(datadir):

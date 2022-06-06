@@ -96,7 +96,7 @@ if 1:
          w.pose(i, join=0).dump_pdb("peace_%04i_asym.pdb" % i)
          w.pose(i, join=0, cyclic_permute=0).dump_pdb("peace_%04i_asym_nocp.pdb" % i)
          sys.stdout.flush()
-      # vis.showme(w.sympose(0))
+      # viz.showme(w.sympose(0))
       # for i in range(0, len(w), multiprocessing.cpu_count()):
       # for p, s in w.sympose(range(i, min(len(w), i + 8)), score=True):
       # print(i, w.scores[i], len(p), s)

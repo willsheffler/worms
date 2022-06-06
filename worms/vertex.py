@@ -1,15 +1,17 @@
 """TODO: Summary
 """
 
+from logging import warning
+import concurrent.futures as cf
+
 import numpy as np
 import numba as nb
 import numba.types as nt
-from worms.homog import is_homog_xform
-from worms import util
-from worms.bblock import _BBlock
 
-from logging import warning
-import concurrent.futures as cf
+import worms
+from worms import util
+from worms.homog import is_homog_xform
+from worms.bblock import _BBlock
 from worms.util import InProcessExecutor, jit, jitclass, helix_range
 from worms.criteria import cyclic
 from worms.util.util import generic_equals
@@ -284,6 +286,40 @@ def chain_of_ires(bb, ires):
                chain[i] = c
    return chain
 
+def get_bb_helices(ss, ncac, trim=0, **kw):
+
+   minsize = kw['helixconf_min_helix_size'] if 'helixconf_min_helix_size' in kw else 14
+   maxsize = kw['helixconf_max_helix_size'] if 'helixconf_max_helix_size' in kw else 999
+   helixresbeg, helixresend, helixbeg, helixend = list(), list(), list(), list()
+   hrange, helixof = helix_range(ss)
+   for ih, (lb, ub) in enumerate(hrange):
+      if ub - lb < minsize: continue
+      if ub - lb > maxsize: continue
+      beg = np.mean(ncac[(lb + trim):(lb + trim + 7), 1], axis=0)
+      end = np.mean(ncac[(ub - trim - 6):(ub - trim + 1), 1], axis=0)
+      # beg = np.mean(ncac[lb + 3:lb + 10, 1], axis=0)
+      # end = np.mean(ncac[ub - 9:ub - 2, 1], axis=0)
+      helixresbeg.append(lb)
+      helixresend.append(ub)
+      helixbeg.append(beg)
+      helixend.append(end)
+   numh = len(helixend)
+
+   helixresbeg = np.array(helixresbeg, dtype=np.int64)
+   helixresend = np.array(helixresend, dtype=np.int64)
+   helixbeg = np.array(helixbeg, dtype=np.float64)
+   helixend = np.array(helixend, dtype=np.float64)
+   if numh == 0:
+      helixresbeg = np.array([], dtype=np.int64)
+      helixresend = np.array([], dtype=np.int64)
+      helixbeg = np.array([[]], dtype=np.float64)
+      helixend = np.array([[]], dtype=np.float64)
+
+   assert isinstance(helixbeg, np.ndarray) and helixbeg.ndim == 2
+   assert isinstance(helixend, np.ndarray) and helixend.ndim == 2
+
+   return numh, helixresbeg, helixresend, helixbeg, helixend
+
 def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0, **kw):
 
    from worms.util.jitutil import unique_key_int32s, contig_idx_breaks
@@ -321,16 +357,11 @@ def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0, **kw):
    # not true as some pruned from validity checks
    # assert _check_bbires_inorder(ibblock, ires[:, 1])
 
-
    inout = np.stack(
-         [
-               unique_key_int32s(ibblock, ires[:, 0]),
-               unique_key_int32s(ibblock, ires[:, 1]),
-         ],
-         axis=-1,
-   ).astype(
-         "i4"
-   )  # yapf: disable
+      [unique_key_int32s(ibblock, ires[:, 0]),
+       unique_key_int32s(ibblock, ires[:, 1])],
+      axis=-1,
+   ).astype("i4")
 
    # inout2 = np.stack([
    #     util.unique_key(ibblock, ires[:, 0]),
@@ -353,8 +384,6 @@ def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0, **kw):
    assert inbreaks.dtype == np.int32
    assert np.all(inbreaks <= len(inout))
 
-   minsize = kw['helixconf_min_helix_size'] if 'helixconf_min_helix_size' in kw else 14
-   maxsize = kw['helixconf_max_helix_size'] if 'helixconf_max_helix_size' in kw else 999
    numhelix = np.zeros(dtype=np.int32, shape=(len(bbs), ))
    helixresbeg = np.zeros(dtype=np.int32, shape=(len(bbs), MAX_HELIX))
    helixresend = np.zeros(dtype=np.int32, shape=(len(bbs), MAX_HELIX))
@@ -362,19 +391,15 @@ def Vertex(bbs, dirn, bbids=None, min_seg_len=1, verbosity=0, **kw):
    helixend = np.zeros(dtype=np.float32, shape=(len(bbs), MAX_HELIX, 4))
 
    for ibb, bb in enumerate(bbs):
-      hrange, helixof = helix_range(bb.ss)
-      numh = 0
-      for ih, (lb, ub) in enumerate(hrange):
-         if ub - lb < minsize: continue
-         if ub - lb > maxsize: continue
-         beg = np.mean(bb.ncac[lb + 3:lb + 10, 1], axis=0)
-         end = np.mean(bb.ncac[ub - 9:ub - 2, 1], axis=0)
-         helixresbeg[ibb, numh] = lb
-         helixresend[ibb, numh] = ub
-         helixbeg[ibb, numh, :] = beg
-         helixend[ibb, numh, :] = end
-         numh += 1
+
+      numh, helixresbeg0, helixresend0, helixbeg0, helixend0 = get_bb_helices(bb.ss, bb.ncac)
+
       numhelix[ibb] = numh
+      if numh:
+         helixresbeg[ibb, :numh] = helixresbeg0
+         helixresend[ibb, :numh] = helixresend0
+         helixbeg[ibb, :numh] = helixbeg0
+         helixend[ibb, :numh] = helixend0
 
       numhull = -np.ones(dtype=np.int32, shape=(len(bbs), ))
       hull = 9e9 * np.ones(dtype=np.float32, shape=(len(bbs), MAX_HULL, 4))

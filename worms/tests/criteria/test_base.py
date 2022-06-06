@@ -10,4 +10,4 @@ def test_NullCriteria(c1pose):
    segments = [Segment([helix], "_C"), Segment([helix], "N_")]
    results = grow(segments, NullCriteria())
    assert len(results) == 16
-   # vis.showme(results.pose(0))
+   # viz.showme(results.pose(0))

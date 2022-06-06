@@ -7,7 +7,8 @@ from worms.util import jit
 class Stack(WormCriteria):
    """
     """
-   def __init__(self, sym, *, from_seg=0, tolerance=1.0, lever=50, to_seg=-1):
+   def __init__(self, sym, *, from_seg=0, tolerance=1.0, lever=50, to_seg=-1, **kw):
+      super().__init__(**kw)
       if from_seg == to_seg:
          raise ValueError("from_seg should not be same as to_seg")
       self.sym = sym

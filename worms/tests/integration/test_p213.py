@@ -2,6 +2,7 @@ import os
 
 if __name__ == '__main__':
    os.environ['NUMBA_DISABLE_JIT'] = '1'
+   print('NUMBA_DISABLE_JIT')
 
 import worms
 

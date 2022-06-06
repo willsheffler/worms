@@ -1,16 +1,20 @@
+from typing import List, Set, Dict, Tuple, Optional
+
 from time import perf_counter as time
 from collections import Counter
 import concurrent.futures as cf
 import pickle
 import os
-
+import willutil as wu
 import numpy as np
+
 import worms
 from worms import Bunch
 from worms.util.util import generic_equals
 from worms.vertex import Vertex
-from worms.bblock import _BBlock
+from worms.bblock import _BBlock, BBlock
 from worms.util import InProcessExecutor
+import willutil as wu
 
 def _validate_bbs_verts(bbs, verts):
    assert len(bbs) == len(verts)
@@ -20,7 +24,10 @@ def _validate_bbs_verts(bbs, verts):
       assert 0 <= np.min(vert.ibblock)
       assert np.max(vert.ibblock) < len(bb)
 
-class SearchSpaceDAG:
+class SearchSpaceDAG_Base:
+   pass
+
+class SearchSpaceDAG(SearchSpaceDAG_Base):
    """represents search space
     """
    def __init__(self, bbspec, bbs, verts, edges):
@@ -33,17 +40,26 @@ class SearchSpaceDAG:
          assert len(bbspec) == len(bbs)
       assert len(edges) == 0 or len(edges) + 1 == len(verts)
       self.bbspec = bbspec
+      self.bblocks = tuple([BBlock(b) for b in bb] for bb in bbs)
       self.bbs = tuple(bbs)
       self.verts = tuple(verts)
       self.edges = tuple(edges)
 
-   def __eq__(self, other):
-      return all([
-         generic_equals(self.bbspec, other.bbspec),
-         generic_equals(self.bbs, other.bbs),
-         generic_equals(self.verts, other.verts),
-         generic_equals(self.edges, other.edges),
-      ])
+   def __eq__(self, other: SearchSpaceDAG_Base):
+      wu.PING()
+      a = generic_equals(self.bbspec, other.bbspec),
+      assert a
+      wu.PING()
+      b = generic_equals(self.bbs, other.bbs),
+      wu.PING()
+      assert b
+      c = generic_equals(self.verts, other.verts),
+      wu.PING()
+      assert c
+      d = generic_equals(self.edges, other.edges),
+      wu.PING()
+      assert d
+      return all([a, b, c, d])
 
    def __getstate__(self):
       return (
@@ -55,9 +71,20 @@ class SearchSpaceDAG:
 
    def __setstate__(self, state):
       self.bbspec = state[0]
+      # print(len(state[1]))
+      for i, seg in enumerate(state[1]):
+         for j, bbstate in enumerate(seg):
+            # print(i, len(bbstate))
+            if len(bbstate) == 21:
+               ss = bbstate[15]
+               ncac = bbstate[12]
+               state[1][i][j] = bbstate + worms.vertex.get_bb_helices(ss, ncac)
+               # _BBlock(*state[1][i][j])
+
       self.bbs = tuple(tuple(_BBlock(*x) for x in bb) for bb in state[1])
       self.verts = tuple(worms.vertex._Vertex(*x) for x in state[2])
       self.edges = tuple(worms.edge._Edge(*x) for x in state[3])
+      self.bblocks = tuple([BBlock(b) for b in bb] for bb in self.bbs)
       _validate_bbs_verts(self.bbs, self.verts)
       assert len(self.bbs) == len(self.verts) == len(self.edges) + 1
 
@@ -135,14 +162,17 @@ def simple_search_dag(
    output_prefix="./worms",
    only_ivertex=[],
    print_splice_fail_summary=True,
+   only_bblocks=None,
    **kw,
 ):
 
    worms.PING(f'simple_search_dag mbb={merge_bblock}', printit=True, emphasis=1)
-
+   timer = wu.Timer()
    kw = Bunch(kw)
    bbdb, spdb = database
    queries, directions = zip(*criteria.bbspec)
+   if isinstance(nbblocks, int): nbblocks = [nbblocks]
+   if len(nbblocks) == 1: nbblocks *= len(criteria.bbspec)
    tdb = time()
    if bbs is None:
       bbs = list()
@@ -165,6 +195,7 @@ def simple_search_dag(
                   print("seg", iquery, "repeating bblocks from", msegs[0])
                   bbs.append(bbs[msegs[0]])
                   continue
+            # print('bbdb.query', iquery, query, nbblocks)
             bbs0 = bbdb.query(
                query,
                max_bblocks=nbblocks[iquery],
@@ -173,7 +204,20 @@ def simple_search_dag(
             )
             bbs.append(bbs0)
 
+         if only_bblocks:
+            newbbs = list()
+            assert len(only_bblocks) == len(bbs)
+            for bblist, onlybb in zip(bbs, only_bblocks):
+               assert isinstance(onlybb, list)
+               if onlybb is None: newbb = bblist
+               else: newbb = [bblist[j] for j in onlybb]
+               newbbs.append(newbb)
+            bbs = newbbs
+            print('ssdag.py onlybbs', only_bblocks)
+            print('ssdag.py onlybbs', [len(x) for x in bbs])
+
          if bblock_ranges:
+            assert 0, 'bblock_ranges needs an audit'
             bbs_sliced = list()
             assert len(bblock_ranges) == 2 * len(bbs)
             for ibb, bb in enumerate(bbs):
@@ -233,13 +277,19 @@ def simple_search_dag(
          # print('   ', 'merge_bblock', merge_bblock, len(bbs[merge_segment]))
          bbs[merge_segment] = (bbs[merge_segment][merge_bblock], )
 
-   tdb = time() - tdb
+   timer.checkpoint('madebbs')
+   print('------- madebbs ----------', flush=True)
+
+   # tdb = time() - tdb
    # info(
    # f'bblock creation time {tdb:7.3f} num bbs: ' +
    # str([len(x) for x in bbs])
    # )
 
    if precache_splices:
+
+      print('------- ssdag begin precache_splices ----------', flush=True)
+
       bbnames = [[bytes(bb.file) for bb in bbtup] for bbtup in bbs]
       bbpairs = set()
       # for bb1, bb2, dirn1 in zip(bbnames, bbnames[1:], directions):
@@ -259,6 +309,9 @@ def simple_search_dag(
          parallel=parallel,
          **kw,
       )
+      timer.checkpoint('ssdag precache_splices')
+      print('------- ssdag precache_splices ----------', flush=True)
+
    if precache_only:
       return Bunch(bblocks=bbs, strict__=True)
 
@@ -298,6 +351,9 @@ def simple_search_dag(
                continue
             edges[i] = source.edges[isrc]
             srcedges.append(isrc)
+
+   timer.checkpoint('ssdag finished edges precalc')
+   print('------- ssdag finished edges precalc ----------', flush=True)
 
    if not make_edges:
       edges = []
@@ -354,14 +410,15 @@ def simple_search_dag(
          verts = [None] * only_seg + verts + [None] * (len(queries) - only_seg - 1)
          bbs, directions = save
    tvertex = time() - tvertex
-   # info(
-   # f'vertex creation time {tvertex:7.3f} num verts ' +
-   # str([v.len if v else 0 for v in verts])
-   # )
+   timer.checkpoint('simple_search_dag made verts')
+   print('------- simple_search_dag made verts ----------', flush=True)
 
    if make_edges:
       tedge = time()
       for i, e in enumerate(edges):
+         timer.checkpoint(f'ssdag making edge {i}')
+         print(f'------- ssdag making edge {i} ----------', flush=True)
+
          if e is not None:
             continue
          edges[i], edge_analysis = worms.edge.Edge(
@@ -436,6 +493,8 @@ def simple_search_dag(
       # for e in edges]) + ' num exits ' + str([e.len for e in edges])
       # )
       spdb.sync_to_disk()
+      timer.checkpoint('simple_search_dag made edges')
+      print('------- simple_search_dag made edges ----------', flush=True)
 
    ssdag = SearchSpaceDAG(criteria.bbspec, bbs, verts, edges)
    worms.PING(f'created ssdag mbb {merge_bblock}', printit=True, emphasis=1)
@@ -443,7 +502,9 @@ def simple_search_dag(
       print(ssdag)
       print('!' * 80, flush=True)
 
-   # print('simple_search_dag returning', flush=True)
+   timer.checkpoint('simple_search_dag return')
+   print('------- simple_search_dag return ----------', flush=True)
+
    return Bunch(ssdag=ssdag, prof=(tdb, tvertex, tedge), strict__=True)
 
 def _print_edge_summary(edges):

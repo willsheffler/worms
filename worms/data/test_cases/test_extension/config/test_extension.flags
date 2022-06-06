@@ -12,7 +12,6 @@
 --cachedirs ./testcache
 --disable_cache 1
 
-
 --parallel 0
 
 --tolerance 1.0
@@ -26,6 +25,7 @@
 --helixconf_min_helix_size 14
 
 #--only_bblocks 0 1 0
+
 
 
 --pbar 0

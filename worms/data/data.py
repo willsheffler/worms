@@ -86,3 +86,11 @@ class open_lzma_cached:
 
    def __exit__(self, __type__, __value__, __traceback__):
       self.file_obj.close()
+
+def db_bblock_caching_v0(datadir):
+   return worms.database.CachingBBlockDB(
+      cachedirs=[str(".worms_pytest_cache")],
+      dbfiles=[os.path.join(datadir, 'databases', 'json', 'test_db_file.json')],
+      lazy=False,
+      read_new_pdbs=worms.tests.HAVE_PYROSETTA,
+   )

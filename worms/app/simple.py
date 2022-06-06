@@ -65,6 +65,7 @@ def output_simple(
          trim=True,
          xalign=xalign,
          crystinfo=crystinfo,
+         **kw,
       )
       files_output.append(fname + '.pdb')
 

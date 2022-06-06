@@ -40,7 +40,9 @@ class Cyclic(WormCriteria):
       target_structure=None,
       fixori_segment=None,
       fixori_tolerance=10.0,
+      **kw,
    ):
+      super().__init__(**kw)
       if from_seg == to_seg:
          raise ValueError("from_seg should not be same as to_seg")
       if from_seg == origin_seg:

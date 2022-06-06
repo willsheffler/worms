@@ -16,12 +16,12 @@
 --nbblocks 999
 --parallel 0
 
---disable_cache 0
-
 --monte_carlo 0
 --verbosity 2
 
 --cachedirs ./testcache
+--disable_cache 1
+
 
 --shuffle_bblocks 0
 

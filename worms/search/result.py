@@ -1,6 +1,5 @@
 from collections import namedtuple
 import numpy as np
-from numpy.lib import index_tricks
 import worms
 
 SearchStats = namedtuple(
@@ -26,12 +25,16 @@ def subset_result(results, ok):
       stats=results.stats,
    )
 
-class ResultTable(worms.Bunch):
-   def __init__(self, other):
+class Result:
+   pass
+
+class ResultTable(worms.Bunch, Result):
+   def __init__(self, other, ssdag=None):
       self.idx = other.idx
       self.pos = other.pos
       self.err = other.err
       self.stats = other.stats
+      self.ssdag = ssdag
 
    def __len__(self):
       assert len(self.idx) == len(self.pos) == len(self.err)
@@ -58,19 +61,30 @@ class ResultTable(worms.Bunch):
       self.err = self.err[order]
 
    def approx_equal(self, other):
-      # print('idxtype', self.idx.shape, other.idx.shape)
-      # print('postype', self.pos.shape, other.pos.shape)
-      # print('errtype', self.err.shape, other.err.shape)
-      # print('statstype', type(self.stats), type(other.stats))
+      print('idxtype', self.idx.shape, other.idx.shape)
+      print('postype', self.pos.shape, other.pos.shape)
+      print('errtype', self.err.shape, other.err.shape)
+      print('statstype', type(self.stats), type(other.stats))
       if self.idx.shape != other.idx.shape:
          return False
 
       idxeq = np.allclose(self.idx, other.idx)
-      poseq = np.allclose(self.pos, other.pos)
-      erreq = np.allclose(self.err, other.err)
+      poseq = np.allclose(self.pos, other.pos, atol=1e-6)
+      erreq = np.allclose(self.err, other.err, atol=1e-3)
       # statseq = self.stats == other.stats
 
-      return idxeq and poseq and erreq
+      a = self.idx
+      b = other.idx
+      print(a.shape, b.shape)
+      print(a)
+      print(b)
+
+      # assert idxeq
+      # assert poseq
+      # assert erreq
+
+      r = idxeq and poseq and erreq
+      return r
 
    def __getstate__(self):
       return self.idx, self.pos, self.err, self.stats

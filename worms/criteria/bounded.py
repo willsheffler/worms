@@ -38,9 +38,12 @@ class AxesIntersect(WormCriteria):
       segs=None,
       tgtaxis3=None,
       xtal=None,
+      end_dihedral_sym_ang=None,
+      **kw,
    ):
       """
       """
+      super().__init__(**kw)
       if from_seg == to_seg:
          raise ValueError("from_seg should not be same as to_seg")
       self.symname = symname
@@ -60,6 +63,7 @@ class AxesIntersect(WormCriteria):
          hm.hpoint(tgtaxis2[2]),
       )
       if tgtaxis3:
+         assert 0, 'tgtaxis3 needs an audit'
          if len(tgtaxis3) == 2:
             tgtaxis3 += ([0, 0, 0, 1], )
          self.tgtaxis3 = (
@@ -77,12 +81,13 @@ class AxesIntersect(WormCriteria):
       self.to_seg = to_seg
       self.rot_tol = tolerance / lever
       self.nondistinct_axes = nondistinct_axes  # -z not same as z (for T33)
-      self.sym_axes = [self.tgtaxis1, self.tgtaxis2]
+      # self.sym_axes = [self.tgtaxis1, self.tgtaxis2]
       self.is_cyclic = False
       self.origin_seg = None
       self.segs = segs
       self.xtal = xtal
       self.cell_dist_scale = 1.0
+      self.end_dihedral_sym_ang = end_dihedral_sym_ang
 
    def __eq__(self, other):
       return all([
@@ -103,7 +108,7 @@ class AxesIntersect(WormCriteria):
          self.to_seg == other.to_seg,
          self.rot_tol == other.rot_tol,
          self.nondistinct_axes == other.nondistinct_axes,
-         generic_equals(self.sym_axes, other.sym_axes),
+         # generic_equals(self.sym_axes, other.sym_axes),
          self.is_cyclic == other.is_cyclic,
          self.origin_seg == other.origin_seg,
          self.segs == other.segs,
@@ -140,14 +145,12 @@ class AxesIntersect(WormCriteria):
       nondistinct_axes = self.nondistinct_axes
 
       # temporary hard coded stuff
-
-      NFOLD = 3
-
-      #
-
-      tgtdang = np.pi / NFOLD / 2
-      endsymangle = 2 * np.pi / NFOLD
-      # print('AxesIntersect.jit_lossfunc endsymangle', endsymangle)
+      # NFOLD = 3
+      # #
+      # tgtdang = np.pi / NFOLD / 2
+      # end_dihedral_sym_ang = 2 * np.pi / NFOLD
+      end_dihedral_sym_ang = self.end_dihedral_sym_ang
+      # # print('AxesIntersect.jit_lossfunc end_dihedral_sym_ang', end_dihedral_sym_ang)
 
       @jit
       def func(pos, idx, verts):
@@ -184,51 +187,52 @@ class AxesIntersect(WormCriteria):
             return 9e9
          # print(abs(ang - tgtangle), dist)
 
-         xhat = pos[-1] @ np.linalg.inv(pos[0])
-         p, q = numba_line_line_closest_points_pa(cen1, ax1, cen2, ax2)
+         # xhat = pos[-1] @ np.linalg.inv(pos[0])
+         # p, q = numba_line_line_closest_points_pa(cen1, ax1, cen2, ax2)
+
          cagecen = (p + q) / 2.0
-
-         # print('dist tol', dist, tolerance, np.linalg.norm(p - q))
-         # daxis = xhat @ np.array([1, 0, 0, 0], dtype=np.float32)
-
          flip = numba_dot(pos[-1][:, 2], numba_normalized(pos[-1][:, 3] - cagecen))
          if flip < 0.0:
             # print('bounded.py:jit_lossfunc DONE flip < 0.0')
             return 9e9
-         daxis = pos[-1][:, 0]  # x dihedral axis (x)
-         # print('cagecen', cagecen)
-         # print('ax1', ax1)
-         # print('ax2', ax2)
-         # print('daxis', daxis)
-         # print('p3', cagecen + ax2)
-         # print('p4', cagecen + ax2 + daxis)
 
-         # print(
-         #    np.degrees(
-         #       numba_dihedral(
-         #          np.array([0, 0, 1, 1]),
-         #          np.array([0, 0, 0, 1]),
-         #          np.array([1, 1, 1, 1]),
-         # ]         np.array([2, 2, 1, 1]),
-         #       )))
-         # assert 0 # -180 -> 60
+         if end_dihedral_sym_ang is not None:
+            # print('dist tol', dist, tolerance, np.linalg.norm(p - q))
+            # daxis = xhat @ np.array([1, 0, 0, 0], dtype=np.float32)
+            daxis = pos[-1][:, 0]  # x dihedral axis (x)
+            # print('cagecen', cagecen)
+            # print('ax1', ax1)
+            # print('ax2', ax2)
+            # print('daxis', daxis)
+            # print('p3', cagecen + ax2)
+            # print('p4', cagecen + ax2 + daxis)
 
-         dang = numba_dihedral(
-            cagecen + ax1,
-            cagecen,
-            cagecen + ax2,
-            cagecen + ax2 + daxis,
-         )
-         dang = dang % endsymangle
+            # print(
+            #    np.degrees(
+            #       numba_dihedral(
+            #          np.array([0, 0, 1, 1]),
+            #          np.array([0, 0, 0, 1]),
+            #          np.array([1, 1, 1, 1]),
+            # ]         np.array([2, 2, 1, 1]),
+            #       )))
+            # assert 0 # -180 -> 60
 
-         dangerr = min(
-            abs(dang - endsymangle - tgtdang),
-            abs(dang - tgtdang),
-            abs(dang + endsymangle - tgtdang),
-         )
-         if dangerr > np.radians(DIHEDRAL_ROT_TOL):
-            # print('bounded.py:jit_lossfunc DONE dangerr > tol')
-            return 9e9
+            dang = numba_dihedral(
+               cagecen + ax1,
+               cagecen,
+               cagecen + ax2,
+               cagecen + ax2 + daxis,
+            )
+            dang = dang % end_dihedral_sym_ang
+
+            dangerr = min(
+               abs(dang - end_dihedral_sym_ang - tgtdang),
+               abs(dang - tgtdang),
+               abs(dang + end_dihedral_sym_ang - tgtdang),
+            )
+            if dangerr > np.radians(DIHEDRAL_ROT_TOL):
+               # print('bounded.py:jit_lossfunc DONE dangerr > tol')
+               return 9e9
          # print('deg:', dang * 180 / np.pi, 'rad:', dang)
 
          # dihedral symcen1, center, symcen2, bblock_orig
@@ -287,7 +291,22 @@ class AxesIntersect(WormCriteria):
       # print('bounded.py:symops xtal:', self.xtal)
 
       x, cell_dist = self.alignment(segpos, out_cell_spacing=True)
-      if cell_dist is None: return list()
+      if cell_dist is None: return None
+
+      # # print(self.tgtaxis1)
+      # # print(self.tgtaxis2)
+      # symops = list()
+      # nfold1, axis1, cen1 = self.tgtaxis1
+      # nfold2, axis2, cen2 = self.tgtaxis2
+      # assert np.allclose(cen1, [0, 0, 0, 1])
+      # assert np.allclose(cen2, [0, 0, 0, 1])
+      # assert not hasattr(self, 'tgtaxis3')
+
+      # return [
+      #    hm.hrot(axis1, np.pi * 2 / nfold1),
+      #    hm.hrot(axis2, np.pi * 2 / nfold2),
+      # ]
+
       # print('    cell dist', cell_dist)
       if self.xtal.replace(' ', '').upper() == 'I432':
          ops = (
@@ -307,7 +326,7 @@ class AxesIntersect(WormCriteria):
 
    def alignment(self, segpos, out_cell_spacing=False, debug=0, **kw):
       if hm.angle_degrees(self.tgtaxis1[1], self.tgtaxis2[1]) < 0.1:
-         PING('axes parallel??')
+         PING('axes parallel??', flush=True)
          assert False
          # return np.eye(4)
          return None
@@ -336,7 +355,10 @@ class AxesIntersect(WormCriteria):
       # print('tgtaxis1', self.tgtaxis1[1])
       # print('tgtaxis2', self.tgtaxis2[1])
       xalign = hm.align_vectors(ax1, ax2, self.tgtaxis1[1], self.tgtaxis2[1])
-      xalign[..., :, 3] = -xalign @ cen
+      # print(xalign)
+      # print('cen', cen)
+      xalign[..., :3, 3] = -(xalign @ cen)[:3]
+      # print(xalign)
       # print('newax', xalign @ ax1)
       # print('newax', xalign @ ax2)
 
@@ -372,6 +394,8 @@ class AxesIntersect(WormCriteria):
          if abs(z - x) >= 2.0: return None, None
          cell_spacing = 4 * (x + y + z) / 3
          return xalign, cell_spacing
+
+      assert xalign is not None
 
       return xalign
 

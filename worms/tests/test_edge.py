@@ -6,7 +6,7 @@ import numba as nb
 import numba.types as nt
 import numpy as np
 import pytest
-from worms import vis
+from worms import viz
 import xarray as xr
 
 @only_if_jit

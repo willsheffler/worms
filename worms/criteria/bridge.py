@@ -22,6 +22,8 @@ class HashCriteria(WormCriteria):
       prev_vsize=None,
       **kw,
    ):
+      super().__init__(**kw)
+
       self.from_seg = from_seg
       self.to_seg = to_seg
       self.filter_hash = filter_hash
@@ -128,7 +130,16 @@ class Bridge(WormCriteria):
     stage2: grow B->A if B is in coarse_hash, put in fine_hash
     stage3: grow A->B if B is in fine_hash, record result
     """
-   def __init__(self, from_seg=0, to_seg=-1, *, tolerance=1.0, lever=25):
+   def __init__(
+      self,
+      from_seg=0,
+      to_seg=-1,
+      *,
+      tolerance=1.0,
+      lever=25,
+      **kw,
+   ):
+      super().__init__(**kw)
       self.from_seg = from_seg
       self.to_seg = to_seg
       self.tolerance = tolerance

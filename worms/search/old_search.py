@@ -221,7 +221,14 @@ class XIndexedCriteria(WormCriteria):
         from_seg (TYPE): Description
         xindex_set (TYPE): Description
     """
-   def __init__(self, xindex, binner, nfold, from_seg=-1):
+   def __init__(
+      self,
+      xindex,
+      binner,
+      nfold,
+      from_seg=-1,
+      **kw,
+   ):
       """TODO: Summary
 
         Args:
@@ -230,6 +237,7 @@ class XIndexedCriteria(WormCriteria):
             nfold (TYPE): Description
             from_seg (TYPE, optional): Description
         """
+      super().__init__(**kw)
       self.xindex_set = set(xindex.keys())
       self.binner = binner
       self.from_seg = from_seg

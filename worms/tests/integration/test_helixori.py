@@ -1,9 +1,8 @@
 import os
-
-if __name__ == '__main__':
-   os.environ['NUMBA_DISABLE_JIT'] = '1'
-
 import worms
+
+# if __name__ == '__main__':
+# os.environ['NUMBA_DISABLE_JIT'] = '1'
 
 def test_helixori():
 
@@ -18,5 +17,5 @@ def test_helixori_nullcriteria():
    worms.tests.generic_integration_test('test_helixori_null')
 
 if __name__ == '__main__':
-   # test_helixori()
+   test_helixori()
    test_helixori_nullcriteria()

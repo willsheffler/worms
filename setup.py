@@ -19,6 +19,7 @@ requirements = [
    "toolz",
    "cffi",
    "xbin >= 0.1.5",
+   "rmsd",
 ]
 
 setup_requirements = []

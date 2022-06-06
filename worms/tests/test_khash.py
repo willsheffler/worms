@@ -3,7 +3,13 @@ from worms.util import jit
 from worms.khash import KHashi8i8
 from worms.khash.khash_cffi import _khash_get
 
-@pytest.mark.skip()
+def main():
+   test_khash_jitclass()
+   test_khash_numba_closure()
+   test_khash()
+   test_khash_closure()
+
+# @pytest.mark.skip()
 def test_khash_jitclass():
    @jit
    def use_khash_jitclass(h, i):
@@ -22,7 +28,7 @@ def test_khash_jitclass():
    assert h.get(926347) == -123456789
    assert h.size() == 3
 
-@pytest.mark.skip()
+# @pytest.mark.skip()
 def test_khash_numba_closure():
    def foo(h):
       hash = h.hash
@@ -68,3 +74,6 @@ def test_khash_closure():
    h = KHashi8i8()
    h.set(10, 10)
    assert get(h, 10) == 10
+
+if __name__ == '__main__':
+   main()

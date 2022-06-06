@@ -41,12 +41,12 @@ def test_sym_bug(c1pose, c2pose):
    assert len(wnc) == 3
    print(wnc.scores)
    p = wnc.pose(0, align=1, end=1)
-   # vis.showme(p)
+   # viz.showme(p)
    # show_with_axis(wnc, 0)
    # assert 0
    # q = wnc.pose(4)
-   # vis.showme(p, name='carterr')
-   # vis.showme(q, name='angerr')
+   # viz.showme(p, name='carterr')
+   # viz.showme(q, name='angerr')
    assert residue_sym_err(wnc.pose(0, end=True), 120, 2, 46, 6) < 1.0
 
 @only_if_pyrosetta_distributed
@@ -110,7 +110,7 @@ def test_pose_alignment_0(c1pose):
       )
    pose = w.pose(0, align=1, end=1)
    assert util.no_overlapping_residues(pose)
-   # vis.showme(pose)
+   # viz.showme(pose)
    xyz0 = np.array([pose.residue(1).xyz(2)[i] for i in (0, 1, 2)] + [1])
    # resid 43 happens to be the symmetrically related one for this solution
    xyz1 = np.array([pose.residue(42).xyz(2)[i] for i in (0, 1, 2)] + [1])
@@ -236,7 +236,7 @@ def test_cyclic_permute_beg_end(c1pose, c2pose):
       Segment([helix], entry="C"),
    ]
    w = grow(segments, Cyclic("C3", lever=50), thresh=1)
-   # vis.showme(w.pose(0))
+   # viz.showme(w.pose(0))
    p = w.pose(0, cyclic_permute=1)
    assert p.sequence() == "YTAFLAAIPAINAAAAAAAGAAAAAGAAAAAAAGAAAAAFLAAIPAIN"
    assert p.chain(30) == 1
@@ -255,11 +255,11 @@ def test_cyclic_permute_beg_end(c1pose, c2pose):
    assert p.chain(len(p)) == 1
    assert util.no_overlapping_residues(p)
    # print(w.scores)
-   # vis.showme(w.pose(0, cyclic_permute=0), name='reg')
+   # viz.showme(w.pose(0, cyclic_permute=0), name='reg')
    # print('------------------------')
-   # vis.showme(w.pose(0, end=1, join=False), name='end')
+   # viz.showme(w.pose(0, end=1, join=False), name='end')
    # print('------------------------')
-   # vis.showme(w.pose(0, cyclic_permute=1), name='cp')
+   # viz.showme(w.pose(0, cyclic_permute=1), name='cp')
    # print('------------------------')
    # assert 0
 
@@ -319,8 +319,8 @@ def test_multichain_mixed_pol(c2pose, c3pose, c1pose):
    assert len(w) == 24
    p = w.pose(0, end=True, cyclic_permute=0)
    assert util.no_overlapping_residues(p)
-   # vis.show_with_axis(w, 0)
-   # vis.showme(p)
+   # viz.show_with_axis(w, 0)
+   # viz.showme(p)
 
    # print(residue_sym_err(p, 120, 2, 62, 7))
    assert 0.3 > residue_sym_err(p, 120, 2, 62, 7)
@@ -347,7 +347,7 @@ def test_score0_sym(c2pose, c3pose, c1pose):
    w = grow(segments, D3(c3=-1, c2=0), thresh=2)
    assert len(w) == 2
    i, err, pose, score0 = w[0]
-   # vis.showme(w.pose(1, fullatom=True))
+   # viz.showme(w.pose(1, fullatom=True))
    # show_with_z_axes(w, 1)
    assert 22.488 < score0 < 22.4881
    assert util.no_overlapping_residues(pose)
@@ -510,7 +510,7 @@ def test_extra_chain_handling_noncyclic(c1pose, c2pose, c3pose, c3hetpose):
       Segment([dimer], entry="N"),
    ]
    w = grow(segments, D3(c2=-1, c3=0), thresh=1)
-   # vis.showme(w.sympose(0, fullatom=1))
+   # viz.showme(w.sympose(0, fullatom=1))
    assert len(w) == 4
    assert w.pose(0, only_connected="auto").num_chains() == 3
    assert w.pose(0, only_connected=0).num_chains() == 6

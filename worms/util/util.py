@@ -30,6 +30,8 @@ def generic_equals(this, that, checktypes=False, debug=False):
          if not generic_equals(this[k], that[k], checktypes, debug):
             return False
    if hasattr(this, '__iter__'):
+      if len(this) != len(that):
+         return False
       return all(generic_equals(x, y, checktypes, debug) for x, y in zip(this, that))
    if isinstance(this, np.ndarray):
       return np.allclose(this, that)

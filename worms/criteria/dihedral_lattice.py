@@ -30,7 +30,9 @@ class DihedralCyclicLattice2D(WormCriteria):
       lever=50,
       to_seg=-1,
       space_group_str=None,
+      **kw,
    ):
+      super().__init__(**kw)
       assert from_seg == 0
       self.symname = symname
       self.from_seg = from_seg
@@ -307,7 +309,9 @@ class DihedralCyclicLattice3D(WormCriteria):
       to_seg=-1,
       space_group_str=None,
       to_origin=[0, 0, 0],
+      **kw,
    ):
+      super().__init__(**kw)
       assert from_seg == 0
       self.symname = symname
       self.from_seg = from_seg
