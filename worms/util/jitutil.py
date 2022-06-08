@@ -2,6 +2,13 @@ import numba, numpy as np
 from worms.util.util import jit
 from worms.search.result import ResultJIT
 
+def make_const_jitfunc(v):
+   @util.jit
+   def dummy(*_):
+      return v
+
+   return dummy
+
 @jit
 def binary_search_pair(is_sorted, tgt, ret=0):
    n = len(is_sorted)

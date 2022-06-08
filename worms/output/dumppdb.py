@@ -32,7 +32,7 @@ def bblock_dump_pdb(
       cnum=0,
       anum=1,
       rnum=1,
-      symchains=True,
+      symchains=False,
       **kw,
 ):
 

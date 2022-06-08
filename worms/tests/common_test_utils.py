@@ -34,6 +34,8 @@ def generic_integration_test(testname):
       fail = not newresult.approx_equal(refresult)
 
    if fail:
+      if refresult:
+         print(f'nresults orig {len(refresult.idx)} new {len(newresult.idx)}')
       make_candidate_test_results(
          testname,
          criteria,

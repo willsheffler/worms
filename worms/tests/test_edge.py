@@ -48,7 +48,7 @@ def test_get_allowed_splices_fullsize_prots(db_caching_bblock_v0_fullsize_prots)
 
    assert np.sum(nclash) == 80
 
-   assert np.sum(ncontact) == 20711
+   assert np.sum(ncontact) == 20712
    assert np.sum(ncontact > 9) == 944
 
 @only_if_jit

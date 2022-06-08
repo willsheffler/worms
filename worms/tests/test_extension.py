@@ -1,7 +1,7 @@
 import os
 
-if __name__ == '__main__':
-   os.environ['NUMBA_DISABLE_JIT'] = '1'
+# if __name__ == '__main__':
+# os.environ['NUMBA_DISABLE_JIT'] = '1'
 
 import numpy as np
 import willutil as wu
@@ -29,18 +29,12 @@ def main():
       '/home/sheffler/debug/worms_extension/input/straight_DHR.local.json',
    ]
    kw.min_seg_len = 200
-   kw.nbblocks = 2
-
-   # TODO remove me
-   import sys
-   if len(sys.argv) > 1:
-      kw.nbblocks = int(sys.argv[1])
-      print(kw.nbblocks)
-
+   kw.nbblocks = 4
    kw.tolerance = 2.0
    kw.max_score0 = 10
    kw.max_score0sym = 50
    kw.precache_splices = False
+   kw.repeat_axis_check = -1
    # kw.only_bblocks = [
    # [8, 10,11,12,13],
    # [11,14,15],
@@ -63,7 +57,7 @@ def main():
    )
    print('built database', flush=True)
 
-   if os.path.exists('test_extension.pickle'):
+   if False:  #os.path.exists('test_extension.pickle'):
       result = wu.load('test_extension.pickle')
    else:
 
@@ -150,11 +144,11 @@ def getopts_test_ext():
       lever=25,
       splice_rms_range=4,
       # splice_max_rms=0.8,
-      splice_max_rms=2,
+      splice_max_rms=1,
       splice_clash_contact_by_helix=1,
-      splice_ncontact_cut=1,
+      splice_ncontact_cut=10,
       splice_ncontact_no_helix_cut=1,
-      splice_nhelix_contacted_cut=1,
+      splice_nhelix_contacted_cut=2,
       splice_max_chain_length=9999,
       output_from_pose=True,
       merge_bblock=-1,

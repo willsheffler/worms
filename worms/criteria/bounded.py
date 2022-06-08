@@ -2,9 +2,13 @@
 this file contains logic for cage/dihedral and some crystals which include these
 '''
 
+from os import sep
+
+from dask.base import register_pandas
 from .base import WormCriteria, Ux, Uy, Uz
 import numpy as np
 
+import worms
 import worms.homog as hm
 from worms.homog import (
    numba_dihedral,
@@ -152,6 +156,8 @@ class AxesIntersect(WormCriteria):
       end_dihedral_sym_ang = self.end_dihedral_sym_ang
       # # print('AxesIntersect.jit_lossfunc end_dihedral_sym_ang', end_dihedral_sym_ang)
 
+      repeat_axis_filter = worms.filters.repeat_axis_jit.make_repeat_axis_filter(self, **kw)
+
       @jit
       def func(pos, idx, verts):
          # print('bounded.py:jit_lossfunc begin')
@@ -240,6 +246,10 @@ class AxesIntersect(WormCriteria):
          # print(np.sqrt(roterr2 / rot_tol**2 + (dist / tolerance)**2))
          # print(roterr2, rot_tol, dist, tolerance)
          # assert 0
+
+         repeataxiserr = repeat_axis_filter(pos, idx, verts, ax1, ax2)
+         if repeataxiserr > 10: return 9e9
+         geomscore += repeataxiserr
 
          score = geomscore
 

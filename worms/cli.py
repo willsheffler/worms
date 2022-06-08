@@ -150,7 +150,7 @@ cli_args = dict(
    #
    save_minimal_replicate_database=0,
    #
-   repeat_axis_check=False,
+   repeat_axis_check=-1,
 )
 
 def add_argument_unless_exists(parser, *arg, **kw):

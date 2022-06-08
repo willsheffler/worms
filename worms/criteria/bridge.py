@@ -64,7 +64,7 @@ class HashCriteria(WormCriteria):
          filter_binner = filter_hash_vp = None
 
       if binner and filter_binner:  # filter and bin
-         # print("making binner and filter")
+         # print('making binner and filter')
 
          @jit
          def func(pos, idx, verts):
@@ -86,7 +86,7 @@ class HashCriteria(WormCriteria):
          return func
 
       elif binner:  # bin without filter
-         # print("making binner")
+         # print('making binner')
 
          @jit
          def func(pos, idx, verts):
@@ -99,7 +99,7 @@ class HashCriteria(WormCriteria):
          return func
 
       elif filter_binner:  # filter only
-         # print("making filter")
+         # print('making filter')
          assert prev_isite is not None
          assert prev_vsize is not None
 
@@ -121,7 +121,7 @@ class HashCriteria(WormCriteria):
          return func
 
 class Bridge(WormCriteria):
-   """
+   '''
     Bridge grows a cyclic system in an A->B->A fashion
     Because growing A->...->A cycle is inefficient, split into
     A->B and B->A then match via hashing. Hash table built this
@@ -129,7 +129,7 @@ class Bridge(WormCriteria):
     stage1: grow A->B and produce coarse_hash of all B positions
     stage2: grow B->A if B is in coarse_hash, put in fine_hash
     stage3: grow A->B if B is in fine_hash, record result
-    """
+    '''
    def __init__(
       self,
       from_seg=0,
@@ -168,10 +168,10 @@ class Bridge(WormCriteria):
       return np.eye(4)
 
    def stages_short(self, bbs, hash_cart_resl, hash_ori_resl, **kw):
-      """
+      '''
         stage1: grow A->B and produce fine_hash of all B positions
         stage2: grow A->B if B is in fine_hash, record result
-        """
+        '''
       critA = HashCriteria(
          from_seg=0,
          to_seg=-1,
@@ -183,20 +183,20 @@ class Bridge(WormCriteria):
       )
       assert len(self.bbspec) == len(bbs)
 
-      mbb = kw["merge_bblock"]
+      mbb = kw['merge_bblock']
       mseg = self.merge_segment()
 
       critA.bbspec = deepcopy(self.bbspec[:mseg + 1])
-      critA.bbspec[-1][1] = critA.bbspec[-1][1][0] + "_"
+      critA.bbspec[-1][1] = critA.bbspec[-1][1][0] + '_'
       bbspecB = deepcopy(self.bbspec[mseg:])
-      bbspecB[0][1] = "_" + bbspecB[0][1][1]
+      bbspecB[0][1] = '_' + bbspecB[0][1][1]
       bbsA = bbs[:mseg + 1]
       bbsB = bbs[mseg:]
 
       def critB(prevcrit, prevssdag, prevresult):
          print(
-            f"mbb {mbb:04} hash: {prevcrit.hash_table.size():8,},",
-            f" ntotal: {prevresult.stats.total_samples[0]:10,}    ",
+            f'mbb {mbb:04} hash: {prevcrit.hash_table.size():8,},',
+            f' ntotal: {prevresult.stats.total_samples[0]:10,}    ',
          )
 
          critB = HashCriteria(
@@ -229,11 +229,11 @@ class Bridge(WormCriteria):
       loose_hash_ori_resl,
       **kw,
    ):
-      """
+      '''
         stage1: grow A->B and produce coarse_hash of all B positions
         stage2: grow B->A if B is in coarse_hash, put in fine_hash
         stage3: grow A->B if B is in fine_hash, record result
-        """
+        '''
       critA = HashCriteria(
          from_seg=0,
          to_seg=-1,
@@ -245,12 +245,12 @@ class Bridge(WormCriteria):
       )
       assert len(self.bbspec) == len(bbs)
 
-      mbb = kw["merge_bblock"]
+      mbb = kw['merge_bblock']
       mseg = self.merge_segment()
       critA.bbspec = deepcopy(self.bbspec[:mseg + 1])
-      critA.bbspec[-1][1] = critA.bbspec[-1][1][0] + "_"
+      critA.bbspec[-1][1] = critA.bbspec[-1][1][0] + '_'
       bbspecB = deepcopy(self.bbspec[mseg:])
-      bbspecB[0][1] = "_" + bbspecB[0][1][1]
+      bbspecB[0][1] = '_' + bbspecB[0][1][1]
       bbsA = bbs[:mseg + 1]
       bbsB = bbs[mseg:]
 
@@ -260,8 +260,8 @@ class Bridge(WormCriteria):
 
       def critB(prevcrit, prevssdag, prevresult):
          print(
-            f"mbb {mbb:4}a hash: {prevcrit.hash_table.size():8,},",
-            f" ntotal: {prevresult.stats.total_samples[0]:10,}    ",
+            f'mbb {mbb:4}a hash: {prevcrit.hash_table.size():8,},',
+            f' ntotal: {prevresult.stats.total_samples[0]:10,}    ',
          )
 
          critB = HashCriteria(
@@ -280,8 +280,8 @@ class Bridge(WormCriteria):
 
       def critC(prevcrit, prevssdag, prevresult):
          print(
-            f"mbb {mbb:4}b hash: {prevcrit.hash_table.size():8,},",
-            f"ntotal: {prevresult.stats.total_samples[0]:10,}    ",
+            f'mbb {mbb:4}b hash: {prevcrit.hash_table.size():8,},',
+            f'ntotal: {prevresult.stats.total_samples[0]:10,}    ',
          )
          critC = HashCriteria(
             from_seg=0,
@@ -307,7 +307,7 @@ class Bridge(WormCriteria):
       return -1
 
 def merge_results_bridge_short(criteria, ssdag, ssdA, rsltA, critB, ssdB, rsltB, **kw):
-   print("merge_results_bridge_short")
+   print('merge_results_bridge_short')
    # look up rsltCs in critC hashtable to get Bs
 
    sizes = np.array([len(v.ibblock) for v in ssdA.verts])
@@ -364,10 +364,10 @@ def merge_results_bridge_short(criteria, ssdag, ssdA, rsltA, critB, ssdB, rsltB,
            (vmerge.ires[:, 1] == merge_outres))
       imerge = np.where(w)[0]
       if len(imerge) is 0:
-         print("    empty imerge")
+         print('    empty imerge')
          continue
       if len(imerge) > 1:
-         print("    imerge", imerge)
+         print('    imerge', imerge)
          assert len(imerge) == 1
       imerge = imerge[0]
       # print('    ', imerge)
@@ -391,7 +391,7 @@ def merge_results_bridge_short(criteria, ssdag, ssdA, rsltA, critB, ssdB, rsltB,
       # print(x)
       err = criteria.score(pos)
       # print('    err', err)
-      if err > kw["tolerance"]:
+      if err > kw['tolerance']:
          continue
 
       idx_list.append(idx)
@@ -400,9 +400,9 @@ def merge_results_bridge_short(criteria, ssdag, ssdA, rsltA, critB, ssdB, rsltB,
 
    if missing > 0:
       print(
-         "merge_results_bridge_long: xform missing from hash_table:",
+         'merge_results_bridge_long: xform missing from hash_table:',
          missing,
-         "of",
+         'of',
          len(rsltB.err),
       )
    assert missing == 0
@@ -474,10 +474,10 @@ def merge_results_bridge_long(criteria, critC, ssdag, ssdB, ssdC, rsltC, **kw):
            (vmerge.ires[:, 1] == merge_outres))
       imerge = np.where(w)[0]
       if len(imerge) is 0:
-         print("    empty imerge")
+         print('    empty imerge')
          continue
       if len(imerge) > 1:
-         print("    imerge", imerge)
+         print('    imerge', imerge)
          assert len(imerge) == 1
       imerge = imerge[0]
       # print('    ', imerge)
@@ -501,7 +501,7 @@ def merge_results_bridge_long(criteria, critC, ssdag, ssdB, ssdC, rsltC, **kw):
       # print(x)
       err = criteria.score(pos)
       # print('    err', err)
-      if err > kw["tolerance"]:
+      if err > kw['tolerance']:
          continue
 
       idx_list.append(idx)
@@ -510,9 +510,9 @@ def merge_results_bridge_long(criteria, critC, ssdag, ssdB, ssdC, rsltC, **kw):
 
    if missing > 0:
       print(
-         "merge_results_bridge_long: xform missing from hash_table:",
+         'merge_results_bridge_long: xform missing from hash_table:',
          missing,
-         "of",
+         'of',
          len(rsltC.err),
       )
    assert missing == 0

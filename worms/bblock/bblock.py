@@ -22,19 +22,19 @@ def make_bblock(
 ):
    json = dumps(entry)
    chains = worms.util.rosetta_utils.get_chain_bounds(pose)
-   ss = np.frombuffer(ss.encode(), dtype="i1")
+   ss = np.frombuffer(ss.encode(), dtype='i1')
    ncac = worms.util.rosetta_utils.get_bb_coords(pose)
-   cb = worms.util.rosetta_utils.get_cb_coords(pose)
-   stubs = ncac_to_stubs(ncac)
-   com = np.mean(cb, axis=0)
-   rg = np.sqrt(np.sum((cb - com)**2) / len(cb))
+   cb = worms.util.rosetta_utils.get_cb_coords(pose).astype(np.float32)
+   stubs = ncac_to_stubs(ncac).astype(np.float32)
+   com = np.mean(cb, axis=0).astype(np.float32)
+   rg = np.sqrt(np.sum((cb - com)**2) / len(cb)).astype(np.float32)
 
    assert pose.size() == len(ncac)
    assert pose.size() == len(stubs)
    assert pose.size() == len(ss)
-   conn = make_connections_array(entry["connections"], chains)
+   conn = make_connections_array(entry['connections'], chains)
    if len(conn) == 0:
-      print("bad conn info!", pdbfile)
+      print('bad conn info!', pdbfile)
       assert 0
       return None, pdbfile  # new, missing
    for c in conn:
@@ -42,25 +42,25 @@ def make_bblock(
       assert np.all(c[:c[1]] >= 0), 'connection residues should all be positive at this point'
 
    if ncac.shape[-1] == 4:
-      ncac = ncac.astype(np.float64)
+      ncac = ncac.astype(np.float32)
    elif ncac.shape[-1] == 3:
-      tmp = np.ones((ncac.shape[0], 3, 4), dtype=np.float64)
+      tmp = np.ones((ncac.shape[0], 3, 4), dtype=np.float32)
       tmp[..., :3] = ncac
       ncac = tmp
    else:
-      assert 0, "bad ncac"
+      assert 0, 'bad ncac'
    assert cb.shape == (pose.size(), 4)
 
-   if entry["base"] in null_base_names: basehash = 0
-   else: basehash = worms.util.hash_str_to_int(entry["base"])
+   if entry['base'] in null_base_names: basehash = 0
+   else: basehash = worms.util.hash_str_to_int(entry['base'])
 
    ca = ncac[:, 1, :]
    hullcoord = np.array([np.mean(ca[i - 3:i + 4], axis=0) for i in range(3, len(ca) - 4)])
+   hullcoord = hullcoord.astype(np.float32)
    worms.PING(f'hullcoord shape {hullcoord.shape}')
    # assert 0
 
    from scipy.spatial.qhull import QhullError
-
    try:
       hull_obj = ConvexHull(hullcoord[:, :3])
       hull = hullcoord[hull_obj.vertices, :3]
@@ -72,30 +72,32 @@ def make_bblock(
    # print(numhull)
    # assert 0
 
-   validated = entry["validated"]
-   if validated in ("na", "NA"):
+   validated = entry['validated']
+   if validated in ('na', 'NA'):
       validated = False
 
    helixnum, helixresbeg, helixresend, helixbeg, helixend = worms.vertex.get_bb_helices(ss, ncac)
 
+   repeataxis = np.array([0, 0, 0, 0], dtype=np.float32)
+
    bblock = _BBlock(
       json=npfb(json),
       connections=conn,
-      file=npfb(entry["file"]),
+      file=npfb(entry['file']),
       filehash=filehash,
-      components=npfb(str(entry["components"])),
-      protocol=npfb(entry["protocol"]),
-      name=npfb(entry["name"]),
-      classes=npfb(",".join(entry["class"])),
+      components=npfb(str(entry['components'])),
+      protocol=npfb(entry['protocol']),
+      name=npfb(entry['name']),
+      classes=npfb(','.join(entry['class'])),
       validated=validated,
-      _type=npfb(entry["type"]),
-      base=npfb(entry["base"]),
+      _type=npfb(entry['type']),
+      base=npfb(entry['base']),
       basehash=basehash,
       ncac=np.ascontiguousarray(ncac),
       cb=np.ascontiguousarray(cb),
-      chains=np.array(chains, dtype="i4"),
+      chains=np.array(chains, dtype='i4'),
       ss=ss,
-      stubs=np.ascontiguousarray(stubs.astype("f8")),
+      stubs=np.ascontiguousarray(stubs),
       com=com,
       rg=rg,
       numhull=numhull,
@@ -105,6 +107,7 @@ def make_bblock(
       helixresend=helixresend,
       helixbeg=helixbeg,
       helixend=helixend,
+      repeataxis=repeataxis,
    )
 
    return bblock
@@ -112,66 +115,41 @@ def make_bblock(
 
 @jitclass(
     (
-        ("json",        numba.types.int8[:]),
-        ("connections", numba.types.int32[:, :]),
-        ("file",        numba.types.int8[:]),
-        ("filehash",    numba.types.int64),
-        ("components",  numba.types.int8[:]),
-        ("protocol",    numba.types.int8[:]),
-        ("name",        numba.types.int8[:]),
-        ("classes",     numba.types.int8[:]),
-        ("validated",   numba.types.boolean),
-        ("_type",       numba.types.int8[:]),
-        ("base",        numba.types.int8[:]),
-        ("basehash",    numba.types.int64),
-        ("ncac",        numba.types.float64[:, :, :]),
-        ("cb",          numba.types.float64[:, :]),
-        ("chains",      numba.types.int32[:, :]),
-        ("ss",          numba.types.int8[:]),
-        ("stubs",       numba.types.float64[:, :, :]),
-        ("com",         numba.types.float64[:]),
-        ("rg",          numba.types.float64),
-        ('numhull',     numba.types.int64),
-        ('hull',        numba.types.float64[:,:] ),
-        ('helixnum'   , numba.types.int64        ),
-        ('helixresbeg', numba.types.int64[:]     ),
-        ('helixresend', numba.types.int64[:]     ),
-        ('helixbeg'   , numba.types.float64[:,:] ) ,
-        ('helixend'   , numba.types.float64[:,:] ),
+        ('json',        numba.types.int8[:]),
+        ('connections', numba.types.int32[:, :]),
+        ('file',        numba.types.int8[:]),
+        ('filehash',    numba.types.int64),
+        ('components',  numba.types.int8[:]),
+        ('protocol',    numba.types.int8[:]),
+        ('name',        numba.types.int8[:]),
+        ('classes',     numba.types.int8[:]),
+        ('validated',   numba.types.boolean),
+        ('_type',       numba.types.int8[:]),
+        ('base',        numba.types.int8[:]),
+        ('basehash',    numba.types.int64),
+        ('ncac',        numba.types.float32[:, :, :]),
+        ('cb',          numba.types.float32[:, :]),
+        ('chains',      numba.types.int32[:, :]),
+        ('ss',          numba.types.int8[:]),
+        ('stubs',       numba.types.float32[:, :, :]),
+        ('com',         numba.types.float32[:]),
+        ('rg',          numba.types.float32),
+        ('numhull',     numba.types.int32),
+        ('hull',        numba.types.float32[:,:] ),
+        ('helixnum'   , numba.types.int32        ),
+        ('helixresbeg', numba.types.int32[:]     ),
+        ('helixresend', numba.types.int32[:]     ),
+        ('helixbeg'   , numba.types.float32[:,:] ) ,
+        ('helixend'   , numba.types.float32[:,:] ),
+        ('repeataxis' , numba.types.float32[:] ),
     )
 )  # yapf: disable
 class _BBlock:
-   '''member "connections" is a jagged array. elements start at position 2. position 0 encodes the (N/C) direction as 0, 1, or 2, decoded as "NC_", position 1 is the ending location of residue entries (so the number of residues is 2 less, leaving off the first two entries) see the member functions
+   '''member 'connections' is a jagged array. elements start at position 2. position 0 encodes the (N/C) direction as 0, 1, or 2, decoded as 'NC_', position 1 is the ending location of residue entries (so the number of residues is 2 less, leaving off the first two entries) see the member functions
 '''
-   def __init__(
-      self,
-      json,
-      connections,
-      file,
-      filehash,
-      components,
-      protocol,
-      name,
-      classes,
-      validated,
-      _type,
-      base,
-      basehash,
-      ncac,
-      cb,
-      chains,
-      ss,
-      stubs,
-      com,
-      rg,
-      numhull,
-      hull,
-      helixnum,
-      helixresbeg,
-      helixresend,
-      helixbeg,
-      helixend,
-   ):
+   def __init__(self, json, connections, file, filehash, components, protocol, name, classes,
+                validated, _type, base, basehash, ncac, cb, chains, ss, stubs, com, rg, numhull,
+                hull, helixnum, helixresbeg, helixresend, helixbeg, helixend, repeataxis):
       self.json = json
       self.connections = connections
       self.file = file
@@ -193,13 +171,15 @@ class _BBlock:
       self.rg = rg
 
       self.numhull = numhull
-      self.hull = hull
+      self.hull = hull.astype(np.float32)
 
       self.helixnum = helixnum
       self.helixresbeg = helixresbeg
       self.helixresend = helixresend
       self.helixbeg = helixbeg
       self.helixend = helixend
+
+      self.repeataxis = repeataxis
 
       assert np.isnan(np.sum(self.ncac)) == False
       assert np.isnan(np.sum(self.cb)) == False
@@ -224,17 +204,17 @@ class _BBlock:
               self.protocol, self.name, self.classes, self.validated, self._type, self.base,
               self.basehash, self.ncac, self.cb, self.chains, self.ss, self.stubs, self.com,
               self.rg, self.numhull, self.hull, self.helixnum, self.helixresbeg, self.helixresend,
-              self.helixbeg, self.helixend)
+              self.helixbeg, self.helixend, self.repeataxis)
 
-      def __setstate__(self, state):
-         (self.json, self.connections, self.file, self.filehash, self.components, self.protocol,
-          self.name, self.classes, self.validated, self._type, self.base, self.basehash,
-          self.ncac, self.cb, self.chains, self.ss, self.stubs, self.com, self.rg, self.numhull,
-          self.hull, self.helixnum, self.helixresbeg, self.helixresend, self.helixbeg,
-          self.helixend) = state
+   def __setstate__(self, state):
+      (self.json, self.connections, self.file, self.filehash, self.components, self.protocol,
+       self.name, self.classes, self.validated, self._type, self.base, self.basehash, self.ncac,
+       self.cb, self.chains, self.ss, self.stubs, self.com, self.rg, self.numhull, self.hull,
+       self.helixnum, self.helixresbeg, self.helixresend, self.helixbeg, self.helixend,
+       self.repeataxis) = state
 
-      def __getstate__(self):
-         return self._state
+   def __getstate__(self):
+      return self._state
 
    def equal_to(self, other):
       # return generic_equals(self._state, other._state)
@@ -327,7 +307,7 @@ class BBlock:
 
    @property
    def chains(self):
-      return list(self._bblock.chains)
+      return np.array(self._bblock.chains)
 
    def __setstate__(self, state):
       self._bblock = _BBlock(*state)
@@ -352,8 +332,8 @@ class BBlock:
 
 def npfb(s):
    if isinstance(s, list):
-      s = "[" + ",".join(s) + "]"
-   return np.frombuffer(s.encode(), dtype="i1")
+      s = '[' + ','.join(s) + ']'
+   return np.frombuffer(s.encode(), dtype='i1')
 
 def unnpfb(fb):
    return bytes(fb).decode()

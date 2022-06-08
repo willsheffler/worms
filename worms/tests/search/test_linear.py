@@ -39,6 +39,7 @@ def test_linear_search_two(db_caching_bblock_v0_fullsize_prots):
       splice_rms_range=6,
       splice_clash_contact_range=60,
       splice_clash_contact_by_helix=False,
+      repeat_axis_check=-1,
    )
    edges = (Edge(u, bbs, v, bbs, **kw)[0], )
 
@@ -109,6 +110,7 @@ def test_linear_search_three(db_caching_bblock_v0_fullsize_prots):
       splice_rms_range=6,
       splice_clash_contact_range=60,
       splice_clash_contact_by_helix=False,
+      repeat_axis_check=-1,
    )
    e = Edge(u, bbs, v, bbs, **kw)[0]
    f = Edge(v, bbs, w, bbs, **kw)[0]

@@ -170,19 +170,19 @@ def _read_bblock_archive_one(fname):
                print(metadata)
             print('*' * 80)
          elif fn.startswith('sources/'):
-            # print('arcive source file', fn)
+            # print('archive source file', fn)
             pass
          elif fn.startswith('extras/'):
-            # print('arcive extra file', fn)
+            # print('archive extra file', fn)
             pass
          elif fn.endswith(('.json', '.txt')):
-            print('arcive reading json file', fn)
+            print('archive reading json file', fn)
             assert not bblocks, 'should be only one non-extra json file in archive'
             with open(os.path.join(tmpdir, fn), 'r') as inp:
                s = inp.read()
                bblocks.extend(json.loads(s))
          elif fn.endswith('.pdb'):
-            # print('arcive reading pdb file', len(pdbs), fn)
+            # print('archive reading pdb file', len(pdbs), fn)
             with open(os.path.join(tmpdir, fn)) as inp:
                pdbs[fn] = inp.read()
 
