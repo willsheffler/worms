@@ -155,12 +155,7 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
    def iface_rms(self, pose0, prov, **kw):
       return -1
 
-def Sheet_P321(c3=None, c2=None, **kw):
-   if c3 is None or c2 is None:
-      raise ValueError("must specify ...?")
-   return AxesAngle(
-      "Sheet_P321_C3_C2_depth3_1comp", Uz, Ux, from_seg=c3, to_seg=c2, **kw
-   )  ##this is currently identical to the D3 format...how do we change it to make it an array?
+
 
 def Sheet_P4212(c4=None, c2=None, **kw):
    ##should there be options for multiple C2's?
@@ -178,7 +173,22 @@ def Sheet_P6_C3_C2(c3=None, c2=None, **kw):
       raise ValueError("must specify ...?")
    return AxesAngle("Sheet_P6_C6_C2_depth3_1comp", Uz, Uz, from_seg=c3, to_seg=c2, **kw)
 
+
+def Sheet_P321(c3=None, c2=None, **kw):
+   if c3 is None or c2 is None:
+      raise ValueError("must specify ...?")
+   return AxesAngle(
+      "Sheet_P321_C3_C2_depth6_1comp", Uz, Uz, from_seg=c3, to_seg=c2, cell_dist_scale=2.0, **kw)
+
+def Sheet_P331(c3a=None, c3b=None, **kw):
+   if c3a is None or c3b is None:
+      raise ValueError("must specify ...?")
+   return AxesAngle(
+      "Sheet_P331_C3_C3_depth4_1comp", Uz, Ux, from_seg=c3a, to_seg=c3b, cell_dist_scale=2.0, **kw)
+
+
 #### WORKING ####
+
 def Crystal_P213_C3_C3(c3a=None, c3b=None, **kw):
    if c3a is None or c3b is None:
       raise ValueError("must specify ...?")  # one or two of c6, c2
@@ -196,6 +206,22 @@ def Crystal_P213_C3_C3(c3a=None, c3b=None, **kw):
    # dihedral angle = 70.5288
 
 #### IN PROGRESS ####
+
+def Sheet_P321_2comp(c3=None, c2=None, **kw):
+   if c3 is None or c2 is None:
+      raise ValueError("must specify ...?")
+   return AxesAngle(
+      "Sheet_P321_C3_C2_depth6_2comp", Uz, Uz, from_seg=c3, to_seg=c2, cell_dist_scale=2.0, **kw)
+ 
+
+def Sheet_P331_2comp(c3a=None, c3b=None, **kw):
+   if c3a is None or c3b is None:
+      raise ValueError("must specify ...?")
+   return AxesAngle(
+      "Sheet_P331_C3_C3_depth4_2comp", Uz, Ux, from_seg=c3a, to_seg=c3b, cell_dist_scale=2.0, **kw)
+
+
+
 # I just normalized all the angles, but I don't think you can do this...might need to check the angle between them. Print and check that it is correct.
 def Crystal_P4132_C2_C3(c2a=None, c3b=None, **kw):
    if c3a is None or c3b is None:

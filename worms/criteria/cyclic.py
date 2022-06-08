@@ -6,6 +6,9 @@ from xbin import gu_xbin_indexer, numba_xbin_indexer
 from copy import deepcopy
 from worms.util import ros
 from worms.merge.concat import merge_results_concat
+import collections
+
+BBDir = collections.namedtuple('BBDir', ('bblockspec', 'direction'))
 
 class Cyclic(WormCriteria):
    def __init__(
@@ -156,12 +159,14 @@ class Cyclic(WormCriteria):
 
    def stages(self, hash_cart_resl, hash_ori_resl, bbs, **kw):
       "return spearate criteria for each search stage"
+      # pydebug.set_trace()
       if self.origin_seg is None:
          return [(self, bbs)], None
 
       assert self.origin_seg == 0
-      bbspec = deepcopy(self.bbspec[self.from_seg:])
-      bbspec[0][1] = "_" + bbspec[0][1][1]
+      bbspec = deepcopy(self.bbspec[self.from_seg:])      
+      # bbspec[0][1] = "_" + bbspec[0][1][1]
+      bbspec = [BBDir(x[0], "_"+x[1][1]) if i==0 else BBDir(x[0],x[1]) for i,x in enumerate(bbspec)]
       critA = Cyclic(
          self.nfold,
          min_radius=self.min_radius,
