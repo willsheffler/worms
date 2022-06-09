@@ -8,6 +8,8 @@ from worms.util import ros
 from worms.merge.concat import merge_results_concat
 import collections
 
+BBDir = collections.namedtuple('BBDir', ('bblockspec', 'direction'))
+
 class Cyclic(WormCriteria):
    def __init__(
          self,
@@ -164,7 +166,6 @@ class Cyclic(WormCriteria):
       assert self.origin_seg == 0
       bbspec = deepcopy(self.bbspec[self.from_seg:])      
       # bbspec[0][1] = "_" + bbspec[0][1][1]
-      BBDir = collections.namedtuple('BBDir', ('bblockspec', 'direction'))
       bbspec[0] = BBDir(bbspec[0][0], "_"+bbspec[0][1][1])
       critA = Cyclic(
          self.nfold,
@@ -178,7 +179,8 @@ class Cyclic(WormCriteria):
 
       def stageB(critA, ssdagA, resultA):
          bbspec = deepcopy(self.bbspec[:self.from_seg + 1])
-         bbspec[-1][1] = bbspec[-1][1][0] + "_"
+         # bbspec[-1][1] = bbspec[-1][1][0] + "_"
+         bbspec[-1] = BBDir(bbspec[-1][0], bbspec[-1][1][0]+"_")
          gubinner = gu_xbin_indexer(hash_cart_resl, hash_ori_resl)
          numba_binner = numba_xbin_indexer(hash_cart_resl, hash_ori_resl)
          keys, hash_table = make_hash_table(ssdagA, resultA, gubinner)

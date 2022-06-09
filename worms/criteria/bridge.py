@@ -8,6 +8,9 @@ from worms.khash.khash_cffi import _khash_set, _khash_get
 from worms.criteria.hash_util import encode_indices, decode_indices
 import homog as hg
 from worms.search.result import ResultJIT, SearchStats
+import collections
+
+BBDir = collections.namedtuple('BBDir', ('bblockspec', 'direction'))
 
 class HashCriteria(WormCriteria):
    def __init__(
@@ -176,9 +179,11 @@ class Bridge(WormCriteria):
       mseg = self.merge_segment()
 
       critA.bbspec = deepcopy(self.bbspec[:mseg + 1])
-      critA.bbspec[-1][1] = critA.bbspec[-1][1][0] + "_"
+      # critA.bbspec[-1][1] = critA.bbspec[-1][1][0] + "_"
+      critA.bbspec[-1] = BBDir(critA.bbspec[-1][0], critA.bbspec[-1][1][0]+"_")
       bbspecB = deepcopy(self.bbspec[mseg:])
-      bbspecB[0][1] = "_" + bbspecB[0][1][1]
+      # bbspecB[0][1] = "_" + bbspecB[0][1][1]
+      bbspecB[0] = BBDir(bbspecB[0][0], "_"+bbspecB[0][1][1])
       bbsA = bbs[:mseg + 1]
       bbsB = bbs[mseg:]
 
@@ -237,9 +242,11 @@ class Bridge(WormCriteria):
       mbb = kw["merge_bblock"]
       mseg = self.merge_segment()
       critA.bbspec = deepcopy(self.bbspec[:mseg + 1])
-      critA.bbspec[-1][1] = critA.bbspec[-1][1][0] + "_"
+      # critA.bbspec[-1][1] = critA.bbspec[-1][1][0] + "_"
+      critA.bbspec[-1] = BBDir(critA.bbspec[-1][0], critA.bbspec[-1][1][0]+"_")
       bbspecB = deepcopy(self.bbspec[mseg:])
-      bbspecB[0][1] = "_" + bbspecB[0][1][1]
+      # bbspecB[0][1] = "_" + bbspecB[0][1][1]
+      bbspecB[0] = BBDir(bbspecB[0][0], "_"+bbspecB[0][1][1])
       bbsA = bbs[:mseg + 1]
       bbsB = bbs[mseg:]
 
