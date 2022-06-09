@@ -8,8 +8,6 @@ from worms.util import ros
 from worms.merge.concat import merge_results_concat
 import collections
 
-BBDir = collections.namedtuple('BBDir', ('bblockspec', 'direction'))
-
 class Cyclic(WormCriteria):
    def __init__(
          self,
@@ -166,7 +164,8 @@ class Cyclic(WormCriteria):
       assert self.origin_seg == 0
       bbspec = deepcopy(self.bbspec[self.from_seg:])      
       # bbspec[0][1] = "_" + bbspec[0][1][1]
-      bbspec = [BBDir(x[0], "_"+x[1][1]) if i==0 else BBDir(x[0],x[1]) for i,x in enumerate(bbspec)]
+      BBDir = collections.namedtuple('BBDir', ('bblockspec', 'direction'))
+      bbspec[0] = BBDir(bbspec[0][0], "_"+bbspec[0][1][1])
       critA = Cyclic(
          self.nfold,
          min_radius=self.min_radius,
