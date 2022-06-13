@@ -5,11 +5,11 @@ from tqdm import tqdm
 
 import worms
 from worms import PING
-
+import willutil as wu
 # logging.basicConfig(level=logging.INFO)
 
 class CachingBBlockDB:
-   """stores Poses and BBlocks in a disk cache"""
+   '''stores Poses and BBlocks in a disk cache'''
    def __str__(self):
       return os.linesep.join([
          f'CachingBBlockDB',
@@ -37,19 +37,19 @@ class CachingBBlockDB:
       lazy=True,
       read_new_pdbs=False,
       verbosity=0,
-      dbroot="",
+      dbroot='',
       null_base_names=[],
       **kw,
    ):
-      """Stores building block structures and ancillary data
-      """
+      '''Stores building block structures and ancillary data
+      '''
       self.null_base_names = null_base_names
       self.cachedirs = worms.database.get_cachedirs(cachedirs)
-      self.dbroot = dbroot + "/" if dbroot and not dbroot.endswith("/") else dbroot
-      PING(f"CachingBBlockDB cachedirs: {self.cachedirs}")
+      self.dbroot = dbroot + '/' if dbroot and not dbroot.endswith('/') else dbroot
+      PING(f'CachingBBlockDB cachedirs: {self.cachedirs}')
       self.load_poses = load_poses
-      os.makedirs(self.cachedirs[0] + "/poses", exist_ok=True)
-      os.makedirs(self.cachedirs[0] + "/bblock", exist_ok=True)
+      os.makedirs(self.cachedirs[0] + '/poses', exist_ok=True)
+      os.makedirs(self.cachedirs[0] + '/bblock', exist_ok=True)
       self._bblock_cache, self._poses_cache = dict(), dict()
       self.nprocs = nprocs
       self.lazy = lazy
@@ -70,8 +70,8 @@ class CachingBBlockDB:
       )
       if len(self._alldb) != len(self._dictdb):
          dups = len(self._alldb) - len(self._dictdb)
-         print("WARNING: %6i duplicate pdb files in database" % dups)
-      PING("loading %i db entries" % len(self._alldb))
+         print('WARNING: %6i duplicate pdb files in database' % dups)
+      PING('loading %i db entries' % len(self._alldb))
       self.n_new_entries = 0
       self.n_missing_entries = len(self._alldb)
       if not self.lazy:
@@ -87,8 +87,8 @@ class CachingBBlockDB:
          self._alldb[i] = self._dictdb[k]
 
    def report(self):
-      print("CachingBBlockDB nentries:", len(self._alldb))
-      print("    dbfiles:", "        \n".join(self.dbfiles))
+      print('CachingBBlockDB nentries:', len(self._alldb))
+      print('    dbfiles:', '        \n'.join(self.dbfiles))
 
    def clear(self):
       self._bblock_cache.clear()
@@ -108,7 +108,7 @@ class CachingBBlockDB:
       for i in range(timeout):
          if self.islocked_cachedir():
             if i % 10 == 0:
-               print(f"waiting {i}/600s to acquire:", os.path.exists(self.cachedirs[0] + "/lock"))
+               print(f'waiting {i}/600s to acquire:', os.path.exists(self.cachedirs[0] + '/lock'))
             time.sleep(1)
          else:
             self.lock_cachedir()
@@ -116,23 +116,23 @@ class CachingBBlockDB:
       return False
 
    def lock_cachedir(self):
-      assert not os.path.exists(self.cachedirs[0] + "/lock"), (
+      assert not os.path.exists(self.cachedirs[0] + '/lock'), (
          "database is locked! if you're sure no other jobs are editing it, remove " +
-         self.cachedirs[0] + "/lock")
-      print("locking database", self.cachedirs[0] + "/lock")
+         self.cachedirs[0] + '/lock')
+      print('locking database', self.cachedirs[0] + '/lock')
       sys.stdout.flush()
-      open(self.cachedirs[0] + "/lock", "w").close()
-      assert os.path.exists(self.cachedirs[0] + "/lock")
+      open(self.cachedirs[0] + '/lock', 'w').close()
+      assert os.path.exists(self.cachedirs[0] + '/lock')
       self._holding_lock = True
 
    def unlock_cachedir(self):
-      print("unlocking database", self.cachedirs[0] + "/lock")
+      print('unlocking database', self.cachedirs[0] + '/lock')
       sys.stdout.flush()
-      os.remove(self.cachedirs[0] + "/lock")
+      os.remove(self.cachedirs[0] + '/lock')
       self._holding_lock = False
 
    def islocked_cachedir(self):
-      return os.path.exists(self.cachedirs[0] + "/lock")
+      return os.path.exists(self.cachedirs[0] + '/lock')
 
    def check_lock_cachedir(self):
       if not self._holding_lock:
@@ -148,7 +148,7 @@ class CachingBBlockDB:
       return len(self._bblock_cache)
 
    def pose(self, pdbfile):
-      """load pose from _bblock_cache, read from file if not in memory"""
+      '''load pose from _bblock_cache, read from file if not in memory'''
       import worms
       pdbfile = worms.database.sanitize_pdbfile(pdbfile)
       if not pdbfile in self._poses_cache:
@@ -172,7 +172,7 @@ class CachingBBlockDB:
       assert pdbfile in self._poses_cache
       fname = self.posefile(pdbfile)
       if not os.path.exists(fname):
-         with open(fname, "wb") as out:
+         with open(fname, 'wb') as out:
             pickle.dump(self._poses_cache[pdbfile], out)
 
    def bblock(self, pdbkey):
@@ -182,12 +182,16 @@ class CachingBBlockDB:
          if not pdbkey in self._bblock_cache:
             if not self.load_cached_bblock_into_memory(pdbkey):
                pdbfile = self._key_to_pdbfile[pdbkey]
-               raise ValueError("no bblock data for key", pdbkey, pdbfile, "in", self.cachedirs)
+               raise ValueError('no bblock data for key', pdbkey, pdbfile, 'in', self.cachedirs)
          return self._bblock_cache[pdbkey]
       elif isinstance(pdbkey, list):
          return [self.bblock(f) for f in pdbkey]
       else:
-         raise ValueError("bad pdbkey" + str(type(pdbkey)))
+         raise ValueError('bad pdbkey' + str(type(pdbkey)))
+
+   def all_bblocks(self):
+      names = list(db['file'] for db in self._alldb)
+      return list(self.bblock(name) for name in names)
 
    def query(
       self,
@@ -229,13 +233,14 @@ class CachingBBlockDB:
       from worms import rosetta_init
 
       posefile = self.posefile(pdbfile)
+
       try:
-         with open(posefile, "rb") as f:
+         with open(posefile, 'rb') as f:
             try:
                self._poses_cache[pdbfile] = pickle.load(f)
                return True
             except (EOFError, RuntimeError):
-               PING("corrupt pickled pose will be replaced", posefile)
+               PING('corrupt pickled pose will be replaced', posefile)
                os.remove(posefile)
                return False
       except (OSError, FileNotFoundError):
@@ -244,10 +249,10 @@ class CachingBBlockDB:
    def bblockfile(self, pdbkey):
       assert not isinstance(pdbkey, str)
       for d in self.cachedirs:
-         candidate = os.path.join(d, "bblock", "%016x.pickle" % pdbkey)
+         candidate = os.path.join(d, 'bblock', '%016x.pickle' % pdbkey)
          if os.path.exists(candidate):
             return candidate
-      return os.path.join(self.cachedirs[0], "bblock", "%016x.pickle" % pdbkey)
+      return os.path.join(self.cachedirs[0], 'bblock', '%016x.pickle' % pdbkey)
 
    def load_cached_bblock_into_memory(self, pdbkey, cache_replace=True):
       assert not isinstance(pdbkey, (str, bytes))
@@ -259,32 +264,34 @@ class CachingBBlockDB:
          return success
 
       bblockfile = self.bblockfile(pdbkey)
+      print('bbfile', bblockfile)
       if not os.path.exists(bblockfile):
-         # print(f'warning: bblock cachefile not found {bblockfile}')
+         print(f'warning: bblock cachefile not found {bblockfile}')
          return False
 
-      with open(bblockfile, "rb") as f:
+      with open(bblockfile, 'rb') as f:
          bbstate = list(pickle.load(f))
          entry = self._dictdb[self._key_to_pdbfile[pdbkey]]
          newjson = json.dumps(entry).encode()
          if bytes(bbstate[0]) == newjson:
             self._bblock_cache[pdbkey] = worms.bblock._BBlock(*bbstate)
             return True
-         print("!!! database entry updated for key", pdbkey, entry["file"])
+         print('!!! database entry updated for key', pdbkey, entry['file'])
       if cache_replace:
-         print("    removing cachefile", bblockfile)
+         print('    removing cachefile', bblockfile)
          os.remove(bblockfile)
-         print("    reloading info cache", entry["file"])
-         self.load_pdbs_multiprocess([entry["file"]], parallel=0)
+         print('    reloading info cache', entry['file'])
+         self.load_pdbs_multiprocess([entry['file']], parallel=0)
          return self.load_cached_bblock_into_memory(pdbkey, cache_replace=False)
+
       return False
 
    def posefile(self, pdbfile):
       for d in self.cachedirs:
-         candidate = os.path.join(d, "poses", worms.database.flatten_path(pdbfile))
+         candidate = os.path.join(d, 'poses', worms.database.flatten_path(pdbfile))
          if os.path.exists(candidate):
             return candidate
-      return os.path.join(self.cachedirs[0], "poses", worms.database.flatten_path(pdbfile))
+      return os.path.join(self.cachedirs[0], 'poses', worms.database.flatten_path(pdbfile))
 
    def load_pdbs_multiprocess(self, names, parallel=0):
 
@@ -294,9 +301,9 @@ class CachingBBlockDB:
       if not self._holding_lock:
          needs_unlock = True
          if not self.acquire_cachedir_lock():
-            raise ValueError("cachedir locked, cant write new entries.\n"
-                             "If no other worms jobs are running, you may manually remove:\n" +
-                             self.cachedirs[0] + "/lock")
+            raise ValueError('cachedir locked, cant write new entries.\n'
+                             'If no other worms jobs are running, you may manually remove:\n' +
+                             self.cachedirs[0] + '/lock')
       exe = worms.util.InProcessExecutor()
       if parallel:
          exe = cf.ProcessPoolExecutor(max_workers=parallel)
@@ -305,7 +312,7 @@ class CachingBBlockDB:
          for n in names:
             futures.append(pool.submit(self.build_pdb_data, self._dictdb[n], uselock=False))
          iter = cf.as_completed(futures)
-         iter = tqdm(iter, "loading pdb files", total=len(futures))
+         iter = tqdm(iter, 'loading pdb files', total=len(futures))
          for f in iter:
             f.result()
       if needs_unlock:
@@ -333,22 +340,23 @@ class CachingBBlockDB:
       random.shuffle(self._alldb)
       r = []
       kwargs = {
-         "total": len(self._alldb),
-         "unit": "pdbs",
+         'total': len(self._alldb),
+         'unit': 'pdbs',
          # 'unit_scale': True,
-         "leave": True,
+         'leave': True,
       }
       futures = [exe.submit(self.build_pdb_data, e) for e in self._alldb]
       work = cf.as_completed(futures)
       if self.verbosity > 1:
-         work = tqdm(work, "building pdb data", **kwargs)
+         work = tqdm(work, 'building pdb data', **kwargs)
       for f in work:
          r.append(f.result())
       return r
 
    def build_pdb_data(self, entry, uselock=True):
-      """return Nnew, Nmissing"""
-      pdbfile = entry["file"]
+      '''return Nnew, Nmissing'''
+      print('build_pdb_data', entry['file'])
+      pdbfile = entry['file']
       pdbkey = worms.util.hash_str_to_int(pdbfile)
       cachefile = self.bblockfile(pdbkey)
       posefile = self.posefile(pdbfile)
@@ -356,12 +364,12 @@ class CachingBBlockDB:
          if not self.load_cached_bblock_into_memory(pdbkey):
             if os.path.exists(cachefile):
                raise ValueError(
-                  f"cachefile {cachefile} exists, but cant load data from associated key {pdbkey}")
+                  f'cachefile {cachefile} exists, but cant load data from associated key {pdbkey}')
             raise ValueError(
-               f"cachefile {cachefile} was removed, cant load data from associated key {pdbkey}")
+               f'cachefile {cachefile} was removed, cant load data from associated key {pdbkey}')
          if self.load_poses:
             if not self.load_cached_pose_into_memory(pdbfile):
-               print("warning, not saved:", pdbfile)
+               print('warning, not saved:', pdbfile)
          return None, None  # new, missing
       elif self.read_new_pdbs:
          if uselock:
@@ -369,24 +377,23 @@ class CachingBBlockDB:
          read_pdb = False
          # info('CachingBBlockDB.build_pdb_data reading %s' % pdbfile)
          pose = self.pose(pdbfile)
-         ss = worms.rosetta_init.core.scoring.dssp.Dssp(pose).get_dssp_secstruct()
-         bblock = worms.bblock.make_bblock(entry, pdbfile, pdbkey, pose, ss, self.null_base_names)
+         bblock = worms.bblock.make_bblock(entry, pose, self.null_base_names)
          self._bblock_cache[pdbkey] = bblock
          # print(cachefile)
-         with open(cachefile, "wb") as f:
+         with open(cachefile, 'wb') as f:
             pickle.dump(bblock._state, f)
          # print('saved new bblock cache file', cachefile)
          if not os.path.exists(posefile):
             try:
-               with open(posefile, "wb") as f:
+               with open(posefile, 'wb') as f:
                   pickle.dump(pose, f)
-                  PING("dumped _bblock_cache files for %s" % pdbfile)
+                  PING('dumped _bblock_cache files for %s' % pdbfile)
             except OSError as e:
-               print("not saving", posefile)
+               print('not saving', posefile)
 
          if self.load_poses:
             self._poses_cache[pdbfile] = pose
          return pdbfile, None  # new, missing
       else:
-         warning("no cached data for: " + pdbfile)
+         print('warning no cached data for: ' + pdbfile)
          return None, pdbfile  # new, missing

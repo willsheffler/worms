@@ -26,6 +26,7 @@ def generic_integration_test(testname):
 
    refresult = None
    if refdat is None:
+      print('NO REF RESULT')
       fail = True
    else:
       refcrit, refssd, refresult = refdat

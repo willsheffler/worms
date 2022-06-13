@@ -1,47 +1,59 @@
---geometry Cyclic(3)
---bbconn 
-   _N HFuse_het_C2_N-N
-   CC HFuse_het_C2_C-C
-   N_ HFuse_het_C2_N-N
+--geometry Octahedral(c3=0,c2=-1)
+--bbconn      
+ _C C3_C
+ NC straight_DHR
+ N_ C2_N
+
+--dbfiles
+      # test_extension__mbb0000__minimal_replicate_database.txz
+      # test_extension__mbb0001__minimal_replicate_database.txz
+      # test_extension__mbb0002__minimal_replicate_database.txz
+      # test_extension__mbb0003__minimal_replicate_database.txz
+      /home/yhsia/helixfuse/2018-07-09_sym/processing/database/HFuse_Cx_database.20180711.txt
+      /home/sheffler/debug/worms_extension/input/straight_DHR.local.json
+
+   
+--min_seg_len  200
+--nbblocks  8
+--tolerance  1.0
+--max_score0  3
+--max_score0sym  10
+
+--repeat_axis_check  1
+--repeat_axis_weight  100.0
 
 --monte_carlo 0
 --no_duplicate_bases 0
---nbblocks 4
+--max_output 100
 --shuffle_bblocks 0
-
---cachedirs ./testcache
---disable_cache 1
-
 --parallel 0
 
---tolerance 1.0
---max_score0 10.0
---max_score0sym 50.0
-
---helixconf_min_num_horiz_helix 1
---helixconf_max_vert_angle 5
+--helixconf_min_num_horiz_helix 0
+--helixconf_max_vert_angle 3
 --helixconf_max_depth_within_hull 2
 --helixconf_use_hull_for_surface 0
 --helixconf_min_helix_size 14
-
-#--only_bblocks 0 1 0
-
-
-
+--disable_cache 0
 --pbar 0
-
-
-
+--cachedirs ./testcache
 --lever 25
-
 --splice_rms_range 4
---splice_max_rms 0.8
---splice_clash_contact_by_helix=1
---splice_ncontact_cut 1
+
+--splice_max_rms 1
+--splice_clash_contact_by_helix 1
+--splice_ncontact_cut 10
 --splice_ncontact_no_helix_cut 1
---splice_nhelix_contacted_cut 1
+--splice_nhelix_contacted_cut 2
 --splice_max_chain_length 9999
+--output_from_pose 1
+--merge_bblock -1
+--output_symmetric 1
+--output_centroid 1
+--output_prefix test_extension_
 
---dbfiles 
-   helixori_1result.txz
-
+--postfilt_splice_max_rms 10
+--postfilt_splice_rms_length 4
+--postfilt_splice_ncontact_cut 0
+--postfilt_splice_ncontact_no_helix_cut 0
+--postfilt_splice_nhelix_contacted_cut 0
+--merge_segment -1

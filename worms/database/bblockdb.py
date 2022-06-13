@@ -114,16 +114,21 @@ class BBlockDB:
          pose = self.pose(pdbfile)
          entry = self._dictdb[pdbfile]
          ss = worms.rosetta_init.core.scoring.dssp.Dssp(pose).get_dssp_secstruct()
-         bblock = worms.bblock.make_bblock(entry, pdbfile, pdbkey, pose, ss, self.null_base_names)
+         bblock = worms.bblock.make_bblock(entry, pose, self.null_base_names)
          self._bblock_cache[pdbkey] = bblock
       self.bblocks_accessed.add(self._key_to_pdbfile[pdbkey])
       return self._bblock_cache[pdbkey]
 
    def load_all_bblocks(self):
+      allbb = list()
       for i, k in enumerate(self._dictdb):
          if i % 100 == 0:
             print(f'load_all_bblocks progress {i} of {len(self._dictdb)}', flush=True)
-         self.bblock(k)  # will load and cache in memory
+         allbb.append(self.bblock(k))  # will load and cache in memory
+      return allbb
+
+   def all_bblocks(self):
+      return self.load_all_bblocks()
 
    def loaded_pdbs(self):
       return self._bblock_cache.keys()

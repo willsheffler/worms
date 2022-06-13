@@ -318,7 +318,7 @@ class AxesIntersect(WormCriteria):
       # ]
 
       # print('    cell dist', cell_dist)
-      if self.xtal.replace(' ', '').upper() == 'I432':
+      if self.xtal and self.xtal.replace(' ', '').upper() == 'I432':
          ops = (
             hm.hrot([1, 1, 1], 120),
             hm.hrot([1, 1, 1], 240),

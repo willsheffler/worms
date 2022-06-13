@@ -1,7 +1,7 @@
-"""
+'''
 stores structures and info about categories and splicing and stuff
 does a bunch of caching.. maybe too much
-"""
+'''
 
 import os, json, sys, logging, time, pickle, functools, collections
 import concurrent.futures as cf, itertools as it, numpy as np
@@ -15,8 +15,8 @@ Databases = collections.namedtuple('Databases', ('bblockdb', 'splicedb'))
 
 def flatten_path(pdbfile):
    if isinstance(pdbfile, bytes):
-      pdbfile = str(pdbfile, "utf-8")
-   return pdbfile.replace(os.sep, "__") + ".pickle"
+      pdbfile = str(pdbfile, 'utf-8')
+   return pdbfile.replace(os.sep, '__') + '.pickle'
 
 def read_bblock_dbfiles(dbfiles, dbroot=''):
    dbentries = []
@@ -33,12 +33,12 @@ def read_bblock_dbfiles(dbfiles, dbroot=''):
 
 def parse_bblock_database_entries(dbentries, dbroot='', pdb_contents=dict()):
    for entry in dbentries:
-      if "name" not in entry:
-         entry["name"] = ""
-      entry["file"] = entry["file"].replace("__PDBDIR__", worms.data.pdb_dir)
+      if 'name' not in entry:
+         entry['name'] = ''
+      entry['file'] = entry['file'].replace('__PDBDIR__', worms.data.pdb_dir)
 
-   dictdb = {e["file"]: e for e in dbentries}
-   key_to_pdbfile = {worms.util.hash_str_to_int(e["file"]): e["file"] for e in dbentries}
+   dictdb = {e['file']: e for e in dbentries}
+   key_to_pdbfile = {worms.util.hash_str_to_int(e['file']): e['file'] for e in dbentries}
 
    assert len(dbentries), 'no db entries'
    pdb_files_missing = False
@@ -47,7 +47,7 @@ def parse_bblock_database_entries(dbentries, dbroot='', pdb_contents=dict()):
       if not (os.path.exists(dbroot + entry['file']) or entry['file'] in pdb_contents):
          pdb_files_missing = True
          # print('!' * 60)
-         print("pdb file pdb_files_missing:", entry["file"])
+         print('pdb file pdb_files_missing:', entry['file'])
          # print('!' * 60)
    assert not pdb_files_missing
    return dbentries, dictdb, key_to_pdbfile, pdb_contents
@@ -57,20 +57,20 @@ def get_cachedirs(cachedirs):
    if not isinstance(cachedirs, str):
       cachedirs = [x for x in cachedirs if x]
    if not cachedirs:
-      if "HOME" in os.environ:
+      if 'HOME' in os.environ:
          cachedirs = [
-            os.environ["HOME"] + os.sep + ".worms/cache",
-            "/databases/worms",
+            os.environ['HOME'] + os.sep + '.worms/cache',
+            '/databases/worms',
          ]
       else:
-         cachedirs = [".worms/cache", "/databases/worms"]
+         cachedirs = ['.worms/cache', '/databases/worms']
    if isinstance(cachedirs, str):
       cachedirs = [cachedirs]
    return cachedirs
 
 def sanitize_pdbfile(pdbfile):
    if isinstance(pdbfile, bytes):
-      pdbfile = str(pdbfile, "utf-8")
+      pdbfile = str(pdbfile, 'utf-8')
    if isinstance(pdbfile, np.ndarray):
-      pdbfile = str(bytes(pdbfile), "utf-8")
+      pdbfile = str(bytes(pdbfile), 'utf-8')
    return pdbfile

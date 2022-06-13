@@ -1,5 +1,6 @@
 """
 functions for assembling multichain poses from segments spliced in various directions
+!!! HERE BE DRAGONS !!!
 """
 
 import os, numpy as np, itertools as it
@@ -318,7 +319,6 @@ def make_contorted_pose(
     make_chain_list,
     full_output_segs=[],
 ):  # yapf: disable
-   """there be dragons here"""
 
    rm_lower_t = ros.core.pose.remove_lower_terminus_type_from_pose_residue
    rm_upper_t = ros.core.pose.remove_upper_terminus_type_from_pose_residue

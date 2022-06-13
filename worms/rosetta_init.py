@@ -1,6 +1,7 @@
 import sys
 from pyrosetta import *
 from pyrosetta.rosetta import *
+from pyrosetta.rosetta.core.pose import append_pose_to_pose, append_subpose_to_pose
 
 core.pose.Pose.__len__ = core.pose.Pose.size
 

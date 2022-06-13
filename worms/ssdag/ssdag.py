@@ -46,19 +46,10 @@ class SearchSpaceDAG(SearchSpaceDAG_Base):
       self.edges = tuple(edges)
 
    def __eq__(self, other: SearchSpaceDAG_Base):
-      wu.PING()
-      a = generic_equals(self.bbspec, other.bbspec),
-      assert a
-      wu.PING()
-      b = generic_equals(self.bbs, other.bbs),
-      wu.PING()
-      assert b
-      c = generic_equals(self.verts, other.verts),
-      wu.PING()
-      assert c
-      d = generic_equals(self.edges, other.edges),
-      wu.PING()
-      assert d
+      a = generic_equals(self.bbspec, other.bbspec)
+      b = generic_equals(self.bbs, other.bbs)
+      c = generic_equals(self.verts, other.verts)
+      d = generic_equals(self.edges, other.edges)
       return all([a, b, c, d])
 
    def __getstate__(self):

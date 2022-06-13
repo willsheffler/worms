@@ -502,7 +502,7 @@ def filter_and_output_results(
 
    if nresults:
       if kw.save_minimal_replicate_database:
-         raise NotImplementedError
+         # raise NotImplementedError
          print('save_minimal_replicate_database nresults', len(result_json))
 
          arcfile = f'{head}_minimal_replicate_database.txz'

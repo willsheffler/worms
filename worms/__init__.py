@@ -38,6 +38,7 @@ util = deferred_import('worms.util')
 vertex = deferred_import('worms.vertex')
 viz = deferred_import('worms.viz')
 
+from worms.bblock import BBlock
 from worms.search.result import Result
 
 # from worms.khash import * # khash_cffi needs updating for numba 0.49+

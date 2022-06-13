@@ -1,7 +1,9 @@
 import tempfile, sys
 import numpy as np
 import willutil as wu
+from willutil.homog.hgeom import hxform
 import worms
+from worms.homog.hgeom import hnormalized
 
 if 'pymol' in sys.modules:
 
@@ -74,7 +76,7 @@ if 'pymol' in sys.modules:
       # nh, hrb, hre, hb, he = worms.vertex.get_bb_helices(bblock._bblock, **kw)
       # print(bblock.ss)
       if showextras and not bblock.is_cyclic:
-
+         repeataxisall = list()
          for isite, (dirn, resi) in enumerate(bblock.connections):
 
             reslb, resub = np.min(resi), np.max(resi)
@@ -88,6 +90,7 @@ if 'pymol' in sys.modules:
             hcendir = repeataxes * 0.4
             repeatrays = np.moveaxis(np.array([hcenbeg, hcendir]), [0, 1, 2], [2, 0, 1])
             repeataxis = np.mean(repeataxes, axis=0)
+            repeataxisall.append(repeataxis)
             rdir = repeataxis * len(hcenters) / 4
             rcen = np.mean(hcenters, axis=0) - rdir / 2
             repeatrays2 = np.stack([rcen, rdir], axis=1)
@@ -95,7 +98,7 @@ if 'pymol' in sys.modules:
             wu.viz.show_ndarray_lines(repeatrays, col=[0, 0, 0.5], cyl=0.5, spheres=0,
                                       bothsides=False, addtocgo=mycgo, **kw)
 
-            wu.viz.show_ndarray_lines(repeatrays2, col=[0, 0.5, 0.5], cyl=1, spheres=1.3,
+            wu.viz.show_ndarray_lines(repeatrays2, col=[0, 0.5, 0.5], cyl=0.8, spheres=1.0,
                                       bothsides=False, addtocgo=mycgo, **kw)
 
             hrays = np.moveaxis(np.array([hb, he - hb]), [0, 1, 2], [2, 0, 1])
@@ -103,7 +106,18 @@ if 'pymol' in sys.modules:
                                       bothsides=False, addtocgo=mycgo, **kw)
 
             # wu.viz.show_ndarray_point_or_vec(hcenters, col=[0.5, 0, 0.5], sphere=0.5,
-            # addtocgo=mycgo, **kw)
+            # addtocgo=mycgo, **kw)3
+
+            repeatrays3 = np.stack([rcen, bblock.repeataxis], axis=1)
+            wu.viz.show_ndarray_lines(repeatrays3, col=[0, 0.5, 0.5], cyl=0.8, spheres=1.0,
+                                      bothsides=False, addtocgo=mycgo, **kw)
+
+         assert len(repeataxisall) == 2
+         repeataxis = hnormalized(repeataxisall[0] + repeataxisall[1])
+         rdir = repeataxis * 100
+         tmpray = np.stack([hxform(pos, bblock.com) - rdir / 2, rdir], axis=1)
+         wu.viz.show_ndarray_lines(tmpray, col=[1, 0.2, 0.5], cyl=1.2, spheres=1.8,
+                                   bothsides=False, addtocgo=mycgo, **kw)
 
       if addtocgo is not None: addtocgo.extend(mycgo)
       else: pymol.cmd.load_cgo(mycgo, name)

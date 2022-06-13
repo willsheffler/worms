@@ -150,7 +150,8 @@ cli_args = dict(
    #
    save_minimal_replicate_database=0,
    #
-   repeat_axis_check=-1,
+   repeat_axis_check=-1,  # index of vertex to check repeat axis on, -1 if none
+   repeat_axis_weight=30.0,
 )
 
 def add_argument_unless_exists(parser, *arg, **kw):

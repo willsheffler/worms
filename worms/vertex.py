@@ -16,7 +16,7 @@ from worms.util import InProcessExecutor, jit, jitclass, helix_range
 from worms.criteria import cyclic
 from worms.util.util import generic_equals
 
-from willutil import Bunch
+from willutil import Bunch, hnormalized
 
 vertex_xform_dtype = np.float32
 
@@ -343,7 +343,7 @@ def get_bblock_properties(bbs, **kw):
       # print(hull.shape)
       # assert 0
 
-      repeataxis[ibb] = bb.repeataxis
+      repeataxis[ibb] = bb.repeataxis  # get_repeat_axis(bb)
 
    return Bunch(
       numhull=numhull,

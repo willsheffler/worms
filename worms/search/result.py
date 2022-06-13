@@ -61,10 +61,10 @@ class ResultTable(worms.Bunch, Result):
       self.err = self.err[order]
 
    def approx_equal(self, other):
-      print('idxtype', self.idx.shape, other.idx.shape)
-      print('postype', self.pos.shape, other.pos.shape)
-      print('errtype', self.err.shape, other.err.shape)
-      print('statstype', type(self.stats), type(other.stats))
+      # print('idxtype', self.idx.shape, other.idx.shape)
+      # print('postype', self.pos.shape, other.pos.shape)
+      # print('errtype', self.err.shape, other.err.shape)
+      # print('statstype', type(self.stats), type(other.stats))
       if self.idx.shape != other.idx.shape:
          return False
 
@@ -75,9 +75,9 @@ class ResultTable(worms.Bunch, Result):
 
       a = self.idx
       b = other.idx
-      print(a.shape, b.shape)
-      print(a)
-      print(b)
+      # print(a.shape, b.shape)
+      # print(a)
+      # print(b)
 
       # assert idxeq
       # assert poseq
