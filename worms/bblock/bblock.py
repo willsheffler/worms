@@ -10,10 +10,9 @@ from scipy.spatial import ConvexHull
 import worms
 from worms.bblock.bbutil import make_connections_array, ncac_to_stubs
 from worms.util import jitclass
-from worms.util.util import generic_equals
-from worms.rosetta_init import append_subpose_to_pose, append_pose_to_pose
+from worms.util.util import generic_equals, add_props_to_url
 
-from willutil import Bunch, hnormalized
+import willutil as wu
 
 def make_bblock(
    entry: dict,
@@ -111,52 +110,108 @@ def make_bblock(
       helixbeg=helixbeg,
       helixend=helixend,
       repeataxis=np.array([0, 0, 0, 0], dtype=np.float32),
+      repeatstart=-1,
+      repeatspacing=-1,
    )
 
-   _bblock.repeataxis = get_repeat_axis(_bblock)
+   assert np.all(_bblock.repeataxis == [0, 0, 0, 0])
+   assert _bblock.repeatstart == -1
+   assert _bblock.repeatspacing == -1
+   if any(c.lower().startswith('straight') for c in entry['class']):
+      print('-' * 80)
+      print('get_repeat_axis', entry['file'])
+      print('get_repeat_axis', entry['class'])
+      bblock = BBlock(_bblock)
+
+      start, spacing = get_repeat_spacing(bblock, **kw)
+      print('bblock.py repeat start, spacing', start, spacing)
+
+      if start is None:
+         pose.dump_pdb('make_bblock.pdb')
+         assert 0
+
+      _bblock.repeatstart = start
+      _bblock.repeatspacing = spacing
+      repeataxis, repeataxiserr = get_repeat_axis(bblock, start, spacing, **kw)
+      # print(repeataxis)
+      # print(repeataxiserr)
+      assert repeataxiserr < 1.0
+      # assert 0
+      _bblock.repeataxis = repeataxis
 
    return _bblock
 
 
 @jitclass(
     (
-        ('json',        numba.types.int8[:]),
-        ('connections', numba.types.int32[:, :]),
-        ('file',        numba.types.int8[:]),
-        ('filehash',    numba.types.int64),
-        ('components',  numba.types.int8[:]),
-        ('protocol',    numba.types.int8[:]),
-        ('name',        numba.types.int8[:]),
-        ('classes',     numba.types.int8[:]),
-        ('validated',   numba.types.boolean),
-        ('_type',       numba.types.int8[:]),
-        ('base',        numba.types.int8[:]),
-        ('basehash',    numba.types.int64),
-        ('ncac',        numba.types.float32[:, :, :]),
-        ('cb',          numba.types.float32[:, :]),
-        ('chains',      numba.types.int32[:, :]),
-        ('sequence',    numba.types.int8[:]),
-        ('ss',          numba.types.int8[:]),
-        ('stubs',       numba.types.float32[:, :, :]),
-        ('com',         numba.types.float32[:]),
-        ('rg',          numba.types.float32),
-        ('numhull',     numba.types.int32),
-        ('hull',        numba.types.float32[:,:] ),
-        ('helixnum'   , numba.types.int32        ),
-        ('helixresbeg', numba.types.int32[:]     ),
-        ('helixresend', numba.types.int32[:]     ),
-        ('helixbeg'   , numba.types.float32[:,:] ) ,
-        ('helixend'   , numba.types.float32[:,:] ),
-        ('repeataxis' , numba.types.float32[:] ),
+        ('json',          numba.types.int8[:]),
+        ('connections',   numba.types.int32[:, :]),
+        ('file',          numba.types.int8[:]),
+        ('filehash',      numba.types.int64),
+        ('components',    numba.types.int8[:]),
+        ('protocol',      numba.types.int8[:]),
+        ('name',          numba.types.int8[:]),
+        ('classes',       numba.types.int8[:]),
+        ('validated',     numba.types.boolean),
+        ('_type',         numba.types.int8[:]),
+        ('base',          numba.types.int8[:]),
+        ('basehash',      numba.types.int64),
+        ('ncac',          numba.types.float32[:, :, :]),
+        ('cb',            numba.types.float32[:, :]),
+        ('chains',        numba.types.int32[:, :]),
+        ('sequence',      numba.types.int8[:]),
+        ('ss',            numba.types.int8[:]),
+        ('stubs',         numba.types.float32[:, :, :]),
+        ('com',           numba.types.float32[:]),
+        ('rg',            numba.types.float32),
+        ('numhull',       numba.types.int32),
+        ('hull',          numba.types.float32[:,:] ),
+        ('helixnum'   ,   numba.types.int32        ),
+        ('helixresbeg',   numba.types.int32[:]     ),
+        ('helixresend',   numba.types.int32[:]     ),
+        ('helixbeg'   ,   numba.types.float32[:,:] ),
+        ('helixend'   ,   numba.types.float32[:,:] ),
+        ('repeataxis' ,   numba.types.float32[:]   ),
+        ('repeatstart'  , numba.types.float32      ),
+        ('repeatspacing', numba.types.float32      ),
     )
 )  # yapf: disable
 class _BBlock:
    '''member 'connections' is a jagged array. elements start at position 2. position 0 encodes the (N/C) direction as 0, 1, or 2, decoded as 'NC_', position 1 is the ending location of residue entries (so the number of residues is 2 less, leaving off the first two entries) see the member functions
 '''
-   def __init__(self, json, connections, file, filehash, components, protocol, name, classes,
-                validated, _type, base, basehash, ncac, cb, chains, sequence, ss, stubs, com, rg,
-                numhull, hull, helixnum, helixresbeg, helixresend, helixbeg, helixend,
-                repeataxis):
+   def __init__(
+      self,
+      json,
+      connections,
+      file,
+      filehash,
+      components,
+      protocol,
+      name,
+      classes,
+      validated,
+      _type,
+      base,
+      basehash,
+      ncac,
+      cb,
+      chains,
+      sequence,
+      ss,
+      stubs,
+      com,
+      rg,
+      numhull,
+      hull,
+      helixnum,
+      helixresbeg,
+      helixresend,
+      helixbeg,
+      helixend,
+      repeataxis,
+      repeatstart,
+      repeatspacing,
+   ):
       self.json = json
       self.connections = connections
       self.file = file
@@ -188,6 +243,8 @@ class _BBlock:
       self.helixend = helixend
 
       self.repeataxis = repeataxis
+      self.repeatstart = repeatstart
+      self.repeatspacing = repeatspacing
 
       assert np.isnan(np.sum(self.ncac)) == False
       assert np.isnan(np.sum(self.cb)) == False
@@ -209,18 +266,72 @@ class _BBlock:
    @property
    def _state(self):
       # MUST stay same order as args to __init__!!!!!
-      return (self.json, self.connections, self.file, self.filehash, self.components,
-              self.protocol, self.name, self.classes, self.validated, self._type, self.base,
-              self.basehash, self.ncac, self.cb, self.chains, self.sequence, self.ss, self.stubs,
-              self.com, self.rg, self.numhull, self.hull, self.helixnum, self.helixresbeg,
-              self.helixresend, self.helixbeg, self.helixend, self.repeataxis)
+      return (
+         self.json,
+         self.connections,
+         self.file,
+         self.filehash,
+         self.components,
+         self.protocol,
+         self.name,
+         self.classes,
+         self.validated,
+         self._type,
+         self.base,
+         self.basehash,
+         self.ncac,
+         self.cb,
+         self.chains,
+         self.sequence,
+         self.ss,
+         self.stubs,
+         self.com,
+         self.rg,
+         self.numhull,
+         self.hull,
+         self.helixnum,
+         self.helixresbeg,
+         self.helixresend,
+         self.helixbeg,
+         self.helixend,
+         self.repeataxis,
+         self.repeatstart,
+         self.repeatspacing,
+      )
 
    def __setstate__(self, state):
-      (self.json, self.connections, self.file, self.filehash, self.components, self.protocol,
-       self.name, self.classes, self.validated, self._type, self.base, self.basehash, self.ncac,
-       self.cb, self.chains, self.sequence, self.ss, self.stubs, self.com, self.rg, self.numhull,
-       self.hull, self.helixnum, self.helixresbeg, self.helixresend, self.helixbeg, self.helixend,
-       self.repeataxis) = state
+      (
+         self.json,
+         self.connections,
+         self.file,
+         self.filehash,
+         self.components,
+         self.protocol,
+         self.name,
+         self.classes,
+         self.validated,
+         self._type,
+         self.base,
+         self.basehash,
+         self.ncac,
+         self.cb,
+         self.chains,
+         self.sequence,
+         self.ss,
+         self.stubs,
+         self.com,
+         self.rg,
+         self.numhull,
+         self.hull,
+         self.helixnum,
+         self.helixresbeg,
+         self.helixresend,
+         self.helixbeg,
+         self.helixend,
+         self.repeataxis,
+         self.repeatstart,
+         self.repeatspacing,
+      ) = state
 
    def __getstate__(self):
       return self._state
@@ -262,7 +373,8 @@ class _BBlock:
       return eq
 
 class BBlock:
-   def __init__(self, _bblock):
+   def __init__(self, _bblock: _BBlock):
+      assert isinstance(_bblock, _BBlock)
       self._bblock = _bblock
 
    @property
@@ -319,14 +431,7 @@ class BBlock:
 
    @property
    def is_cyclic(self):
-      c = self.classes
-      if len(c) < 4: return False
-      return all([
-         c[0] == 'C',
-         c[1].isdigit(),
-         c[2] == '_',
-         c[3] in 'CN',
-      ])
+      return bblock_is_cyclic(self._bblock)
 
    @property
    def repeataxis(self):
@@ -358,14 +463,25 @@ class BBlock:
    def repeat_spacing(self):
       return get_repeat_spacing(self)
 
-   def make_extended_bblock(self, n=1, **kw):
-      return make_extended_bblock(self, n, **kw)
+   def make_extended_bblock(self, nrepeats=1, **kw):
+      return make_extended_bblock(self, nrepeats, **kw)
 
    @property
    def stubs(self):
       return self._bblock.stubs
 
+def bblock_is_cyclic(bblock):
+   c = unnpfb(bblock.classes)
+   if len(c) < 4: return False
+   return all([
+      c[0] == 'C',
+      c[1].isdigit(),
+      c[2] == '_',
+      c[3] in 'CN',
+   ])
+
 def add_repeat_to_pose(pose, nrepeats, start, period, shift=10):
+   from worms.rosetta_init import append_subpose_to_pose, append_pose_to_pose
    stubs, _ = worms.util.rosetta_utils.get_bb_stubs(pose)
    stub1 = stubs[start]
    stub2 = stubs[start + period]
@@ -383,30 +499,6 @@ def add_repeat_to_pose(pose, nrepeats, start, period, shift=10):
    # pose.dump_pdb('orig.pdb')
    # newpose.dump_pdb('new.pdb')
    return newpose
-
-def add_props_to_file(fname, **kw):
-   if '?' not in fname:
-      fname += '?'
-   for k, v in kw.items():
-      fname += k + '=' + str(v)
-   return fname
-
-def get_props_from_file(fname):
-   props = dict()
-   s = fname.split('?')
-   if len(s) == 1:
-      return props
-   assert len(s) == 2
-   for prop in s[1].split('?'):
-      k, v = prop.split('=')
-      try:
-         props[k] = int(v)
-      except ValueError:
-         try:
-            props[k] = float(v)
-         except ValueError:
-            pass
-   return props
 
 def make_derived_bblock(pdbfile, bblock):
    pass
@@ -426,7 +518,7 @@ def make_extended_bblock(
 
    origentry = bblock.dbentry
    newentry = copy.copy(bblock.dbentry)
-   newfile = add_props_to_file(bblock.pdbfile, addrepeat=nrepeats)
+   newfile = add_props_to_url(bblock.pdbfile, addrepeat=nrepeats)
    newentry['file'] = newfile
    newentry['connections'] = list()
    for conn in origentry['connections']:
@@ -452,31 +544,67 @@ def npfb(s):
 def unnpfb(fb):
    return bytes(fb).decode()
 
-def get_repeat_axis(bblock):
+def get_repeat_axis(bblock, start, spacing, **kw):
 
-   bblock = worms.bblock.BBlock(bblock)
-   repeataxisall = list()
-   for isite, (dirn, resi) in enumerate(bblock.connections):
-      reslb, resub = np.min(resi), np.max(resi)
-      nh, hrb, hre, hb, he = bblock.helixinfo(reslb, resub)
-      if nh == 0: continue
-      hcenters = (hb + he) / 2
-      repeataxes = hcenters[2:] - hcenters[:-2]
-      repeataxis = np.mean(repeataxes, axis=0)
-      repeataxisall.append(repeataxis)
-   if len(repeataxisall) != 2:
-      return np.array([0, 0, 0, 0], dtype=np.float32())
+   ncac1 = bblock.ncac[start:start + spacing, 1]
+   ncac2 = bblock.ncac[start + spacing:start + 2 * spacing, 1]
+   # import worms.viz.viz_bblock
+   # wu.showme(bblock)
+   # wu.showme(ncac1)
+   # wu.showme(ncac2)
+   coordsrepeataxisall = ncac2 - ncac1
+   # print(coordsrepeataxisall)
+   coordsrepeataxis = np.mean(coordsrepeataxisall, axis=0)
+   # print(coordsrepeataxis)
+   err = np.max(np.std(coordsrepeataxisall, axis=0))
+   print(f'get_repeat_axis start {start} spacing {spacing} stddev {err}')
+   # assert err < 1.0
+   # print(coordsrepeataxis)
 
-   repeataxis = hnormalized(repeataxisall[0] + repeataxisall[1]).astype(np.float32)
+   return coordsrepeataxis, err
 
-   # print('------------ repeataxis -------------')
-   # print(repeataxis)
-   # print('-------------------------')
+   #    repeataxisall = list()
+   #    assert len(bblock.connections) == 2
+   #    dirn1 = bblock.connections[0][0]
+   #    dirn2 = bblock.connections[1][0]
+   #    assert {dirn1, dirn2} == {0, 1}
+   #    # for isite, (dirn, resi) in enumerate(bblock.connections):
+   #    #    print(isite, dirn, resi)
+   #    #    reslb, resub = np.min(resi), np.max(resi)
+   #    #    nh, hrb, hre, hb, he = bblock.helixinfo(reslb, resub)
+   #    #    if nh == 0: continue
+   #    #    hcenters = (hb + he) / 2
+   #    #    repeataxes = hcenters[2:] - hcenters[:-2]
+   #    #    print('repeataxes\n', repeataxes)
+   #    #    repeataxis = np.mean(repeataxes, axis=0)
+   #    #    print('repeataxis', repeataxis)
+   #    #    repeataxisall.append(repeataxis)
+   #    # if len(repeataxisall) != 2:
+   #    #    return np.array([0, 0, 0, 0], dtype=np.float32())
+   #    # print(repeataxisall)
+   #    # # repeataxis = hnormalized(repeataxisall[0] + repeataxisall[1]).astype(np.float32)
+   #    # repeataxis = np.mean(repeataxes, axis=0)
+   #    nh, hrb, hre, hb, he = bblock.helixinfo(100, len(bblock.ncac) - 100)
+   #    for i, ir in enumerate(hrb):
+   #       helixsep = ir - hrb[0]
+   #       # print(i, helixsep)
+   #       if abs(helixsep - spacing) < 5:
+   #          break
+   #    nhelixrepeat = i + 1
+   #    print('nhelix per repeat', nhelixrepeat)
+   #
+   #    hcenters = (hb + he) / 2
+   #    repeataxes = hcenters[2:] - hcenters[:-2]
+   #    # repeataxes = hcenters[3:] - hcenters[:-3]
+   #    print('repeataxes\n', repeataxes)
+   #    repeataxis = np.mean(repeataxes, axis=0)
+   #
+   #    print('repeataxis', repeataxis)
+   #
+   #    return np.array([1, 0, 0, 0], dtype=np.float32)
+   #    # return repeataxis
 
-   return np.array([1, 0, 0, 0], dtype=np.float32)
-   # return repeataxis
-
-def get_repeat_spacing(bblock):
+def get_repeat_spacing(bblock: BBlock, repeat_sequence_match_min_len=15, **kw):
    if bblock.is_cyclic: return None, None
    seq = bblock.sequence
    ss = bblock.ss
@@ -488,14 +616,36 @@ def get_repeat_spacing(bblock):
       for jh, (jlo, jhi) in enumerate(zip(hlo, hhi)):
          if ih >= jh: continue
          a, b, n = matcher.find_longest_match(ilo, ihi, jlo, jhi)
-         if n < 10: continue
+         if n < repeat_sequence_match_min_len: continue
          # print('match', a, b, seq[a:a + n], seq[b:b + n])
          spacing = b - a
          starts.append(a)
          for s in spacings:
             spacing = min(spacing, math.gcd(s, spacing))
          spacings.append(spacing)
+   # start = int(statistics.median(starts))
    if len(spacings) < 4 or len(set(spacings)) != 1:
+      print('bblock.py get_repeat_spacing fail, spacings:', spacings)
+      # assert 0
       return None, None
-   start = int(statistics.median(starts))
-   return start, spacings[0]
+
+   start = min(starts)
+   if len(starts) > 2:
+      start = int(statistics.median(starts))
+   spacing = spacings[0]
+
+   stub0 = bblock.stubs[start]
+   stub1 = bblock.stubs[start + spacing]
+   stub2 = bblock.stubs[start + 2 * spacing]
+   x1ang = wu.hangle_of_degrees(stub1 @ np.linalg.inv(stub0))
+   x2ang = wu.hangle_of_degrees(stub2 @ np.linalg.inv(stub0))
+   if x1ang > kw['repeat_twist_tolerance']:
+      print('bblock.py:get_repeat_spacing xform for one repeat not identity', x1ang)
+      # check if two repeats to make straight
+      if x2ang < kw['repeat_twist_tolerance']:
+         spacing *= 2
+      else:
+         print('bblock.py:get_repeat_spacing xform for two repeats not identity', x2ang)
+         return None, None
+
+   return start, spacing

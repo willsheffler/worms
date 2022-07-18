@@ -22,6 +22,8 @@ def make_repeat_axis_filter(criteria, **kw):
       ibb = verts[iv].ibblock[vidx]
       repeataxis = verts[iv].repeataxis[ibb]
       repeataxis = pos @ repeataxis
+      assert repeataxis[3] == 0
+      repeataxis = repeataxis / np.sqrt(np.sum(repeataxis**2))
       perp = numba_cross(axis1, axis2)
       return repeat_axis_weight * np.abs(np.sum(repeataxis * perp))
       # return 10

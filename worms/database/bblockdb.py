@@ -1,6 +1,7 @@
 import os, random, functools, pickle
 import numpy as np
 import worms
+import willutil as wu
 
 class BBlockDB:
    def __init__(
@@ -9,7 +10,7 @@ class BBlockDB:
       cachedirs=[],
       dbroot='',
       null_base_names=['', '?', 'n/a', 'none'],
-      **_,
+      **kw,
    ):
       self.dbfiles = dbfiles
       self.dbroot = dbroot + "/" if dbroot and not dbroot.endswith("/") else dbroot
@@ -27,6 +28,7 @@ class BBlockDB:
       self.null_base_names = null_base_names
       self.bblocks_accessed = set()
       self.poses_accessed = set()
+      self.kw = wu.Bunch(kw)
 
    def merge_into_self(self, other, keep_access_info=False):
       self.dbfiles = list({*self.dbfiles, *other.dbfiles})
@@ -114,7 +116,7 @@ class BBlockDB:
          pose = self.pose(pdbfile)
          entry = self._dictdb[pdbfile]
          ss = worms.rosetta_init.core.scoring.dssp.Dssp(pose).get_dssp_secstruct()
-         bblock = worms.bblock.make_bblock(entry, pose, self.null_base_names)
+         bblock = worms.bblock.make_bblock(entry, pose, self.null_base_names, **self.kw)
          self._bblock_cache[pdbkey] = bblock
       self.bblocks_accessed.add(self._key_to_pdbfile[pdbkey])
       return self._bblock_cache[pdbkey]

@@ -152,6 +152,11 @@ cli_args = dict(
    #
    repeat_axis_check=-1,  # index of vertex to check repeat axis on, -1 if none
    repeat_axis_weight=30.0,
+   repeat_twist_tolerance=1.0,
+   repeat_add_to_output=0,
+   repeat_add_to_segment=1,
+   #
+   ignore_recoverable_errors=0,
 )
 
 def add_argument_unless_exists(parser, *arg, **kw):

@@ -1,0 +1,2 @@
+class DerivedBBlock(_BBlock):
+    

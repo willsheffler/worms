@@ -35,11 +35,17 @@ def output_simple(
    result,
    output_prefix='',
    output_suffix='',
+   max_output=10,
+   output_indices=[],
+   xtal_min_cell_size=100,
+   xtal_max_cell_size=9e9,
    **kw,
 ):
    kw = worms.Bunch(kw)
    files_output = list()
-   for iresult in range(min(kw.max_output, len(result.idx))):
+   if not output_indices:
+      output_indices = range(min(max_output, len(result.idx)))
+   for iresult in output_indices:
       segpos = result.pos[iresult]
       xalign = criteria.alignment(segpos)
       if xalign is None: continue
@@ -55,7 +61,8 @@ def output_simple(
       # print('align_ax1', xalign @ segpos[0, :, 2])
       # print('align_ax2', xalign @ segpos[-1, :, 2])
       # print(fname)
-      # print(result.err[iresult], fname)
+      # assert 0
+      print(result.err[iresult], fname)
       worms.output.dumppdb.graph_dump_pdb(
          fname,
          ssdag,

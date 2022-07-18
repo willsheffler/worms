@@ -14,6 +14,32 @@ disabled_jit = lambda f: f
 disabled_priority_jit = lambda f: f
 disabled_jitclass = lambda *a: lambda x: x
 
+def tostr(b):
+   if isinstance(b, bytes):
+      return b.decode()
+   if isinstance(b, str):
+      return b
+   if isinstance(b, np.ndarray):
+      return tostr(unnpfb(b))
+   raise ValueError(f'tostr not string/bytes: "{b}"')
+
+def tobytes(s):
+   if isinstance(s, bytes):
+      return s
+   if isinstance(s, str):
+      return s.encode()
+   if isinstance(s, np.ndarray):
+      return tobytes(unnpfb(s))
+   raise ValueError(f'tobytes not string/bytes: "{s}"')
+
+def npfb(s):
+   if isinstance(s, list):
+      s = '[' + ','.join(s) + ']'
+   return np.frombuffer(s.encode(), dtype='i1')
+
+def unnpfb(fb):
+   return bytes(fb).decode()
+
 def generic_equals(this, that, checktypes=False, debug=False):
    if debug:
       print('generic_equals on types', type(this), type(that))
@@ -43,6 +69,32 @@ def generic_equals(this, that, checktypes=False, debug=False):
          print(this)
          print(that)
    return this == that
+
+def add_props_to_url(fname, **kw):
+   fname = tostr(fname)
+   if '?' not in fname:
+      fname += '?'
+   for k, v in kw.items():
+      fname += k + '=' + str(v)
+   return fname
+
+def get_props_from_url(fname):
+   fname = tostr(fname)
+   props = dict()
+   s = fname.split('?')
+   if len(s) == 1:
+      return props
+   assert len(s) == 2
+   for prop in s[1].split('?'):
+      k, v = prop.split('=')
+      try:
+         props[k] = int(v)
+      except ValueError:
+         try:
+            props[k] = float(v)
+         except ValueError:
+            pass
+   return props
 
 def _disable_jit():
    jit = disabled_jit

@@ -23,7 +23,6 @@ def test_construct_database_from_pdbs(tmpdir, jsondir):
       lazy=False,
       read_new_pdbs=True,
    )
-
    # print([len(pp.pose(k)) for k in pp.query_names('all')])
    assert [len(pp.pose(k)) for k in pp.query_names("all")] == [
       13, 24, 27, 27, 27, 40, 35, 36, 13, 8, 7, 9

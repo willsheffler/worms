@@ -5,19 +5,26 @@
  N_ C2_N
 
 --dbfiles
-      # test_extension__mbb0000__minimal_replicate_database.txz
+      /home/sheffler/src/worms/worms/data/test_cases/test_extension/databases/test_extension__mbb0000__minimal_replicate_database.txz
+      # /test_extension__mbb0000__minimal_replicate_database.txz
       # test_extension__mbb0001__minimal_replicate_database.txz
       # test_extension__mbb0002__minimal_replicate_database.txz
       # test_extension__mbb0003__minimal_replicate_database.txz
-      /home/yhsia/helixfuse/2018-07-09_sym/processing/database/HFuse_Cx_database.20180711.txt
-      /home/sheffler/debug/worms_extension/input/straight_DHR.local.json
+      # /home/yhsia/helixfuse/2018-07-09_sym/processing/database/HFuse_Cx_database.20180711.txt
+      # /home/sheffler/debug/worms_extension/input/straight_DHR.local.json
 
    
+
+--save_minimal_replicate_database 1
+
 --min_seg_len  200
 --nbblocks  8
 --tolerance  1.0
 --max_score0  3
 --max_score0sym  10
+
+--disable_cache 1
+--output_from_pose 0
 
 --repeat_axis_check  1
 --repeat_axis_weight  100.0
@@ -33,9 +40,9 @@
 --helixconf_max_depth_within_hull 2
 --helixconf_use_hull_for_surface 0
 --helixconf_min_helix_size 14
---disable_cache 0
+
 --pbar 0
---cachedirs ./testcache
+--cachedirs ./test_extension_cache
 --lever 25
 --splice_rms_range 4
 
@@ -45,7 +52,7 @@
 --splice_ncontact_no_helix_cut 1
 --splice_nhelix_contacted_cut 2
 --splice_max_chain_length 9999
---output_from_pose 1
+
 --merge_bblock -1
 --output_symmetric 1
 --output_centroid 1

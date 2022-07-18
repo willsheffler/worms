@@ -73,10 +73,10 @@ def make_candidate_test_results(
       pickle.dump((criteria, ssdag, newresult), out)
 
    kw.output_prefix = os.path.join(new_test_dir, testname)
-   worms.app.output_simple(criteria, ssdag, newresult, symchains=False, **kw)
+   worms.app.output_simple(criteria, ssdag, newresult, extrachains=False, **kw)
    if refresult is not None:
       kw.output_suffix = os.path.join('_REF')
-      worms.app.output_simple(criteria, ssdag, refresult, symchains=False, **kw)
+      worms.app.output_simple(criteria, ssdag, refresult, extrachains=False, **kw)
 
 def setup_test_databases(**kw):
    kw = worms.Bunch(kw)

@@ -7,10 +7,13 @@ import numpy as np
 import willutil as wu
 
 import worms, worms.viz
-from worms.bblock.bblock import get_props_from_file  # type: ignore
+from worms.util import get_props_from_url
 from worms.cli import BBDir
 
 def main():
+   test_repeat_axis()
+
+def test_repeat_axis():
 
    dbfiles = [
       'test_extension__mbb0000__minimal_replicate_database.txz',
@@ -36,8 +39,8 @@ def main():
    for ibb, (bblock, shape, start, period) in enumerate(zip(bblocks, shapes, starts, periods)):
 
       bblock3 = bblock.make_extended_bblock(n=3, bblockdb=bbdb)
-      assert get_props_from_file(bblock.pdbfile) == dict()
-      assert get_props_from_file(bblock3.pdbfile) == dict(addrepeat=3)
+      assert get_props_from_url(bblock.pdbfile) == dict()
+      assert get_props_from_url(bblock3.pdbfile) == dict(addrepeat=3)
       # print(bblock.ncac.shape == shape[0])
       # print(bblock3.ncac.shape == shape[1])
       assert bblock.repeat_spacing[0] == start[0]

@@ -2,6 +2,8 @@ from functools import lru_cache
 from worms.pose_contortions import contort_pose_chains, make_contorted_pose
 from collections.abc import Iterable
 import numpy as np
+import willutil as wu
+import worms
 
 def make_pose_crit(
    bbdb,
@@ -13,6 +15,7 @@ def make_pose_crit(
    provenance=False,
    join=True,
    full_output_segs=[],
+   **kw,
 ):
    cryst_info = None
    if hasattr(criteria, "crystinfo"):  # TODO should this be here in general?
@@ -34,6 +37,7 @@ def make_pose_crit(
       position=criteria.alignment(positions),
       cryst_info=cryst_info,
       full_output_segs=full_output_segs,
+      **kw,
    )
 
 def make_pose(
@@ -51,6 +55,8 @@ def make_pose(
       position=np.eye(4),
       cryst_info=None,
       full_output_segs=[],
+      extensions=dict(),
+      **kw,
 ):
    cyclic_info = [None] * 5
    if is_cyclic:
@@ -61,9 +67,14 @@ def make_pose(
       cyclic_info[4] = _dirn_to_polarity(ssdag.verts[to_seg].dirn[0])
       assert cyclic_info[3] != 0
 
-   poses = _get_bb_poses(bbdb, ssdag, indices)
+   poses = _get_bb_poses(bbdb, ssdag, indices, **kw)
+
    entry_exit_chains = list()
    for ivert in range(len(indices)):
+      x = 0
+      if ivert in extensions:
+         x = extensions[ivert]
+
       entry_exit_chains.append(
          _make_pose_single(
             poses[ivert],
@@ -73,6 +84,7 @@ def make_pose(
             nverts=len(indices),
             ivert=ivert,
             cyclic_info=cyclic_info,
+            nres_extension=x,
          ))
 
    # for i, e in enumerate(entry_exit_chains):
@@ -109,12 +121,42 @@ def make_pose(
       return result[0]
    return result
 
-def _get_bb_poses(bbdb, ssdag, indices):
+def _get_bb_poses(
+      bbdb,
+      ssdag,
+      indices,
+      extensions=dict(),
+      **kw,
+):
    poses = list()
-   for bbs, vert, idx in zip(ssdag.bbs, ssdag.verts, indices):
+   for iseg, (bbs, vert, idx) in enumerate(zip(ssdag.bbs, ssdag.verts, indices)):
+
       bb = bbs[vert.ibblock[idx]]
-      pdbfile = bytes(bb.file)
-      poses.append(bbdb.pose(pdbfile))
+      # pdbfile = bytes(bb.file)
+      # pdbfile = worms.util.tobytes(bb.file)
+      pdbfile = worms.util.tostr(bb.file)
+
+      # if iseg == kw['repeat_add_to_segment']:
+      # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      # bbdb.pose(pdbfile, **kw).dump_pdb('foo_0.pdb')
+      # for i in range(1, 4):
+      #    print('TEST ADD REPEATS', i, pdbfile)
+      #    f = pdbfile + '?nrepeats=%i' % i
+      #    pose = bbdb.pose(f, **kw)
+      #    pose.dump_pdb(f'foo_{i}.pdb')
+      # assert 0
+
+      if iseg in extensions:
+         pdbfile = worms.util.add_props_to_url(pdbfile, nrepeats=extensions[iseg])
+         pose = bbdb.pose(pdbfile, **kw).dump_pdb('test.pdb')
+         pose.dump_pdb('test.pdb')
+         assert 0
+      poses.append(bbdb.pose(pdbfile, **kw))
+
+      # if iseg in extensions:
+      #    poses[-1].dump_pdb('foo_%i.pdb' % extensions[iseg])
+      #    if extensions[iseg] == 3: assert 0
+
    return poses
 
 @lru_cache(maxsize=1024)
@@ -126,18 +168,35 @@ def _dirn_to_polarity(dirn):
       return [_dirn_to_polarity(x) for x in dirn]
    return ["N", "C", "_"][dirn]
 
-def _make_pose_single(pose, vert, idx, positions, nverts, ivert, cyclic_info):
+def _make_pose_single(
+   pose,
+   vert,
+   idx,
+   positions,
+   nverts,
+   ivert,
+   cyclic_info,
+   nres_extension=0,
+):
    chains0 = _get_pose_chains(pose)
    start_of_chain = {i + 1: sum(len(c) for c in chains0[:i]) for i in range(len(chains0))}
    end_of_chain = {i + 1: sum(len(c) for c in chains0[:i + 1]) for i in range(len(chains0))}
    start_of_chain[None] = 0
    chains = {i + 1: c for i, c in enumerate(chains0)}
+
+   ir_en = (vert.ires[idx, 0] + 1) or -1
+   ir_ex = (vert.ires[idx, 1] + 1) or -1
+   if ir_en < ir_ex:
+      ir_ex += nres_extension
+   else:
+      ir_en += nres_extension
+
    return contort_pose_chains(
       pose=pose,
       chains=chains,
       nseg=nverts,
-      ir_en=(vert.ires[idx, 0] + 1) or -1,
-      ir_ex=(vert.ires[idx, 1] + 1) or -1,
+      ir_en=ir_en,
+      ir_ex=ir_ex,
       pl_en=_dirn_to_polarity(vert.dirn[0]),
       pl_ex=_dirn_to_polarity(vert.dirn[1]),
       chain_start=start_of_chain,
