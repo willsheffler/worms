@@ -3,7 +3,7 @@ import numpy as np
 import worms
 import willutil as wu
 
-class BBlockDB:
+class BBlockDB(worms.database.BBlockDatabaseSuper):
    def __init__(
       self,
       dbfiles=[],
@@ -12,6 +12,7 @@ class BBlockDB:
       null_base_names=['', '?', 'n/a', 'none'],
       **kw,
    ):
+      super().__init__(**kw)
       self.dbfiles = dbfiles
       self.dbroot = dbroot + "/" if dbroot and not dbroot.endswith("/") else dbroot
       (

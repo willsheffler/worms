@@ -10,26 +10,8 @@ import willutil as wu
 from worms.util.util import get_props_from_url
 # logging.basicConfig(level=logging.INFO)
 
-class CachingBBlockDB:
+class CachingBBlockDB(worms.database.BBlockDatabaseSuper):
    '''stores Poses and BBlocks in a disk cache'''
-   def __str__(self):
-      return os.linesep.join([
-         f'CachingBBlockDB',
-         f'   entries {len(self._alldb)}',
-         f'   bblocks {len(self._bblock_cache)}',
-         f'   poses {len(self._poses_cache)}',
-         f'   dbroot {self.dbroot}',
-         f'   cachedirs {self.cachedirs}',
-         f'   load_poses {self.load_poses}',
-         f'   nprocs {self.nprocs}',
-         f'   lazy {self.lazy}',
-         f'   read_new_pdbs {self.read_new_pdbs}',
-         f'   dbfiles {self.dbfiles}',
-         f'   n_missing_entries {self.n_missing_entries}',
-         f'   n_new_entries {self.n_new_entries}',
-         f'   holding_lock {self._holding_lock}',
-      ])
-
    def __init__(
       self,
       cachedirs=None,
@@ -45,6 +27,7 @@ class CachingBBlockDB:
    ):
       '''Stores building block structures and ancillary data
       '''
+      super().__init__(**kw)
       self.null_base_names = null_base_names
       self.cachedirs = worms.database.get_cachedirs(cachedirs)
       self.dbroot = dbroot + '/' if dbroot and not dbroot.endswith('/') else dbroot
@@ -52,6 +35,9 @@ class CachingBBlockDB:
       self.load_poses = load_poses
       os.makedirs(self.cachedirs[0] + '/poses', exist_ok=True)
       os.makedirs(self.cachedirs[0] + '/bblock', exist_ok=True)
+      print('====================== caching_bblockdb.py =======================')
+      print('\n'.join(self.cachedirs))
+      print('=' * 80)
       self._bblock_cache, self._poses_cache = dict(), dict()
       self.nprocs = nprocs
       self.lazy = lazy
@@ -87,6 +73,24 @@ class CachingBBlockDB:
             # self.nprocs = tmp
       for i, k in enumerate(sorted(self._dictdb)):
          self._alldb[i] = self._dictdb[k]
+
+   def __str__(self):
+      return os.linesep.join([
+         f'CachingBBlockDB',
+         f'   entries {len(self._alldb)}',
+         f'   bblocks {len(self._bblock_cache)}',
+         f'   poses {len(self._poses_cache)}',
+         f'   dbroot {self.dbroot}',
+         f'   cachedirs {self.cachedirs}',
+         f'   load_poses {self.load_poses}',
+         f'   nprocs {self.nprocs}',
+         f'   lazy {self.lazy}',
+         f'   read_new_pdbs {self.read_new_pdbs}',
+         f'   dbfiles {self.dbfiles}',
+         f'   n_missing_entries {self.n_missing_entries}',
+         f'   n_new_entries {self.n_new_entries}',
+         f'   holding_lock {self._holding_lock}',
+      ])
 
    def report(self):
       print('CachingBBlockDB nentries:', len(self._alldb))
@@ -323,7 +327,8 @@ class CachingBBlockDB:
                pdburl = pdburl.split('?')[0]
                if 'nrepeats' in props:
                   print('adding extension to bblock')
-                  bblock = worms.bblock.make_extended_bblock(bblock, nrepeats=props.nrepeats)
+                  bblock = worms.bblock.make_extended_bblock(bblock, nrepeats=props.nrepeats,
+                                                             **self.kw)
 
             self._bblock_cache[pdbkey] = bblock
 

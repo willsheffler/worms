@@ -10,8 +10,13 @@ from logging import info, warning, error
 from deferred_import import deferred_import
 
 import worms
+import willutil as wu
 
 Databases = collections.namedtuple('Databases', ('bblockdb', 'splicedb'))
+
+class BBlockDatabaseSuper:
+   def __init__(self, **kw):
+      self.kw = wu.Bunch(kw)
 
 def flatten_path(pdbfile):
    if isinstance(pdbfile, bytes):

@@ -83,14 +83,18 @@ def bblock_dump_pdb(
 
    nres_extension = 0
    if extension:
-      # print('??????????????????????????????', extension)
+      print('??????????????????????????????', extension)
       print('extension ncac', bblock.ncac.shape)
-      bblock = worms.bblock.make_extended_bblock(bblock, nrepeats=extension, bblockdb=bblockdb)
+      bblock = worms.bblock.make_extended_bblock(bblock, nrepeats=extension, bblockdb=bblockdb,
+                                                 **kw)
       print('extension ncac', bblock.ncac.shape)
-      start, nres_extension = bblock.repeat_spacing
+      start = bblock.repeatstart
+      nres_extension = bblock.repeatspacing
       nres_extension *= extension
       print('extension', start, nres_extension)
       # assert 0
+
+      print('??????????????????????????????')
 
    mnconn, mxconn = 9e9, 0
    for ich, conn in bblock.connections:
@@ -150,11 +154,13 @@ def graph_dump_pdb(
       trim=True,
       crystinfo=None,
       extensions=dict(),
-      bblockdb=None,
       sym='c1',
       **kw,
 ):
    # print('graph_dump_pdb')
+   kw = wu.Bunch(kw)
+
+   bblockdb = kw.database.bblockdb
 
    close = False
    if isinstance(out, str):
@@ -169,15 +175,18 @@ def graph_dump_pdb(
       ssdag.bblocks[iseg][ssdag.verts[iseg].ibblock[idx[iseg]]] for iseg in range(len(idx))
    ]
 
-   if extensions:
+   if extensions and set(extensions.values()) != {0}:
 
       assert len(extensions) == 1
       iseg = list(extensions.keys())[0]
       segpos = alnpos[iseg]
       nrepeat = list(extensions.values())[0]
+
       bblock = ssdag.bblocks[iseg][ssdag.verts[iseg].ibblock[idx[iseg]]]
-      bblock = worms.bblock.make_extended_bblock(bblock, nrepeats=nrepeat, bblockdb=bblockdb)
-      start, nres = bblock.repeat_spacing
+      bblock = worms.bblock.make_extended_bblock(bblock, nrepeats=nrepeat, bblockdb=bblockdb,
+                                                 **kw)
+      start = bblock.repeatstart
+      nres = bblock.repeatspacing
       # print(start, nres)
       point1 = segpos @ bblock.ncac[start, 1]
       point2 = segpos @ bblock.ncac[start + nrepeat * nres, 1]
@@ -205,23 +214,25 @@ def graph_dump_pdb(
       repeataxis = segpos @ bblock.repeataxis
 
       print(repeataxis)
-      shift = wu.hdot(repeataxis, ax0)
+      shift = wu.homog.proj_perp(ax1, repeataxis)
+      cros = wu.homog.hcross(ax0, ax1)
+      print(cros)
+      shift = wu.homog.proj_perp(cros, shift)
+      assert np.allclose(wu.hdot(cros, shift), 0)
       print('shift', shift)
-
-      # assert 0
 
       # symax = wu.sym.axes(sym)
       # print(symax)
       # assert 0
-      print('scale test', -9.72 * np.sqrt(3))
-      scale = -9.72 * nrepeat * np.sqrt(3)
-      # scale = (-11.2 * nrepeat)
 
-      #
+      shiftmag = wu.hnorm(shift) / np.sin(wu.hangle(ax0, ax1))
+      if wu.hdot(xalign[:, 3], ax0) < 0:
+         shiftmag = -shiftmag
+      xextaln = wu.htrans(ax0 * shiftmag * nrepeat)
 
-      xextaln = wu.htrans(ax0 * scale)
-      print(ax0 * scale)
       xalign = xextaln @ xalign
+
+      # assert 0
 
    if crystinfo:
       cryst1 = 'CRYST1  %7.3f  %7.3f  %7.3f  90.00  90.00  90.00 ' % crystinfo[:3] + crystinfo[6]

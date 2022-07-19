@@ -156,8 +156,10 @@ def filter_and_output_results(
 
       for iresult in _stuff:
 
-         assert 0 <= kw.repeat_add_to_output <= 100
+         for foo in kw.repeat_add_to_output:
+            assert 0 <= foo <= 100
          assert 0 <= kw.repeat_add_to_segment < len(result.idx)
+
          # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
          for iextend in range(0, kw.repeat_add_to_output + 1):
             extensions = {}

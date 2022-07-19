@@ -172,8 +172,8 @@ def make_bblock(
         ('helixbeg'   ,   numba.types.float32[:,:] ),
         ('helixend'   ,   numba.types.float32[:,:] ),
         ('repeataxis' ,   numba.types.float32[:]   ),
-        ('repeatstart'  , numba.types.float32      ),
-        ('repeatspacing', numba.types.float32      ),
+        ('repeatstart'  , numba.types.int32      ),
+        ('repeatspacing', numba.types.int32      ),
     )
 )  # yapf: disable
 class _BBlock:
@@ -441,6 +441,14 @@ class BBlock:
    def chains(self):
       return np.array(self._bblock.chains)
 
+   @property
+   def repeatstart(self):
+      return self._bblock.repeatstart
+
+   @property
+   def repeatspacing(self):
+      return self._bblock.repeatspacing
+
    def __setstate__(self, state):
       self._bblock = _BBlock(*state)
 
@@ -459,9 +467,9 @@ class BBlock:
    def dbentry(self):
       return json.loads(self.json)
 
-   @property
-   def repeat_spacing(self):
-      return get_repeat_spacing(self)
+   # @property
+   # def repeat_spacing(self):
+   # return get_repeat_spacing(self)
 
    def make_extended_bblock(self, nrepeats=1, **kw):
       return make_extended_bblock(self, nrepeats, **kw)
@@ -480,7 +488,7 @@ def bblock_is_cyclic(bblock):
       c[3] in 'CN',
    ])
 
-def add_repeat_to_pose(pose, nrepeats, start, period, shift=10):
+def add_repeat_to_pose(pose, nrepeats, start, period, shift=10, **kw):
    from worms.rosetta_init import append_subpose_to_pose, append_pose_to_pose
    stubs, _ = worms.util.rosetta_utils.get_bb_stubs(pose)
    stub1 = stubs[start]
@@ -506,15 +514,16 @@ def make_derived_bblock(pdbfile, bblock):
 def make_extended_bblock(
    bblock,
    nrepeats=1,
-   bblockdb=None,
    null_base_names=["", "?", "n/a", "none"],
+   **kw,
 ):
+   kw = wu.Bunch(kw)
+   bblockdb = kw.database.bblockdb
    assert bblockdb
-
    pose = bblockdb.pose(bblock.pdbfile)
-   start, period = bblock.repeat_spacing
+   start, period = bblock.repeatstart, bblock.repeatspacing
 
-   newpose = add_repeat_to_pose(pose, nrepeats, start, period)
+   newpose = add_repeat_to_pose(pose, nrepeats, start, period, **kw)
 
    origentry = bblock.dbentry
    newentry = copy.copy(bblock.dbentry)
@@ -529,7 +538,7 @@ def make_extended_bblock(
 
    # support modifications in fname, probably in database?
 
-   bblock2 = BBlock(make_bblock(newentry, newpose, null_base_names))
+   bblock2 = BBlock(make_bblock(newentry, newpose, null_base_names, **kw))
    # print(bblock.dbentry['connections'])
    # print(bblock2.dbentry['connections'])
 

@@ -1,3 +1,4 @@
+from decimal import ExtendedContext
 import worms
 
 def run_simple(
@@ -57,23 +58,35 @@ def output_simple(
          if crystinfo[0] < kw.xtal_min_cell_size: continue
          if crystinfo[0] > kw.xtal_max_cell_size: continue
 
-      fname = f'{output_prefix}_{iresult:04}_{output_suffix}.pdb'
       # print('align_ax1', xalign @ segpos[0, :, 2])
       # print('align_ax2', xalign @ segpos[-1, :, 2])
       # print(fname)
       # assert 0
-      print(result.err[iresult], fname)
-      worms.output.dumppdb.graph_dump_pdb(
-         fname,
-         ssdag,
-         result.idx[iresult],
-         result.pos[iresult],
-         join="bb",
-         trim=True,
-         xalign=xalign,
-         crystinfo=crystinfo,
-         **kw,
-      )
-      files_output.append(fname + '.pdb')
+
+      iseg = kw.repeat_add_to_segment
+      # extensions = {iseg: nrepeat for nrepeat in kw.repeat_add_to_output}
+
+      for iextend in kw.repeat_add_to_output:
+         sep = '_' if output_suffix else ''
+         fname = f'{output_prefix}_{iresult:04}{sep}{output_suffix}_ext{iextend:04}.pdb'
+
+         print()
+         print()
+         print('iextend', iextend, fname, result.err[iresult])
+         print()
+         print()
+         worms.output.dumppdb.graph_dump_pdb(
+            fname,
+            ssdag,
+            result.idx[iresult],
+            result.pos[iresult],
+            join="bb",
+            trim=True,
+            xalign=xalign,
+            crystinfo=crystinfo,
+            extensions={iseg: iextend},
+            **kw,
+         )
+         files_output.append(fname + '.pdb')
 
    return files_output

@@ -22,38 +22,31 @@ def test_extension_output():
    #   '/home/sheffler/src/worms/worms/data/test_cases/test_extension/databases/test_extension__mbb0000__minimal_replicate_database.txz'
    #]
 
-   bbdb = worms.database.BBlockDB(
-      # cachedirs='test_extension_cache',
-      lazy=False,
-      **kw.sub(read_new_pdbs=True),
-   )
+   # bbdb = worms.database.BBlockDB(
+   #    # cachedirs='test_extension_cache',
+   #    lazy=False,
+   #    **kw.sub(read_new_pdbs=True),
+   # )
 
-   ssdag, result = worms.app.run_simple(criteria, **kw)
+   # ssdag, result = worms.app.run_simple(criteria, **kw)
+   # wu.save((ssdag, result), 'test_results.pickle')
 
+   ssdag, result = wu.load('test_results.pickle')
    # import pickle
    # with open(
    #       '/home/sheffler/src/worms/worms/data/test_cases/test_extension/testcache/test_extension_reference_results.pickle',
    #       'rb') as inp:
    #    crit, ssdag, result = pickle.load(inp)
 
-   # for i in [None, 2, 4, 6, 8, 10, 12, 14]:
-   for i in [None]:
-      # for i in [None, 10]:
-      iext = 0 if i is None else i
-      extensions = dict() if i is None else {1: i}
-      # extensions = dict()
-      worms.app.output_simple(
-         criteria,
-         ssdag,
-         result,
-         sym='oct',
-         extensions=extensions,
-         # output_indices=[0],
-         # output_prefix='/home/sheffler/src/worms/extension_cube',
-         output_prefix='/home/sheffler/src/worms/test_ext/foo',
-         output_suffix=str(iext),
-         bblockdb=bbdb,
-      )
+   worms.app.output_simple(
+      criteria,
+      ssdag,
+      result,
+      sym='oct',
+      # extensions=extensions,
+      # output_indices=[0],
+      **kw,
+   )
 
    print("TEST EXTENSION DONE")
    # assert 0

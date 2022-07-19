@@ -28,6 +28,8 @@
 
 --repeat_axis_check  1
 --repeat_axis_weight  100.0
+--repeat_add_to_output 0 1 2
+--repeat_add_to_segment 1
 
 --monte_carlo 0
 --no_duplicate_bases 0
@@ -56,7 +58,7 @@
 --merge_bblock -1
 --output_symmetric 1
 --output_centroid 1
---output_prefix test_extension_
+--output_prefix /home/sheffler/src/worms/test_ext/test_extension
 
 --postfilt_splice_max_rms 10
 --postfilt_splice_rms_length 4
