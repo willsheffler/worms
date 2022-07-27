@@ -59,7 +59,7 @@
 --merge_bblock -1
 --output_symmetric 1
 --output_centroid 1
---output_prefix /home/sheffler/src/worms/test_ext/test_extension
+--output_prefix /home/sheffler/src/worms/test_ext_oct/test_extension_oct
 
 --postfilt_splice_max_rms 10
 --postfilt_splice_rms_length 4

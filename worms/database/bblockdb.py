@@ -1,4 +1,4 @@
-import os, random, functools, pickle
+import os, random, functools, pickle, random
 import numpy as np
 import worms
 import willutil as wu
@@ -90,10 +90,11 @@ class BBlockDB(worms.database.BBlockDatabaseSuper):
          if pdbfile in self.pdb_contents:
             return worms.rosetta_init.pose_from_str(self.pdb_contents[pdbfile])
          else:
-            assert os.path.exists(self.dbroot + pdbfile)
+            if not os.path.exists(self.dbroot + pdbfile):
+               raise ValueError(f'bblockdb.py: file missinig {self.dbroot+pdbfile}')
             return worms.rosetta_init.pose_from_file(self.dbroot + pdbfile)
 
-   def pose(self, pdbfile):
+   def pose(self, pdbfile, **kw):
       """load pose from _bblock_cache, read from file if not in memory. only reads"""
       if isinstance(pdbfile, bytes):
          pdbfile = str(pdbfile, "utf-8")
@@ -140,7 +141,15 @@ class BBlockDB(worms.database.BBlockDatabaseSuper):
       names = self.query_names(query, useclass=useclass)
       if len(names) > max_bblocks:
          if shuffle_bblocks:
-            random.shuffle(names)
+            shuffle_seed = kw['shuffle_bblocks_seed']
+            if shuffle_seed < 0:
+               random.shuffle(names)
+            else:
+               random_state = random.getstate()
+               random.seed(shuffle_seed)
+               random.shuffle(names)
+               random.setstate(random_state)
+
          names = names[:max_bblocks]
       return [self.bblock(n) for n in names]
 

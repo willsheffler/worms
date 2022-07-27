@@ -128,6 +128,65 @@ class SearchSpaceDAG(SearchSpaceDAG_Base):
          f'    edges {[_.splices.shape for _ in self.edges]}',
       ])
 
+   def get_structure_info(self, idx, **kw):
+
+      info = wu.Bunch()
+      itr = list(enumerate(idx))
+      info.bblocks = [self.bblocks[iseg][self.verts[iseg].ibblock[ivert]] for iseg, ivert in itr]
+      info.inpchain = [self.verts[iseg].ichain[ivert, 0] for iseg, ivert in itr]
+      info.outchain = [self.verts[iseg].ichain[ivert, 1] for iseg, ivert in itr]
+      info.inpsite = [self.verts[iseg].isite[ivert, 0] for iseg, ivert in itr]
+      info.outsite = [self.verts[iseg].isite[ivert, 1] for iseg, ivert in itr]
+      info.inpres = [self.verts[iseg].ires[ivert, 0] for iseg, ivert in itr]
+      info.outres = [self.verts[iseg].ires[ivert, 1] for iseg, ivert in itr]
+      info.inpdirection = ['NC_'[self.verts[iseg].dirn[0]] for iseg, ivert in itr]
+      info.outdirection = ['NC_'[self.verts[iseg].dirn[1]] for iseg, ivert in itr]
+      info.direction = [a + b for a, b in zip(info.inpdirection, info.outdirection)]
+
+      info.regions = list()
+      for iseg in range(len(self.bblocks)):
+         dirn = info.direction[iseg]
+         for ichain, res in enumerate(info.bblocks[iseg].chains):
+            splice_inpres = info.inpres[iseg]
+            splice_outres = info.outres[iseg]
+            # print('!!', iseg, ichain, splice_inpres, splice_outres)
+            # print('arst', info.inpchain, ichain, info.outchain)
+            # print('------', ichain, '-', info.inpnchain[iseg], info.outchain[iseg])
+            if info.inpchain[iseg] == ichain and info.outchain[iseg] == ichain:
+               res2 = info.inpres[iseg], info.outres[iseg]
+            elif info.inpchain[iseg] == ichain:
+               res2 = info.inpres[iseg], res[1]
+            elif info.outchain[iseg] == ichain:
+               res2 = res[0], info.outres[iseg]
+            else:
+               res2 = res
+            res2 = int(min(res2)), int(max(res2))
+
+            if iseg == 0:
+               info.regions.append(
+                  [wu.Bunch(iseg=iseg, ichain=ichain, direction=dirn, reswindow=res2)])
+            else:
+               for ich, ch in enumerate(info.regions.copy()):
+                  if ch[-1].iseg == iseg - 1 and ch[-1].ichain == info.outchain[iseg - 1]:
+                     assert info.direction[iseg][0] != info.direction[iseg - 1][1]
+
+                     info.regions[ich].append(
+                        wu.Bunch(iseg=iseg, ichain=ichain, direction=dirn, reswindow=res2))
+                     break
+               else:
+                  info.regions.append(
+                     [wu.Bunch(iseg=iseg, ichain=ichain, direction=dirn, reswindow=res2)])
+
+      for i, r in enumerate(info.regions.copy()):
+         assert isinstance(r, list)
+         nc = all([x.direction in '_C NC N_'.split() for x in r])
+         cn = all([x.direction in '_N CN C_'.split() for x in r])
+         assert nc != cn
+         if cn:
+            info.regins[i] = list(reversed(r))
+
+      return info
+
 def simple_search_dag(
    criteria,
    database=None,
@@ -192,6 +251,7 @@ def simple_search_dag(
                max_bblocks=nbblocks[iquery],
                shuffle_bblocks=shuffle_bblocks,
                parallel=parallel,
+               **kw,
             )
             bbs.append(bbs0)
 

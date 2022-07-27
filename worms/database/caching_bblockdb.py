@@ -154,6 +154,7 @@ class CachingBBlockDB(worms.database.BBlockDatabaseSuper):
       return len(self._bblock_cache)
 
    def pose(self, pdbfile, **kw):
+      wu.PING(f'cacheing_bblockdb.py:pose {pdbfile}')
       '''load pose from _bblock_cache, read from file if not in memory'''
       import worms
       pdbfile = worms.database.sanitize_pdbfile(pdbfile)
@@ -238,7 +239,15 @@ class CachingBBlockDB(worms.database.BBlockDatabaseSuper):
       names = self.query_names(query, useclass=useclass)
       if len(names) > max_bblocks:
          if shuffle_bblocks:
-            random.shuffle(names)
+            shuffle_seed = kw['shuffle_bblocks_seed']
+            if shuffle_seed < 0:
+               random.shuffle(names)
+            else:
+               random_state = random.getstate()
+               random.seed(shuffle_seed)
+               random.shuffle(names)
+               random.setstate(random_state)
+
          names = names[:max_bblocks]
 
       try:
@@ -322,6 +331,7 @@ class CachingBBlockDB(worms.database.BBlockDatabaseSuper):
             bblock = worms.bblock._BBlock(*bbstate)
 
             if pdburl:
+               pdburl = worms.util.tostr(pdburl)
                #!!!!!!!!!!!!!!!!!!!
                props = get_props_from_url(pdburl)
                pdburl = pdburl.split('?')[0]
@@ -438,7 +448,7 @@ class CachingBBlockDB(worms.database.BBlockDatabaseSuper):
 
          pose = self.pose(pdbfile)
 
-         bblock = worms.bblock.make_bblock(entry, pose, self.null_base_names)
+         bblock = worms.bblock.make_bblock(entry, pose, self.null_base_names, **self.kw)
          self._bblock_cache[pdbkey] = bblock
 
          with open(cachefile, 'wb') as f:

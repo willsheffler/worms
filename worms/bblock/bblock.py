@@ -336,6 +336,9 @@ class _BBlock:
    def __getstate__(self):
       return self._state
 
+   def get_pdb_file(self):
+      return unnpfb(self.file)
+
    def equal_to(self, other):
       # return generic_equals(self._state, other._state)
       # dunno if it's safe to ignore ncac, chains and stubs
@@ -519,7 +522,8 @@ def make_extended_bblock(
 ):
    kw = wu.Bunch(kw)
    bblockdb = kw.database.bblockdb
-   assert bblockdb
+   assert bblockdb is not None
+   wu.PING(bblock.pdbfile)
    pose = bblockdb.pose(bblock.pdbfile)
    start, period = bblock.repeatstart, bblock.repeatspacing
 
@@ -533,7 +537,13 @@ def make_extended_bblock(
    for conn in origentry['connections']:
       conn2 = copy.copy(conn)
       if conn['direction'] == 'C':
-         conn2['residues'] = [int(ir + nrepeats * period) for ir in conn['residues']]
+         print(conn['residues'])
+         conn2['residues'] = list()
+         for c in conn['residues']:
+            if isinstance(c, int):
+               conn2['residues'].append(c + nrepeats * period)
+            else:
+               conn2['residues'].append(c)
       newentry['connections'].append(conn2)
 
    # support modifications in fname, probably in database?
@@ -614,6 +624,7 @@ def get_repeat_axis(bblock, start, spacing, **kw):
    #    # return repeataxis
 
 def get_repeat_spacing(bblock: BBlock, repeat_sequence_match_min_len=15, **kw):
+   kw = wu.Bunch(kw)
    if bblock.is_cyclic: return None, None
    seq = bblock.sequence
    ss = bblock.ss

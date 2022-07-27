@@ -4,7 +4,7 @@ import sys, collections, os, psutil, gc, json, traceback, copy
 
 import worms
 from worms import util, Bunch, PING
-from worms.ssdag_pose import make_pose_crit
+from worms.ssdag import make_pose_crit
 from worms.output.dumppdb import graph_dump_pdb
 
 from deferred_import import deferred_import

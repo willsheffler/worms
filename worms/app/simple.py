@@ -40,15 +40,18 @@ def output_simple(
    output_indices=[],
    xtal_min_cell_size=100,
    xtal_max_cell_size=9e9,
+   pos=None,
    **kw,
 ):
    kw = worms.Bunch(kw)
    files_output = list()
    if not output_indices:
       output_indices = range(min(max_output, len(result.idx)))
+   print('output_indices', output_indices)
    for iresult in output_indices:
-      segpos = result.pos[iresult]
-      xalign = criteria.alignment(segpos)
+      segpos = result.pos[iresult] if pos is None else pos
+
+      xalign = criteria.alignment(result.pos[iresult])
       if xalign is None: continue
 
       crystinfo = None
@@ -69,17 +72,12 @@ def output_simple(
       for iextend in kw.repeat_add_to_output:
          sep = '_' if output_suffix else ''
          fname = f'{output_prefix}_{iresult:04}{sep}{output_suffix}_ext{iextend:04}.pdb'
-
-         print()
-         print()
-         print('iextend', iextend, fname, result.err[iresult])
-         print()
-         print()
+         print('------------ iextend -------------', iextend, fname, result.err[iresult])
          worms.output.dumppdb.graph_dump_pdb(
             fname,
             ssdag,
             result.idx[iresult],
-            result.pos[iresult],
+            segpos,
             join="bb",
             trim=True,
             xalign=xalign,

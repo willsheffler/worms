@@ -1,9 +1,12 @@
+from deferred_import import deferred_import
 from functools import lru_cache
 from worms.pose_contortions import contort_pose_chains, make_contorted_pose
 from collections.abc import Iterable
 import numpy as np
 import willutil as wu
 import worms
+
+ros = deferred_import('worms.rosetta_init')
 
 def make_pose_crit(
    bbdb,
@@ -120,6 +123,33 @@ def make_pose(
    if not provenance:
       return result[0]
    return result
+
+def make_pose_simple(ssdag, idx, pos, extensions=dict(), **kw):
+   kw = wu.Bunch(kw)
+
+   sinfo = ssdag.get_structure_info(idx)
+   poses = _get_bb_poses(kw.database.bblockdb, ssdag, idx, extensions=extensions, **kw)
+   newpose = worms.rosetta_init.Pose()
+   for ireg, region in enumerate(sinfo.regions):
+      print(ireg, region)
+
+      if len(region) == 1:
+         iseg = region[0].iseg
+         pose = poses[iseg].clone()
+         lb, ub = region[0].reswindow
+         worms.util.rosetta_utils.xform_pose(pos[iseg], pose)
+         # pose.dump_pdb(f'ireg{ireg}_iseg{iseg}.pdb')
+         ros.core.pose.append_subpose_to_pose(newpose, pose, lb + 1, ub, True)
+
+         continue
+      for ich, chain in enumerate(region):
+         lb, ub = chain.reswindow
+         pose = poses[chain.iseg].clone()
+         worms.util.rosetta_utils.xform_pose(pos[chain.iseg], pose)
+         # pose.dump_pdb(f'ireg{ireg}_iseg{chain.iseg}_{ich}.pdb')
+
+         ros.core.pose.append_subpose_to_pose(newpose, pose, lb + 1, ub, False)
+   return newpose
 
 def _get_bb_poses(
       bbdb,

@@ -33,6 +33,7 @@ cli_args = dict(
    merge_bblock=-1,
    no_duplicate_bases=1,
    shuffle_bblocks=1,
+   shuffle_bblocks_seed=-1,
    only_merge_bblocks=[-1],
    only_bblocks=[-1],  # select single set of bbs
    only_ivertex=[-1],  # only for debugging
@@ -303,11 +304,11 @@ def build_worms_setup_from_cli_args(
       kw.only_outputs = []
    if kw.bblock_ranges == [-1]:
       kw.bblock_ranges = []
-   if kw.repeat_add_to_output == [-1]:
-      kw.repeat_add_to_output = []
    elif kw.shuffle_bblocks:
       print("you probably shouldnt use --shuffle_bblocks with --bblock_ranges ")
       sys.exit(0)
+   if kw.repeat_add_to_output == [-1]:
+      kw.repeat_add_to_output = []
    if kw.merge_segment == -1:
       kw.merge_segment = None
    kw.tolerance = min(kw.tolerance, 9e8)
