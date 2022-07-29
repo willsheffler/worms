@@ -124,30 +124,39 @@ def make_pose(
       return result[0]
    return result
 
-def make_pose_simple(ssdag, idx, pos, extensions=dict(), **kw):
+def make_pose_simple(
+   ssdag,
+   idx,
+   xpos,
+   only_spliced_regions=False,
+   **kw,
+):
    kw = wu.Bunch(kw)
 
-   sinfo = ssdag.get_structure_info(idx)
-   poses = _get_bb_poses(kw.database.bblockdb, ssdag, idx, extensions=extensions, **kw)
+   structinfo = ssdag.get_structure_info(idx, **kw)
+   poses = _get_bb_poses(kw.database.bblockdb, ssdag, idx, **kw)
+   # for i, p in enumerate(poses):
+   # p.dump_pdb(f'{i}.pdb')
+   # assert 0
+
    newpose = worms.rosetta_init.Pose()
-   for ireg, region in enumerate(sinfo.regions):
-      print(ireg, region)
+   for ireg, region in enumerate(structinfo.regions):
+      print('make_pose_simple', ireg, region)
 
       if len(region) == 1:
-         iseg = region[0].iseg
-         pose = poses[iseg].clone()
-         lb, ub = region[0].reswindow
-         worms.util.rosetta_utils.xform_pose(pos[iseg], pose)
-         # pose.dump_pdb(f'ireg{ireg}_iseg{iseg}.pdb')
-         ros.core.pose.append_subpose_to_pose(newpose, pose, lb + 1, ub, True)
-
+         if not only_spliced_regions:
+            iseg = region[0].iseg
+            pose = poses[iseg].clone()
+            lb, ub = region[0].reswindow
+            worms.util.rosetta_utils.xform_pose(xpos[iseg], pose)
+            # pose.dump_pdb(f'ireg{ireg}_iseg{iseg}.pdb')
+            ros.core.pose.append_subpose_to_pose(newpose, pose, lb + 1, ub, True)
          continue
       for ich, chain in enumerate(region):
          lb, ub = chain.reswindow
          pose = poses[chain.iseg].clone()
-         worms.util.rosetta_utils.xform_pose(pos[chain.iseg], pose)
+         worms.util.rosetta_utils.xform_pose(xpos[chain.iseg], pose)
          # pose.dump_pdb(f'ireg{ireg}_iseg{chain.iseg}_{ich}.pdb')
-
          ros.core.pose.append_subpose_to_pose(newpose, pose, lb + 1, ub, False)
    return newpose
 
@@ -177,10 +186,12 @@ def _get_bb_poses(
       # assert 0
 
       if iseg in extensions:
+         # pose = bbdb.pose(pdbfile, **kw)
+         # pose.dump_pdb('test0.pdb')
          pdbfile = worms.util.add_props_to_url(pdbfile, nrepeats=extensions[iseg])
-         pose = bbdb.pose(pdbfile, **kw).dump_pdb('test.pdb')
-         pose.dump_pdb('test.pdb')
-         assert 0
+         # pose = bbdb.pose(pdbfile, **kw)
+         # pose.dump_pdb('test1.pdb')
+         # assert 0
       poses.append(bbdb.pose(pdbfile, **kw))
 
       # if iseg in extensions:

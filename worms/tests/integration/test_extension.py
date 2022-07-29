@@ -65,6 +65,8 @@ def test_extension_output(sym='oct'):
    #    crit, ssdag, result = pickle.load(inp)
    iresult = 0
 
+   extensions = {1: 3}
+
    if True:
       sinfo = ssdag.get_structure_info(result.idx[0])
       # print(sinfo)
@@ -77,11 +79,18 @@ def test_extension_output(sym='oct'):
          xalign,
          sinfo.bblocks,
          kw.database.bblockdb,
-         extensions={1: 3},
+         extensions=extensions,
          **kw,
       )
       # # modify alignment
-      pose = worms.ssdag.make_pose_simple(ssdag, result.idx[iresult], xalign @ extpos, **kw)
+      pose = worms.ssdag.make_pose_simple(
+         ssdag,
+         result.idx[iresult],
+         xalign @ extpos,
+         extensions=extensions,
+         only_spliced_regions=True,
+         **kw,
+      )
       pose.dump_pdb('make_pose_simple.pdb')
       assert 0
 

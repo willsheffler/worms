@@ -79,20 +79,34 @@ class BBlockDB(worms.database.BBlockDatabaseSuper):
             return candidate
       return None
 
-   @functools.lru_cache(128)
-   def get_pose(self, pdbfile):
+   # @functools.lru_cache(128)
+   def get_pose(self, pdbfile, **kw):
       posefile = self.posefile(pdbfile)
+      props = dict()
+      if '?' in pdbfile:
+         props = worms.util.get_props_from_url(pdbfile)
+         pdbfile, _ = pdbfile.split('?')
+
       if posefile:
          with open(posefile, "rb") as f:
-            return pickle.load(f)
+            pose = pickle.load(f)
       else:
          print("reading pdb", pdbfile)
          if pdbfile in self.pdb_contents:
-            return worms.rosetta_init.pose_from_str(self.pdb_contents[pdbfile])
+            pose = worms.rosetta_init.pose_from_str(self.pdb_contents[pdbfile])
          else:
             if not os.path.exists(self.dbroot + pdbfile):
                raise ValueError(f'bblockdb.py: file missinig {self.dbroot+pdbfile}')
-            return worms.rosetta_init.pose_from_file(self.dbroot + pdbfile)
+            pose = worms.rosetta_init.pose_from_file(self.dbroot + pdbfile)
+
+      if props:
+         bblock = worms.bblock.BBlock(self.bblock(pdbfile, **kw))
+         start, period = bblock.repeatstart, bblock.repeatspacing
+         nrepeats = props['nrepeats']
+         pose2 = worms.bblock.add_repeat_to_pose(pose, nrepeats, start, period)
+         pose = pose2
+
+      return pose
 
    def pose(self, pdbfile, **kw):
       """load pose from _bblock_cache, read from file if not in memory. only reads"""
@@ -101,14 +115,14 @@ class BBlockDB(worms.database.BBlockDatabaseSuper):
       if isinstance(pdbfile, np.ndarray):
          pdbfile = str(bytes(pdbfile), "utf-8")
       self.poses_accessed.add(pdbfile)
-      return self.get_pose(pdbfile)
+      return self.get_pose(pdbfile, **kw)
 
-   def bblock(self, pdbkey):
+   def bblock(self, pdbkey, **kw):
       if isinstance(pdbkey, list):
          return [self.bblock(f) for f in pdbkey]
       if isinstance(pdbkey, (str, bytes)):
 
-         import worms  # todo, why is this necessary??
+         import worms  # why is this necessary??
 
          pdbkey = worms.util.hash_str_to_int(pdbkey)
       assert isinstance(pdbkey, int)

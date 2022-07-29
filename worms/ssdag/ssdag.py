@@ -128,7 +128,7 @@ class SearchSpaceDAG(SearchSpaceDAG_Base):
          f'    edges {[_.splices.shape for _ in self.edges]}',
       ])
 
-   def get_structure_info(self, idx, **kw):
+   def get_structure_info(self, idx, extensions=dict(), **kw):
 
       info = wu.Bunch()
       itr = list(enumerate(idx))
@@ -146,6 +146,8 @@ class SearchSpaceDAG(SearchSpaceDAG_Base):
       info.regions = list()
       for iseg in range(len(self.bblocks)):
          dirn = info.direction[iseg]
+         nrepeat = extensions.get(iseg, 0)
+         print('ssdag.py', iseg, nrepeat)
          for ichain, res in enumerate(info.bblocks[iseg].chains):
             splice_inpres = info.inpres[iseg]
             splice_outres = info.outres[iseg]
@@ -160,7 +162,7 @@ class SearchSpaceDAG(SearchSpaceDAG_Base):
                res2 = res[0], info.outres[iseg]
             else:
                res2 = res
-            res2 = int(min(res2)), int(max(res2))
+            res2 = int(min(res2)), int(max(res2) + nrepeat * info.bblocks[iseg].repeatspacing)
 
             if iseg == 0:
                info.regions.append(
