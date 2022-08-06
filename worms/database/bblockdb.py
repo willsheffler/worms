@@ -165,7 +165,7 @@ class BBlockDB(worms.database.BBlockDatabaseSuper):
                random.setstate(random_state)
 
          names = names[:max_bblocks]
-      return [self.bblock(n) for n in names]
+      return [self.bblock(n, **kw) for n in names]
 
    def query_names(self, query, *, useclass=True, exclude_bases=None):
       return worms.database.query_bblocks(self, query, useclass=useclass,

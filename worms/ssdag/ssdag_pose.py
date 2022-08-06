@@ -134,10 +134,12 @@ def make_pose_simple(
    kw = wu.Bunch(kw)
 
    structinfo = ssdag.get_structure_info(idx, **kw)
-   poses = _get_bb_poses(kw.database.bblockdb, ssdag, idx, **kw)
-   # for i, p in enumerate(poses):
+   srcposes = _get_bb_poses(kw.database.bblockdb, ssdag, idx, **kw)
+   # for i, p in enumerate(srcposes):
    # p.dump_pdb(f'{i}.pdb')
    # assert 0
+
+   provenance = list()
 
    newpose = worms.rosetta_init.Pose()
    for ireg, region in enumerate(structinfo.regions):
@@ -146,7 +148,7 @@ def make_pose_simple(
       if len(region) == 1:
          if not only_spliced_regions:
             iseg = region[0].iseg
-            pose = poses[iseg].clone()
+            pose = srcposes[iseg].clone()
             lb, ub = region[0].reswindow
             worms.util.rosetta_utils.xform_pose(xpos[iseg], pose)
             # pose.dump_pdb(f'ireg{ireg}_iseg{iseg}.pdb')
@@ -154,11 +156,15 @@ def make_pose_simple(
          continue
       for ich, chain in enumerate(region):
          lb, ub = chain.reswindow
-         pose = poses[chain.iseg].clone()
+         pose = srcposes[chain.iseg].clone()
          worms.util.rosetta_utils.xform_pose(xpos[chain.iseg], pose)
          # pose.dump_pdb(f'ireg{ireg}_iseg{chain.iseg}_{ich}.pdb')
+         prov = [newpose.size() + 1, None, srcposes[chain.iseg], lb + 1, ub]
          ros.core.pose.append_subpose_to_pose(newpose, pose, lb + 1, ub, False)
-   return newpose
+         prov[1] = newpose.size()
+         provenance.append(prov)
+
+   return newpose.clone(), provenance
 
 def _get_bb_poses(
       bbdb,
@@ -192,7 +198,7 @@ def _get_bb_poses(
          # pose = bbdb.pose(pdbfile, **kw)
          # pose.dump_pdb('test1.pdb')
          # assert 0
-      poses.append(bbdb.pose(pdbfile, **kw))
+      poses.append(bbdb.pose(pdbfile, **kw).clone())
 
       # if iseg in extensions:
       #    poses[-1].dump_pdb('foo_%i.pdb' % extensions[iseg])

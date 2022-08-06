@@ -10,7 +10,7 @@ import worms as w
 from worms.criteria import NullCriteria
 from worms.util import InProcessExecutor
 from worms.database import CachingBBlockDB, CachingSpliceDB
-from worms.ssdag_pose import make_pose
+from worms.ssdag import make_pose
 from worms.output import graph_dump_pdb
 # from worms.filters.clash import prune_clashes
 from worms.search.linear import lossfunc_rand_1_in

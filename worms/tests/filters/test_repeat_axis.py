@@ -9,6 +9,7 @@ import willutil as wu
 import worms, worms.viz
 from worms.util import get_props_from_url
 from worms.cli import BBDir
+import willutil as wu
 
 def main():
    test_repeat_axis()
@@ -21,16 +22,18 @@ def test_repeat_axis():
       # 'test_extension__mbb0002__minimal_replicate_database.txz',
       # 'test_extension__mbb0003__minimal_replicate_database.txz',
    ]
-
+   kw = wu.Bunch(repeat_twist_tolerance=1.0)
    bbdb = worms.database.BBlockDB(
       cachedirs='./test_repeat_axis_cache',
       dbfiles=dbfiles,
       lazy=False,
       read_new_pdbs=True,
+      **kw,
    )
+   kw.database = wu.Bunch(bblockdb=bbdb)
    # _bblocks = bbdb.all_bblocks()
    _bblocks = bbdb.query('straight_DHR')
-   bblocks = [worms.BBlock(bb) for bb in _bblocks]
+   bblocks = [worms.BBlock(bb, **kw) for bb in _bblocks]
    # print(len(bblocks), type(bblocks[0]))
    # print('built database', flush=True)
    shapes = [[(392, 3, 4), (731, 3, 4)], [(354, 3, 4), (507, 3, 4)], [(323, 3, 4), (650, 3, 4)]]
@@ -38,15 +41,15 @@ def test_repeat_axis():
    periods = [113, 51, 109]
    for ibb, (bblock, shape, start, period) in enumerate(zip(bblocks, shapes, starts, periods)):
 
-      bblock3 = bblock.make_extended_bblock(n=3, bblockdb=bbdb)
+      bblock3 = bblock.make_extended_bblock(nrepeats=3, **kw)
       assert get_props_from_url(bblock.pdbfile) == dict()
       assert get_props_from_url(bblock3.pdbfile) == dict(addrepeat=3)
       # print(bblock.ncac.shape == shape[0])
       # print(bblock3.ncac.shape == shape[1])
-      assert bblock.repeat_spacing[0] == start[0]
-      assert bblock3.repeat_spacing[0] == start[1]
-      assert bblock.repeat_spacing[1] == period
-      assert bblock3.repeat_spacing[1] == period
+      assert bblock.repeatstart == start[0]
+      assert bblock3.repeatstart == start[1]
+      assert bblock.repeatspacing == period
+      assert bblock3.repeatspacing == period
 
       # print(bblock.repeat_spacing[1])
       # print(bblock3.repeat_spacing[1])

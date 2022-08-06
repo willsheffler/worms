@@ -44,22 +44,22 @@ def output_simple(
    **kw,
 ):
    kw = worms.Bunch(kw)
+
    files_output = list()
    if not output_indices:
       output_indices = range(min(max_output, len(result.idx)))
-   print('output_indices', output_indices)
+   # print('output_indices', output_indices)
+
    for iresult in output_indices:
       segpos = result.pos[iresult] if pos is None else pos
 
       xalign = criteria.alignment(result.pos[iresult])
       if xalign is None: continue
 
-      crystinfo = None
-      if hasattr(criteria, "crystinfo"):
-         crystinfo = criteria.crystinfo(segpos=result.pos[iresult])
+      crystinfo = criteria.crystinfo(segpos=result.pos[iresult])
       if crystinfo is not None:
-         if crystinfo[0] < kw.xtal_min_cell_size: continue
-         if crystinfo[0] > kw.xtal_max_cell_size: continue
+         if crystinfo[0] < xtal_min_cell_size: continue
+         if crystinfo[0] > xtal_max_cell_size: continue
 
       # print('align_ax1', xalign @ segpos[0, :, 2])
       # print('align_ax2', xalign @ segpos[-1, :, 2])
@@ -72,7 +72,7 @@ def output_simple(
       for iextend in kw.repeat_add_to_output:
          sep = '_' if output_suffix else ''
          fname = f'{output_prefix}_{iresult:04}{sep}{output_suffix}_ext{iextend:04}.pdb'
-         print('------------ iextend -------------', iextend, fname, result.err[iresult])
+         # print('------------ iextend -------------', iextend, fname, result.err[iresult])
          worms.output.dumppdb.graph_dump_pdb(
             fname,
             ssdag,

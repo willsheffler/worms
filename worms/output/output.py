@@ -1,3 +1,4 @@
+from posix import _exit
 import sys, collections, os, psutil, gc, json, traceback, copy
 
 # from pympler.asizeof import asizeof
@@ -39,9 +40,13 @@ def filter_and_output_results(
    null_base_names,
    only_outputs,
    debug=False,
+   use_simple_pose_construction=False,
    **kw,
 ):
    kw = Bunch(kw)
+   if kw.repeat_add_to_output != [0]:
+      use_simple_pose_construction = True
+
    print_pings = debug
    files_output = list()
 
@@ -71,6 +76,7 @@ def filter_and_output_results(
    if not merge_bblock:
       PING('mbb%i' % merge_bblock, print_pings)
       # do this once per run, at merge_bblock == 0 (or None)
+      os.makedirs(os.path.dirname(head), exist_ok=True)
       with open(head + "__HEADER.info", "w") as info_file:
          PING('mbb%i' % merge_bblock, print_pings)
          info_file.write("close_err close_rms score0 score0sym filter zheight zradius " +
@@ -100,7 +106,7 @@ def filter_and_output_results(
             numfail.xalign += 1
             continue
 
-         crystinfo = None
+         cystinfo = None
          if hasattr(criteria, "crystinfo"):
             crystinfo = criteria.crystinfo(segpos=result.pos[iresult])
             if crystinfo is None:
@@ -161,7 +167,7 @@ def filter_and_output_results(
          assert 0 <= kw.repeat_add_to_segment < len(result.idx)
 
          # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-         for iextend in range(0, kw.repeat_add_to_output + 1):
+         for iextend in kw.repeat_add_to_output:
             extensions = {}
             if iextend > 0:
                extensions = {kw.repeat_add_to_segment: iextend}
@@ -175,6 +181,7 @@ def filter_and_output_results(
 
             crystinfo = None
             if hasattr(criteria, "crystinfo"):
+               assert not extensions
                crystinfo = criteria.crystinfo(segpos=result.pos[iresult])
                if crystinfo:
                   if crystinfo[0] < kw.xtal_min_cell_size:
@@ -232,29 +239,76 @@ def filter_and_output_results(
                   numfail.duplicate_bases += 1
                   continue
 
-            try:
-               # print(getmem(), 'MEM make_pose_crit before')
-               PING('mbb%i' % merge_bblock, print_pings)
-               pose, prov = make_pose_crit(
-                  database.bblockdb,
+            if use_simple_pose_construction:
+               # if True:
+
+               sinfo = ssdag.get_structure_info(result.idx[0])
+
+               xalign = criteria.alignment(result.pos[iresult])
+               xalign, extpos = worms.extension.modify_xalign_cage_by_extension(
                   ssdag,
-                  criteria,
                   result.idx[iresult],
                   result.pos[iresult],
-                  only_connected=output_only_connected,
-                  provenance=True,
+                  xalign,
+                  sinfo.bblocks,
+                  database.bblockdb,
                   extensions=extensions,
                   **kw,
-                  # full_output_segs=[0],
                )
-               # print(getmem(), 'MEM make_pose_crit after')
-            except ValueError as e:
-               if not kw.ignore_recoverable_errors:
-                  raise e
-               print("error in make_pose_crit:")
-               print(e)
-               numfail.make_pose_crit += 1
-               continue
+               pose, prov = worms.ssdag.make_pose_simple(
+                  # pose2, prov2 = worms.ssdag.make_pose_simple(
+                  ssdag,
+                  result.idx[iresult],
+                  xalign @ extpos,
+                  extensions=extensions,
+                  only_spliced_regions=True,
+                  database=database,
+                  **kw,
+               )
+            else:
+               # if True:
+               try:
+                  # print(getmem(), 'MEM make_pose_crit before')
+                  PING('mbb%i' % merge_bblock, print_pings)
+
+                  pose, prov = make_pose_crit(
+                     database.bblockdb,
+                     ssdag,
+                     criteria,
+                     result.idx[iresult],
+                     result.pos[iresult],
+                     only_connected=output_only_connected,
+                     provenance=True,
+                     extensions=extensions,
+                     **kw,
+                     # full_output_segs=[0],
+                  )
+
+                  # print(getmem(), 'MEM make_pose_crit after')
+               except ValueError as e:
+                  if not kw.ignore_recoverable_errors:
+                     raise e
+                  print("error in make_pose_crit:")
+                  print(e)
+                  numfail.make_pose_crit += 1
+                  continue
+
+            # pose.dump_pdb('pose1.pdb')
+            # pose2.dump_pdb('pose2.pdb')
+            # for i in range(len(prov)):
+            #    assert prov[i][0] == prov2[i][0]
+            #    assert prov[i][1] == prov2[i][1]
+            #    assert prov[i][3] == prov2[i][3]
+            #    assert prov[i][4] == prov2[i][4]
+            #    prov[i][2].dump_pdb(f'prov1_{i}.pdb')
+            #    prov2[i][2].dump_pdb(f'prov2_{i}.pdb')
+
+            # for p in prov:
+            #   print(p)
+            # assert 0
+            # (1  , 109, <pyrosetta.rosetta.core.pose.Pose object at 0x7fe924d1a1b0>, 1  , 109)
+            # (110, 357, <pyrosetta.rosetta.core.pose.Pose object at 0x7fe924d1a230>, 12 , 259)
+            # (358, 453, <pyrosetta.rosetta.core.pose.Pose object at 0x7fe924d94fb0>, 122, 217)
 
             redundant = False
             for seen in seenpose[pose.size()]:
@@ -276,8 +330,10 @@ def filter_and_output_results(
             if True:
                PING('mbb%i' % merge_bblock, print_pings)
                # gross....
-               (jstr, jstr1, _, grade, sp, mc, mcnh, mhc, _, _, _) = db_filters.run_db_filters(
-                  database, criteria, ssdag, iresult, result.idx[iresult], pose, prov, **kw)
+               if prov:
+                  (jstr, jstr1, _, grade, sp, mc, mcnh, mhc, _, _, _) = db_filters.run_db_filters(
+                     database, criteria, ssdag, iresult, result.idx[iresult], pose, prov,
+                     extensions=extensions, **kw)
             # except Exception as e:
             #    print("error in db_filters:")
             #    print(traceback.format_exc())
@@ -440,8 +496,12 @@ def filter_and_output_results(
                sympose.dump_pdb(fname + "_sym.pdb")
             if output_centroid:
                pose = cenpose
-            print("solution", fname)
+
+            # assert (pose.size())
             pose.dump_pdb(fname + "_asym.pdb")
+            # pose.dump_pdb('test.pdb')
+            # assert 0
+
             files_output.append(fname + '_asym.pdb')
             npdbs_dumped += 1
             if symfilestr is not None:
@@ -466,6 +526,7 @@ def filter_and_output_results(
             PING('mbb%i' % merge_bblock, print_pings)
 
             commas = lambda l: ",".join(str(_) for _ in l)
+
             with open(fname + "_asym.pdb", "a") as out:
                for ip, p in enumerate(prov):
                   lb, ub, psrc, lbsrc, ubsrc = p

@@ -74,6 +74,7 @@ def make_candidate_test_results(
 
    kw.output_prefix = os.path.join(new_test_dir, testname)
    worms.app.output_simple(criteria, ssdag, newresult, extrachains=False, **kw)
+   assert refresult is not None
    if refresult is not None:
       kw.output_suffix = os.path.join('_REF')
       worms.app.output_simple(criteria, ssdag, refresult, extrachains=False, **kw)

@@ -1,7 +1,10 @@
-DISABLE_NUMBA = True
+DISABLE_NUMBA = False
 CREATE_NEW_RESULTS = False
+import sys
+import numpy as np
 
-if DISABLE_NUMBA:
+if DISABLE_NUMBA and not 'pytest' in sys.modules:
+
    # if __name__ == '__main__':
    import os
    os.environ['NUMBA_DISABLE_JIT'] = '1'
@@ -54,6 +57,8 @@ def test_extension_output(sym='oct'):
       # assert 0
    else:
       ssdag, result = wu.load(tmpfn)
+
+      result = worms.filters.check_geometry(ssdag, criteria, result, **kw)
       kw.timer.checkpoint('load test results')
 
       # assert 0
@@ -63,16 +68,29 @@ def test_extension_output(sym='oct'):
       #       '/home/sheffler/src/worms/worms/data/test_cases/test_extension/testcache/test_extension_reference_results.pickle',
       #       'rb') as inp:
    #    crit, ssdag, result = pickle.load(inp)
-   iresult = 0
 
-   extensions = {1: 3}
+   worms.output.filter_and_output_results(
+      criteria,
+      ssdag,
+      result,
+      # use_simple_pose_construction=False,
+      # **kw.sub(output_from_pose=True, merge_bblock=0, output_prefix='testout_orig/testout_orig',
+      # ignore_recoverable_errors=False),
+      use_simple_pose_construction=True,
+      **kw.sub(output_from_pose=True, merge_bblock=0,
+               output_prefix='testout_simple/testout_simple', ignore_recoverable_errors=False),
+   )
+
+   assert 0
 
    if True:
+      iresult = 0
+      extensions = {1: 3}
       sinfo = ssdag.get_structure_info(result.idx[0])
       # print(sinfo)
 
       xalign = criteria.alignment(result.pos[iresult])
-      xalign, extpos = worms.output.dumppdb.modify_xalign_by_extension(
+      xalign, extpos = worms.extension.modify_xalign_cage_by_extension(
          ssdag,
          result.idx[iresult],
          result.pos[iresult],
@@ -91,8 +109,10 @@ def test_extension_output(sym='oct'):
          only_spliced_regions=True,
          **kw,
       )
-      pose.dump_pdb('make_pose_simple.pdb')
-      assert 0
+      cacoord = np.array([r.xyz('CA') for r in pose.residues])
+      # np.save(worms.data.test_file_path('test_extension_pose_ca_coords.npy'), cacoord)
+      cacoord2 = np.load(worms.data.test_file_path('test_extension_pose_ca_coords.npy'))
+      assert np.allclose(cacoord, cacoord2)
 
    worms.app.output_simple(
       criteria,
@@ -110,6 +130,9 @@ def test_extension_output(sym='oct'):
    print("TEST EXTENSION DONE")
 
    # assert 0
+
+def test_extension_filter_and_output():
+   pass
 
 def _test_extension():
 

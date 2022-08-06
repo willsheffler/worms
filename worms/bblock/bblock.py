@@ -209,8 +209,8 @@ class _BBlock:
       helixbeg,
       helixend,
       repeataxis,
-      repeatstart,
-      repeatspacing,
+      repeatstart=-1,
+      repeatspacing=-1,
    ):
       self.json = json
       self.connections = connections
@@ -300,6 +300,9 @@ class _BBlock:
       )
 
    def __setstate__(self, state):
+      if len(state) == 27:
+         # HACK TO LOAD PICKLE FILES BEFORE REPEAT INFO WAS ADDED
+         state = state + (np.array([0, 0, 0, 0]), None, None)
       (
          self.json,
          self.connections,
@@ -376,9 +379,10 @@ class _BBlock:
       return eq
 
 class BBlock:
-   def __init__(self, _bblock: _BBlock):
+   def __init__(self, _bblock: _BBlock, **kw):
       assert isinstance(_bblock, _BBlock)
       self._bblock = _bblock
+      self.kw = wu.Bunch(kw)
 
    @property
    def sequence(self):
@@ -623,7 +627,11 @@ def get_repeat_axis(bblock, start, spacing, **kw):
    #    return np.array([1, 0, 0, 0], dtype=np.float32)
    #    # return repeataxis
 
-def get_repeat_spacing(bblock: BBlock, repeat_sequence_match_min_len=15, **kw):
+def get_repeat_spacing(
+   bblock: BBlock,
+   repeat_sequence_match_min_len=15,
+   **kw,
+):
    kw = wu.Bunch(kw)
    if bblock.is_cyclic: return None, None
    seq = bblock.sequence

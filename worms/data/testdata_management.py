@@ -1,7 +1,7 @@
 import os, pickle
 
 from worms.util.util import datetimetag
-from worms.util.ping import PING
+import willutil as wu
 
 from worms.data.data import data_dir, test_file_path
 
@@ -20,8 +20,10 @@ def get_latest_testresult(tag, candidates_ok=False):
          try:
             return fname, pickle.load(inp)
          except AttributeError:
+            assert 0
             return fname, None
    except (TypeError, FileNotFoundError):
+      assert 0
       return fname, None
 
 def make_timestamped_test_dir(tag, candidate=True):
