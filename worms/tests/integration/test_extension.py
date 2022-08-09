@@ -1,5 +1,5 @@
 DISABLE_NUMBA = False
-CREATE_NEW_RESULTS = False
+
 import sys
 import numpy as np
 
@@ -44,12 +44,14 @@ def test_extension_output(sym='oct'):
    kw.timer.checkpoint('startup')
    tmpfn = f'test_results_{sym}.pickle'
 
+   CREATE_NEW_RESULTS = False
    if CREATE_NEW_RESULTS:
       ssdag, result = worms.app.run_simple(criteria, **kw)
       result2 = worms.filters.prune_clashes(ssdag, criteria, result, **kw)
       kw.timer.checkpoint('prune_clashes')
       print('clashes:', len(result.idx), len(result2.idx))
-      result = result2
+      result3 = worms.filters.check_geometry(ssdag, criteria, result2, **kw)
+      result = result3
       assert len(result) > 0
       kw.timer.checkpoint('run simple')
       wu.save((ssdag, result), tmpfn)
@@ -58,7 +60,6 @@ def test_extension_output(sym='oct'):
    else:
       ssdag, result = wu.load(tmpfn)
 
-      result = worms.filters.check_geometry(ssdag, criteria, result, **kw)
       kw.timer.checkpoint('load test results')
 
       # assert 0

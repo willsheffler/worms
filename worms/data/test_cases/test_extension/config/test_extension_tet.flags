@@ -19,7 +19,7 @@
 --save_minimal_replicate_database 1
 
 
---nbblocks  4
+--nbblocks  8
 --shuffle_bblocks 1
 --shuffle_bblocks_seed 17
 

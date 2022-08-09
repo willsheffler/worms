@@ -19,9 +19,9 @@
 --save_minimal_replicate_database 1
 --output_prefix /home/sheffler/src/worms/test_ext_icos/test_extension_icos
 
---nbblocks 4
+--nbblocks 6
 --shuffle_bblocks 1
---shuffle_bblocks_seed 17
+--shuffle_bblocks_seed 0
 
 --tolerance  0.3
 --max_score0  3

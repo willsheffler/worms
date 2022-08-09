@@ -109,15 +109,13 @@ def filter_and_output_results(
          cystinfo = None
          if hasattr(criteria, "crystinfo"):
             crystinfo = criteria.crystinfo(segpos=result.pos[iresult])
-            if crystinfo is None:
-               numfail.crystinfo += 1
-               continue
-            if crystinfo[0] < kw.xtal_min_cell_size:
-               numfail.cell_to_small += 1
-               continue
-            if crystinfo[0] > kw.xtal_max_cell_size:
-               numfail.cell_to_big += 1
-               continue
+            if crystinfo is not None:
+               if crystinfo[0] < kw.xtal_min_cell_size:
+                  numfail.cell_to_small += 1
+                  continue
+               if crystinfo[0] > kw.xtal_max_cell_size:
+                  numfail.cell_to_big += 1
+                  continue
 
          fname = "%s_%04i" % (head, iresult)
          # print('align_ax1', xalign @ segpos[0, :, 2])
@@ -134,6 +132,8 @@ def filter_and_output_results(
             trim=True,
             xalign=xalign,
             crystinfo=crystinfo,
+            database=database,
+            **kw,
          )
          npdbs_dumped += 1
          nresults += 1
@@ -164,7 +164,8 @@ def filter_and_output_results(
 
          for foo in kw.repeat_add_to_output:
             assert 0 <= foo <= 100
-         assert 0 <= kw.repeat_add_to_segment < len(result.idx)
+         # print(kw.repeat_add_to_segment), len(result.idx), len(result.idx[0])
+         assert 0 <= kw.repeat_add_to_segment < len(result.idx[0])
 
          # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
          for iextend in kw.repeat_add_to_output:
@@ -181,16 +182,15 @@ def filter_and_output_results(
 
             crystinfo = None
             if hasattr(criteria, "crystinfo"):
-               assert not extensions
                crystinfo = criteria.crystinfo(segpos=result.pos[iresult])
                if crystinfo:
+                  assert not extensions
                   if crystinfo[0] < kw.xtal_min_cell_size:
                      numfail.cell_to_small += 1
                      continue
                   if crystinfo[0] > kw.xtal_max_cell_size:
                      numfail.cell_to_big += 1
                      continue
-
                      # locally trying i432 cagextal -- issue with symops return none on xalign fail
                      # digs trying p432 again
 
@@ -253,6 +253,7 @@ def filter_and_output_results(
                   sinfo.bblocks,
                   database.bblockdb,
                   extensions=extensions,
+                  database=database,
                   **kw,
                )
                pose, prov = worms.ssdag.make_pose_simple(
@@ -530,8 +531,11 @@ def filter_and_output_results(
             with open(fname + "_asym.pdb", "a") as out:
                for ip, p in enumerate(prov):
                   lb, ub, psrc, lbsrc, ubsrc = p
+                  pdbname = 'UNKNOWN_PDB'
+                  if psrc.pdb_info():
+                     pdbname = psrc.pdb_info().name()
                   out.write(f"Segment: {ip:2} resis {lb:4}-{ub:4} come from resis " +
-                            f"{lbsrc}-{ubsrc} of {psrc.pdb_info().name()}\n")
+                            f"{lbsrc}-{ubsrc} of {pdbname}\n")
                nchain = pose.num_chains()
                out.write("Bases: " + bases_str + "\n")
                out.write("Modified positions: " + commas(mod) + "\n")

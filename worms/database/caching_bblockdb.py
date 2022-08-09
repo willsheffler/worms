@@ -190,7 +190,7 @@ class CachingBBlockDB(worms.database.BBlockDatabaseSuper):
          print(props, flush=True)
 
          bblock = worms.bblock.BBlock(self.bblock(pdbfile, **kw))
-         start, period = (bblock).repeat_spacing
+         start, period = bblock.repeatstart, bblock.repeatspacing
          pose0 = self._poses_cache[pdbfile]
          nrepeats = props['nrepeats']
          pose = worms.bblock.add_repeat_to_pose(pose0, nrepeats, start, period)

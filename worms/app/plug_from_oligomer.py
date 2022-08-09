@@ -7,6 +7,7 @@ import worms
 from worms import rosetta_init
 from worms.filters.db_filters import get_affected_positions
 from worms.rosetta_init import rosetta_init_safe
+from willutil import bunch
 
 def main():
    arg, criteria = setup()
@@ -62,7 +63,7 @@ def setup():
    return arg, criteria
 
 def worms_search(criteria, **kw):
-   arg = rp.Bunch(kw)
+   arg = Bunch(kw)
    ssdag, _ = cache(worms.simple_search_dag, criteria, _key='ssdag', **arg)
    arg.prof.checkpoint('worms dag')
    wresult = cache(worms.grow_linear, ssdag, criteria.jit_lossfunc(), _key='wresult', **arg)
@@ -76,7 +77,7 @@ def shutdown(prof, run_cache, **kw):
    cache.save(run_cache)
 
 def plug_dock(wresult, ssdag, criteria, max_dock=-1, **kw):
-   arg = rp.Bunch(kw)
+   arg = Bunch(kw)
 
    hscore = cache(rp.RpxHier, arg.hscore_files, hscore_data_dir=arg.hscore_data_dir, _nodump=True)
    arg.prof.checkpoint('load hscore')
@@ -131,7 +132,7 @@ def plug_dock(wresult, ssdag, criteria, max_dock=-1, **kw):
    return results
 
 def plug_dock_one(hole, search, sampler, pose, prov, label, bbnames, enddir, iresult, **kw):
-   arg = rp.Bunch(kw)
+   arg = Bunch(kw)
    prof = rp.Timer().start()
    plug = rp.body.Body(pose, which_ss="H", trim_direction=enddir, label=label, components=bbnames)
    prof.checkpoint('make body')
