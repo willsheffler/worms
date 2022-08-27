@@ -284,7 +284,7 @@ class AxesIntersect(WormCriteria):
       # try:
       if True:
          xtal = spacegroup[self.xtal]
-      # except Exception:
+      # except Exception:/home/sheffler/for/zhe
       #    xtal = self.xtal
 
       x, cell_dist = self.alignment(segpos, out_cell_spacing=True)
@@ -334,7 +334,14 @@ class AxesIntersect(WormCriteria):
       # assert 0
       return None
 
-   def alignment(self, segpos, out_cell_spacing=False, debug=0, **kw):
+   def alignment(
+      self,
+      segpos,
+      out_cell_spacing=False,
+      debug=0,
+      alignto='middle',
+      **kw,
+   ):
       if hm.angle_degrees(self.tgtaxis1[1], self.tgtaxis2[1]) < 0.1:
          PING('axes parallel??', flush=True)
          assert False
@@ -364,7 +371,7 @@ class AxesIntersect(WormCriteria):
       # print('cendiff2', hm.hnormalized(cen2 - cen))
       # print('tgtaxis1', self.tgtaxis1[1])
       # print('tgtaxis2', self.tgtaxis2[1])
-      xalign = hm.align_vectors(ax1, ax2, self.tgtaxis1[1], self.tgtaxis2[1])
+      xalign = hm.align_vectors(ax1, ax2, self.tgtaxis1[1], self.tgtaxis2[1], alignto=alignto)
       # print(xalign)
       # print('cen', cen)
       xalign[..., :3, 3] = -(xalign @ cen)[:3]

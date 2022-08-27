@@ -7,6 +7,7 @@ import worms
 from worms import util, Bunch, PING
 from worms.ssdag import make_pose_crit
 from worms.output.dumppdb import graph_dump_pdb
+import willutil as wu
 
 from deferred_import import deferred_import
 
@@ -41,6 +42,7 @@ def filter_and_output_results(
    only_outputs,
    debug=False,
    use_simple_pose_construction=False,
+   align_with_chainbreak=False,
    **kw,
 ):
    kw = Bunch(kw)
@@ -51,7 +53,8 @@ def filter_and_output_results(
    files_output = list()
 
    numfail = Bunch(xalign=0, crystinfo=0, cell_to_small=0, cell_to_big=0, duplicate_bases=0,
-                   make_pose_crit=0, redundant=0, only_AAAA=0, score0=0, score0sym=0, symops=0)
+                   make_pose_crit=0, redundant=0, only_AAAA=0, score0=0, score0sym=0, symops=0,
+                   only_outputs=0, __strict=True)
 
    PING('mbb%i' % merge_bblock, print_pings)
 
@@ -76,7 +79,7 @@ def filter_and_output_results(
    if not merge_bblock:
       PING('mbb%i' % merge_bblock, print_pings)
       # do this once per run, at merge_bblock == 0 (or None)
-      os.makedirs(os.path.dirname(head), exist_ok=True)
+      outdir = os.path.dirname(head)
       with open(head + "__HEADER.info", "w") as info_file:
          PING('mbb%i' % merge_bblock, print_pings)
          info_file.write("close_err close_rms score0 score0sym filter zheight zradius " +
@@ -177,7 +180,10 @@ def filter_and_output_results(
 
             if only_outputs and iresult not in only_outputs:
                print('output skipping', iresult)
-               nfail_only_output += 1
+               numfail.only_outputs += 1
+               # print(iresult, only_outputs)
+               # print(numfail)
+               # assert 0
                continue
 
             crystinfo = None
@@ -239,12 +245,20 @@ def filter_and_output_results(
                   numfail.duplicate_bases += 1
                   continue
 
+            alignments = wu.Bunch(
+               start=criteria.alignment(result.pos[iresult], alignto='start'),
+               middle=criteria.alignment(result.pos[iresult], alignto='middle'),
+               end=criteria.alignment(result.pos[iresult], alignto='end'),
+            )
+
             if use_simple_pose_construction:
                # if True:
 
                sinfo = ssdag.get_structure_info(result.idx[0])
+               # xalign = criteria.alignment(result.pos[iresult])
+               xalign = alignments['middle']
+               # for i, xalign in enumerate(alignments):
 
-               xalign = criteria.alignment(result.pos[iresult])
                xalign, extpos = worms.extension.modify_xalign_cage_by_extension(
                   ssdag,
                   result.idx[iresult],
@@ -266,6 +280,11 @@ def filter_and_output_results(
                   database=database,
                   **kw,
                )
+
+               # pose.dump_pdb(f'test{i}.pdb')
+
+               # assert 0.,mhdtsr
+
             else:
                # if True:
                try:
@@ -353,41 +372,30 @@ def filter_and_output_results(
             # if rms > rms_err_cut: continue
             # print(getmem(), 'MEM rms after')
 
-            # print(getmem(), 'MEM poses and score0 before')
             cenpose = pose.clone()
             ros.core.util.switch_to_residue_type_set(cenpose, "centroid")
             score0 = sf(cenpose)
-            # print(getmem(), 'MEM poses and score0 after')
             PING('mbb%i' % merge_bblock, print_pings)
             if score0 > max_score0:
-               print(
-                  f"mbb{merge_bblock:04} {iresult:06} score0 fail",
-                  merge_bblock,
-                  iresult,
-                  "score0",
-                  score0,
-                  "rms",
-                  rms,
-                  "grade",
-                  grade,
-               )
+               print(f"mbb{merge_bblock:04} {iresult:06} score0 fail", merge_bblock, iresult,
+                     "score0", score0, "rms", rms, "grade", grade)
                numfail.score0 += 1
                continue
 
             PING('mbb%i' % merge_bblock, print_pings)
 
-            # symops = None
-
             symops = criteria.symops(segpos=result.pos[iresult])
             if symops == list():
                numfail.symops += 1
                continue
-            sympose = cenpose.clone()
+
             symfilestr = None
             score0sym = -1
             symdata = None
+
+            f_symmetrize = None
             if symops is not None:
-               orig = sympose.clone()
+
                # fn = f"RAW_{merge_bblock:04}_{iresult:04}_"
                # pose.dump_pdb(fn + '0.pdb')
                # ros.core.pose.remove_lower_terminus_type_from_pose_residue(sympose, 1)
@@ -395,14 +403,19 @@ def filter_and_output_results(
                # print('!'*60)
                # print('cell spacing', crystinfo[0])
                # print('!'*60)
-               for i, op in enumerate(symops):
-                  ptmp = orig.clone()
-                  util.xform_pose(op, ptmp)
-                  # ptmp.dump_pdb('ptmp%i.pdb'%i)
-                  ros.core.pose.append_pose_to_pose(sympose, ptmp)
-                  # sympose.dump_pdb('sympose%i.pdb'%i)
+               def fsym(cenpose):
+                  sympose = cenpose.clone()
+                  orig = sympose.clone()
+                  for i, op in enumerate(symops):
+                     ptmp = orig.clone()
+                     util.xform_pose(op, ptmp)
+                     # ptmp.dump_pdb('ptmp%i.pdb'%i)
+                     ros.core.pose.append_pose_to_pose(sympose, ptmp)
+                     # sympose.dump_pdb('sympose%i.pdb'%i)
+                  return sympose
 
-               score0sym = sf(sympose)
+               f_symmetrize = fsym
+
                # if score0sym < max_score0sym:
                #    sympose.dump_pdb(f'symops_{merge_bblock}_{iresult}.pdb')
 
@@ -416,7 +429,13 @@ def filter_and_output_results(
                if usecryst:
                   print('---------------- using MakeLatticeMover -------------------')
                   print('cell size', crystinfo[0], pose.pdb_info().crystinfo().A())
-                  ros.protocols.cryst.MakeLatticeMover().apply(sympose)
+
+                  def fsym(cenpose):
+                     sympose = cenpos.clone()
+                     ros.protocols.cryst.MakeLatticeMover().apply(sympose)
+                     return sympose
+
+                  f_symmetrize = fsym
                else:
                   if hasattr(criteria, "symfile_modifiers"):
                      PING('mbb%i' % merge_bblock, print_pings)
@@ -427,18 +446,27 @@ def filter_and_output_results(
                   else:
                      PING('mbb%i' % merge_bblock, print_pings)
                      symdata = util.get_symdata(criteria.symname)
-                  ros.core.pose.symmetry.make_symmetric_pose(sympose, symdata)
-               score0sym = sfsym(sympose)
-               if full_score0sym and not usecryst:
-                  PING('mbb%i' % merge_bblock, print_pings)
-                  sym_asym_pose = sympose.clone()
-                  ros.core.pose.symmetry.make_asymmetric_pose(sym_asym_pose)
-                  score0sym = sf(sym_asym_pose)
-                  if score0sym > max_score0sym:
-                     print('!!!!!!!!!!!!!!!!!!!!!!!!!!', score0sym)
-                     sym_asym_pose.dump_pdb('full_score0_sym_fail.pdb')
-                     assert 0
-               # print(getmem(), 'MEM poses and score0sym after')
+
+                  def fsym(cenpose):
+                     sympose = cenpose.clone()
+                     ros.core.pose.symmetry.make_symmetric_pose(sympose, symdata)
+                     return sympose
+
+                  f_symmetrize = fsym
+
+            assert f_symmetrize
+            sympose = f_symmetrize(cenpose)
+            score0sym = sf(sympose)
+            if full_score0sym and not usecryst:
+               PING('full_score0sym mbb%i' % merge_bblock, print_pings)
+               sym_asym_pose = sympose.clone()
+               ros.core.pose.symmetry.make_asymmetric_pose(sym_asym_pose)
+               score0sym = sf(sym_asym_pose)
+               if score0sym > max_score0sym:
+                  print('!!!!!!!!!!!!!!!!!!!!!!!!!!', score0sym)
+                  sym_asym_pose.dump_pdb('full_score0_sym_fail.pdb')
+                  assert 0
+            # print(getmem(), 'MEM poses and score0sym after')
 
             if score0sym >= max_score0sym:
                print(f"mbb{merge_bblock:06} {iresult:04} score0sym fail", score0sym, "rms", rms,
@@ -491,20 +519,42 @@ def filter_and_output_results(
                   "-".join(ibblock_list), "-".join(str(x) for x in result.idx[iresult]), jstr1))
             info_file.flush()
 
-            # print(getmem(), 'MEM dump pdb before')
-            print('output', fname, flush=True)
-            if symdata and output_symmetric:
-               sympose.dump_pdb(fname + "_sym.pdb")
+            print('-' * 36, 'output', '-' * 36)
+            print(fname, flush=True)
+            print('-' * 80)
             if output_centroid:
                pose = cenpose
 
-            # assert (pose.size())
-            pose.dump_pdb(fname + "_asym.pdb")
-            # pose.dump_pdb('test.pdb')
-            # assert 0
+            pose2 = pose.clone()
+            pose3 = pose.clone()
+            util.xform_pose(alignments.start @ wu.hinv(alignments.middle), pose2)
+            util.xform_pose(alignments.end @ wu.hinv(alignments.middle), pose3)
+            sympose2 = f_symmetrize(pose2)
+            sympose3 = f_symmetrize(pose3)
+            sf(pose2)
+            sf(pose3)
+            sf(sympose2)
+            sf(sympose3)
+            # sympose2.dump_pdb('teststart.pdb')
+            # sympose3.dump_pdb('testend.pdb')
 
+            pose.dump_pdb(fname + "_asym.pdb")
+            pose2.dump_pdb(fname + "_alnbeg_asym.pdb")
+            pose3.dump_pdb(fname + "_alnend_asym.pdb")
             files_output.append(fname + '_asym.pdb')
-            npdbs_dumped += 1
+            files_output.append(fname + '_alnbeg_asym.pdb')
+            files_output.append(fname + '_alnend_asym.pdb')
+            npdbs_dumped += 3
+
+            if symdata and output_symmetric:
+               sympose.dump_pdb(fname + "_sym.pdb")
+               sympose2.dump_pdb(fname + "_alnbeg_sym.pdb")
+               sympose3.dump_pdb(fname + "_alnend_sym.pdb")
+               files_output.append(fname + '_sym.pdb')
+               files_output.append(fname + '_alnbeg_sym.pdb')
+               files_output.append(fname + '_alnend_sym.pdb')
+               npdbs_dumped += 3
+
             if symfilestr is not None:
                with open(fname + ".sym", "w") as out:
                   out.write(symfilestr)

@@ -157,6 +157,8 @@ cli_args = dict(
    repeat_add_to_output=[0],
    repeat_add_to_segment=1,
    #
+   align_with_chainbreak=0,
+   #
    ignore_recoverable_errors=0,
 )
 

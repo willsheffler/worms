@@ -96,7 +96,7 @@ def angle_of(xforms):
 def rot(axis, angle, degrees='auto', dtype='f8', shape=(3, 3)):
    axis = np.array(axis, dtype=dtype)
    angle = np.array(angle, dtype=dtype)
-   if degrees is 'auto': degrees = guess_is_degrees(angle)
+   if degrees == 'auto': degrees = guess_is_degrees(angle)
    angle = angle * np.pi / 180.0 if degrees else angle
    if axis.shape and angle.shape and not is_broadcastable(axis.shape[:-1], angle.shape):
       raise ValueError('axis and angle not compatible: ' + str(axis.shape) + ' ' +
@@ -459,15 +459,35 @@ def align_around_axis(axis, u, v):
 def align_vector(a, b):
    return hrot((hnormalized(a) + hnormalized(b)) / 2, np.pi)
 
-def align_vectors(a1, a2, b1, b2):
+def align_vectors(a1, a2, b1, b2, alignto='middle'):
    "minimizes angular error"
    a1, a2, b1, b2 = (hnormalized(v) for v in (a1, a2, b1, b2))
-   aaxis = (a1 + a2) / 2.0
-   baxis = (b1 + b2) / 2.0
-   Xmiddle = align_vector(aaxis, baxis)
-   Xaround = align_around_axis(baxis, Xmiddle @ a1, b1)
-   X = Xaround @ Xmiddle
-   assert (angle(b1, a1) + angle(b2, a2)) + 0.001 >= (angle(b1, X @ a1) + angle(b2, X @ a2))
+
+   if alignto == 'start':
+      xalign1 = align_vector(a1, b1)
+      xalign2 = align_around_axis(b1, xalign1 @ a2, b2)
+
+   elif alignto == 'end':
+      xalign1 = align_vector(a2, b2)
+      xalign2 = align_around_axis(b2, xalign1 @ a1, b1)
+
+   elif alignto == 'middle':
+      aaxis = (a1 + a2) / 2.0
+      baxis = (b1 + b2) / 2.0
+      xalign1 = align_vector(aaxis, baxis)
+      xalign2 = align_around_axis(baxis, xalign1 @ a1, b1)
+
+   else:
+      raise ValueError(f'alignto must be start middle or end not "{alignto}"')
+   X = xalign2 @ xalign1
+
+   # print(alignto)
+   # print(b1)
+   # print(X @ a1)
+   # print(b2)
+   # print(X @ a2)
+   # assert (angle(b1, a1) + angle(b2, a2)) + 0.001 >= (angle(b1, X @ a1) + angle(b2, X @ a2))
+
    return X
    # not so good if angles don't match:
    # xa = Xform().from_two_vecs(a2,a1)

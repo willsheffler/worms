@@ -154,7 +154,7 @@ class CachingBBlockDB(worms.database.BBlockDatabaseSuper):
       return len(self._bblock_cache)
 
    def pose(self, pdbfile, **kw):
-      wu.PING(f'cacheing_bblockdb.py:pose {pdbfile}')
+      # wu.PING(f'cacheing_bblockdb.py:pose {pdbfile}')
       '''load pose from _bblock_cache, read from file if not in memory'''
       import worms
       pdbfile = worms.database.sanitize_pdbfile(pdbfile)
