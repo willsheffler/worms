@@ -160,6 +160,8 @@ cli_args = dict(
    align_with_chainbreak=0,
    #
    ignore_recoverable_errors=0,
+   #
+   output_extra_alignments=0,
 )
 
 def add_argument_unless_exists(parser, *arg, **kw):

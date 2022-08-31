@@ -43,10 +43,13 @@ def filter_and_output_results(
    debug=False,
    use_simple_pose_construction=False,
    align_with_chainbreak=False,
+   output_extra_alignments=False,
    **kw,
 ):
    kw = Bunch(kw)
-   if kw.repeat_add_to_output != [0]:
+   if not use_simple_pose_construction and kw.repeat_add_to_output != [0]:
+      print('force use_simple_pose_construction', kw.repeat_add_to_output)
+      assert 0
       use_simple_pose_construction = True
 
    print_pings = debug
@@ -99,7 +102,9 @@ def filter_and_output_results(
    if not output_from_pose:
 
       PING('mbb%i no pose output' % merge_bblock, print_pings)
+
       for iresult in range(min(max_output, len(result.idx))):
+
          PING('mbb%i' % merge_bblock, print_pings)
 
          segpos = result.pos[iresult]
@@ -164,6 +169,22 @@ def filter_and_output_results(
       seenpose = collections.defaultdict(lambda: list())
 
       for iresult in _stuff:
+
+         # print('!' * 80)
+         # xrand = wu.hrand(1, 1, 0.05, seed=7)
+         # result.pos[iresult][1] = xrand @ result.pos[iresult][1]
+         # result.pos[iresult][2] = xrand @ result.pos[iresult][2]
+         # print('!' * 80)
+
+         # bblock = ssdag.bblocks[iseg][ssdag.verts[iseg].ibblock[idx[iseg]]]
+         for iseg in range(len(result.idx[iresult])):
+            print(iseg, 'bblock')
+            ivert = result.idx[iresult][iseg]
+            ibblock = ssdag.verts[iseg].ibblock[ivert]
+            segbbs = ssdag.bblocks[iseg]
+            bblock = segbbs[ibblock]
+            print(bblock.pdbfile)
+            print()
 
          for foo in kw.repeat_add_to_output:
             assert 0 <= foo <= 100
@@ -245,39 +266,55 @@ def filter_and_output_results(
                   numfail.duplicate_bases += 1
                   continue
 
-            alignments = wu.Bunch(
-               start=criteria.alignment(result.pos[iresult], alignto='start'),
-               middle=criteria.alignment(result.pos[iresult], alignto='middle'),
-               end=criteria.alignment(result.pos[iresult], alignto='end'),
-            )
-
+            extpos = result.pos[iresult]
             if use_simple_pose_construction:
                # if True:
-
+               print('output.py: use_simple_pose_construction')
                sinfo = ssdag.get_structure_info(result.idx[0])
                # xalign = criteria.alignment(result.pos[iresult])
-               xalign = alignments['middle']
-               # for i, xalign in enumerate(alignments):
+               xalign = criteria.alignment(result.pos[iresult], alignto='mid')
 
-               xalign, extpos = worms.extension.modify_xalign_cage_by_extension(
-                  ssdag,
-                  result.idx[iresult],
-                  result.pos[iresult],
-                  xalign,
-                  sinfo.bblocks,
-                  database.bblockdb,
-                  extensions=extensions,
-                  database=database,
-                  **kw,
-               )
+               if isinstance(criteria, worms.criteria.AxesIntersect):
+                  xalign, extpos = worms.extension.modify_xalign_cage_by_extension(
+                     ssdag,
+                     result.idx[iresult],
+                     result.pos[iresult],
+                     xalign,
+                     sinfo.bblocks,
+                     database.bblockdb,
+                     extensions=extensions,
+                     database=database,
+                     **kw,
+                  )
+               elif criteria.is_cyclic:
+                  xalign, extpos = worms.extension.modify_xalign_cyclic_by_extension(
+                     ssdag,
+                     result.idx[iresult],
+                     result.pos[iresult],
+                     xalign,
+                     sinfo.bblocks,
+                     database.bblockdb,
+                     extensions=extensions,
+                     database=database,
+                     **kw,
+                  )
+
+               elif isinstance(criteria, worms.criteria.AxisAngle):
+                  assert not extensions
+                  extpos = retult.pos[iresult]
+               else:
+                  assert not extensions
+                  extpos = retult.pos[iresult]
+
                pose, prov = worms.ssdag.make_pose_simple(
                   # pose2, prov2 = worms.ssdag.make_pose_simple(
                   ssdag,
                   result.idx[iresult],
                   xalign @ extpos,
                   extensions=extensions,
-                  only_spliced_regions=True,
                   database=database,
+                  only_spliced_regions=True,
+                  is_cyclic=criteria.is_cyclic,
                   **kw,
                )
 
@@ -286,6 +323,7 @@ def filter_and_output_results(
                # assert 0.,mhdtsr
 
             else:
+               print('output.py: old pose construction')
                # if True:
                try:
                   # print(getmem(), 'MEM make_pose_crit before')
@@ -457,6 +495,11 @@ def filter_and_output_results(
             assert f_symmetrize
             sympose = f_symmetrize(cenpose)
             score0sym = sf(sympose)
+
+            # pose.dump_pdb('test.pdb')
+            # sympose.dump_pdb('testsym.pdb')
+            # assert 0
+
             if full_score0sym and not usecryst:
                PING('full_score0sym mbb%i' % merge_bblock, print_pings)
                sym_asym_pose = sympose.clone()
@@ -525,35 +568,48 @@ def filter_and_output_results(
             if output_centroid:
                pose = cenpose
 
-            pose2 = pose.clone()
-            pose3 = pose.clone()
-            util.xform_pose(alignments.start @ wu.hinv(alignments.middle), pose2)
-            util.xform_pose(alignments.end @ wu.hinv(alignments.middle), pose3)
-            sympose2 = f_symmetrize(pose2)
-            sympose3 = f_symmetrize(pose3)
-            sf(pose2)
-            sf(pose3)
-            sf(sympose2)
-            sf(sympose3)
-            # sympose2.dump_pdb('teststart.pdb')
-            # sympose3.dump_pdb('testend.pdb')
-
             pose.dump_pdb(fname + "_asym.pdb")
-            pose2.dump_pdb(fname + "_alnbeg_asym.pdb")
-            pose3.dump_pdb(fname + "_alnend_asym.pdb")
             files_output.append(fname + '_asym.pdb')
-            files_output.append(fname + '_alnbeg_asym.pdb')
-            files_output.append(fname + '_alnend_asym.pdb')
-            npdbs_dumped += 3
-
             if symdata and output_symmetric:
                sympose.dump_pdb(fname + "_sym.pdb")
-               sympose2.dump_pdb(fname + "_alnbeg_sym.pdb")
-               sympose3.dump_pdb(fname + "_alnend_sym.pdb")
                files_output.append(fname + '_sym.pdb')
-               files_output.append(fname + '_alnbeg_sym.pdb')
-               files_output.append(fname + '_alnend_sym.pdb')
-               npdbs_dumped += 3
+
+            if output_extra_alignments:
+               alignbeg = criteria.alignment(extpos, alignto='beg')
+               alignend = criteria.alignment(extpos, alignto='end')
+               alnpose = pose.clone()
+               alnpos2 = pose.clone()
+               util.xform_pose(alignbeg @ xalign, alnpose)
+               util.xform_pose(alignend @ xalign, alnpos2)
+
+               rmid = int(sum(prov[1][:2]) / 2)
+               nolap = 25 + (prov[1][1] - prov[1][0]) // 6
+               ub = rmid + nolap
+               lb = rmid - nolap
+               alnpose = worms.util.rosetta_utils.subpose(alnpose, 1, ub)
+               alnpos2 = worms.util.rosetta_utils.subpose(alnpos2, lb, -1)
+               ros.core.pose.append_pose_to_pose(alnpose, alnpos2)
+
+               alnpose.dump_pdb(fname + "_aln_asym.pdb")
+               # alnpos2.dump_pdb(fname + "_alnend_asym.pdb")
+               files_output.append(fname + '_aln_asym.pdb')
+               # files_output.append(fname + '_alnend_asym.pdb')
+               # sympose2 = f_symmetrize(pose2)
+               # sympose3 = f_symmetrize(alnpos2)
+               alnsympose = f_symmetrize(alnpose)
+               # sf(sympose2)
+               # sf(sympose3)
+               sf(alnsympose)  # must score before output
+               # npdbs_dumped += 2
+               npdbs_dumped += 1
+               if symdata and output_symmetric:
+                  # sympose2.dump_pdb(fname + "_alnbeg_sym.pdb")
+                  # sympose3.dump_pdb(fname + "_alnend_sym.pdb")
+                  alnsympose.dump_pdb(fname + "_aln_sym.pdb")
+                  # files_output.append(fname + '_alnbeg_sym.pdb')
+                  # files_output.append(fname + '_alnend_sym.pdb')
+                  files_output.append(fname + '_aln_sym.pdb')
+                  npdbs_dumped += 1
 
             if symfilestr is not None:
                with open(fname + ".sym", "w") as out:

@@ -32,8 +32,8 @@ def query_bblocks(bbdb, query, *, useclass=True, exclude_bases=None):
       for db in bbdb._alldb:
          if not query in db['class']:
             continue
-         nc = [_ for _ in db['connections'] if _['direction'] == 'C']
-         nn = [_ for _ in db['connections'] if _['direction'] == 'N']
+         nc = [conn for conn in db['connections'] if conn['direction'] == 'C']
+         nn = [conn for conn in db['connections'] if conn['direction'] == 'N']
          nc, tc = len(nc), subq.count('C')
          nn, tn = len(nn), subq.count('N')
          if nc >= tc and nn >= tn:

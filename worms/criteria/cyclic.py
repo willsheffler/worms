@@ -1,5 +1,6 @@
 from math import sqrt, acos
 
+import willutil as wu
 import worms
 
 from worms.criteria.base import *
@@ -139,6 +140,9 @@ class Cyclic(WormCriteria):
 
       helixconf_filter = worms.filters.helixconf_jit.make_helixconf_filter(self, **kw)
 
+      repeat_axis_filter = worms.filters.repeat_axis_jit.make_repeat_axis_filter_cyclic(
+         self, **kw)
+
       @util.jit  # type: ignore
       def lossfunc(pos, idx, verts, debug=False):
          x_from = pos[from_seg]
@@ -152,15 +156,15 @@ class Cyclic(WormCriteria):
          tmp = numba_axis_angle_cen(xhat)
          if tmp is None:
             return 9e9
-         axis, angle, _ = tmp
+         cycaxis, cycangle, _ = tmp
 
-         rot_err_sq = lever**2 * (angle - tgt_ang)**2
-         cart_err_sq = (np.sum(xhat[:, 3] * axis))**2
+         rot_err_sq = lever**2 * (cycangle - tgt_ang)**2
+         cart_err_sq = (np.sum(xhat[:, 3] * cycaxis))**2
          geomerr = np.sqrt(rot_err_sq + cart_err_sq)
          if geomerr > 10 * tolerance:
             return 9e9
 
-         helixerr = helixconf_filter(pos, idx, verts, axis)
+         helixerr = helixconf_filter(pos, idx, verts, cycaxis)
          if helixerr > 100 * tolerance:
             return 9e9
 
@@ -168,7 +172,7 @@ class Cyclic(WormCriteria):
          fixorierr = 0
          if axis_constraint_bblock > 0:
             bbz = pos[axis_constraint_bblock, :, 2]
-            bb_ang = acos(np.sum(bbz * axis))
+            bb_ang = acos(np.sum(bbz * cycaxis))
             bb_ang_err_sq = lever**2 * (bb_ang - axis_constraint_angle)**2
             # bb_pt = pos[axis_constraint_bblock, :, 3]
 
@@ -188,9 +192,9 @@ class Cyclic(WormCriteria):
             tgtaxis, _, _ = numba_axis_angle_cen(tgtxform, debug=debug)
 
             # if debug: print('\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-            # if debug: print('tgtaxis/ang/cen', axis, tgtaxis)
+            # if debug: print('tgtaxis/ang/cen', cycaxis, tgtaxis)
 
-            dev_angle = acos(np.abs(np.sum(axis * tgtaxis)))
+            dev_angle = acos(np.abs(np.sum(cycaxis * tgtaxis)))
             dev_angle = min(dev_angle, np.pi - dev_angle)
             # if debug: print('dev_angle', dev_angle)
             fixorierr = np.sqrt(lever**2 * dev_angle**2)
@@ -203,7 +207,10 @@ class Cyclic(WormCriteria):
             # else:
             # return 0
 
-         err = sqrt(geomerr**2 + helixerr**2 + tgtaxiserr**2 + fixorierr**2)
+         repeataxiserr = repeat_axis_filter(pos, idx, verts, cycaxis)
+         if repeataxiserr > 10: return 9e9
+
+         err = np.sqrt(geomerr**2 + helixerr**2 + tgtaxiserr**2 + fixorierr**2 + repeataxiserr**2)
          # if err < 5:
          # print('errors', err, 'geom', geomerr, 'hel', helixerr, 'tax', tgtaxiserr, 'ori',
          # fixorierr)
@@ -266,7 +273,8 @@ class Cyclic(WormCriteria):
 
       return np.sqrt(carterrsq / self.tolerance**2 + roterrsq / self.rot_tol**2)
 
-   def alignment(self, segpos, **_):
+   def alignment(self, segpos, alignto='mid', **_):
+      assert alignto in 'beg mid end'.split()
       if self.origin_seg is not None:
          return inv(segpos[self.origin_seg])
       if self.nfold == 1:
@@ -274,7 +282,8 @@ class Cyclic(WormCriteria):
       x_from = segpos[self.from_seg]
       x_to = segpos[self.to_seg]
       xhat = x_to @ inv(x_from)
-      axis, _, cen = hm.axis_ang_cen_of(xhat)
+      axis, ang, cen = hm.axis_ang_cen_of(xhat)
+
       # print('aln', axis)
       # print('aln', ang * 180 / np.pi)
       # print('aln', cen)
@@ -283,6 +292,27 @@ class Cyclic(WormCriteria):
       tgtaxis = np.where(dotz > 0, [0, 0, 1, 0], [0, 0, -1, 0])
       align = hm.hrot((axis + tgtaxis) / 2, np.pi, cen)
       align[..., :3, 3] -= cen[..., :3]
+
+      alnx_from = align @ segpos[self.from_seg]
+      alnx_to = align @ segpos[self.to_seg]
+      alnxhat = alnx_to @ inv(alnx_from)  # close to ideal Cx rotation
+      alnxhatinv = alnx_from @ inv(alnx_to)  # close to ideal Cx rotation
+      xideal = hm.hrot([0, 0, 1], self.symangle)  # ideal Cx rotation
+      xidealinv = hm.hrot([0, 0, 1], -self.symangle)  # ideal Cx rotation
+
+      # print(alignto)
+      # print(xideal)
+      # print(alnxhat)
+
+      # if alignto == 'beg':
+      # align = alnxhatinv @ xidealinv @ align
+      if alignto == 'end':
+         align = alnxhatinv @ xidealinv @ align
+
+      # print(alnxhat @ xideal)
+      # print(xideal @ alnxhat)
+      # assert 0
+
       return align
 
    def stages(self, hash_cart_resl, hash_ori_resl, bbs, **_):

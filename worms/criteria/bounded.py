@@ -156,7 +156,8 @@ class AxesIntersect(WormCriteria):
       end_dihedral_sym_ang = self.end_dihedral_sym_ang
       # # print('AxesIntersect.jit_lossfunc end_dihedral_sym_ang', end_dihedral_sym_ang)
 
-      repeat_axis_filter = worms.filters.repeat_axis_jit.make_repeat_axis_filter(self, **kw)
+      repeat_axis_filter = worms.filters.repeat_axis_jit.make_repeat_axis_filter_axesisect(
+         self, **kw)
 
       @jit
       def func(pos, idx, verts):
@@ -351,6 +352,8 @@ class AxesIntersect(WormCriteria):
       cen2 = segpos[self.to_seg][..., :, 3]
       ax1 = segpos[self.from_seg][..., :, 2]
       ax2 = segpos[self.to_seg][..., :, 2]
+
+      assert alignto in 'beg mid end'.split()
 
       # print(segpos)
       # print('========')

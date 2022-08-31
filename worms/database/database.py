@@ -49,7 +49,8 @@ def parse_bblock_database_entries(dbentries, dbroot='', pdb_contents=dict()):
    pdb_files_missing = False
    for entry in dbentries:
       # print('database.py checking', entry['file'])
-      if not (os.path.exists(dbroot + entry['file']) or entry['file'] in pdb_contents):
+      if not (os.path.exists(dbroot + entry['file']) or entry['file'] in pdb_contents
+              or os.path.exists(dbroot + entry['file'] + '.gz')):
          pdb_files_missing = True
          # print('!' * 60)
          print('pdb file pdb_files_missing:', entry['file'])

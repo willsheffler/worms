@@ -32,7 +32,7 @@
 
 --repeat_axis_check  1
 --repeat_axis_weight  100.0
---repeat_add_to_output 0 1 2
+--repeat_add_to_output 0 1 2 3 4 5
 --repeat_add_to_segment 1
 
 --monte_carlo 0

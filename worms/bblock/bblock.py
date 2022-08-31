@@ -531,7 +531,11 @@ def make_extended_bblock(
    pose = bblockdb.pose(bblock.pdbfile)
    start, period = bblock.repeatstart, bblock.repeatspacing
 
+   # print('make_extended_bblock', start, period, nrepeats)
+   # print(pose.size())
    newpose = add_repeat_to_pose(pose, nrepeats, start, period, **kw)
+   # print(newpose.size())
+   # print(newpose.size() - pose.size())
 
    origentry = bblock.dbentry
    newentry = copy.copy(bblock.dbentry)
@@ -553,6 +557,7 @@ def make_extended_bblock(
    # support modifications in fname, probably in database?
 
    bblock2 = BBlock(make_bblock(newentry, newpose, null_base_names, **kw))
+   bblock2._bblock.repeatstart = bblock.repeatstart  # preserve original repeat start pos
    # print(bblock.dbentry['connections'])
    # print(bblock2.dbentry['connections'])
 

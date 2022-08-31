@@ -26,8 +26,8 @@ def main():
 
 def test_extension_output(sym='oct'):
 
-   argv = ['@' + worms.data.test_file_path(f'test_extension/config/test_extension.flags')]
-   # argv = ['@' + worms.data.test_file_path(f'test_extension/config/test_extension_{sym}.flags')]
+   argv = ['@' + worms.data.test_file_path(f'test_extension/config/test_extension_{sym}.flags')]
+   # argv = ['@' + worms.data.test_file_path(f'test_extension/config/test_extension.flags')]
    criteria_list, kw = worms.cli.build_worms_setup_from_cli_args(argv, construct_databases=True)
    kw.timer = wu.Timer()
    assert len(criteria_list) == 1
@@ -78,11 +78,12 @@ def test_extension_output(sym='oct'):
       # use_simple_pose_construction=False,
       # **kw.sub(output_from_pose=True, merge_bblock=0, output_prefix='testout_orig/testout_orig',
       # ignore_recoverable_errors=False),
+      # use_simple_pose_construction=False,
       use_simple_pose_construction=True,
       **kw.sub(
          output_from_pose=True,
          merge_bblock=0,
-         output_prefix='testout_break/testout_break',
+         # output_prefix='testout_break/testout_break',
          ignore_recoverable_errors=False,
          # only_outputs=[0],
       ),
@@ -92,7 +93,7 @@ def test_extension_output(sym='oct'):
 
    if True:
       iresult = 0
-      extensions = {1: 3}
+      extensions = {}
       sinfo = ssdag.get_structure_info(result.idx[0])
       # print(sinfo)
 

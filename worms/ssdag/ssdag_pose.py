@@ -129,7 +129,8 @@ def make_pose_simple(
    ssdag,
    idx,
    xpos,
-   only_spliced_regions=False,
+   only_spliced_regions=True,
+   is_cyclic=False,
    **kw,
 ):
    kw = wu.Bunch(kw)
@@ -137,14 +138,19 @@ def make_pose_simple(
    structinfo = ssdag.get_structure_info(idx, **kw)
    srcposes = _get_bb_poses(kw.database.bblockdb, ssdag, idx, **kw)
    # for i, p in enumerate(srcposes):
-   # p.dump_pdb(f'{i}.pdb')
+   # p.dump_pdb(f'make_pose_simple_scrposes{i}.pdb')
    # assert 0
-
+   if is_cyclic:
+      assert len(structinfo.regions[-1]) == 1
+      structinfo.regions[0][-1], structinfo.regions[-1][0] = (structinfo.regions[-1][0],
+                                                              structinfo.regions[0][-1])
    provenance = list()
 
    newpose = worms.rosetta_init.Pose()
    for ireg, region in enumerate(structinfo.regions):
-      print('make_pose_simple', ireg, region)
+      print('make_pose_simple', ireg)
+      for r in region:
+         print('  ', repr(r))
 
       if len(region) == 1:
          if not only_spliced_regions:
@@ -152,18 +158,25 @@ def make_pose_simple(
             pose = srcposes[iseg].clone()
             lb, ub = region[0].reswindow
             worms.util.rosetta_utils.xform_pose(xpos[iseg], pose)
-            # pose.dump_pdb(f'ireg{ireg}_iseg{iseg}.pdb')
             ros.core.pose.append_subpose_to_pose(newpose, pose, lb + 1, ub, True)
-         continue
-      for ich, chain in enumerate(region):
-         lb, ub = chain.reswindow
-         pose = srcposes[chain.iseg].clone()
-         worms.util.rosetta_utils.xform_pose(xpos[chain.iseg], pose)
-         # pose.dump_pdb(f'ireg{ireg}_iseg{chain.iseg}_{ich}.pdb')
-         prov = [newpose.size() + 1, None, srcposes[chain.iseg], lb + 1, ub]
-         ros.core.pose.append_subpose_to_pose(newpose, pose, lb + 1, ub, False)
-         prov[1] = newpose.size()
-         provenance.append(prov)
+            # p = ros.core.pose.Pose()
+            # ros.core.pose.append_subpose_to_pose(p, pose, lb + 1, ub, False)
+            # p.dump_pdb(f'make_pose_simple_ireg{ireg}_iseg{chain.iseg}_{ich}_single.pdb')
+
+      else:
+         for ich, chain in enumerate(region):
+            lb, ub = chain.reswindow
+            pose = srcposes[chain.iseg].clone()
+            worms.util.rosetta_utils.xform_pose(xpos[chain.iseg], pose)
+
+            # p = ros.core.pose.Pose()
+            # ros.core.pose.append_subpose_to_pose(p, pose, lb + 1, ub, False)
+            # p.dump_pdb(f'make_pose_simple_ireg{ireg}_iseg{chain.iseg}_{ich}_multi.pdb')
+
+            prov = [newpose.size() + 1, None, srcposes[chain.iseg], lb + 1, ub]
+            ros.core.pose.append_subpose_to_pose(newpose, pose, lb + 1, ub, False)
+            prov[1] = newpose.size()
+            provenance.append(prov)
 
    return newpose.clone(), provenance
 

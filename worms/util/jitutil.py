@@ -3,7 +3,7 @@ from worms.util.util import jit
 from worms.search.result import ResultJIT
 
 def make_const_jitfunc(v):
-   @util.jit
+   @jit
    def dummy(*_):
       return v
 

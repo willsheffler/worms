@@ -147,7 +147,7 @@ class SearchSpaceDAG(SearchSpaceDAG_Base):
       for iseg in range(len(self.bblocks)):
          dirn = info.direction[iseg]
          nrepeat = extensions.get(iseg, 0)
-         print('ssdag.py', iseg, nrepeat)
+         # print('ssdag.py', iseg, nrepeat)
          for ichain, res in enumerate(info.bblocks[iseg].chains):
             splice_inpres = info.inpres[iseg]
             splice_outres = info.outres[iseg]

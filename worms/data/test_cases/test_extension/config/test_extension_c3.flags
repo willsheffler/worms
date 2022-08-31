@@ -1,39 +1,34 @@
---geometry Octahedral(c3=0,c2=-1)
+--geometry Cyclic(3)
 --bbconn      
- _C C3_C
- NC straight_DHR
- N_ C2_N
+  _C Het:NC
+  NC straight_DHR
+  N_ Het:NC
 
 --dbfiles
-      #/home/sheffler/src/worms/worms/data/test_cases/test_extension/databases/test_extension__mbb0000__minimal_replicate_database.txz
-      # /test_extension__mbb0000__minimal_replicate_database.txz
-      # test_extension__mbb0001__minimal_replicate_database.txz
-      # test_extension__mbb0002__minimal_replicate_database.txz
-      # test_extension__mbb0003__minimal_replicate_database.txz
-      # /home/yhsia/helixfuse/2018-07-09_sym/processing/database/HFuse_Cx_database.20180711.txt
-      /home/sheffler/data/worms/HFuse_Cx_database.20180711_small.txt
       /home/sheffler/debug/worms_extension/input/straight_DHR.local.json
+      /home/sheffler/data/worms/databases/local/wormsdb_local_HFuse_het_2chain_2arm_database.Sh13-5+1-AI_2.20180905/HFuse_het_2chain_2arm_database.Sh13-5+1-AI_2.20180905.json
 
-   
---output_prefix /home/sheffler/src/worms/test_extension_break
---save_minimal_replicate_database 1
+
+--output_prefix /home/sheffler/src/worms/test_extension_cyclic/cyclic
+--save_minimal_replicate_database 0
 
 --min_seg_len  200
---nbblocks  1
+--nbblocks  2
 --shuffle_bblocks 1
 --shuffle_bblocks_seed 0
 
---tolerance  3.0
+--tolerance  1.0
 --max_score0  30
---max_score0sym  100
+--max_score0sym  10000
 
 --disable_cache 0
 --output_from_pose 0
 
 --repeat_axis_check  1
---repeat_axis_weight  100.0
---repeat_add_to_output 0 1 2
+--repeat_axis_weight  50.0
+--repeat_add_to_output 0 1 2 3 4 5 6 7 8 9 
 --repeat_add_to_segment 1
+--output_extra_alignments 1
 
 --monte_carlo 0
 --no_duplicate_bases 0
