@@ -9,7 +9,7 @@
       /home/sheffler/data/worms/databases/local/wormsdb_local_HFuse_het_2chain_2arm_database.Sh13-5+1-AI_2.20180905/HFuse_het_2chain_2arm_database.Sh13-5+1-AI_2.20180905.json
 
 
---output_prefix /home/sheffler/src/worms/test_extension_cyclic/cyclic
+--output_prefix /home/sheffler/src/worms/test_extension_c3/c3
 --save_minimal_replicate_database 0
 
 --min_seg_len  200
@@ -26,7 +26,7 @@
 
 --repeat_axis_check  1
 --repeat_axis_weight  50.0
---repeat_add_to_output 0 1 2 3 4 5 6 7 8 9 
+--repeat_add_to_output 0 4
 --repeat_add_to_segment 1
 --output_extra_alignments 1
 

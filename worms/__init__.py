@@ -45,3 +45,6 @@ from worms import extension
 # from worms.khash import * # khash_cffi needs updating for numba 0.49+
 # from worms.bblock import *
 # from worms.vertex import *
+import icecream
+
+icecream.install()

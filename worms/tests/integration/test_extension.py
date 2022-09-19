@@ -24,6 +24,8 @@ def main():
    # _test_extension()
    test_extension_output()
 
+CREATE_NEW_RESULTS = False
+
 def test_extension_output(sym='oct'):
 
    argv = ['@' + worms.data.test_file_path(f'test_extension/config/test_extension_{sym}.flags')]
@@ -45,13 +47,15 @@ def test_extension_output(sym='oct'):
    kw.timer.checkpoint('startup')
    tmpfn = f'test_results_{sym}.pickle'
 
-   CREATE_NEW_RESULTS = True
    if CREATE_NEW_RESULTS:
       ssdag, result = worms.app.run_simple(criteria, **kw)
+      wu.save((ssdag, result), tmpfn)
       result2 = worms.filters.prune_clashes(ssdag, criteria, result, **kw)
+      wu.save((ssdag, result), tmpfn)
       kw.timer.checkpoint('prune_clashes')
       print('clashes:', len(result.idx), len(result2.idx))
       result3 = worms.filters.check_geometry(ssdag, criteria, result2, **kw)
+      wu.save((ssdag, result), tmpfn)
       result = result3
       assert len(result) > 0
       kw.timer.checkpoint('run simple')
@@ -63,13 +67,15 @@ def test_extension_output(sym='oct'):
 
       kw.timer.checkpoint('load test results')
 
-      # assert 0
+   # assert 0
 
-      # import pickle
-      # with open(
-      #       '/home/sheffler/src/worms/worms/data/test_cases/test_extension/testcache/test_extension_reference_results.pickle',
-      #       'rb') as inp:
+   # import pickle
+   # with open(
+   #       '/home/sheffler/src/worms/worms/data/test_cases/test_extension/testcache/test_extension_reference_results.pickle',
+   #       'rb') as inp:
    #    crit, ssdag, result = pickle.load(inp)
+
+   print('results:', result.idx.shape)
 
    worms.output.filter_and_output_results(
       criteria,
@@ -85,7 +91,7 @@ def test_extension_output(sym='oct'):
          merge_bblock=0,
          # output_prefix='testout_break/testout_break',
          ignore_recoverable_errors=False,
-         # only_outputs=[0],
+         only_outputs=[0],
       ),
    )
 

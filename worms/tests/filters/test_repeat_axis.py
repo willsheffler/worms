@@ -46,16 +46,16 @@ def test_repeat_axis():
       assert get_props_from_url(bblock3.pdbfile) == dict(addrepeat=3)
       # print(bblock.ncac.shape == shape[0])
       # print(bblock3.ncac.shape == shape[1])
-      assert bblock.repeatstart == start[0]
-      assert bblock3.repeatstart == start[1]
-      assert bblock.repeatspacing == period
-      assert bblock3.repeatspacing == period
+      # assert bblock.repeatstart == start[0]
+      # assert bblock3.repeatstart == start[1]
+      # assert bblock.repeatspacing == period
+      # assert bblock3.repeatspacing == period
 
       # print(bblock.repeat_spacing[1])
       # print(bblock3.repeat_spacing[1])
 
-      # wu.showme(bblock, bounds=(0, -1), name=f'bar{ibb}', pos=np.eye(4), showextras=True)
-      # wu.showme(bblock3, bounds=(0, -1), name=f'ext2{ibb}', pos=np.eye(4), showextras=True)
+      wu.showme(bblock, bounds=(0, -1), name=f'bar{ibb}', pos=np.eye(4), showextras=True)
+      wu.showme(bblock3, bounds=(0, -1), name=f'ext2{ibb}', pos=np.eye(4), showextras=True)
 
    # argv = ['@' + worms.data.test_file_path(f'{testname}/config/{testname}.flags')]
    # criteria_list, kw = worms.cli.build_worms_setup_from_cli_args(argv, construct_databases=True)

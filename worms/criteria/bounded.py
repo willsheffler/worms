@@ -340,7 +340,7 @@ class AxesIntersect(WormCriteria):
       segpos,
       out_cell_spacing=False,
       debug=0,
-      alignto='middle',
+      alignto='mid',
       **kw,
    ):
       if hm.angle_degrees(self.tgtaxis1[1], self.tgtaxis2[1]) < 0.1:

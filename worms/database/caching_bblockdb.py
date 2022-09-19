@@ -249,7 +249,6 @@ class CachingBBlockDB(worms.database.BBlockDatabaseSuper):
                random.setstate(random_state)
 
          names = names[:max_bblocks]
-
       try:
          return [self.bblock(n) for n in names]
       except ValueError:

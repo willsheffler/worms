@@ -159,6 +159,9 @@ class AxesAngle(WormCriteria):  ## for 2D arrays (maybe 3D in the future?)
          # transform of A1 offest, cell distance (offset along other axis), and A2 offset (<-- we are ignoring this)
          Xalign[..., :, 3] = Xalign[..., :, 3] - (A1offset * self.tgtaxis1)
          # Xalign[..., :, 3] = Xalign[..., :, 3] + [0,cell_dist,0,0]
+
+      # assert 0
+
       if out_cell_spacing:
          return Xalign, cell_dist
       else:

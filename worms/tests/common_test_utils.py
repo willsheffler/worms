@@ -17,7 +17,33 @@ def generic_integration_test(testname):
    #    ssdag, newresult = worms.app.run_simple(criteria, **kw)
    #    wu.save((ssdag, newresult), 'TEST.pickle')
 
+   ic('run_simple')
    ssdag, newresult = worms.app.run_simple(criteria, **kw)
+   # newresult = worms.filters.prune_clashes(ssdag, criteria, newresult, **kw)
+   ic('check_geometry')
+   newresult = worms.filters.check_geometry(ssdag, criteria, newresult, **kw)
+   ic('filter_and_output_results')
+   worms.output.filter_and_output_results(
+      criteria,
+      ssdag,
+      newresult,
+      # use_simple_pose_construction=False,
+      # **kw.sub(output_from_pose=True, merge_bblock=0, output_prefix='testout_orig/testout_orig',
+      # ignore_recoverable_errors=False),
+      # use_simple_pose_construction=False,
+      use_simple_pose_construction=True,
+      **kw.sub(
+         output_from_pose=True,
+         merge_bblock=0,
+         output_prefix=f'{testname}/{testname}_',
+         ignore_recoverable_errors=False,
+         # only_outputs=[0],
+      ),
+   )
+   assert 0
+
+   ic(newresult)
+   assert 0
 
    newresult.sort_on_idx()  # for repeatability
 
@@ -74,7 +100,7 @@ def make_candidate_test_results(
 
    kw.output_prefix = os.path.join(new_test_dir, testname)
    worms.app.output_simple(criteria, ssdag, newresult, extrachains=False, **kw)
-   assert refresult is not None
+   # assert refresult is not None
    if refresult is not None:
       kw.output_suffix = os.path.join('_REF')
       worms.app.output_simple(criteria, ssdag, refresult, extrachains=False, **kw)

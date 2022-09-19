@@ -459,11 +459,11 @@ def align_around_axis(axis, u, v):
 def align_vector(a, b):
    return hrot((hnormalized(a) + hnormalized(b)) / 2, np.pi)
 
-def align_vectors(a1, a2, b1, b2, alignto='middle'):
+def align_vectors(a1, a2, b1, b2, alignto='mid'):
    "minimizes angular error"
    a1, a2, b1, b2 = (hnormalized(v) for v in (a1, a2, b1, b2))
 
-   if alignto == 'start':
+   if alignto == 'beg':
       xalign1 = align_vector(a1, b1)
       xalign2 = align_around_axis(b1, xalign1 @ a2, b2)
 
@@ -471,14 +471,14 @@ def align_vectors(a1, a2, b1, b2, alignto='middle'):
       xalign1 = align_vector(a2, b2)
       xalign2 = align_around_axis(b2, xalign1 @ a1, b1)
 
-   elif alignto == 'middle':
+   elif alignto == 'mid':
       aaxis = (a1 + a2) / 2.0
       baxis = (b1 + b2) / 2.0
       xalign1 = align_vector(aaxis, baxis)
       xalign2 = align_around_axis(baxis, xalign1 @ a1, b1)
 
    else:
-      raise ValueError(f'alignto must be start middle or end not "{alignto}"')
+      raise ValueError(f'alignto must be beg mid or end not "{alignto}"')
    X = xalign2 @ xalign1
 
    # print(alignto)

@@ -23,7 +23,6 @@ def get_latest_testresult(tag, candidates_ok=False):
             assert 0
             return fname, None
    except (TypeError, FileNotFoundError):
-      assert 0
       return fname, None
 
 def make_timestamped_test_dir(tag, candidate=True):

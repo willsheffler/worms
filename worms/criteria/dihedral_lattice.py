@@ -82,7 +82,8 @@ class DihedralCyclicLattice2D(WormCriteria):
          cn = pos[to_seg, :3, 3]
          mn = 9e9
          for i in range(d_2folds.shape[0]):
-            d = hm.numba_line_line_distance_pa(cn, ax, origin, d_2folds[i])
+            p, q = hm.numba_line_line_closest_points_pa(cn, ax, origin, d_2folds[i])
+            d = hm.np.sqrt(np.sum((p - q)**2))
             mn = min(d, mn)
          carterr2 = mn**2  # close to intersecting d_2fold
          angerr2 = (np.arccos(abs(ax[2])) * lever)**2  # C symaxis on z
@@ -93,24 +94,25 @@ class DihedralCyclicLattice2D(WormCriteria):
          ax = pos[to_seg, :3, 2]
          cn = pos[to_seg, :3, 3]
 
-         if abs(ax[2]) > 0.5:
+         if True:  # abs(ax[2]) > 0.5:
             # case: c2 on z
             mn = 9e9
             for i in range(d_2folds.shape[0]):
-               d = hm.numba_line_line_distance_pa(cn, ax, origin, d_2folds[i])
+               p, q = hm.numba_line_line_closest_points_pa(cn, ax, origin, d_2folds[i])
+               d = hm.np.sqrt(np.sum((p - q)**2))
                mn = min(d, mn)
             carterr2 = mn**2
             angerr2 = (np.arccos(abs(ax[2])) * lever)**2
             return np.sqrt(carterr2 + angerr2)
-         else:
-            # case: C2 in plane of sym and perp to one of d_2folds axis
-            dot = 9e9
-            for i in range(d_2folds.shape[0]):
-               dot = min(dot, abs(np.sum(d_2folds[i] * ax)))
-            angerr2_a = (np.arcsin(dot) * lever)**2  # perp to d_2fold
-            angerr2_b = (np.arcsin(ax[2]) * lever)**2  # axis in plane
-            carterr2 = cn[2]**2  # center in plane
-            return np.sqrt(angerr2_a + angerr2_b + carterr2)
+         # else:
+         #    # case: C2 in plane of sym and perp to one of d_2folds axis
+         #    dot = 9e9
+         #    for i in range(d_2folds.shape[0]):
+         #       dot = min(dot, abs(np.sum(d_2folds[i] * ax)))
+         #    angerr2_a = (np.arcsin(dot) * lever)**2  # perp to d_2fold
+         #    angerr2_b = (np.arcsin(ax[2]) * lever)**2  # axis in plane
+         #    carterr2 = cn[2]**2  # center in plane
+         #    return np.sqrt(angerr2_a + angerr2_b + carterr2)
 
       @jit
       def lossfunc_D2_Cx(pos, idx, vrts):
@@ -119,7 +121,8 @@ class DihedralCyclicLattice2D(WormCriteria):
          mn, mni = 9e9, -1
          mxdot, mxdoti = 0, -1
          for i in range(d_2folds.shape[0]):
-            d = hm.numba_line_line_distance_pa(cn, ax, origin, d_2folds[i])
+            p, q = hm.numba_line_line_closest_points_pa(cn, ax, origin, d_2folds[i])
+            d = hm.np.sqrt(np.sum((p - q)**2))
             if d < mn:
                mn, mni = d, i
             dot = abs(np.sum(d_2folds[i] * ax))
@@ -138,7 +141,8 @@ class DihedralCyclicLattice2D(WormCriteria):
          cn = pos[to_seg, :3, 3]
          mn = 9e9
          for i in range(d_2folds.shape[0]):
-            d = hm.numba_line_line_distance_pa(cn, ax, origin, d_2diag[i])
+            p, q = hm.numba_line_line_closest_points_pa(cn, ax, origin, d_2diag[i])
+            d = hm.np.sqrt(np.sum((p - q)**2))
             dot = abs(np.sum(d_2folds[i] * ax))
             angerr2 = (np.arccos(dot) * lever)**2
             mn = min(mn, np.sqrt(d**2 + angerr2))
@@ -169,9 +173,10 @@ class DihedralCyclicLattice2D(WormCriteria):
          p, q = hm.line_line_closest_points_pa(cn, ax, [0, 0, 0], self.d_2folds[mni])
          spacing = np.linalg.norm(p + q) / 2
          xalign = hm.align_vectors([0, 0, 1], q, [0, 0, 1], [1, 0, 0])
-      elif self.d_nfold > 2 and self.c_nfold == 2:
 
-         if abs(ax[2]) > 0.5:
+      elif self.d_nfold > 2 and self.c_nfold == 2:
+         if True:  #abs(ax[2]) > 0.5:
+
             # case: c2 on z pick d2 isects axis
             mn, mni = 9e9, -1
             for i, tf in enumerate(self.d_2folds):
@@ -179,18 +184,24 @@ class DihedralCyclicLattice2D(WormCriteria):
                if d < mn:
                   mn, mni = d, i
             p, q = hm.line_line_closest_points_pa(cn, ax, [0, 0, 0], self.d_2folds[mni])
-            spacing = np.linalg.norm(p + q) / 2
+            # pq = (p + q) / 2
+            spacing = np.linalg.norm(q)
             xalign = hm.align_vectors([0, 0, 1], q, [0, 0, 1], [1, 0, 0])
-         else:
-            # case: c2 prep to z, pick D2 perp to axis
-            mn, mni = 9e9, -1
-            for i, tf in enumerate(self.d_2folds):
-               d = abs(np.sum(tf * ax))
-               if d < mn:
-                  mn, mni = d, i
-            p, q = hm.line_line_closest_points_pa(cn, ax, [0, 0, 0], self.d_2folds[mni])
-            spacing = np.linalg.norm(p + q) / 2
-            xalign = hm.align_vectors([0, 0, 1], q, [0, 0, 1], [1, 0, 0])
+            # ic(p)
+            # ic(q)
+            # ic(pq)
+            # ic(spacing)
+            # assert 0
+         # else:
+         #    # case: c2 prep to z, pick D2 perp to axis
+         #    mn, mni = 9e9, -1
+         #    for i, tf in enumerate(self.d_2folds):
+         #       d = abs(np.sum(tf * ax))
+         #       if d < mn:
+         #          mn, mni = d, i
+         #    p, q = hm.line_line_closest_points_pa(cn, ax, [0, 0, 0], self.d_2folds[mni])
+         #    spacing = np.linalg.norm(p + q) / 2
+         #    xalign = hm.align_vectors([0, 0, 1], q, [0, 0, 1], [1, 0, 0])
 
       elif self.d_nfold == 2 and self.c_nfold > 2:
          mn, mni = 9e9, -1
@@ -260,14 +271,12 @@ def get_2folds(n):
    if n is 2:
       return np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
    if n is 3:
+      # return np.array([[0, 1, 0], [np.sqrt(3) / 2, -0.5, 0], [-np.sqrt(3) / 2, -0.5, 0]])
       return np.array([[1, 0, 0], [-0.5, np.sqrt(3) / 2, 0], [-0.5, -np.sqrt(3) / 2, 0]])
+
    if n is 4:
-      return np.array([
-         [1, 0, 0],
-         [np.sqrt(2) / 2, np.sqrt(2) / 2, 0],
-         [0, 1, 0],
-         [-np.sqrt(2) / 2, np.sqrt(2) / 2, 0],
-      ])
+      return np.array([[1, 0, 0], [np.sqrt(2) / 2, np.sqrt(2) / 2, 0], [0, 1, 0],
+                       [-np.sqrt(2) / 2, np.sqrt(2) / 2, 0]])
    assert 0, ""
 
 def P3m_D3_C3(d3=0, c3=-1):
@@ -289,10 +298,22 @@ def P6m_D2_C6(d2=0, c6=-1):
    return DihedralCyclicLattice2D("P6m_D2_C6_3", d_nfold=2, c_nfold=6, from_seg=d2, to_seg=c6)
 
 def P6m_D3_C2(d3=0, c2=-1):
-   return DihedralCyclicLattice2D("P6m_D3_C2_4", d_nfold=3, c_nfold=2, from_seg=d3, to_seg=c2)
+   return DihedralCyclicLattice2D(
+      "P6m_D3_C2_4",
+      d_nfold=3,
+      c_nfold=2,
+      from_seg=d3,
+      to_seg=c2,
+   )
 
 def P6m_D3_C6(d3=0, c6=-1):
-   return DihedralCyclicLattice2D("P6m_D3_C6_3", d_nfold=3, c_nfold=6, from_seg=d3, to_seg=c6)
+   return DihedralCyclicLattice2D(
+      "P6m_D3_C6_3",
+      d_nfold=3,
+      c_nfold=6,
+      from_seg=d3,
+      to_seg=c6,
+   )
 
 class DihedralCyclicLattice3D(WormCriteria):
    def __init__(
@@ -363,7 +384,7 @@ class DihedralCyclicLattice3D(WormCriteria):
             c_axis_isects = c_tgt_axis_isect[i, 0]
             c_tgt_axis = c_tgt_axis_isect[i, 1]
 
-            # d = hm.numba_line_line_distance_pa(cn, ax, origin, c_axis_isects)
+            # p,q = hm.numba_line_line_closest_points_pa(cn, ax, origin, c_axis_isects)
             p, q = hm.numba_line_line_closest_points_pa(cn, ax, origin, c_axis_isects)
             d = np.linalg.norm(p - q)
 
@@ -386,7 +407,7 @@ class DihedralCyclicLattice3D(WormCriteria):
          for i, _ in enumerate(self.c_tgt_axis_isect):
             c_axis_isects, c_tgt_axis = _
 
-            # d = hm.numba_line_line_distance_pa(cn, ax, origin, c_axis_isects)
+            # p,q = hm.numba_line_line_closest_points_pa(cn, ax, origin, c_axis_isects)
             p, q = hm.line_line_closest_points_pa(cn, ax, origin, c_axis_isects)
             d = np.linalg.norm(p - q)
 

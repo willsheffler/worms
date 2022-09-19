@@ -1,0 +1,52 @@
+--geometry P6m_D3_C6(d3=0, c6=-1)
+--bbconn      
+   _N D3_N
+   CC Het:CC
+   N_ C6_N
+
+--output_prefix test_P6m_D3_C6/P6m_D3_C6_
+
+--nbblocks 4
+--shuffle_bblocks 1
+--shuffle_bblocks_seed 13
+
+
+--print_splice_fail_summary 1
+--print_info_edges_with_no_splices 1
+--xtal_min_cell_size 20
+--xtal_max_cell_size 9e9
+
+--tolerance 4.0
+--lever 100
+--max_score0 10
+--max_score0sym 100
+
+
+--parallel 0
+
+--monte_carlo 0
+--verbosity 2
+
+--cachedirs ./testcache_p6m_D3_C2
+--disable_cache 0
+
+
+
+
+--merge_segment 1
+--no_duplicate_bases 0
+--splice_rms_range 4
+--splice_max_rms 1.0
+--splice_ncontact_cut 1
+--splice_ncontact_no_helix_cut 1
+--splice_nhelix_contacted_cut 1
+--splice_max_chain_length 750
+
+
+--max_clash_check 10000000
+--max_com_redundancy 1.0
+--output_only_AAAA 0
+--dbfiles
+   /home/sheffler/debug/zhe/test_worms_2D-3D_withLHD/2D_arrays/pdb-input_2D/LHD/good_heterodimers.database.20210124.txt
+   /home/sheffler/data/worms/databases/local/wormsdb_local_D3/d3.database.json
+   /home/sheffler/data/worms/databases/local/wormsdb_local_full_HFuse_Cx_database.20180711/HFuse_Cx_database.20180711.json

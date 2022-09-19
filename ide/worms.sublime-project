@@ -2,6 +2,34 @@
 	"build_systems":
 	[
 		{	
+			"name": "test_p6m_D3_C6",
+			"shell_cmd": "cd $folder; rm > /dev/null *.pdb; rm > /dev/null *.json; rm > /dev/null *.info; PYTHONPATH=. python worms/tests/integration/test_p6m_D3_C6.py  &> log/sublime_build.log"
+		},
+		{	
+			"name": "test_p6m_D3_C2",
+			"shell_cmd": "cd $folder; rm > /dev/null *.pdb; rm > /dev/null *.json; rm > /dev/null *.info; PYTHONPATH=. python worms/tests/integration/test_p6m_D3_C2.py  &> log/sublime_build.log"
+		},
+		{	
+			"name": "test_p6m_D2_C3",
+			"shell_cmd": "cd $folder; rm > /dev/null *.pdb; rm > /dev/null *.json; rm > /dev/null *.info; PYTHONPATH=. python worms/tests/integration/test_p6m_D2_C3.py  &> log/sublime_build.log"
+		},
+		{	
+			"name": "test_p4m_D4_C2",
+			"shell_cmd": "cd $folder; rm > /dev/null *.pdb; rm > /dev/null *.json; rm > /dev/null *.info; rm > /dev/null *.sym; PYTHONPATH=. python worms/tests/integration/test_p4m_D4_C2.py  &> log/sublime_build.log"
+		},	
+		{	
+			"name": "test_p4m_D2_C4",
+			"shell_cmd": "cd $folder; rm > /dev/null *.pdb; rm > /dev/null *.json; rm > /dev/null *.info; rm > /dev/null *.sym; PYTHONPATH=. python worms/tests/integration/test_p4m_D2_C4.py  &> log/sublime_build.log"
+		},
+		{	
+			"name": "test_p3m_D3_C3",
+			"shell_cmd": "cd $folder; rm > /dev/null *.pdb; rm > /dev/null *.json; rm > /dev/null *.info; rm > /dev/null *.sym; PYTHONPATH=. python worms/tests/integration/test_p3m_D3_C3.py  &> log/sublime_build.log"
+		},
+		{	
+			"name": "test_p4m_D2_C4",
+			"shell_cmd": "cd $folder; rm > /dev/null *.pdb; rm > /dev/null *.json; rm > /dev/null *.info; rm > /dev/null *.sym; PYTHONPATH=. python worms/tests/integration/test_p4m_D2_C4.py  &> log/sublime_build.log"
+		},
+		{	
 			"name": "test_I213",
 			"shell_cmd": "cd $folder; rm > /dev/null *.pdb; rm > /dev/null *.json; rm > /dev/null *.info; PYTHONPATH=. python worms/tests/integration/test_i213.py  &> log/sublime_build.log"
 		},

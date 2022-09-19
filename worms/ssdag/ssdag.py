@@ -181,8 +181,11 @@ class SearchSpaceDAG(SearchSpaceDAG_Base):
 
       for i, r in enumerate(info.regions.copy()):
          assert isinstance(r, list)
+         ic(i, r)
          nc = all([x.direction in '_C NC N_'.split() for x in r])
          cn = all([x.direction in '_N CN C_'.split() for x in r])
+         ic(nc)
+         ic(cn)
          assert nc != cn
          if cn:
             info.regins[i] = list(reversed(r))
@@ -525,6 +528,7 @@ def simple_search_dag(
          fmx = np.stack([x[13:] for x in edge_analysis]).max(axis=0)
          if print_splice_fail_summary:
             print(f"{' SPLICE FAIL SUMMARY ':=^80}")
+            print(f"total valid splices {edges[i].total_allowed_splices()}")
             print(f"splice clash ok               {int(fok[0]*100):3}%")
             print(f"splice rms ok                 {int(fok[1]*100):3}%")
             print(f"splice ncontacts ok           {int(fok[2]*100):3}%")
@@ -534,6 +538,7 @@ def simple_search_dag(
             print(f"max ncontact of any failing   {fmx[0]} (maybe large for non-5-helix splice)")
             print(f"max ncontact_no_helix         {fmx[1]} (will be 999 for non-5-helix splice)")
             print(f"max nhelix_contacted          {fmx[2]} (will be 999 for non-5-helix splice)")
+
             print("=" * 80)
          assert edges[i].total_allowed_splices() > 0, "invalid, no splices seg %i" % i
 

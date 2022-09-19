@@ -266,81 +266,28 @@ class _BBlock:
    @property
    def _state(self):
       # MUST stay same order as args to __init__!!!!!
-      return (
-         self.json,
-         self.connections,
-         self.file,
-         self.filehash,
-         self.components,
-         self.protocol,
-         self.name,
-         self.classes,
-         self.validated,
-         self._type,
-         self.base,
-         self.basehash,
-         self.ncac,
-         self.cb,
-         self.chains,
-         self.sequence,
-         self.ss,
-         self.stubs,
-         self.com,
-         self.rg,
-         self.numhull,
-         self.hull,
-         self.helixnum,
-         self.helixresbeg,
-         self.helixresend,
-         self.helixbeg,
-         self.helixend,
-         self.repeataxis,
-         self.repeatstart,
-         self.repeatspacing,
-      )
+      return (self.json, self.connections, self.file, self.filehash, self.components,
+              self.protocol, self.name, self.classes, self.validated, self._type, self.base,
+              self.basehash, self.ncac, self.cb, self.chains, self.sequence, self.ss, self.stubs,
+              self.com, self.rg, self.numhull, self.hull, self.helixnum, self.helixresbeg,
+              self.helixresend, self.helixbeg, self.helixend, self.repeataxis, self.repeatstart,
+              self.repeatspacing)
 
    def __setstate__(self, state):
       if len(state) == 27:
          # HACK TO LOAD PICKLE FILES BEFORE REPEAT INFO WAS ADDED
          state = state + (np.array([0, 0, 0, 0]), None, None)
-      (
-         self.json,
-         self.connections,
-         self.file,
-         self.filehash,
-         self.components,
-         self.protocol,
-         self.name,
-         self.classes,
-         self.validated,
-         self._type,
-         self.base,
-         self.basehash,
-         self.ncac,
-         self.cb,
-         self.chains,
-         self.sequence,
-         self.ss,
-         self.stubs,
-         self.com,
-         self.rg,
-         self.numhull,
-         self.hull,
-         self.helixnum,
-         self.helixresbeg,
-         self.helixresend,
-         self.helixbeg,
-         self.helixend,
-         self.repeataxis,
-         self.repeatstart,
-         self.repeatspacing,
-      ) = state
+      (self.json, self.connections, self.file, self.filehash, self.components, self.protocol,
+       self.name, self.classes, self.validated, self._type, self.base, self.basehash, self.ncac,
+       self.cb, self.chains, self.sequence, self.ss, self.stubs, self.com, self.rg, self.numhull,
+       self.hull, self.helixnum, self.helixresbeg, self.helixresend, self.helixbeg, self.helixend,
+       self.repeataxis, self.repeatstart, self.repeatspacing) = state
 
    def __getstate__(self):
       return self._state
 
    def get_pdb_file(self):
-      return unnpfb(self.file)
+      return str(unnpfb(self.file))
 
    def equal_to(self, other):
       # return generic_equals(self._state, other._state)
@@ -570,7 +517,7 @@ def npfb(s):
    return np.frombuffer(s.encode(), dtype='i1')
 
 def unnpfb(fb):
-   return bytes(fb).decode()
+   return str(bytes(fb).decode())
 
 def get_repeat_axis(bblock, start, spacing, **kw):
 

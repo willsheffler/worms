@@ -5,17 +5,11 @@
  N_ C2_N
 
 --dbfiles
-      #/home/sheffler/src/worms/worms/data/test_cases/test_extension/databases/test_extension__mbb0000__minimal_replicate_database.txz
-      # /test_extension__mbb0000__minimal_replicate_database.txz
-      # test_extension__mbb0001__minimal_replicate_database.txz
-      # test_extension__mbb0002__minimal_replicate_database.txz
-      # test_extension__mbb0003__minimal_replicate_database.txz
-      # /home/yhsia/helixfuse/2018-07-09_sym/processing/database/HFuse_Cx_database.20180711.txt
-      /home/sheffler/data/worms/HFuse_Cx_database.20180711_small.txt
       /home/sheffler/debug/worms_extension/input/straight_DHR.local.json
+      /home/sheffler/data/worms/databases/local/wormsdb_local_HFuse_Cx_database.20180711/HFuse_Cx_database.20180711.json
 
    
---output_prefix /home/sheffler/src/worms/test_ext_oct/test_extension_oct_2
+--output_prefix /home/sheffler/src/worms/test_ext_oct/nocen
 --save_minimal_replicate_database 1
 
 --min_seg_len  200
@@ -24,15 +18,18 @@
 --shuffle_bblocks_seed 0
 
 --tolerance  1.0
---max_score0  3
---max_score0sym  10
+--max_score0  30
+--max_score0sym  10000
+
+ --output_extra_alignments 1
+
 
 --disable_cache 1
 --output_from_pose 0
 
 --repeat_axis_check  1
 --repeat_axis_weight  100.0
---repeat_add_to_output 0 1 2
+--repeat_add_to_output 0 4
 --repeat_add_to_segment 1
 
 --monte_carlo 0

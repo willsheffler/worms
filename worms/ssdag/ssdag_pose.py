@@ -18,7 +18,7 @@ def make_pose_crit(
    provenance=False,
    join=True,
    full_output_segs=[],
-   alignto='middle',
+   alignto='mid',
    **kw,
 ):
    cryst_info = None

@@ -83,6 +83,7 @@ def filter_and_output_results(
       PING('mbb%i' % merge_bblock, print_pings)
       # do this once per run, at merge_bblock == 0 (or None)
       outdir = os.path.dirname(head)
+      os.makedirs(outdir, exist_ok=True)
       with open(head + "__HEADER.info", "w") as info_file:
          PING('mbb%i' % merge_bblock, print_pings)
          info_file.write("close_err close_rms score0 score0sym filter zheight zradius " +
@@ -112,6 +113,7 @@ def filter_and_output_results(
          assert xalign is not None
          if xalign is None:
             numfail.xalign += 1
+            ic(numfail.xalign)
             continue
 
          cystinfo = None
@@ -171,20 +173,20 @@ def filter_and_output_results(
       for iresult in _stuff:
 
          # print('!' * 80)
-         # xrand = wu.hrand(1, 1, 0.05, seed=7)
+         # xrand = wu.hrand(1, 3, 0.5, seed=7)
          # result.pos[iresult][1] = xrand @ result.pos[iresult][1]
          # result.pos[iresult][2] = xrand @ result.pos[iresult][2]
          # print('!' * 80)
 
          # bblock = ssdag.bblocks[iseg][ssdag.verts[iseg].ibblock[idx[iseg]]]
          for iseg in range(len(result.idx[iresult])):
-            print(iseg, 'bblock')
+            # print(iseg, 'bblock')
             ivert = result.idx[iresult][iseg]
             ibblock = ssdag.verts[iseg].ibblock[ivert]
             segbbs = ssdag.bblocks[iseg]
             bblock = segbbs[ibblock]
-            print(bblock.pdbfile)
-            print()
+            print(iseg, bblock.pdbfile)
+            # print()
 
          for foo in kw.repeat_add_to_output:
             assert 0 <= foo <= 100
@@ -200,26 +202,12 @@ def filter_and_output_results(
             PING('mbb%i' % merge_bblock, print_pings)
 
             if only_outputs and iresult not in only_outputs:
-               print('output skipping', iresult)
+               # print('output skipping', iresult)
                numfail.only_outputs += 1
                # print(iresult, only_outputs)
                # print(numfail)
                # assert 0
                continue
-
-            crystinfo = None
-            if hasattr(criteria, "crystinfo"):
-               crystinfo = criteria.crystinfo(segpos=result.pos[iresult])
-               if crystinfo:
-                  assert not extensions
-                  if crystinfo[0] < kw.xtal_min_cell_size:
-                     numfail.cell_to_small += 1
-                     continue
-                  if crystinfo[0] > kw.xtal_max_cell_size:
-                     numfail.cell_to_big += 1
-                     continue
-                     # locally trying i432 cagextal -- issue with symops return none on xalign fail
-                     # digs trying p432 again
 
             # print(getmem(), 'MEM ================ top of loop ===============')
 
@@ -271,9 +259,8 @@ def filter_and_output_results(
                # if True:
                print('output.py: use_simple_pose_construction')
                sinfo = ssdag.get_structure_info(result.idx[0])
-               # xalign = criteria.alignment(result.pos[iresult])
-               xalign = criteria.alignment(result.pos[iresult], alignto='mid')
 
+               xalign = criteria.alignment(result.pos[iresult], alignto='mid')
                if isinstance(criteria, worms.criteria.AxesIntersect):
                   xalign, extpos = worms.extension.modify_xalign_cage_by_extension(
                      ssdag,
@@ -299,12 +286,25 @@ def filter_and_output_results(
                      **kw,
                   )
 
-               elif isinstance(criteria, worms.criteria.AxisAngle):
-                  assert not extensions
-                  extpos = retult.pos[iresult]
+               elif isinstance(criteria, worms.criteria.AxesAngle):
+                  extpos = result.pos[iresult]
+                  if extensions:
+                     extpos, _ = worms.extension.get_extended_pos(
+                        ssdag,
+                        result.idx[iresult],
+                        result.pos[iresult],
+                        xalign,
+                        sinfo.bblocks,
+                        database.bblockdb,
+                        extensions=extensions,
+                        database=database,
+                        **kw,
+                     )
+                  xalign = criteria.alignment(extpos, alignto='mid')
+
                else:
                   assert not extensions
-                  extpos = retult.pos[iresult]
+                  extpos = result.pos[iresult]
 
                pose, prov = worms.ssdag.make_pose_simple(
                   # pose2, prov2 = worms.ssdag.make_pose_simple(
@@ -351,6 +351,48 @@ def filter_and_output_results(
                   numfail.make_pose_crit += 1
                   continue
 
+            crystinfo = None
+            cell_spacing = 0
+            if hasattr(criteria, "crystinfo"):
+               crystinfo = criteria.crystinfo(segpos=extpos)
+               if crystinfo:
+
+                  cryst_info = criteria.crystinfo(segpos=extpos)
+                  ci = ros.core.io.CrystInfo()
+                  ci.A(cryst_info[0])  # cell dimensions
+                  ci.B(cryst_info[1])
+                  ci.C(cryst_info[2])
+                  ci.alpha(cryst_info[3])  # cell angles
+                  ci.beta(cryst_info[4])
+                  ci.gamma(cryst_info[5])
+                  ci.spacegroup(cryst_info[6])  # sace group
+                  pi = ros.core.pose.PDBInfo(pose)
+                  pi.set_crystinfo(ci)
+                  pose.pdb_info(pi)
+                  cell_spacing = crystinfo[0]
+            elif criteria.symname.startswith('P'):
+               _xalign, cell_spacing = criteria.alignment(extpos, out_cell_spacing=True)
+               # assert not extensions
+               # ic(cell_spacing)
+               # ic(criteria.symname)cell_spacing
+               # assert 0
+
+            # assert not extensions
+            ic(cell_spacing)
+            # ic(criteria.symname)
+            # assert 0
+            if cell_spacing != 0:
+               if cell_spacing < kw.xtal_min_cell_size:
+                  numfail.cell_to_small += 1
+                  ic('numfail_cell_too_small', cell_spacing, kw.xtal_min_cell_size)
+                  continue
+               if cell_spacing > kw.xtal_max_cell_size:
+                  numfail.cell_to_big += 1
+                  ic('numfail.cell_to_big', cell_spacing, wk.xtal_max_cell_size)
+                  continue
+                  # locally trying i432 cagextal -- issue with symops return none on xalign fail
+                  # digs trying p432 again
+
             # pose.dump_pdb('pose1.pdb')
             # pose2.dump_pdb('pose2.pdb')
             # for i in range(len(prov)):
@@ -380,6 +422,7 @@ def filter_and_output_results(
                   redundant = True
             if redundant:
                numfail.redundant += 1
+               ic(numfail.redundant)
                continue
             seenpose[pose.size()].append(pose)
 
@@ -402,6 +445,7 @@ def filter_and_output_results(
             if output_only_AAAA and grade != "AAAA":
                print(f"mbb{merge_bblock:04} {iresult:06} bad grade", grade)
                numfail.only_AAAA += 1
+               ic(numfail.only_AAAA)
                continue
 
             # print(getmem(), 'MEM rms before')
@@ -418,6 +462,7 @@ def filter_and_output_results(
                print(f"mbb{merge_bblock:04} {iresult:06} score0 fail", merge_bblock, iresult,
                      "score0", score0, "rms", rms, "grade", grade)
                numfail.score0 += 1
+               ic(numfail.score0, score0)
                continue
 
             PING('mbb%i' % merge_bblock, print_pings)
@@ -425,6 +470,7 @@ def filter_and_output_results(
             symops = criteria.symops(segpos=result.pos[iresult])
             if symops == list():
                numfail.symops += 1
+               ic(numfail.symops)
                continue
 
             symfilestr = None
@@ -458,6 +504,7 @@ def filter_and_output_results(
                #    sympose.dump_pdb(f'symops_{merge_bblock}_{iresult}.pdb')
 
             else:
+
                usecryst = pose.pdb_info() is not None and pose.pdb_info().crystinfo().A() > 0
                usecryst &= crystinfo is not None
 
@@ -469,8 +516,9 @@ def filter_and_output_results(
                   print('cell size', crystinfo[0], pose.pdb_info().crystinfo().A())
 
                   def fsym(cenpose):
-                     sympose = cenpos.clone()
-                     ros.protocols.cryst.MakeLatticeMover().apply(sympose)
+                     sympose = cenpose.clone()
+                     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                     # ros.protocols.cryst.MakeLatticeMover().apply(sympose)
                      return sympose
 
                   f_symmetrize = fsym
@@ -515,6 +563,7 @@ def filter_and_output_results(
                print(f"mbb{merge_bblock:06} {iresult:04} score0sym fail", score0sym, "rms", rms,
                      "grade", grade)
                numfail.score0sym += 1
+               ic(numfail.score0sym, score0sym)
                continue
 
             # mbbstr = "None"

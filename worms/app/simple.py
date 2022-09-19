@@ -17,6 +17,11 @@ def run_simple(
 
    ssdag = worms.ssdag.simple_search_dag(criteria, lbl='all', **kw).ssdag
 
+   for i, bb in enumerate(ssdag.bbs):
+      print(i, len(bb))
+      for j, b in enumerate(bb):
+         print(i, j, bytes(b.file))
+
    worms.PING('call grow_linear')
    result = grow_linear(
       ssdag=ssdag,

@@ -15,7 +15,7 @@ def modify_xalign_cyclic_by_extension(
    if not extensions or set(extensions.values()) == {0}:
       return xalign, pos
 
-   extpos = get_extended_pos(ssdag, idx, pos, xalign, bblocks, bblockdb, extensions, **kw)
+   extpos, bblock = get_extended_pos(ssdag, idx, pos, xalign, bblocks, bblockdb, extensions, **kw)
    x_from = xalign @ extpos[0]
    x_to = xalign @ extpos[-1]
    xhat = x_to @ wu.hinv(x_from)
@@ -45,7 +45,11 @@ def modify_xalign_cage_by_extension(
    if not extensions or set(extensions.values()) == {0}:
       return xalign, pos
 
-   extpos = get_extended_pos(ssdag, idx, pos, xalign, bblocks, bblockdb, extensions, **kw)
+   alnpos = xalign @ pos
+   iseg = list(extensions.keys())[0]
+   segpos = alnpos[iseg]
+   nrepeat = list(extensions.values())[0]
+   extpos, bblock = get_extended_pos(ssdag, idx, pos, xalign, bblocks, bblockdb, extensions, **kw)
 
    cyc0 = bblocks[0].classes.split('_')[0]
    cyc1 = bblocks[-1].classes.split('_')[0]
@@ -116,4 +120,4 @@ def get_extended_pos(
    for iseg2 in range(iseg + 1, len(idx)):
       pos[iseg2] = np.linalg.inv(xalign) @ xextend @ xalign @ pos[iseg2]
 
-   return pos
+   return pos, bblock
